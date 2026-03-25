@@ -3,7 +3,7 @@ import os
 import resend
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
-FROM_EMAIL = os.getenv("FROM_EMAIL", "isibi <noreply@isibi.ai>")
+FROM_EMAIL = os.getenv("FROM_EMAIL", "isibi.ai <onboarding@resend.dev>")
 
 
 def _init():
