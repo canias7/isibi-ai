@@ -20,17 +20,6 @@ import models  # noqa: F401
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # TEMPORARY: Drop old schema with INTEGER ids, recreate with UUID
-    # TODO: Remove the DROP block after first successful deploy
-    try:
-        async with engine.begin() as conn:
-            await conn.execute(text("DROP SCHEMA public CASCADE"))
-            await conn.execute(text("CREATE SCHEMA public"))
-            await conn.execute(text("GRANT ALL ON SCHEMA public TO PUBLIC"))
-        print("OLD SCHEMA DROPPED")
-    except Exception as e:
-        print(f"Schema drop skipped: {e}")
-
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     print("ALL TABLES CREATED")
