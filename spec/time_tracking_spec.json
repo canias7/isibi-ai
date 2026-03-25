@@ -1,0 +1,2348 @@
+{
+  "_meta": {
+    "title": "Time Tracking Application",
+    "domain": "Operations & Internal Tools",
+    "version": "1.0"
+  },
+  "tech_stack": {
+    "frontend": [
+      "React 18 TS strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form + Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node/Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "background": "slate-950",
+    "accent": "indigo",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber",
+    "timer_active_color": "indigo",
+    "timer_paused_color": "amber",
+    "status_colors": {
+      "running": "indigo",
+      "paused": "amber",
+      "stopped": "slate",
+      "submitted": "blue",
+      "approved": "green",
+      "rejected": "red"
+    },
+    "billable_color": "emerald",
+    "non_billable_color": "slate"
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK\u2192organizations, indexed on every table"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null
+    }
+  },
+  "entities": [
+    {
+      "name": "TimeEntry",
+      "table": "time_entries",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "user_id",
+            "date"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "project_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "task_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "timer_state"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "user_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(1000)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "maxLength": 1000
+          }
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "projects",
+          "input_component": "ProjectSelector",
+          "display_component": "ProjectBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "task_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "tasks",
+          "input_component": "TaskSelector",
+          "display_component": "TaskBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "CURRENT_DATE",
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TimePicker",
+          "display_component": "TimeDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TimePicker",
+          "display_component": "TimeDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "duration_minutes",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "notes": "Manual duration or computed from start/end. Editable for manual entries",
+          "input_component": "DurationInput",
+          "display_component": "DurationDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "min": 1,
+            "max": 1440
+          }
+        },
+        {
+          "name": "timer_state",
+          "db_type": "ENUM('running','paused','stopped')",
+          "ts_type": "'running' | 'paused' | 'stopped'",
+          "nullable": false,
+          "default": "stopped",
+          "input_component": null,
+          "display_component": "TimerStateBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "is_billable",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "BillableBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "notes": "Inherited from project or user rate if not set",
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "billable_amount",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "self",
+            "formula": "(duration_minutes / 60.0) * hourly_rate",
+            "trigger": [
+              "update"
+            ],
+            "storage": "stored"
+          },
+          "formula": "(duration_minutes / 60.0) * hourly_rate",
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('draft','submitted','approved','rejected')",
+          "ts_type": "'draft' | 'submitted' | 'approved' | 'rejected'",
+          "nullable": false,
+          "default": "draft",
+          "input_component": null,
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "timesheet_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "timesheets",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "tags",
+          "db_type": "TEXT[]",
+          "ts_type": "string[]",
+          "nullable": false,
+          "default": "ARRAY[]::TEXT[]",
+          "input_component": "TagInput",
+          "display_component": "TagList",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_time_entries_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_time_entries_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Timesheet",
+      "table": "timesheets",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "user_id",
+            "period_start"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "manager_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "user_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "period_start",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "period_end",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "total_minutes",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "time_entries",
+            "formula": "SUM(time_entries.duration_minutes WHERE timesheet_id = timesheets.id)",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "computed_on_read"
+          },
+          "input_component": null,
+          "display_component": "DurationDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "billable_minutes",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "time_entries",
+            "formula": "SUM(duration_minutes WHERE is_billable = true AND timesheet_id = timesheets.id)",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "computed_on_read"
+          },
+          "input_component": null,
+          "display_component": "DurationDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('draft','submitted','approved','rejected')",
+          "ts_type": "'draft' | 'submitted' | 'approved' | 'rejected'",
+          "nullable": false,
+          "default": "draft",
+          "input_component": null,
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "manager_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "submitted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "approved_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "rejection_reason",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_timesheets_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_timesheets_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "ProjectRate",
+      "table": "project_rates",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "project_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "user_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "projects",
+          "input_component": "ProjectSelector",
+          "display_component": "ProjectBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "user_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "notes": "null = default rate for all users on project",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        {
+          "name": "currency",
+          "db_type": "VARCHAR(3)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "USD",
+          "input_component": "CurrencySelect",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "effective_from",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "CURRENT_DATE",
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "effective_to",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": null
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_project_rates_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_project_rates_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "TimerSnapshot",
+      "table": "timer_snapshots",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "user_id",
+            "is_active"
+          ]
+        },
+        {
+          "columns": [
+            "time_entry_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "user_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "time_entry_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "time_entries",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "started_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "paused_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "accumulated_seconds",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "notes": "Total seconds accumulated before last pause",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": null
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_timer_snapshots_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_timer_snapshots_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "name": "TimerWidget",
+      "type": "Widget",
+      "props": {
+        "position": "sticky_top",
+        "always_visible": true
+      },
+      "features": [
+        "start_timer",
+        "pause_timer",
+        "stop_timer",
+        "running_display",
+        "project_task_selector",
+        "billable_toggle",
+        "description_input",
+        "discard_timer"
+      ]
+    },
+    {
+      "name": "TimeEntryList",
+      "type": "DataTable",
+      "props": {
+        "columns": [
+          "date",
+          "description",
+          "project_id",
+          "task_id",
+          "duration_minutes",
+          "is_billable",
+          "billable_amount",
+          "status"
+        ],
+        "groupBy": "date",
+        "sortable": true,
+        "filterable": true
+      },
+      "features": [
+        "inline_edit",
+        "delete",
+        "copy_entry",
+        "bulk_submit",
+        "running_entry_highlight"
+      ]
+    },
+    {
+      "name": "WeeklyTimesheetGrid",
+      "type": "Grid",
+      "props": {
+        "rows": "projects/tasks",
+        "columns": "days_of_week",
+        "footer": "daily_totals"
+      },
+      "features": [
+        "inline_duration_edit",
+        "add_row",
+        "submit_timesheet",
+        "export_csv",
+        "copy_previous_week"
+      ]
+    },
+    {
+      "name": "TimeEntryForm",
+      "type": "Form",
+      "props": {
+        "fields": [
+          "description",
+          "project_id",
+          "task_id",
+          "date",
+          "start_time",
+          "end_time",
+          "duration_minutes",
+          "is_billable",
+          "hourly_rate",
+          "tags",
+          "notes"
+        ],
+        "layout": "single_column"
+      },
+      "features": [
+        "duration_auto_calc",
+        "rate_inheritance",
+        "validation"
+      ]
+    },
+    {
+      "name": "TimesheetApprovalTable",
+      "type": "DataTable",
+      "props": {
+        "columns": [
+          "user_id",
+          "period_start",
+          "period_end",
+          "total_minutes",
+          "billable_minutes",
+          "status",
+          "submitted_at"
+        ]
+      },
+      "features": [
+        "approve",
+        "reject",
+        "view_entries",
+        "bulk_approve"
+      ]
+    },
+    {
+      "name": "TimeAnalyticsBoard",
+      "type": "Dashboard",
+      "widgets": [
+        "TotalHoursChart",
+        "BillableVsNonBillableChart",
+        "ProjectBreakdownChart",
+        "TeamUtilizationChart",
+        "TopProjectsTable",
+        "DailyHeatmap"
+      ]
+    },
+    {
+      "name": "TotalHoursChart",
+      "type": "BarChart",
+      "library": "Recharts",
+      "props": {
+        "xAxis": "week",
+        "yAxis": "hours",
+        "series": [
+          "billable",
+          "non_billable"
+        ]
+      }
+    },
+    {
+      "name": "ProjectBreakdownChart",
+      "type": "DonutChart",
+      "library": "Recharts",
+      "props": {
+        "dataKey": "hours",
+        "nameKey": "project_name"
+      }
+    },
+    {
+      "name": "DailyHeatmap",
+      "type": "HeatmapCalendar",
+      "props": {
+        "valueKey": "total_minutes",
+        "colorScale": "indigo"
+      },
+      "features": [
+        "click_to_filter",
+        "tooltip_hours"
+      ]
+    },
+    {
+      "name": "TeamUtilizationChart",
+      "type": "BarChart",
+      "library": "Recharts",
+      "props": {
+        "xAxis": "user",
+        "yAxis": "utilization_pct",
+        "target_line": 80
+      }
+    },
+    {
+      "name": "RunningTimerBadge",
+      "type": "Badge",
+      "props": {
+        "variant": "indigo",
+        "animated": true
+      },
+      "features": [
+        "live_elapsed_time",
+        "click_to_open"
+      ]
+    },
+    {
+      "name": "ProjectRateTable",
+      "type": "DataTable",
+      "props": {
+        "columns": [
+          "project_id",
+          "user_id",
+          "hourly_rate",
+          "currency",
+          "effective_from",
+          "effective_to"
+        ]
+      },
+      "features": [
+        "create_rate",
+        "edit_inline",
+        "delete"
+      ]
+    },
+    {
+      "name": "TimesheetDetailDrawer",
+      "type": "Drawer",
+      "features": [
+        "entry_list",
+        "totals_summary",
+        "approve_reject_buttons",
+        "download_pdf"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "name": "MyTime",
+      "path": "/time/my",
+      "description": "Personal time tracking: timer, daily log, weekly view",
+      "components": [
+        "TimerWidget",
+        "TimeEntryList",
+        "WeeklyTimesheetGrid",
+        "TimeEntryForm"
+      ],
+      "default_filters": {
+        "user_id": "current_user"
+      },
+      "views": [
+        "Day",
+        "Week",
+        "Month"
+      ]
+    },
+    {
+      "name": "Timesheets",
+      "path": "/time/timesheets",
+      "description": "Submit and track weekly timesheets",
+      "components": [
+        "WeeklyTimesheetGrid",
+        "TimesheetApprovalTable"
+      ],
+      "tabs": [
+        "My Timesheets",
+        "Team Timesheets (manager)"
+      ]
+    },
+    {
+      "name": "ApprovalQueue",
+      "path": "/time/approvals",
+      "description": "Manager timesheet approval queue",
+      "components": [
+        "TimesheetApprovalTable",
+        "TimesheetDetailDrawer"
+      ],
+      "default_filters": {
+        "status": "submitted",
+        "manager_id": "current_user"
+      }
+    },
+    {
+      "name": "TimeAnalytics",
+      "path": "/time/analytics",
+      "description": "Team and project time analytics",
+      "components": [
+        "TimeAnalyticsBoard"
+      ],
+      "features": [
+        "date_range_filter",
+        "user_filter",
+        "project_filter",
+        "export_csv"
+      ]
+    },
+    {
+      "name": "RateSettings",
+      "path": "/settings/rates",
+      "description": "Configure billing rates per project and user",
+      "components": [
+        "ProjectRateTable"
+      ],
+      "features": [
+        "create_rate",
+        "edit_rate",
+        "rate_history"
+      ]
+    }
+  ],
+  "api": {
+    "time_entries": {
+      "GET /api/time-entries": {
+        "description": "List time entries",
+        "query_params": [
+          "user_id",
+          "project_id",
+          "task_id",
+          "date_from",
+          "date_to",
+          "status",
+          "is_billable",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "PaginatedTimeEntry[]",
+        "response_envelope": {
+          "data": "PaginatedTimeEntry[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "POST /api/time-entries": {
+        "description": "Create manual time entry",
+        "body": "CreateTimeEntryDto",
+        "response": "TimeEntry"
+      },
+      "GET /api/time-entries/:id": {
+        "description": "Get time entry detail",
+        "response": "TimeEntryWithRelations"
+      },
+      "PATCH /api/time-entries/:id": {
+        "description": "Update time entry",
+        "body": "UpdateTimeEntryDto",
+        "response": "TimeEntry"
+      },
+      "DELETE /api/time-entries/:id": {
+        "description": "Delete time entry",
+        "response": "void"
+      },
+      "POST /api/time-entries/bulk-submit": {
+        "description": "Submit entries to timesheet",
+        "body": "BulkDto",
+        "response": "BulkOperationResult"
+      }
+    },
+    "timer": {
+      "POST /api/timer/start": {
+        "description": "Start timer for new entry",
+        "body": "StartTimerDto",
+        "response": "TimerSnapshot"
+      },
+      "POST /api/timer/pause": {
+        "description": "Pause running timer",
+        "body": "{snapshot_id}",
+        "response": "TimerSnapshot"
+      },
+      "POST /api/timer/resume": {
+        "description": "Resume paused timer",
+        "body": "{snapshot_id}",
+        "response": "TimerSnapshot"
+      },
+      "POST /api/timer/stop": {
+        "description": "Stop timer and create time entry",
+        "body": "StopTimerDto",
+        "response": "TimeEntry"
+      },
+      "GET /api/timer/current": {
+        "description": "Get current running timer for user",
+        "response": "TimerSnapshot | null",
+        "query_params": [
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response_envelope": {
+          "data": "TimerSnapshot | null",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "DELETE /api/timer/discard": {
+        "description": "Discard running timer without saving",
+        "response": "void"
+      }
+    },
+    "timesheets": {
+      "GET /api/timesheets": {
+        "description": "List timesheets",
+        "query_params": [
+          "user_id",
+          "status",
+          "period_start",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "PaginatedTimesheet[]",
+        "response_envelope": {
+          "data": "PaginatedTimesheet[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "POST /api/timesheets/generate": {
+        "description": "Generate timesheet for period",
+        "body": "GenerateTimesheetDto",
+        "response": "Timesheet"
+      },
+      "POST /api/timesheets/:id/submit": {
+        "description": "Submit timesheet for approval",
+        "response": "Timesheet"
+      },
+      "POST /api/timesheets/:id/approve": {
+        "description": "Approve timesheet",
+        "response": "Timesheet"
+      },
+      "POST /api/timesheets/:id/reject": {
+        "description": "Reject timesheet with reason",
+        "body": "RejectDto",
+        "response": "Timesheet"
+      },
+      "GET /api/timesheets/:id/export": {
+        "description": "Export timesheet as PDF",
+        "response": "Buffer"
+      }
+    },
+    "analytics": {
+      "GET /api/time/analytics/summary": {
+        "description": "Summary stats",
+        "query_params": [
+          "user_id",
+          "project_id",
+          "date_from",
+          "date_to",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "TimeAnalyticsSummary",
+        "response_envelope": {
+          "data": "TimeAnalyticsSummary",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "GET /api/time/analytics/by-project": {
+        "description": "Hours by project",
+        "response": "ProjectHours[]",
+        "query_params": [
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response_envelope": {
+          "data": "ProjectHours[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "GET /api/time/analytics/trend": {
+        "description": "Weekly hours trend",
+        "query_params": [
+          "weeks",
+          "user_id",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "WeeklyTrend[]",
+        "response_envelope": {
+          "data": "WeeklyTrend[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "GET /api/time/analytics/utilization": {
+        "description": "Team utilization rates",
+        "query_params": [
+          "date_from",
+          "date_to",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "UserUtilization[]",
+        "response_envelope": {
+          "data": "UserUtilization[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "roles": [
+      "owner",
+      "admin",
+      "manager",
+      "finance",
+      "employee",
+      "viewer"
+    ],
+    "matrix": {
+      "time_entry.create": [
+        "owner",
+        "admin",
+        "manager",
+        "finance",
+        "employee"
+      ],
+      "time_entry.edit_own": [
+        "owner",
+        "admin",
+        "manager",
+        "finance",
+        "employee"
+      ],
+      "time_entry.edit_any": [
+        "owner",
+        "admin",
+        "manager"
+      ],
+      "time_entry.delete_own": [
+        "owner",
+        "admin",
+        "manager",
+        "finance",
+        "employee"
+      ],
+      "time_entry.delete_any": [
+        "owner",
+        "admin"
+      ],
+      "time_entry.view_all": [
+        "owner",
+        "admin",
+        "manager",
+        "finance"
+      ],
+      "time_entry.view_own": [
+        "employee",
+        "viewer"
+      ],
+      "timesheet.submit_own": [
+        "owner",
+        "admin",
+        "manager",
+        "finance",
+        "employee"
+      ],
+      "timesheet.approve": [
+        "owner",
+        "admin",
+        "manager"
+      ],
+      "timesheet.view_all": [
+        "owner",
+        "admin",
+        "manager",
+        "finance"
+      ],
+      "analytics.view": [
+        "owner",
+        "admin",
+        "manager",
+        "finance"
+      ],
+      "rates.manage": [
+        "owner",
+        "admin",
+        "finance"
+      ],
+      "rates.view": [
+        "owner",
+        "admin",
+        "manager",
+        "finance"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      {
+        "name": "timerStore",
+        "state": [
+          "activeTimer",
+          "elapsedSeconds",
+          "timerInterval"
+        ],
+        "actions": [
+          "startTimer",
+          "pauseTimer",
+          "resumeTimer",
+          "stopTimer",
+          "discardTimer",
+          "tick",
+          "syncFromServer"
+        ]
+      },
+      {
+        "name": "timeEntryStore",
+        "state": [
+          "selectedEntries",
+          "viewMode",
+          "activeFilters",
+          "activeWeek"
+        ],
+        "actions": [
+          "setSelectedEntries",
+          "setViewMode",
+          "setActiveFilters",
+          "setActiveWeek",
+          "clearFilters"
+        ]
+      }
+    ],
+    "query_keys": [
+      "time-entries.list(filters)",
+      "time-entries.detail(id)",
+      "timer.current(userId)",
+      "timesheets.list(filters)",
+      "timesheets.detail(id)",
+      "analytics.summary(filters)",
+      "analytics.by-project(filters)",
+      "analytics.utilization(filters)",
+      "rates.list(projectId)"
+    ]
+  },
+  "websocket": {
+    "events": [
+      {
+        "name": "timer:started",
+        "payload": "TimerSnapshot",
+        "description": "Sync timer state across browser tabs"
+      },
+      {
+        "name": "timer:paused",
+        "payload": "TimerSnapshot",
+        "description": "Sync pause state across tabs"
+      },
+      {
+        "name": "timer:stopped",
+        "payload": "TimeEntry",
+        "description": "Sync stop event, provides new time entry"
+      },
+      {
+        "name": "timesheet:submitted",
+        "payload": "Timesheet",
+        "description": "Notify manager of pending approval"
+      },
+      {
+        "name": "timesheet:approved",
+        "payload": "Timesheet",
+        "description": "Notify employee of approval"
+      },
+      {
+        "name": "timesheet:rejected",
+        "payload": "Timesheet",
+        "description": "Notify employee with rejection reason"
+      }
+    ]
+  },
+  "flows": [
+    {
+      "name": "Start Timer",
+      "trigger": "User clicks Start in TimerWidget",
+      "steps": [
+        "Check if another timer is already running for user",
+        "If yes \u2192 prompt to stop or discard existing timer",
+        "Create TimerSnapshot with started_at = NOW(), is_active = true",
+        "Broadcast timer:started via websocket to sync other tabs",
+        "Begin client-side tick interval (1 second)",
+        "Show RunningTimerBadge in header"
+      ]
+    },
+    {
+      "name": "Stop Timer",
+      "trigger": "User clicks Stop",
+      "steps": [
+        "Calculate total duration from accumulated_seconds + (NOW - last_resumed_at)",
+        "Convert seconds to minutes (round up to nearest minute)",
+        "Create TimeEntry with computed duration_minutes",
+        "Delete TimerSnapshot (or mark is_active = false)",
+        "Broadcast timer:stopped",
+        "Navigate to time entry detail for review"
+      ]
+    },
+    {
+      "name": "Submit Timesheet",
+      "trigger": "Employee clicks Submit Timesheet",
+      "steps": [
+        "Validate all entries in period are present and valid",
+        "Lock entries from editing (set status = submitted)",
+        "Set timesheet status = submitted, submitted_at = NOW()",
+        "Assign to manager, send notification",
+        "Broadcast timesheet:submitted"
+      ]
+    }
+  ],
+  "computed_fields": [
+    {
+      "name": "billable_amount",
+      "entity": "TimeEntry",
+      "formula": "(duration_minutes / 60.0) * COALESCE(hourly_rate, project_rate.hourly_rate, user_default_rate)",
+      "stored": true
+    },
+    {
+      "name": "total_minutes",
+      "entity": "Timesheet",
+      "formula": "SUM(time_entries.duration_minutes) WHERE timesheet_id = timesheets.id",
+      "stored": false
+    },
+    {
+      "name": "billable_minutes",
+      "entity": "Timesheet",
+      "formula": "SUM(time_entries.duration_minutes) WHERE timesheet_id = timesheets.id AND is_billable = true",
+      "stored": false
+    },
+    {
+      "name": "utilization_pct",
+      "entity": "UserAnalytics",
+      "formula": "(billable_minutes / expected_work_minutes) * 100",
+      "stored": false
+    },
+    {
+      "name": "elapsed_display",
+      "entity": "TimerSnapshot",
+      "formula": "accumulated_seconds + EXTRACT(EPOCH FROM NOW() - started_at) - EXTRACT(EPOCH FROM paused_duration)",
+      "stored": false,
+      "client_computed": true
+    }
+  ],
+  "domain_rules": [
+    "Only one active timer allowed per user at a time",
+    "Time entries can only be edited when in draft status",
+    "Timesheet period is Monday-Sunday (configurable per org)",
+    "Timesheets auto-generated weekly; entries assigned by date",
+    "Billable rate resolution: entry-level \u2192 project/user rate \u2192 project default rate \u2192 org default rate",
+    "Minimum billable duration is 1 minute; sub-minute timers round up",
+    "Approved timesheets are locked; require admin to unlock for corrections",
+    "Timer state synced across browser tabs via websocket to prevent double-counting"
+  ],
+  "folder_structure": {
+    "src": {
+      "features": {
+        "time-tracking": {
+          "components": [
+            "TimerWidget.tsx",
+            "TimeEntryList.tsx",
+            "WeeklyTimesheetGrid.tsx",
+            "TimeEntryForm.tsx",
+            "TimesheetApprovalTable.tsx",
+            "RunningTimerBadge.tsx",
+            "TimesheetDetailDrawer.tsx",
+            "DailyHeatmap.tsx"
+          ],
+          "pages": [
+            "MyTimePage.tsx",
+            "TimesheetsPage.tsx",
+            "ApprovalQueuePage.tsx",
+            "TimeAnalyticsPage.tsx",
+            "RateSettingsPage.tsx"
+          ],
+          "hooks": [
+            "useTimer.ts",
+            "useTimeEntries.ts",
+            "useTimesheet.ts",
+            "useTimeAnalytics.ts",
+            "useProjectRates.ts"
+          ],
+          "store": [
+            "timerStore.ts",
+            "timeEntryStore.ts"
+          ],
+          "api": [
+            "timeEntryApi.ts",
+            "timerApi.ts",
+            "timesheetApi.ts",
+            "timeAnalyticsApi.ts"
+          ],
+          "types": [
+            "time.types.ts"
+          ],
+          "utils": [
+            "durationUtils.ts",
+            "rateUtils.ts",
+            "timesheetUtils.ts"
+          ]
+        }
+      }
+    }
+  },
+  "generation_rules": [
+    "Timer is client-driven with server sync: start/stop written to DB, elapsed time computed client-side",
+    "Use localStorage to persist timer state across page refreshes as fallback",
+    "Weekly timesheet grid updates optimistically on cell edit, debounce saves 800ms",
+    "Duration input accepts HH:MM format and converts to minutes on blur",
+    "Billable rate is inherited at time of entry creation and stored; not recalculated on rate change",
+    "time_entries.status transitions: draft \u2192 submitted \u2192 approved/rejected",
+    "Timer must survive page navigation: mount TimerWidget at app root level",
+    "All time calculations done in UTC; display in user's local timezone"
+  ],
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {
+    "timer_state_enum": {
+      "pg_type": "timer_state_type",
+      "ts_type": "TimerStateEnum",
+      "values": [
+        "running",
+        "paused",
+        "stopped"
+      ],
+      "pg_ddl": "CREATE TYPE timer_state_type AS ENUM ('running', 'paused', 'stopped')"
+    },
+    "status_enum": {
+      "pg_type": "status_type",
+      "ts_type": "StatusEnum",
+      "values": [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected"
+      ],
+      "pg_ddl": "CREATE TYPE status_type AS ENUM ('draft', 'submitted', 'approved', 'rejected')"
+    }
+  },
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "external_entity_refs": [
+    {
+      "name": "Project",
+      "defined_in": "project_management_spec.json",
+      "table": "projects",
+      "description": "Project the time entry is billed against.",
+      "fk_fields_in_this_spec": [
+        "TimeEntry.project_id"
+      ]
+    },
+    {
+      "name": "Task",
+      "defined_in": "task_management_spec.json",
+      "table": "tasks",
+      "description": "Task the time entry is linked to.",
+      "fk_fields_in_this_spec": [
+        "TimeEntry.task_id"
+      ]
+    }
+  ]
+}

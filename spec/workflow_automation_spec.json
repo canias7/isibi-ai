@@ -1,0 +1,4926 @@
+{
+  "_meta": {
+    "title": "Workflow Automation Platform",
+    "domain": "Operations & Internal Tools",
+    "version": "1.0"
+  },
+  "tech_stack": {
+    "frontend": [
+      "React 18 TS strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form + Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node/Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "background": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber",
+    "canvas_bg": "bg-slate-950 bg-grid-pattern",
+    "node_bg": "bg-slate-800 border border-slate-700",
+    "action_colors": {
+      "send_email": "blue",
+      "http_request": "purple",
+      "create_record": "green",
+      "delay": "slate",
+      "condition_branch": "amber",
+      "send_notification": "teal"
+    }
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK→organizations, indexed on every table"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null
+    }
+  },
+  "entities": [
+    {
+      "name": "Workflow",
+      "table": "workflows",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "is_template"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "last_run_at"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TextLink",
+          "display_component_props": {
+            "href": "/workflows/:id"
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('draft','active','paused','archived')",
+          "ts_type": "'draft' | 'active' | 'paused' | 'archived'",
+          "nullable": false,
+          "default": "draft",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "display_component_props": {
+            "badge_colors": {
+              "draft": "slate",
+              "active": "green",
+              "paused": "amber",
+              "archived": "gray"
+            }
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "draft",
+              "active",
+              "paused",
+              "archived"
+            ]
+          }
+        },
+        {
+          "name": "trigger_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "workflow_triggers",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "is_template",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "template_category",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "run_count",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for run_count computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "success_count",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for success_count computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "failure_count",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for failure_count computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "last_run_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "next_run_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "icon",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "IconSelect",
+          "display_component": "IconDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "#3b82f6",
+          "input_component": "ColorPicker",
+          "display_component": "ColorSwatch",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_workflows_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_workflows_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Trigger",
+      "table": "workflow_triggers",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "workflow_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "trigger_type"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "is_active"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "workflow_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "workflows",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "trigger_type",
+          "db_type": "ENUM('schedule','webhook','event','manual','form_submit','record_created','record_updated','record_deleted')",
+          "ts_type": "'schedule' | 'webhook' | 'event' | 'manual' | 'form_submit' | 'record_created' | 'record_updated' | 'record_deleted'",
+          "nullable": false,
+          "default": "manual",
+          "input_component": "Select",
+          "display_component": "TriggerTypeBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "schedule",
+              "webhook",
+              "event",
+              "manual",
+              "form_submit",
+              "record_created",
+              "record_updated",
+              "record_deleted"
+            ]
+          }
+        },
+        {
+          "name": "config",
+          "db_type": "JSONB",
+          "ts_type": "TriggerConfig",
+          "nullable": false,
+          "default": "{}",
+          "notes": "Type-specific config: {cron?, event_type?, entity_type?, webhook_url?, form_id?}",
+          "input_component": "JsonEditor",
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "last_fired_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "fire_count",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_workflow_triggers_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_workflow_triggers_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Action",
+      "table": "workflow_actions",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "workflow_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "action_type"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "parent_action_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "workflow_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "workflows",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "action_type",
+          "db_type": "ENUM('send_email','send_notification','create_record','update_record','http_request','delay','condition_branch','set_variable','run_sub_workflow','slack_message','create_task')",
+          "ts_type": "'send_email' | 'send_notification' | 'create_record' | 'update_record' | 'http_request' | 'delay' | 'condition_branch' | 'set_variable' | 'run_sub_workflow' | 'slack_message' | 'create_task'",
+          "nullable": false,
+          "default": "send_notification",
+          "input_component": "Select",
+          "display_component": "ActionTypeBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "config",
+          "db_type": "JSONB",
+          "ts_type": "ActionConfig",
+          "nullable": false,
+          "default": "{}",
+          "notes": "Action-specific config",
+          "input_component": "JsonEditor",
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "action_order",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "parent_action_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "workflow_actions",
+          "notes": "For branching",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "condition_branch",
+          "db_type": "ENUM('none','true_branch','false_branch')",
+          "ts_type": "'none' | 'true_branch' | 'false_branch'",
+          "nullable": false,
+          "default": "none",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "enum": [
+              "none",
+              "true_branch",
+              "false_branch"
+            ]
+          }
+        },
+        {
+          "name": "retry_count",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "min": 0,
+            "max": 5
+          }
+        },
+        {
+          "name": "retry_delay_seconds",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 60,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "timeout_seconds",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 30,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "min": 1,
+            "max": 300
+          }
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_workflow_actions_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_workflow_actions_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Condition",
+      "table": "workflow_conditions",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "action_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "action_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "workflow_actions",
+          "on_delete": "CASCADE",
+          "notes": "Linked to condition_branch action",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "field_path",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "notes": "e.g. record.status or trigger.amount",
+          "input_component": "TextInput",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "operator",
+          "db_type": "ENUM('equals','not_equals','contains','not_contains','greater_than','less_than','is_null','is_not_null','in','not_in')",
+          "ts_type": "'equals' | 'not_equals' | 'contains' | 'not_contains' | 'greater_than' | 'less_than' | 'is_null' | 'is_not_null' | 'in' | 'not_in'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "equals",
+              "not_equals",
+              "contains",
+              "not_contains",
+              "greater_than",
+              "less_than",
+              "is_null",
+              "is_not_null",
+              "in",
+              "not_in"
+            ]
+          }
+        },
+        {
+          "name": "value",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "notes": "Serialized comparison value",
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "value_type",
+          "db_type": "ENUM('string','number','boolean','date','array')",
+          "ts_type": "'string' | 'number' | 'boolean' | 'date' | 'array'",
+          "nullable": false,
+          "default": "string",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "string",
+              "number",
+              "boolean",
+              "date",
+              "array"
+            ]
+          }
+        },
+        {
+          "name": "logical_operator",
+          "db_type": "ENUM('and','or')",
+          "ts_type": "'and' | 'or'",
+          "nullable": false,
+          "default": "and",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "and",
+              "or"
+            ]
+          }
+        },
+        {
+          "name": "condition_order",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_workflow_conditions_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_workflow_conditions_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "WorkflowRun",
+      "table": "workflow_runs",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "workflow_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "started_at"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "workflow_id",
+            "run_number"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "workflow_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "workflows",
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "trigger_type",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "TriggerTypeBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "trigger_payload",
+          "db_type": "JSONB",
+          "ts_type": "object | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "JsonEditor",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('queued','running','success','failed','cancelled')",
+          "ts_type": "'queued' | 'running' | 'success' | 'failed' | 'cancelled'",
+          "nullable": false,
+          "default": "queued",
+          "input_component": null,
+          "display_component": "StatusBadge",
+          "display_component_props": {
+            "badge_colors": {
+              "queued": "slate",
+              "running": "blue",
+              "success": "green",
+              "failed": "red",
+              "cancelled": "gray"
+            }
+          },
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "queued",
+              "running",
+              "success",
+              "failed",
+              "cancelled"
+            ]
+          }
+        },
+        {
+          "name": "started_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "completed_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "duration_ms",
+          "db_type": "INTEGER",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for duration_ms computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "DurationDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "error_message",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "TruncatedText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "error_action_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "workflow_actions",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "context",
+          "db_type": "JSONB",
+          "ts_type": "object | null",
+          "nullable": true,
+          "default": null,
+          "notes": "Runtime variable store",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "triggered_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "notes": "null if automated",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "run_number",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_workflow_runs_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_workflow_runs_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Integration",
+      "table": "workflow_integrations",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "integration_type"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "is_active"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "integration_type",
+          "db_type": "ENUM('slack','email','webhook','google_sheets','zapier','stripe','github','jira','linear','custom')",
+          "ts_type": "'slack' | 'email' | 'webhook' | 'google_sheets' | 'zapier' | 'stripe' | 'github' | 'jira' | 'linear' | 'custom'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "IntegrationTypeBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "config",
+          "db_type": "JSONB",
+          "ts_type": "object",
+          "nullable": false,
+          "default": "{}",
+          "notes": "Encrypted credentials and settings, never return raw to client",
+          "input_component": "JsonEditor",
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('connected','disconnected','error')",
+          "ts_type": "'connected' | 'disconnected' | 'error'",
+          "nullable": false,
+          "default": "disconnected",
+          "input_component": null,
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "connected",
+              "disconnected",
+              "error"
+            ]
+          }
+        },
+        {
+          "name": "last_tested_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "last_error",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "TruncatedText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_workflow_integrations_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_workflow_integrations_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "LogEntry",
+      "table": "workflow_log_entries",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "run_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "level"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "timestamp"
+          ],
+          "direction": "DESC"
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "run_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "workflow_runs",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "action_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "workflow_actions",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "level",
+          "db_type": "ENUM('info','warning','error','debug')",
+          "ts_type": "'info' | 'warning' | 'error' | 'debug'",
+          "nullable": false,
+          "default": "info",
+          "input_component": null,
+          "display_component": "LogLevelBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "info",
+              "warning",
+              "error",
+              "debug"
+            ]
+          }
+        },
+        {
+          "name": "message",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "data",
+          "db_type": "JSONB",
+          "ts_type": "object | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "timestamp",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_workflow_log_entries_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_workflow_log_entries_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "name": "DataTable",
+      "type": "organism",
+      "description": "Sortable, filterable, paginated data table",
+      "props": [
+        "columns",
+        "data",
+        "isLoading",
+        "onSort",
+        "onFilter",
+        "pagination",
+        "rowActions"
+      ],
+      "behavior": "Renders rows with hover state, supports bulk selection, sticky headers",
+      "variants": [
+        "default",
+        "compact",
+        "borderless"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-800 rounded-lg"
+    },
+    {
+      "name": "SlideOverForm",
+      "type": "organism",
+      "description": "Right-side panel form for create/edit",
+      "props": [
+        "isOpen",
+        "onClose",
+        "title",
+        "children",
+        "onSubmit",
+        "isSubmitting"
+      ],
+      "behavior": "Traps focus, ESC to close, backdrop click to close",
+      "variants": [
+        "default",
+        "wide"
+      ],
+      "tailwind": "fixed inset-y-0 right-0 w-96 bg-slate-900 shadow-xl"
+    },
+    {
+      "name": "Modal",
+      "type": "organism",
+      "description": "Centered dialog overlay",
+      "props": [
+        "isOpen",
+        "onClose",
+        "title",
+        "children",
+        "size"
+      ],
+      "behavior": "Focus trap, backdrop blur, ESC to close",
+      "variants": [
+        "sm",
+        "md",
+        "lg",
+        "xl"
+      ],
+      "tailwind": "fixed inset-0 z-50 flex items-center justify-center"
+    },
+    {
+      "name": "StatusBadge",
+      "type": "atom",
+      "description": "Pill badge for status display",
+      "props": [
+        "status",
+        "badgeColors",
+        "size"
+      ],
+      "behavior": "Maps status to color variant",
+      "variants": [
+        "default",
+        "sm",
+        "lg"
+      ],
+      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "TriggerTypeBadge",
+      "type": "atom",
+      "description": "Colored badge for workflow trigger type",
+      "props": [
+        "triggerType",
+        "size"
+      ],
+      "behavior": "Maps trigger type to icon and color",
+      "variants": [
+        "default",
+        "icon-only"
+      ],
+      "tailwind": "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "ActionTypeBadge",
+      "type": "atom",
+      "description": "Colored badge for action type",
+      "props": [
+        "actionType",
+        "size"
+      ],
+      "behavior": "Maps action type to design_system action_colors",
+      "variants": [
+        "default",
+        "icon-only"
+      ],
+      "tailwind": "inline-flex items-center gap-1 px-2.5 py-0.5 rounded text-xs font-medium"
+    },
+    {
+      "name": "IntegrationTypeBadge",
+      "type": "atom",
+      "description": "Badge with integration logo/icon",
+      "props": [
+        "integrationType",
+        "size"
+      ],
+      "behavior": "Maps integration type to logo image or icon",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "inline-flex items-center gap-2 px-2 py-1 rounded text-xs"
+    },
+    {
+      "name": "LogLevelBadge",
+      "type": "atom",
+      "description": "Badge for log entry level",
+      "props": [
+        "level"
+      ],
+      "behavior": "info=blue, warning=amber, error=red, debug=slate",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-mono"
+    },
+    {
+      "name": "WorkflowCanvas",
+      "type": "organism",
+      "description": "Drag-and-drop visual workflow builder using ReactFlow",
+      "props": [
+        "nodes",
+        "edges",
+        "onNodesChange",
+        "onEdgesChange",
+        "onConnect",
+        "onNodeClick",
+        "onAddNode",
+        "readOnly"
+      ],
+      "behavior": "Uses ReactFlow for node/edge rendering. workflowEditorStore manages undo/redo history and dirty state. Supports zoom, pan, minimap. Auto-layout on load. Connection validation prevents invalid edges.",
+      "variants": [
+        "default",
+        "readonly"
+      ],
+      "tailwind": "w-full h-full bg-slate-950 bg-grid-pattern"
+    },
+    {
+      "name": "ActionNode",
+      "type": "molecule",
+      "description": "ReactFlow node representing a workflow action",
+      "props": [
+        "data",
+        "selected",
+        "isRunning",
+        "hasError"
+      ],
+      "behavior": "Shows action type badge, name, status indicator. Click to open config panel. Drag handles on edges.",
+      "variants": [
+        "default",
+        "running",
+        "error",
+        "success"
+      ],
+      "tailwind": "bg-slate-800 border border-slate-700 rounded-lg p-3 min-w-48"
+    },
+    {
+      "name": "TriggerNode",
+      "type": "molecule",
+      "description": "ReactFlow node representing the workflow trigger",
+      "props": [
+        "data",
+        "selected"
+      ],
+      "behavior": "Shows trigger type icon, config summary. Only one per workflow.",
+      "variants": [
+        "default",
+        "active"
+      ],
+      "tailwind": "bg-slate-800 border-2 border-blue-600 rounded-lg p-3 min-w-48"
+    },
+    {
+      "name": "ConditionNode",
+      "type": "molecule",
+      "description": "ReactFlow node for condition_branch action",
+      "props": [
+        "data",
+        "selected"
+      ],
+      "behavior": "Diamond shape showing condition summary. Two outgoing edges: true_branch and false_branch.",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-800 border border-amber-600 rounded-lg p-3"
+    },
+    {
+      "name": "ConnectionLine",
+      "type": "atom",
+      "description": "ReactFlow edge connecting action nodes",
+      "props": [
+        "id",
+        "source",
+        "target",
+        "label",
+        "animated"
+      ],
+      "behavior": "Animated when workflow is running, shows branch label (true/false)",
+      "variants": [
+        "default",
+        "animated",
+        "true-branch",
+        "false-branch"
+      ],
+      "tailwind": "stroke-slate-500"
+    },
+    {
+      "name": "WorkflowRunTable",
+      "type": "organism",
+      "description": "Table of workflow run history",
+      "props": [
+        "runs",
+        "isLoading",
+        "onRowClick",
+        "pagination"
+      ],
+      "behavior": "Shows run number, trigger, status, duration, started_at. Click row to view logs.",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-900 rounded-lg"
+    },
+    {
+      "name": "RunStatusBadge",
+      "type": "atom",
+      "description": "Badge for workflow run status with animation",
+      "props": [
+        "status"
+      ],
+      "behavior": "running status has pulse animation, others are static",
+      "variants": [
+        "queued",
+        "running",
+        "success",
+        "failed",
+        "cancelled"
+      ],
+      "tailwind": "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "DurationDisplay",
+      "type": "atom",
+      "description": "Human-readable duration from milliseconds",
+      "props": [
+        "ms",
+        "format"
+      ],
+      "behavior": "Converts ms to readable format: <1s, Xs, Xm Xs",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "text-sm text-slate-300 font-mono"
+    },
+    {
+      "name": "JsonEditor",
+      "type": "organism",
+      "description": "Syntax-highlighted JSON editor with validation",
+      "props": [
+        "value",
+        "onChange",
+        "readOnly",
+        "schema",
+        "height"
+      ],
+      "behavior": "CodeMirror or Monaco based, validates JSON on change, shows schema errors",
+      "variants": [
+        "default",
+        "readonly",
+        "compact"
+      ],
+      "tailwind": "border border-slate-700 rounded-lg overflow-hidden"
+    },
+    {
+      "name": "CodeEditor",
+      "type": "organism",
+      "description": "General code editor with syntax highlighting",
+      "props": [
+        "value",
+        "onChange",
+        "language",
+        "readOnly",
+        "height"
+      ],
+      "behavior": "Supports multiple languages, line numbers, syntax highlighting",
+      "variants": [
+        "default",
+        "readonly"
+      ],
+      "tailwind": "border border-slate-700 rounded-lg overflow-hidden"
+    },
+    {
+      "name": "EmptyState",
+      "type": "molecule",
+      "description": "Empty content placeholder with CTA",
+      "props": [
+        "icon",
+        "title",
+        "description",
+        "action"
+      ],
+      "behavior": "Centered layout with icon, text, optional button",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex flex-col items-center justify-center py-16 text-center"
+    },
+    {
+      "name": "LoadingSkeleton",
+      "type": "atom",
+      "description": "Animated placeholder for loading states",
+      "props": [
+        "variant",
+        "count"
+      ],
+      "behavior": "Pulse animation, matches layout of actual content",
+      "variants": [
+        "table",
+        "card",
+        "list",
+        "text"
+      ],
+      "tailwind": "animate-pulse bg-slate-800 rounded"
+    },
+    {
+      "name": "ConfirmationDialog",
+      "type": "organism",
+      "description": "Modal for destructive action confirmation",
+      "props": [
+        "isOpen",
+        "onConfirm",
+        "onCancel",
+        "title",
+        "description",
+        "confirmLabel",
+        "variant"
+      ],
+      "behavior": "Shows warning, requires explicit confirm",
+      "variants": [
+        "danger",
+        "warning",
+        "neutral"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl p-6 max-w-md"
+    },
+    {
+      "name": "PageHeader",
+      "type": "molecule",
+      "description": "Page title with breadcrumbs and actions",
+      "props": [
+        "title",
+        "breadcrumbs",
+        "actions",
+        "tabs"
+      ],
+      "behavior": "Sticky on scroll, responsive collapse",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex items-center justify-between py-6"
+    },
+    {
+      "name": "FilterPanel",
+      "type": "organism",
+      "description": "Sidebar filter panel",
+      "props": [
+        "filters",
+        "values",
+        "onChange",
+        "onReset"
+      ],
+      "behavior": "Collapsible sections per filter group",
+      "variants": [
+        "sidebar",
+        "inline"
+      ],
+      "tailwind": "bg-slate-900 border-r border-slate-800 p-4"
+    },
+    {
+      "name": "TabPanel",
+      "type": "molecule",
+      "description": "Tab content container",
+      "props": [
+        "activeTab",
+        "children"
+      ],
+      "behavior": "Renders only active tab content",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "mt-4"
+    },
+    {
+      "name": "TextInput",
+      "type": "atom",
+      "description": "Standard text input field",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "label",
+        "error",
+        "disabled"
+      ],
+      "behavior": "Controlled input with label and error",
+      "variants": [
+        "default",
+        "sm",
+        "lg"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+    },
+    {
+      "name": "Textarea",
+      "type": "atom",
+      "description": "Multi-line text input",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "rows",
+        "label",
+        "error"
+      ],
+      "behavior": "Auto-resize option, character count",
+      "variants": [
+        "default",
+        "auto-resize"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+    },
+    {
+      "name": "NumberInput",
+      "type": "atom",
+      "description": "Numeric input",
+      "props": [
+        "value",
+        "onChange",
+        "min",
+        "max",
+        "step",
+        "label"
+      ],
+      "behavior": "Prevents non-numeric input",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+    },
+    {
+      "name": "Select",
+      "type": "atom",
+      "description": "Dropdown select using Radix UI",
+      "props": [
+        "value",
+        "onChange",
+        "options",
+        "placeholder",
+        "label",
+        "error"
+      ],
+      "behavior": "Accessible dropdown with search",
+      "variants": [
+        "default",
+        "sm"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg"
+    },
+    {
+      "name": "MultiSelect",
+      "type": "molecule",
+      "description": "Multiple selection dropdown",
+      "props": [
+        "value",
+        "onChange",
+        "options",
+        "placeholder",
+        "label"
+      ],
+      "behavior": "Shows selected as chips, searchable",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "Toggle",
+      "type": "atom",
+      "description": "Boolean toggle switch",
+      "props": [
+        "checked",
+        "onChange",
+        "label",
+        "disabled"
+      ],
+      "behavior": "Accessible switch component",
+      "variants": [
+        "default",
+        "sm"
+      ],
+      "tailwind": "relative inline-flex h-6 w-11 items-center rounded-full"
+    },
+    {
+      "name": "DatePicker",
+      "type": "molecule",
+      "description": "Calendar date picker",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "label"
+      ],
+      "behavior": "Popover calendar, keyboard navigation",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "YesNoBadge",
+      "type": "atom",
+      "description": "Boolean value as badge",
+      "props": [
+        "value"
+      ],
+      "behavior": "Green Yes or slate No",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs"
+    },
+    {
+      "name": "AbsoluteDate",
+      "type": "atom",
+      "description": "Formatted absolute date display",
+      "props": [
+        "date",
+        "format",
+        "showTime"
+      ],
+      "behavior": "date-fns format, tooltip with full datetime",
+      "variants": [
+        "date-only",
+        "with-time"
+      ],
+      "tailwind": "text-sm text-slate-300"
+    },
+    {
+      "name": "RelativeDate",
+      "type": "atom",
+      "description": "Relative time display",
+      "props": [
+        "date"
+      ],
+      "behavior": "date-fns formatDistanceToNow",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-sm text-slate-400"
+    },
+    {
+      "name": "MonospaceText",
+      "type": "atom",
+      "description": "Monospace font text",
+      "props": [
+        "text",
+        "copyable"
+      ],
+      "behavior": "Optional copy-to-clipboard",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "font-mono text-sm text-slate-300"
+    },
+    {
+      "name": "PlainText",
+      "type": "atom",
+      "description": "Simple text display",
+      "props": [
+        "text",
+        "className"
+      ],
+      "behavior": "Renders text with optional truncation",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-sm text-slate-200"
+    },
+    {
+      "name": "TruncatedText",
+      "type": "atom",
+      "description": "Text truncated with ellipsis and tooltip",
+      "props": [
+        "text",
+        "maxLength",
+        "lines"
+      ],
+      "behavior": "Tooltip with full text on hover",
+      "variants": [
+        "single-line",
+        "multi-line"
+      ],
+      "tailwind": "overflow-hidden text-ellipsis"
+    },
+    {
+      "name": "TextLink",
+      "type": "atom",
+      "description": "Styled router link",
+      "props": [
+        "to",
+        "children",
+        "className"
+      ],
+      "behavior": "React Router Link with blue color",
+      "variants": [
+        "default",
+        "subtle"
+      ],
+      "tailwind": "text-blue-400 hover:text-blue-300"
+    },
+    {
+      "name": "StatCard",
+      "type": "molecule",
+      "description": "KPI metric card",
+      "props": [
+        "title",
+        "value",
+        "change",
+        "icon",
+        "trend"
+      ],
+      "behavior": "Shows metric with optional trend indicator",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-900 rounded-lg border border-slate-800 p-4"
+    },
+    {
+      "name": "ActivityTimeline",
+      "type": "organism",
+      "description": "Chronological activity feed",
+      "props": [
+        "activities",
+        "isLoading",
+        "onLoadMore"
+      ],
+      "behavior": "Vertical timeline with user avatar and timestamp",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "space-y-4"
+    },
+    {
+      "name": "NotificationBell",
+      "type": "molecule",
+      "description": "Header notification icon with dropdown",
+      "props": [
+        "count",
+        "notifications",
+        "onMarkRead"
+      ],
+      "behavior": "Badge with count, dropdown list",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "AuthGuard",
+      "type": "organism",
+      "description": "Route-level permission guard",
+      "props": [
+        "requiredRoles",
+        "children",
+        "fallback"
+      ],
+      "behavior": "Checks authStore for role",
+      "variants": [
+        "default"
+      ],
+      "tailwind": ""
+    },
+    {
+      "name": "IconSelect",
+      "type": "molecule",
+      "description": "Icon selection dropdown from Lucide icons",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder"
+      ],
+      "behavior": "Grid of icon options with search",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "IconDisplay",
+      "type": "atom",
+      "description": "Renders a Lucide icon by name",
+      "props": [
+        "icon",
+        "size",
+        "className"
+      ],
+      "behavior": "Dynamically loads Lucide icon component",
+      "variants": [
+        "sm",
+        "md",
+        "lg"
+      ],
+      "tailwind": "text-slate-400"
+    },
+    {
+      "name": "ColorPicker",
+      "type": "atom",
+      "description": "Color selection with hex input",
+      "props": [
+        "value",
+        "onChange",
+        "presets"
+      ],
+      "behavior": "Popover with swatches and manual hex",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "TemplateCard",
+      "type": "molecule",
+      "description": "Card for workflow template selection",
+      "props": [
+        "template",
+        "onSelect"
+      ],
+      "behavior": "Shows template name, category, description, preview stats",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4 hover:border-slate-600 cursor-pointer"
+    },
+    {
+      "name": "TestRunPanel",
+      "type": "organism",
+      "description": "Panel for executing and viewing test runs",
+      "props": [
+        "workflowId",
+        "isOpen",
+        "onClose"
+      ],
+      "behavior": "Shows test payload input (JsonEditor), execute button, live log stream from WebSocket",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 border-l border-slate-800 w-96 flex flex-col"
+    },
+    {
+      "name": "WebhookUrlDisplay",
+      "type": "molecule",
+      "description": "Displays webhook URL with copy button and secret",
+      "props": [
+        "workflowId",
+        "secret"
+      ],
+      "behavior": "Shows masked URL with copy button, reveals on click",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-950 border border-slate-700 rounded-lg p-3 font-mono text-sm"
+    },
+    {
+      "name": "CronExpressionInput",
+      "type": "molecule",
+      "description": "Visual cron expression builder",
+      "props": [
+        "value",
+        "onChange",
+        "label"
+      ],
+      "behavior": "Visual schedule builder with human-readable preview, manual cron input",
+      "variants": [
+        "default",
+        "advanced"
+      ],
+      "tailwind": "space-y-3"
+    },
+    {
+      "name": "VariableChip",
+      "type": "atom",
+      "description": "Chip showing a workflow variable reference",
+      "props": [
+        "variable",
+        "onRemove"
+      ],
+      "behavior": "Shows {{variable.path}} syntax with remove option",
+      "variants": [
+        "default",
+        "removable"
+      ],
+      "tailwind": "inline-flex items-center gap-1 px-2 py-0.5 bg-blue-950 border border-blue-700 rounded text-xs font-mono text-blue-300"
+    },
+    {
+      "name": "ConditionBuilder",
+      "type": "organism",
+      "description": "Visual condition rule builder for condition_branch actions",
+      "props": [
+        "conditions",
+        "onChange",
+        "availableFields"
+      ],
+      "behavior": "Add/remove condition rows, set field_path, operator, value. Shows AND/OR toggle between rows.",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "space-y-2 p-3 bg-slate-950 rounded-lg border border-slate-700"
+    }
+  ],
+  "modules": [
+    {
+      "name": "WorkflowList",
+      "route": "/workflows",
+      "sidebar_label": "Workflows",
+      "icon": "Zap",
+      "page_component": "WorkflowListPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "operator",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useWorkflows"
+      ],
+      "query_keys": [
+        "workflows.list"
+      ],
+      "primary_actions": [
+        {
+          "label": "New Workflow",
+          "hook": "useCreateWorkflow",
+          "variant": "primary"
+        },
+        {
+          "label": "From Template",
+          "hook": "useWorkflowTemplates",
+          "variant": "secondary"
+        }
+      ],
+      "tabs": [
+        "All",
+        "Active",
+        "Draft",
+        "Paused",
+        "Templates"
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "WorkflowBuilder",
+      "route": "/workflows/:id/edit",
+      "sidebar_label": null,
+      "icon": null,
+      "page_component": "WorkflowBuilderPage",
+      "layout": "FullscreenLayout",
+      "permissions": [
+        "admin",
+        "operator"
+      ],
+      "data_sources": [
+        "useWorkflow",
+        "useWorkflowTrigger",
+        "useWorkflowActions",
+        "useWorkflowConditions",
+        "useIntegrations"
+      ],
+      "query_keys": [
+        "workflows.detail",
+        "triggers.byWorkflow",
+        "actions.byWorkflow",
+        "conditions.byAction",
+        "integrations.list"
+      ],
+      "primary_actions": [
+        {
+          "label": "Save",
+          "hook": "useSaveWorkflow",
+          "variant": "secondary"
+        },
+        {
+          "label": "Activate",
+          "hook": "useActivateWorkflow",
+          "variant": "success"
+        },
+        {
+          "label": "Test Run",
+          "hook": "useTestRun",
+          "variant": "outline"
+        }
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "WorkflowDetail",
+      "route": "/workflows/:id",
+      "sidebar_label": null,
+      "icon": null,
+      "page_component": "WorkflowDetailPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "operator",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useWorkflow",
+        "useWorkflowRuns",
+        "useWorkflowStats"
+      ],
+      "query_keys": [
+        "workflows.detail",
+        "workflowRuns.list",
+        "workflows.stats"
+      ],
+      "primary_actions": [
+        {
+          "label": "Edit",
+          "hook": null,
+          "variant": "secondary"
+        },
+        {
+          "label": "Pause",
+          "hook": "usePauseWorkflow",
+          "variant": "warning"
+        },
+        {
+          "label": "Run Now",
+          "hook": "useManualTrigger",
+          "variant": "primary"
+        }
+      ],
+      "tabs": [
+        "Overview",
+        "Runs",
+        "Logs",
+        "Settings"
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "RunsList",
+      "route": "/workflow-runs",
+      "sidebar_label": "Runs",
+      "icon": "Play",
+      "page_component": "RunsListPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "operator",
+        "member"
+      ],
+      "data_sources": [
+        "useWorkflowRuns"
+      ],
+      "query_keys": [
+        "workflowRuns.list"
+      ],
+      "primary_actions": [],
+      "tabs": [
+        "All",
+        "Running",
+        "Success",
+        "Failed"
+      ],
+      "child_routes": [
+        {
+          "route": "/workflow-runs/:id",
+          "page_component": "RunDetailPage"
+        }
+      ]
+    },
+    {
+      "name": "IntegrationsList",
+      "route": "/integrations",
+      "sidebar_label": "Integrations",
+      "icon": "Plug",
+      "page_component": "IntegrationsListPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin"
+      ],
+      "data_sources": [
+        "useIntegrations"
+      ],
+      "query_keys": [
+        "integrations.list"
+      ],
+      "primary_actions": [
+        {
+          "label": "Add Integration",
+          "hook": "useCreateIntegration",
+          "variant": "primary"
+        }
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "WorkflowSettings",
+      "route": "/settings/workflows",
+      "sidebar_label": "Settings",
+      "icon": "Settings",
+      "page_component": "WorkflowSettingsPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin"
+      ],
+      "data_sources": [],
+      "query_keys": [],
+      "primary_actions": [],
+      "child_routes": []
+    }
+  ],
+  "api": {
+    "workflows": [
+      {
+        "method": "GET",
+        "path": "/workflows",
+        "description": "List workflows with filters",
+        "request_schema": {
+          "query": {
+            "status": "string?",
+            "is_template": "boolean?",
+            "q": "string?",
+            "page": "number?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "Workflow[]",
+          "total": "number"
+        },
+        "react_query_hook": "useWorkflows",
+        "query_key": "workflows.list",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflows",
+        "description": "Create a new workflow",
+        "request_schema": {
+          "body": {
+            "name": "string",
+            "description": "string?",
+            "icon": "string?",
+            "color": "string?",
+            "is_template": "boolean?",
+            "template_category": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Workflow"
+        },
+        "react_query_hook": "useCreateWorkflow",
+        "query_key": null,
+        "invalidates": [
+          "workflows.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/workflows/:id",
+        "description": "Get workflow by ID",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Workflow"
+        },
+        "react_query_hook": "useWorkflow",
+        "query_key": "workflows.detail",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/workflows/:id",
+        "description": "Update workflow metadata (not canvas when active)",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<Workflow>"
+        },
+        "response_schema": {
+          "data": "Workflow"
+        },
+        "react_query_hook": "useUpdateWorkflow",
+        "query_key": null,
+        "invalidates": [
+          "workflows.detail",
+          "workflows.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/workflows/:id",
+        "description": "Soft delete workflow",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteWorkflow",
+        "query_key": null,
+        "invalidates": [
+          "workflows.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflows/:id/activate",
+        "description": "Activate workflow",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Workflow"
+        },
+        "react_query_hook": "useActivateWorkflow",
+        "query_key": null,
+        "invalidates": [
+          "workflows.detail",
+          "workflows.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflows/:id/pause",
+        "description": "Pause workflow",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Workflow"
+        },
+        "react_query_hook": "usePauseWorkflow",
+        "query_key": null,
+        "invalidates": [
+          "workflows.detail",
+          "workflows.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflows/:id/duplicate",
+        "description": "Duplicate workflow as draft",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "name": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Workflow"
+        },
+        "react_query_hook": "useDuplicateWorkflow",
+        "query_key": null,
+        "invalidates": [
+          "workflows.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflows/:id/test-run",
+        "description": "Execute workflow in sandbox mode",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "test_payload": "object?"
+          }
+        },
+        "response_schema": {
+          "data": "WorkflowRun"
+        },
+        "react_query_hook": "useTestRun",
+        "query_key": null,
+        "invalidates": [
+          "workflowRuns.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/workflows/:id/runs",
+        "description": "List runs for a workflow",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "query": {
+            "status": "string?",
+            "page": "number?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "WorkflowRun[]",
+          "total": "number"
+        },
+        "react_query_hook": "useWorkflowRuns",
+        "query_key": "workflowRuns.list",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/workflows/:id/stats",
+        "description": "Get workflow statistics",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": {
+            "run_count": "number",
+            "success_count": "number",
+            "failure_count": "number",
+            "run_success_rate": "number",
+            "average_run_duration_ms": "number"
+          }
+        },
+        "react_query_hook": "useWorkflowStats",
+        "query_key": "workflows.stats",
+        "invalidates": [],
+        "optimistic_updates": false
+      }
+    ],
+    "triggers": [
+      {
+        "method": "GET",
+        "path": "/workflows/:id/trigger",
+        "description": "Get trigger for workflow",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Trigger | null"
+        },
+        "react_query_hook": "useWorkflowTrigger",
+        "query_key": "triggers.byWorkflow",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflows/:id/trigger",
+        "description": "Create or replace workflow trigger",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "trigger_type": "string",
+            "config": "object"
+          }
+        },
+        "response_schema": {
+          "data": "Trigger"
+        },
+        "react_query_hook": "useCreateTrigger",
+        "query_key": null,
+        "invalidates": [
+          "triggers.byWorkflow",
+          "workflows.detail"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/triggers/:id",
+        "description": "Update trigger config",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "config": "object?",
+            "is_active": "boolean?"
+          }
+        },
+        "response_schema": {
+          "data": "Trigger"
+        },
+        "react_query_hook": "useUpdateTrigger",
+        "query_key": null,
+        "invalidates": [
+          "triggers.byWorkflow"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/triggers/:id",
+        "description": "Delete trigger",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteTrigger",
+        "query_key": null,
+        "invalidates": [
+          "triggers.byWorkflow"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "actions": [
+      {
+        "method": "GET",
+        "path": "/workflows/:id/actions",
+        "description": "List actions for workflow",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Action[]"
+        },
+        "react_query_hook": "useWorkflowActions",
+        "query_key": "actions.byWorkflow",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PUT",
+        "path": "/workflows/:id/actions",
+        "description": "Replace all actions for workflow (full canvas save)",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "actions": "Action[]"
+          }
+        },
+        "response_schema": {
+          "data": "Action[]"
+        },
+        "react_query_hook": "useSaveWorkflowActions",
+        "query_key": null,
+        "invalidates": [
+          "actions.byWorkflow"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflows/:id/actions",
+        "description": "Add single action",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "action_type": "string",
+            "name": "string",
+            "config": "object",
+            "action_order": "number",
+            "parent_action_id": "string?",
+            "condition_branch": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Action"
+        },
+        "react_query_hook": "useCreateAction",
+        "query_key": null,
+        "invalidates": [
+          "actions.byWorkflow"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/actions/:id",
+        "description": "Update action",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<Action>"
+        },
+        "response_schema": {
+          "data": "Action"
+        },
+        "react_query_hook": "useUpdateAction",
+        "query_key": null,
+        "invalidates": [
+          "actions.byWorkflow"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/actions/:id",
+        "description": "Delete action",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteAction",
+        "query_key": null,
+        "invalidates": [
+          "actions.byWorkflow"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PUT",
+        "path": "/workflows/:id/actions/reorder",
+        "description": "Reorder actions",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "action_ids": "string[]"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useReorderActions",
+        "query_key": null,
+        "invalidates": [
+          "actions.byWorkflow"
+        ],
+        "optimistic_updates": true
+      }
+    ],
+    "conditions": [
+      {
+        "method": "GET",
+        "path": "/actions/:id/conditions",
+        "description": "List conditions for action",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Condition[]"
+        },
+        "react_query_hook": "useConditions",
+        "query_key": "conditions.byAction",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PUT",
+        "path": "/actions/:id/conditions",
+        "description": "Replace all conditions for action",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "conditions": "Condition[]"
+          }
+        },
+        "response_schema": {
+          "data": "Condition[]"
+        },
+        "react_query_hook": "useSaveConditions",
+        "query_key": null,
+        "invalidates": [
+          "conditions.byAction"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/conditions/:id",
+        "description": "Update single condition",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<Condition>"
+        },
+        "response_schema": {
+          "data": "Condition"
+        },
+        "react_query_hook": "useUpdateCondition",
+        "query_key": null,
+        "invalidates": [
+          "conditions.byAction"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/conditions/:id",
+        "description": "Delete condition",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteCondition",
+        "query_key": null,
+        "invalidates": [
+          "conditions.byAction"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "workflow_runs": [
+      {
+        "method": "GET",
+        "path": "/workflow-runs",
+        "description": "List all workflow runs with filters",
+        "request_schema": {
+          "query": {
+            "workflow_id": "string?",
+            "status": "string?",
+            "started_after": "string?",
+            "page": "number?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "WorkflowRun[]",
+          "total": "number"
+        },
+        "react_query_hook": "useAllWorkflowRuns",
+        "query_key": "workflowRuns.all",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/workflow-runs/:id",
+        "description": "Get run by ID",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "WorkflowRun"
+        },
+        "react_query_hook": "useWorkflowRun",
+        "query_key": "workflowRuns.detail",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/workflow-runs/:id/cancel",
+        "description": "Cancel in-progress run",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "WorkflowRun"
+        },
+        "react_query_hook": "useCancelRun",
+        "query_key": null,
+        "invalidates": [
+          "workflowRuns.detail",
+          "workflowRuns.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/workflow-runs/:id/logs",
+        "description": "Get log entries for run",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "query": {
+            "level": "string?",
+            "page": "number?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "LogEntry[]",
+          "total": "number"
+        },
+        "react_query_hook": "useRunLogs",
+        "query_key": "logEntries.byRun",
+        "invalidates": [],
+        "optimistic_updates": false
+      }
+    ],
+    "integrations": [
+      {
+        "method": "GET",
+        "path": "/integrations",
+        "description": "List integrations",
+        "request_schema": {
+          "query": {
+            "integration_type": "string?",
+            "is_active": "boolean?"
+          }
+        },
+        "response_schema": {
+          "data": "Integration[]"
+        },
+        "react_query_hook": "useIntegrations",
+        "query_key": "integrations.list",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/integrations",
+        "description": "Create integration",
+        "request_schema": {
+          "body": {
+            "name": "string",
+            "integration_type": "string",
+            "config": "object"
+          }
+        },
+        "response_schema": {
+          "data": "Integration"
+        },
+        "react_query_hook": "useCreateIntegration",
+        "query_key": null,
+        "invalidates": [
+          "integrations.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/integrations/:id",
+        "description": "Get integration (masked config)",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Integration"
+        },
+        "react_query_hook": "useIntegration",
+        "query_key": "integrations.detail",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/integrations/:id",
+        "description": "Update integration",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<Integration>"
+        },
+        "response_schema": {
+          "data": "Integration"
+        },
+        "react_query_hook": "useUpdateIntegration",
+        "query_key": null,
+        "invalidates": [
+          "integrations.detail",
+          "integrations.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/integrations/:id",
+        "description": "Delete integration",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteIntegration",
+        "query_key": null,
+        "invalidates": [
+          "integrations.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/integrations/:id/test",
+        "description": "Test integration connection",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean",
+          "error": "string | null"
+        },
+        "react_query_hook": "useTestIntegration",
+        "query_key": null,
+        "invalidates": [
+          "integrations.detail"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "webhooks": [
+      {
+        "method": "POST",
+        "path": "/webhooks/:workflow_id",
+        "description": "Public endpoint for incoming webhook triggers, no auth, validates X-Webhook-Secret header",
+        "request_schema": {
+          "params": {
+            "workflow_id": "string"
+          },
+          "headers": {
+            "X-Webhook-Secret": "string"
+          },
+          "body": "object"
+        },
+        "response_schema": {
+          "run_id": "string",
+          "status": "queued"
+        },
+        "react_query_hook": null,
+        "query_key": null,
+        "invalidates": [],
+        "optimistic_updates": false
+      }
+    ]
+  },
+  "permissions": {
+    "roles": [
+      "admin",
+      "operator",
+      "member",
+      "viewer"
+    ],
+    "matrix": {
+      "workflows.create": [
+        "admin",
+        "operator"
+      ],
+      "workflows.edit": [
+        "admin",
+        "operator"
+      ],
+      "workflows.activate": [
+        "admin",
+        "operator"
+      ],
+      "workflows.delete": [
+        "admin"
+      ],
+      "runs.view": [
+        "admin",
+        "operator",
+        "member"
+      ],
+      "integrations.manage": [
+        "admin"
+      ],
+      "settings.manage": [
+        "admin"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      {
+        "name": "authStore",
+        "fields": [
+          "user",
+          "token",
+          "org",
+          "roles"
+        ]
+      },
+      {
+        "name": "uiStore",
+        "fields": [
+          "sidebarOpen",
+          "theme",
+          "notifications"
+        ]
+      },
+      {
+        "name": "workflowEditorStore",
+        "fields": [
+          "nodes",
+          "edges",
+          "selectedNodeId",
+          "isDirty",
+          "undoHistory",
+          "redoHistory",
+          "isSaving"
+        ],
+        "notes": "Manages ReactFlow canvas state with undo/redo stack"
+      },
+      {
+        "name": "filterStore",
+        "fields": [
+          "filters"
+        ],
+        "notes": "keyed by module name"
+      },
+      {
+        "name": "realtimeStore",
+        "fields": [
+          "activeRunSubscriptions"
+        ],
+        "notes": "Tracks which run IDs have active WebSocket subscriptions for live log streaming"
+      }
+    ],
+    "query_keys": {
+      "workflows": [
+        "workflows.all",
+        "workflows.list",
+        "workflows.detail",
+        "workflows.stats"
+      ],
+      "triggers": [
+        "triggers.byWorkflow"
+      ],
+      "actions": [
+        "actions.byWorkflow"
+      ],
+      "conditions": [
+        "conditions.byAction"
+      ],
+      "workflowRuns": [
+        "workflowRuns.all",
+        "workflowRuns.list",
+        "workflowRuns.detail"
+      ],
+      "logEntries": [
+        "logEntries.byRun"
+      ],
+      "integrations": [
+        "integrations.all",
+        "integrations.list",
+        "integrations.detail"
+      ]
+    }
+  },
+  "websocket": {
+    "events": [
+      {
+        "name": "workflow_run.started",
+        "payload": {
+          "run_id": "string",
+          "workflow_id": "string",
+          "trigger_type": "string"
+        },
+        "client_action": "invalidate workflowRuns.list, add run to realtimeStore subscriptions"
+      },
+      {
+        "name": "workflow_run.completed",
+        "payload": {
+          "run_id": "string",
+          "workflow_id": "string",
+          "status": "success",
+          "duration_ms": "number"
+        },
+        "client_action": "invalidate workflowRuns.detail, workflows.stats, update run status in list"
+      },
+      {
+        "name": "workflow_run.failed",
+        "payload": {
+          "run_id": "string",
+          "workflow_id": "string",
+          "error_message": "string",
+          "error_action_id": "string"
+        },
+        "client_action": "invalidate workflowRuns.detail, show error toast with action name"
+      },
+      {
+        "name": "workflow_run.step_completed",
+        "payload": {
+          "run_id": "string",
+          "action_id": "string",
+          "action_name": "string",
+          "status": "string",
+          "log_entry": "LogEntry"
+        },
+        "client_action": "append log entry to logEntries.byRun if run in realtimeStore subscriptions, highlight node in canvas"
+      },
+      {
+        "name": "integration.status_changed",
+        "payload": {
+          "integration_id": "string",
+          "old_status": "string",
+          "new_status": "string"
+        },
+        "client_action": "invalidate integrations.detail, integrations.list"
+      },
+      {
+        "name": "ws.reconnected",
+        "payload": {},
+        "client_action": "invalidate all active query keys, re-subscribe realtimeStore run subscriptions"
+      }
+    ]
+  },
+  "flows": [
+    {
+      "name": "Create Workflow",
+      "steps": [
+        "POST /workflows (status=draft)",
+        "POST /workflows/:id/trigger (configure trigger)",
+        "PUT /workflows/:id/actions (build actions on canvas)",
+        "PUT /actions/:id/conditions (add conditions for branches)",
+        "POST /workflows/:id/test-run with test_payload",
+        "Review logs in TestRunPanel",
+        "POST /workflows/:id/activate (status→active)"
+      ],
+      "backend_mutations": [
+        "POST /workflows",
+        "POST /triggers",
+        "PUT /actions",
+        "PUT /conditions",
+        "POST /workflows/:id/activate"
+      ],
+      "cross_entity_updates": [
+        "Workflow.status updated, trigger registered in scheduler/webhook registry"
+      ]
+    },
+    {
+      "name": "Process Workflow Run",
+      "steps": [
+        "Trigger fires (schedule cron | webhook incoming | event emitted)",
+        "Server creates WorkflowRun (status=queued)",
+        "Enqueue job in Redis (bullmq)",
+        "Worker picks up job: execute actions sequentially",
+        "For each action: create LogEntry, emit workflow_run.step_completed via WebSocket",
+        "Evaluate conditions for condition_branch actions",
+        "On completion: status=success; on error: retry if retry_count > 0, else status=failed",
+        "Emit workflow_run.completed or workflow_run.failed via WebSocket"
+      ],
+      "backend_mutations": [
+        "INSERT workflow_runs",
+        "INSERT workflow_log_entries",
+        "UPDATE workflows (run_count, success_count, failure_count, last_run_at)"
+      ],
+      "cross_entity_updates": [
+        "Workflow.run_count incremented, success_count or failure_count incremented, last_run_at updated"
+      ]
+    },
+    {
+      "name": "Test Workflow",
+      "steps": [
+        "POST /workflows/:id/test-run with test_payload",
+        "Executes in sandbox mode (no side effects for email/slack/http — log only)",
+        "Returns WorkflowRun with full log trace via response and WebSocket stream"
+      ],
+      "backend_mutations": [
+        "INSERT workflow_runs (sandbox=true)",
+        "INSERT workflow_log_entries"
+      ],
+      "cross_entity_updates": [
+        "run_count NOT incremented for sandbox runs"
+      ]
+    },
+    {
+      "name": "Manage Integration",
+      "steps": [
+        "POST /integrations with name/type/config",
+        "POST /integrations/:id/test",
+        "If success: status=connected",
+        "Actions referencing this integration can now be configured"
+      ],
+      "backend_mutations": [
+        "POST /integrations",
+        "PATCH /integrations/:id (status=connected)"
+      ],
+      "cross_entity_updates": [
+        "Integration.status updated, last_tested_at set"
+      ]
+    },
+    {
+      "name": "Activate/Pause Workflow",
+      "steps": [
+        "POST /workflows/:id/activate → status=active, trigger registered in scheduler/webhook registry",
+        "POST /workflows/:id/pause → status=paused, trigger deregistered, in-flight runs allowed to complete"
+      ],
+      "backend_mutations": [
+        "POST /workflows/:id/activate",
+        "POST /workflows/:id/pause"
+      ],
+      "cross_entity_updates": [
+        "Workflow.status updated, Trigger.is_active toggled, scheduler/webhook registry updated"
+      ]
+    }
+  ],
+  "computed_fields": [
+    {
+      "entity": "Workflow",
+      "field": "run_success_rate",
+      "formula": "success_count / run_count * 100 if run_count > 0 else null",
+      "triggers": [
+        "WorkflowRun.status"
+      ],
+      "display_precision": 1
+    },
+    {
+      "entity": "Workflow",
+      "field": "average_run_duration_ms",
+      "formula": "AVG(workflow_runs.duration_ms WHERE workflow_id=id AND status=success)",
+      "triggers": [
+        "WorkflowRun completed"
+      ]
+    },
+    {
+      "entity": "Workflow",
+      "field": "failed_runs_count",
+      "formula": "COUNT(workflow_runs WHERE workflow_id=id AND status=failed)",
+      "triggers": [
+        "WorkflowRun.status"
+      ]
+    },
+    {
+      "entity": "WorkflowRun",
+      "field": "duration_ms",
+      "formula": "EXTRACT(EPOCH FROM (completed_at - started_at)) * 1000",
+      "triggers": [
+        "completed_at set"
+      ]
+    }
+  ],
+  "domain_rules": [
+    {
+      "rule": "Active workflow cannot be edited directly — must duplicate or version",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 409 if status=active on PATCH canvas actions (PUT /workflows/:id/actions)",
+      "ui_behavior": "Show 'Duplicate to edit' banner in WorkflowBuilder when workflow is active",
+      "db_constraint": null
+    },
+    {
+      "rule": "Circular action references not allowed",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Validate no cycles in action graph using DFS before saving",
+      "ui_behavior": "Prevent creating connection in WorkflowCanvas that would form a cycle",
+      "db_constraint": null
+    },
+    {
+      "rule": "Webhook trigger URL contains org-scoped secret",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Validate X-Webhook-Secret header matches stored secret on POST /webhooks/:workflow_id",
+      "ui_behavior": "Display webhook URL and secret in WebhookUrlDisplay component",
+      "db_constraint": null
+    },
+    {
+      "rule": "Maximum 100 actions per workflow",
+      "enforced_at": [
+        "db",
+        "api"
+      ],
+      "api_guard": "Count existing actions before insert, return 422 if count >= 100",
+      "ui_behavior": "Disable 'Add action' button and show warning at 90+ actions",
+      "db_constraint": "Application-level count check"
+    },
+    {
+      "rule": "Runs cannot be manually triggered for paused workflows",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 409 if workflow.status=paused on manual run trigger",
+      "ui_behavior": "Disable 'Run Now' button and show paused status",
+      "db_constraint": null
+    },
+    {
+      "rule": "Integration credentials stored encrypted (AES-256)",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Encrypt config.credentials before insert, decrypt only in worker context. Never return raw credentials to client — return masked config only.",
+      "ui_behavior": "Show masked values in integration config form",
+      "db_constraint": null
+    }
+  ],
+  "folder_structure": {
+    "src": {
+      "domains": {
+        "workflow_automation": {
+          "api": [
+            "workflowsApi.ts",
+            "triggersApi.ts",
+            "actionsApi.ts",
+            "conditionsApi.ts",
+            "workflowRunsApi.ts",
+            "integrationsApi.ts",
+            "webhooksApi.ts"
+          ],
+          "hooks": [
+            "useWorkflows.ts",
+            "useWorkflow.ts",
+            "useCreateWorkflow.ts",
+            "useUpdateWorkflow.ts",
+            "useDeleteWorkflow.ts",
+            "useActivateWorkflow.ts",
+            "usePauseWorkflow.ts",
+            "useDuplicateWorkflow.ts",
+            "useTestRun.ts",
+            "useWorkflowStats.ts",
+            "useWorkflowTrigger.ts",
+            "useCreateTrigger.ts",
+            "useUpdateTrigger.ts",
+            "useWorkflowActions.ts",
+            "useSaveWorkflowActions.ts",
+            "useCreateAction.ts",
+            "useUpdateAction.ts",
+            "useDeleteAction.ts",
+            "useConditions.ts",
+            "useSaveConditions.ts",
+            "useAllWorkflowRuns.ts",
+            "useWorkflowRuns.ts",
+            "useWorkflowRun.ts",
+            "useCancelRun.ts",
+            "useRunLogs.ts",
+            "useIntegrations.ts",
+            "useIntegration.ts",
+            "useCreateIntegration.ts",
+            "useUpdateIntegration.ts",
+            "useDeleteIntegration.ts",
+            "useTestIntegration.ts"
+          ],
+          "stores": [
+            "workflowEditorStore.ts",
+            "realtimeStore.ts"
+          ],
+          "components": {
+            "canvas": [
+              "WorkflowCanvas.tsx",
+              "ActionNode.tsx",
+              "TriggerNode.tsx",
+              "ConditionNode.tsx",
+              "ConnectionLine.tsx",
+              "NodeConfigPanel.tsx"
+            ],
+            "workflows": [
+              "WorkflowList.tsx",
+              "WorkflowCard.tsx",
+              "WorkflowForm.tsx",
+              "TemplateCard.tsx",
+              "TemplateGallery.tsx"
+            ],
+            "triggers": [
+              "TriggerSelector.tsx",
+              "TriggerConfig.tsx",
+              "CronExpressionInput.tsx",
+              "WebhookUrlDisplay.tsx"
+            ],
+            "actions": [
+              "ActionList.tsx",
+              "ActionForm.tsx",
+              "ActionTypeSelector.tsx"
+            ],
+            "conditions": [
+              "ConditionBuilder.tsx"
+            ],
+            "runs": [
+              "WorkflowRunTable.tsx",
+              "RunDetail.tsx",
+              "RunLogViewer.tsx",
+              "TestRunPanel.tsx"
+            ],
+            "integrations": [
+              "IntegrationsList.tsx",
+              "IntegrationCard.tsx",
+              "IntegrationForm.tsx"
+            ],
+            "shared": [
+              "VariableChip.tsx",
+              "VariablePicker.tsx"
+            ]
+          },
+          "pages": [
+            "WorkflowListPage.tsx",
+            "WorkflowBuilderPage.tsx",
+            "WorkflowDetailPage.tsx",
+            "RunsListPage.tsx",
+            "RunDetailPage.tsx",
+            "IntegrationsListPage.tsx",
+            "WorkflowSettingsPage.tsx"
+          ],
+          "types": [
+            "workflow.types.ts",
+            "trigger.types.ts",
+            "action.types.ts",
+            "condition.types.ts",
+            "run.types.ts",
+            "integration.types.ts"
+          ],
+          "constants": [
+            "actionTypes.ts",
+            "triggerTypes.ts",
+            "integrationTypes.ts",
+            "actionColors.ts"
+          ]
+        }
+      },
+      "components": {
+        "ui": [
+          "DataTable.tsx",
+          "Modal.tsx",
+          "SlideOverForm.tsx",
+          "StatusBadge.tsx",
+          "TriggerTypeBadge.tsx",
+          "ActionTypeBadge.tsx",
+          "IntegrationTypeBadge.tsx",
+          "LogLevelBadge.tsx",
+          "RunStatusBadge.tsx",
+          "DurationDisplay.tsx",
+          "JsonEditor.tsx",
+          "CodeEditor.tsx",
+          "EmptyState.tsx",
+          "LoadingSkeleton.tsx",
+          "ConfirmationDialog.tsx",
+          "PageHeader.tsx",
+          "FilterPanel.tsx",
+          "TabPanel.tsx",
+          "TextInput.tsx",
+          "Textarea.tsx",
+          "NumberInput.tsx",
+          "Select.tsx",
+          "MultiSelect.tsx",
+          "Toggle.tsx",
+          "DatePicker.tsx",
+          "YesNoBadge.tsx",
+          "AbsoluteDate.tsx",
+          "RelativeDate.tsx",
+          "MonospaceText.tsx",
+          "PlainText.tsx",
+          "TruncatedText.tsx",
+          "TextLink.tsx",
+          "StatCard.tsx",
+          "ActivityTimeline.tsx",
+          "NotificationBell.tsx",
+          "AuthGuard.tsx",
+          "IconSelect.tsx",
+          "IconDisplay.tsx",
+          "ColorPicker.tsx",
+          "VariableChip.tsx"
+        ]
+      },
+      "lib": [
+        "queryClient.ts",
+        "axiosInstance.ts",
+        "socket.ts",
+        "encryption.ts"
+      ],
+      "router": [
+        "AppRouter.tsx",
+        "routes.ts"
+      ],
+      "stores": [
+        "authStore.ts",
+        "uiStore.ts",
+        "filterStore.ts"
+      ]
+    }
+  },
+  "generation_rules": [
+    "WorkflowCanvas uses ReactFlow (@xyflow/react) for drag-drop node editing with custom node types (TriggerNode, ActionNode, ConditionNode)",
+    "workflowEditorStore manages undo/redo with immer-based state snapshots, max 50 history entries",
+    "Active workflows enforce read-only canvas: PATCH /workflows/:id/actions returns 409 with message 'Duplicate workflow to edit active version'",
+    "Actions validated server-side before run: check config schema per action_type, verify integration exists and is connected",
+    "Redis bullmq queue for async workflow job processing, separate queues per org for isolation",
+    "Worker executes actions sequentially, respects timeout_seconds per action, retries up to retry_count times with retry_delay_seconds backoff",
+    "WebSocket room pattern: join room workflow_run:{run_id} for live log streaming during runs",
+    "Integration credentials encrypted with AES-256-GCM before storing in JSONB config, key stored in environment secrets",
+    "All forms use React Hook Form with Zod schema validation",
+    "Every mutation hook implements onMutate (optimistic), onError (rollback), onSettled (invalidate)"
+  ],
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {
+    "status_enum": {
+      "pg_type": "status_type",
+      "ts_type": "StatusEnum",
+      "values": [
+        "connected",
+        "disconnected",
+        "error"
+      ],
+      "pg_ddl": "CREATE TYPE status_type AS ENUM ('connected', 'disconnected', 'error')"
+    },
+    "trigger_type_enum": {
+      "pg_type": "trigger_type_type",
+      "ts_type": "TriggerTypeEnum",
+      "values": [
+        "schedule",
+        "webhook",
+        "event",
+        "manual",
+        "form_submit",
+        "record_created",
+        "record_updated",
+        "record_deleted"
+      ],
+      "pg_ddl": "CREATE TYPE trigger_type_type AS ENUM ('schedule', 'webhook', 'event', 'manual', 'form_submit', 'record_created', 'record_updated', 'record_deleted')"
+    },
+    "action_type_enum": {
+      "pg_type": "action_type_type",
+      "ts_type": "ActionTypeEnum",
+      "values": [
+        "send_email",
+        "send_notification",
+        "create_record",
+        "update_record",
+        "http_request",
+        "delay",
+        "condition_branch",
+        "set_variable",
+        "run_sub_workflow",
+        "slack_message",
+        "create_task"
+      ],
+      "pg_ddl": "CREATE TYPE action_type_type AS ENUM ('send_email', 'send_notification', 'create_record', 'update_record', 'http_request', 'delay', 'condition_branch', 'set_variable', 'run_sub_workflow', 'slack_message', 'create_task')"
+    },
+    "condition_branch_enum": {
+      "pg_type": "condition_branch_type",
+      "ts_type": "ConditionBranchEnum",
+      "values": [
+        "none",
+        "true_branch",
+        "false_branch"
+      ],
+      "pg_ddl": "CREATE TYPE condition_branch_type AS ENUM ('none', 'true_branch', 'false_branch')"
+    },
+    "operator_enum": {
+      "pg_type": "operator_type",
+      "ts_type": "OperatorEnum",
+      "values": [
+        "equals",
+        "not_equals",
+        "contains",
+        "not_contains",
+        "greater_than",
+        "less_than",
+        "is_null",
+        "is_not_null",
+        "in",
+        "not_in"
+      ],
+      "pg_ddl": "CREATE TYPE operator_type AS ENUM ('equals', 'not_equals', 'contains', 'not_contains', 'greater_than', 'less_than', 'is_null', 'is_not_null', 'in', 'not_in')"
+    },
+    "value_type_enum": {
+      "pg_type": "value_type_type",
+      "ts_type": "ValueTypeEnum",
+      "values": [
+        "string",
+        "number",
+        "boolean",
+        "date",
+        "array"
+      ],
+      "pg_ddl": "CREATE TYPE value_type_type AS ENUM ('string', 'number', 'boolean', 'date', 'array')"
+    },
+    "logical_operator_enum": {
+      "pg_type": "logical_operator_type",
+      "ts_type": "LogicalOperatorEnum",
+      "values": [
+        "and",
+        "or"
+      ],
+      "pg_ddl": "CREATE TYPE logical_operator_type AS ENUM ('and', 'or')"
+    },
+    "integration_type_enum": {
+      "pg_type": "integration_type_type",
+      "ts_type": "IntegrationTypeEnum",
+      "values": [
+        "slack",
+        "email",
+        "webhook",
+        "google_sheets",
+        "zapier",
+        "stripe",
+        "github",
+        "jira",
+        "linear",
+        "custom"
+      ],
+      "pg_ddl": "CREATE TYPE integration_type_type AS ENUM ('slack', 'email', 'webhook', 'google_sheets', 'zapier', 'stripe', 'github', 'jira', 'linear', 'custom')"
+    },
+    "level_enum": {
+      "pg_type": "level_type",
+      "ts_type": "LevelEnum",
+      "values": [
+        "info",
+        "warning",
+        "error",
+        "debug"
+      ],
+      "pg_ddl": "CREATE TYPE level_type AS ENUM ('info', 'warning', 'error', 'debug')"
+    }
+  },
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  }
+}

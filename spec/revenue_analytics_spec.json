@@ -1,0 +1,2582 @@
+{
+  "spec_version": "1.0.0",
+  "file": "revenue_analytics_spec.json",
+  "tech_stack": {
+    "frontend": [
+      "React 18",
+      "TypeScript strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form v7",
+      "Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node.js",
+      "Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design": {
+    "theme": "dark",
+    "bg": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber"
+  },
+  "entities": {
+    "RevenueEvent": {
+      "table": "revenue_events",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "event_type"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "event_date"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "customer_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "period_label"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "revenue_category"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "is_recognized"
+          ]
+        }
+      ],
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "event_type": {
+          "name": "event_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'invoice_paid' | 'subscription_payment' | 'manual_entry' | 'refund' | 'chargeback' | 'adjustment'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "invoice_paid",
+              "subscription_payment",
+              "manual_entry",
+              "refund",
+              "chargeback",
+              "adjustment"
+            ]
+          }
+        },
+        "source_entity_type": {
+          "name": "source_entity_type",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 50
+          }
+        },
+        "source_entity_id": {
+          "name": "source_entity_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "TextLink",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "currency": {
+          "name": "currency",
+          "db_type": "CHAR(3) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "USD",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "length": 3
+          }
+        },
+        "event_date": {
+          "name": "event_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "revenue_category": {
+          "name": "revenue_category",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'product' | 'service' | 'subscription' | 'one_time' | 'other'",
+          "nullable": false,
+          "default": "one_time",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "product",
+              "service",
+              "subscription",
+              "one_time",
+              "other"
+            ]
+          }
+        },
+        "account_id": {
+          "name": "account_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "TextLink",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "period_label": {
+          "name": "period_label",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "maxLength": 20
+          }
+        },
+        "is_recognized": {
+          "name": "is_recognized",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "recognition_date": {
+          "name": "recognition_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date",
+            "requiredIfField": {
+              "field": "is_recognized",
+              "value": false
+            }
+          }
+        },
+        "tags": {
+          "name": "tags",
+          "db_type": "TEXT[]",
+          "ts_type": "string[] | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "MultiSelect",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "metadata": {
+          "name": "metadata",
+          "db_type": "JSONB",
+          "ts_type": "Record<string, unknown> | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        }
+      }
+    },
+    "RevenueReport": {
+      "table": "revenue_reports",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "report_type"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "generated_at"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "generated_by"
+          ]
+        }
+      ],
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "report_name": {
+          "name": "report_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        "report_type": {
+          "name": "report_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'monthly_summary' | 'ytd_summary' | 'customer_breakdown' | 'category_breakdown' | 'cohort' | 'mrr_movement' | 'churn_analysis' | 'custom'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "monthly_summary",
+              "ytd_summary",
+              "customer_breakdown",
+              "category_breakdown",
+              "cohort",
+              "mrr_movement",
+              "churn_analysis",
+              "custom"
+            ]
+          }
+        },
+        "period_start": {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "period_end": {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date",
+            "afterField": "period_start"
+          }
+        },
+        "generated_at": {
+          "name": "generated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'generating' | 'ready' | 'failed'",
+          "nullable": false,
+          "default": "generating",
+          "input_component": null,
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "generating",
+              "ready",
+              "failed"
+            ]
+          }
+        },
+        "config": {
+          "name": "config",
+          "db_type": "JSONB NOT NULL",
+          "ts_type": "Record<string, unknown>",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        "result_data": {
+          "name": "result_data",
+          "db_type": "JSONB",
+          "ts_type": "Record<string, unknown> | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "file_url": {
+          "name": "file_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "export_format": {
+          "name": "export_format",
+          "db_type": "VARCHAR(10)",
+          "ts_type": "'json' | 'csv' | 'pdf' | 'xlsx' | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "enum": [
+              "json",
+              "csv",
+              "pdf",
+              "xlsx"
+            ]
+          }
+        },
+        "generated_by": {
+          "name": "generated_by",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        }
+      }
+    },
+    "RevenueTarget": {
+      "table": "revenue_targets",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "period_label"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "revenue_category"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "period_label",
+            "revenue_category"
+          ],
+          "unique": true
+        }
+      ],
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "name": {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        "period": {
+          "name": "period",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'monthly' | 'quarterly' | 'annual'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "monthly",
+              "quarterly",
+              "annual"
+            ]
+          }
+        },
+        "period_label": {
+          "name": "period_label",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 20
+          }
+        },
+        "target_amount": {
+          "name": "target_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "revenue_category": {
+          "name": "revenue_category",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "'all' | 'product' | 'service' | 'subscription' | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "enum": [
+              "all",
+              "product",
+              "service",
+              "subscription"
+            ]
+          }
+        },
+        "actual_amount": {
+          "name": "actual_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "attainment_pct": {
+          "name": "attainment_pct",
+          "db_type": "NUMERIC(8,4) GENERATED ALWAYS AS (CASE WHEN target_amount > 0 THEN (actual_amount / target_amount) * 100 ELSE 0 END) STORED",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PercentageDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'on_track' | 'at_risk' | 'missed' | 'achieved'",
+          "nullable": false,
+          "default": "on_track",
+          "input_component": null,
+          "display_component": "AttainmentBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "on_track",
+              "at_risk",
+              "missed",
+              "achieved"
+            ]
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        }
+      }
+    },
+    "CustomerRevenueMetric": {
+      "table": "customer_revenue_metrics",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "customer_id",
+            "period_label"
+          ],
+          "unique": true
+        },
+        {
+          "columns": [
+            "org_id",
+            "period_label"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "segment"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "is_churned"
+          ]
+        }
+      ],
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "period_label": {
+          "name": "period_label",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "maxLength": 20
+          }
+        },
+        "total_revenue": {
+          "name": "total_revenue",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "invoice_count": {
+          "name": "invoice_count",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "min": 0
+          }
+        },
+        "avg_invoice_value": {
+          "name": "avg_invoice_value",
+          "db_type": "NUMERIC(15,2) GENERATED ALWAYS AS (CASE WHEN invoice_count > 0 THEN total_revenue / invoice_count ELSE 0 END) STORED",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "first_purchase_date": {
+          "name": "first_purchase_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "last_purchase_date": {
+          "name": "last_purchase_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "is_churned": {
+          "name": "is_churned",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": null,
+          "display_component": "YesNoBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "churn_date": {
+          "name": "churn_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "ltv": {
+          "name": "ltv",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "clv_predicted": {
+          "name": "clv_predicted",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "segment": {
+          "name": "segment",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'new' | 'returning' | 'at_risk' | 'churned' | 'champion'",
+          "nullable": false,
+          "default": "new",
+          "input_component": null,
+          "display_component": "CustomerSegmentBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "new",
+              "returning",
+              "at_risk",
+              "churned",
+              "champion"
+            ]
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        }
+      }
+    },
+    "CohortAnalysis": {
+      "table": "cohort_analyses",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "cohort_month"
+          ],
+          "unique": true
+        },
+        {
+          "columns": [
+            "org_id",
+            "computed_at"
+          ]
+        }
+      ],
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "cohort_month": {
+          "name": "cohort_month",
+          "db_type": "VARCHAR(7) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "maxLength": 7
+          }
+        },
+        "cohort_size": {
+          "name": "cohort_size",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 1
+          }
+        },
+        "month_0_revenue": {
+          "name": "month_0_revenue",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_1_revenue": {
+          "name": "month_1_revenue",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_2_revenue": {
+          "name": "month_2_revenue",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_3_revenue": {
+          "name": "month_3_revenue",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_6_revenue": {
+          "name": "month_6_revenue",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_12_revenue": {
+          "name": "month_12_revenue",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_0_retention": {
+          "name": "month_0_retention",
+          "db_type": "NUMERIC(6,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 100,
+          "input_component": null,
+          "display_component": "PercentageDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_1_retention": {
+          "name": "month_1_retention",
+          "db_type": "NUMERIC(6,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "PercentageDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_3_retention": {
+          "name": "month_3_retention",
+          "db_type": "NUMERIC(6,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "PercentageDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_6_retention": {
+          "name": "month_6_retention",
+          "db_type": "NUMERIC(6,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "PercentageDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "month_12_retention": {
+          "name": "month_12_retention",
+          "db_type": "NUMERIC(6,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "PercentageDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "computed_at": {
+          "name": "computed_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        }
+      }
+    }
+  },
+  "components": [
+    "DataTable",
+    "StatusBadge",
+    "CurrencyDisplay",
+    "NumberDisplay",
+    "PercentageDisplay",
+    "Select",
+    "MultiSelect",
+    "DatePicker",
+    "DateRangePicker",
+    "TextInput",
+    "Textarea",
+    "PlainText",
+    "MonospaceText",
+    "TruncatedText",
+    "TextLink",
+    "AbsoluteDate",
+    "YesNoBadge",
+    "PageHeader",
+    "FilterPanel",
+    "TabPanel",
+    "EmptyState",
+    "LoadingSkeleton",
+    "ConfirmationDialog",
+    "StatCard",
+    "AuthGuard",
+    "NotificationBell",
+    "RevenueLineChart",
+    "RevenueCategoryPieChart",
+    "RevenueBarChart",
+    "MRRMovementChart",
+    "ChurnRateGauge",
+    "CohortHeatmap",
+    "CustomerSegmentBadge",
+    "RevenueTargetProgress",
+    "AttainmentBadge",
+    "PeriodComparisonTable",
+    "TopCustomersTable",
+    "ReportCard",
+    "ExportButton",
+    "ReportConfigModal",
+    "WaterfallChart",
+    "GrowthRateBadge"
+  ],
+  "modules": [
+    {
+      "name": "RevenueOverview",
+      "route": "/revenue",
+      "tabs": []
+    },
+    {
+      "name": "RevenueEvents",
+      "route": "/revenue/events",
+      "tabs": [
+        "All",
+        "By Type",
+        "By Category"
+      ]
+    },
+    {
+      "name": "RevenueReports",
+      "route": "/revenue/reports",
+      "tabs": [
+        "Generated",
+        "Scheduled"
+      ]
+    },
+    {
+      "name": "RevenueReportDetail",
+      "route": "/revenue/reports/:id",
+      "tabs": []
+    },
+    {
+      "name": "RevenueTargets",
+      "route": "/revenue/targets",
+      "tabs": []
+    },
+    {
+      "name": "CustomerRevenue",
+      "route": "/revenue/customers",
+      "tabs": []
+    },
+    {
+      "name": "CohortAnalysisView",
+      "route": "/revenue/cohort",
+      "tabs": []
+    },
+    {
+      "name": "MRRDashboard",
+      "route": "/revenue/mrr",
+      "tabs": []
+    }
+  ],
+  "api": {
+    "revenue_events": {
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/revenue-events",
+          "description": "List revenue events with filters"
+        },
+        {
+          "method": "POST",
+          "path": "/revenue-events",
+          "description": "Create manual revenue event"
+        },
+        {
+          "method": "GET",
+          "path": "/revenue-events/:id",
+          "description": "Get revenue event"
+        },
+        {
+          "method": "PATCH",
+          "path": "/revenue-events/:id",
+          "description": "Update revenue event"
+        },
+        {
+          "method": "DELETE",
+          "path": "/revenue-events/:id",
+          "description": "Delete revenue event"
+        },
+        {
+          "method": "POST",
+          "path": "/revenue-events/import",
+          "description": "Import revenue events from CSV"
+        },
+        {
+          "method": "GET",
+          "path": "/revenue-events/summary",
+          "description": "Aggregated summary",
+          "query_params": [
+            "period",
+            "group_by"
+          ]
+        }
+      ]
+    },
+    "revenue_reports": {
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/revenue-reports",
+          "description": "List reports"
+        },
+        {
+          "method": "POST",
+          "path": "/revenue-reports",
+          "description": "Trigger report generation"
+        },
+        {
+          "method": "GET",
+          "path": "/revenue-reports/:id",
+          "description": "Get report"
+        },
+        {
+          "method": "DELETE",
+          "path": "/revenue-reports/:id",
+          "description": "Delete report"
+        },
+        {
+          "method": "GET",
+          "path": "/revenue-reports/:id/download",
+          "description": "Download report file"
+        }
+      ]
+    },
+    "revenue_targets": {
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/revenue-targets",
+          "description": "List targets"
+        },
+        {
+          "method": "POST",
+          "path": "/revenue-targets",
+          "description": "Create target"
+        },
+        {
+          "method": "GET",
+          "path": "/revenue-targets/:id",
+          "description": "Get target"
+        },
+        {
+          "method": "PATCH",
+          "path": "/revenue-targets/:id",
+          "description": "Update target"
+        },
+        {
+          "method": "DELETE",
+          "path": "/revenue-targets/:id",
+          "description": "Delete target"
+        },
+        {
+          "method": "POST",
+          "path": "/revenue-targets/:id/sync-actuals",
+          "description": "Recompute actual_amount for target"
+        }
+      ]
+    },
+    "customer_revenue_metrics": {
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/customer-revenue-metrics",
+          "description": "List metrics",
+          "query_params": [
+            "period",
+            "segment"
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/customer-revenue-metrics/:customerId",
+          "description": "Get metrics for customer"
+        },
+        {
+          "method": "POST",
+          "path": "/customer-revenue-metrics/compute",
+          "description": "Recompute all customer metrics"
+        }
+      ]
+    },
+    "cohort_analyses": {
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/cohort-analyses",
+          "description": "List cohort analyses"
+        },
+        {
+          "method": "POST",
+          "path": "/cohort-analyses/compute",
+          "description": "Trigger cohort computation"
+        },
+        {
+          "method": "GET",
+          "path": "/cohort-analyses/:cohort_month",
+          "description": "Get cohort by month"
+        }
+      ]
+    },
+    "analytics": {
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/analytics/revenue/mrr-movement",
+          "description": "MRR movement breakdown",
+          "query_params": [
+            "from",
+            "to"
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/analytics/revenue/by-category",
+          "description": "Revenue by category",
+          "query_params": [
+            "from",
+            "to"
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/analytics/revenue/growth-rate",
+          "description": "Revenue growth rate",
+          "query_params": [
+            "period"
+          ]
+        },
+        {
+          "method": "GET",
+          "path": "/analytics/revenue/top-customers",
+          "description": "Top customers by revenue",
+          "query_params": [
+            "limit",
+            "period"
+          ]
+        }
+      ]
+    }
+  },
+  "permissions": {
+    "roles": [
+      "admin",
+      "financial_manager",
+      "analyst",
+      "viewer"
+    ],
+    "matrix": {
+      "revenue_events.create": [
+        "admin",
+        "financial_manager",
+        "analyst"
+      ],
+      "revenue_events.edit": [
+        "admin",
+        "financial_manager",
+        "analyst"
+      ],
+      "revenue_targets.manage": [
+        "admin",
+        "financial_manager"
+      ],
+      "reports.generate": [
+        "admin",
+        "financial_manager",
+        "analyst"
+      ],
+      "cohort.compute": [
+        "admin",
+        "financial_manager"
+      ],
+      "all.view": [
+        "admin",
+        "financial_manager",
+        "analyst",
+        "viewer"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      "authStore",
+      "uiStore",
+      "revenueFilterStore",
+      "revenueReportStore"
+    ],
+    "revenueFilterStore": {
+      "state_keys": [
+        "dateRange",
+        "category",
+        "segment"
+      ]
+    },
+    "revenueReportStore": {
+      "state_keys": [
+        "activeReportGenerationStatus"
+      ]
+    },
+    "query_keys": [
+      "revenueEvents",
+      "revenueReports",
+      "revenueTargets",
+      "customerRevenueMetrics",
+      "cohortAnalyses",
+      "mrrMovement"
+    ]
+  },
+  "websocket": {
+    "events": [
+      {
+        "event": "revenue_report.ready",
+        "description": "Emitted when background report generation completes"
+      },
+      {
+        "event": "revenue_target.achieved",
+        "description": "Emitted when a target reaches 100% attainment"
+      },
+      {
+        "event": "revenue_target.at_risk",
+        "description": "Emitted when a target is projected to miss"
+      },
+      {
+        "event": "cohort.computed",
+        "description": "Emitted when cohort analysis computation finishes"
+      }
+    ]
+  },
+  "flows": [
+    {
+      "name": "Track Revenue",
+      "steps": [
+        "Auto-create revenue events: invoice paid triggers POST /revenue-events with event_type=invoice_paid",
+        "Subscription billing cycle paid triggers event_type=subscription_payment",
+        "Manual entry: POST /revenue-events with event_type=manual_entry"
+      ],
+      "cross_entity_updates": [
+        "CustomerRevenueMetric.total_revenue updated",
+        "RevenueTarget.actual_amount resynced"
+      ]
+    },
+    {
+      "name": "Generate Revenue Report",
+      "steps": [
+        "User configures report (type, period, filters)",
+        "POST /revenue-reports",
+        "Background job aggregates revenue_events and builds result_data",
+        "Status set to ready",
+        "Emit revenue_report.ready websocket event",
+        "User downloads via GET /revenue-reports/:id/download"
+      ]
+    },
+    {
+      "name": "MRR Movement Analysis",
+      "steps": [
+        "GET /analytics/revenue/mrr-movement?from=&to=",
+        "Compute: new_mrr (first subscription payments), expansion_mrr (upgrades), contraction_mrr (downgrades), churned_mrr (cancelled)",
+        "Derive net_new_mrr = new_mrr + expansion_mrr - contraction_mrr - churned_mrr",
+        "Display WaterfallChart"
+      ]
+    },
+    {
+      "name": "Cohort Analysis",
+      "steps": [
+        "POST /cohort-analyses/compute",
+        "For each cohort_month: find all customers whose first purchase occurred in that month",
+        "For each subsequent month: calculate revenue retention percentage",
+        "Store CohortAnalysis record",
+        "Display CohortHeatmap"
+      ]
+    }
+  ],
+  "computed_fields": [
+    {
+      "entity": "RevenueTarget",
+      "field": "actual_amount",
+      "formula": "SUM(revenue_events.amount WHERE period_label = target.period_label AND is_recognized = true AND (revenue_category matches target.revenue_category OR target.revenue_category = 'all'))"
+    },
+    {
+      "entity": "RevenueTarget",
+      "field": "attainment_pct",
+      "formula": "(actual_amount / target_amount) * 100"
+    },
+    {
+      "entity": "CustomerRevenueMetric",
+      "field": "avg_invoice_value",
+      "formula": "total_revenue / invoice_count IF invoice_count > 0 ELSE 0"
+    },
+    {
+      "entity": "CustomerRevenueMetric",
+      "field": "ltv",
+      "formula": "SUM(revenue_events.amount WHERE customer_id = id AND is_recognized = true)"
+    },
+    {
+      "entity": "CohortAnalysis",
+      "field": "month_N_retention",
+      "formula": "(count of customers from cohort with revenue in month N) / cohort_size * 100"
+    }
+  ],
+  "domain_rules": [
+    {
+      "rule": "Unrecognized (deferred) revenue events are excluded from MRR and ARR calculations",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Filter WHERE is_recognized = true in all MRR/ARR aggregation queries",
+      "ui_behavior": null,
+      "db_constraint": null
+    },
+    {
+      "rule": "recognition_date is required when is_recognized is false",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Validate that recognition_date is present when is_recognized = false; return 422 otherwise",
+      "ui_behavior": "Show recognition_date field as required when is_recognized toggle is off",
+      "db_constraint": null
+    },
+    {
+      "rule": "Refund events reduce revenue; amount is stored as a negative number",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Coerce amount to negative value when event_type = refund",
+      "ui_behavior": null,
+      "db_constraint": null
+    },
+    {
+      "rule": "RevenueTarget period_label and revenue_category combination must be unique per org",
+      "enforced_at": [
+        "db"
+      ],
+      "api_guard": null,
+      "ui_behavior": null,
+      "db_constraint": "UNIQUE INDEX on (org_id, period_label, revenue_category)"
+    },
+    {
+      "rule": "CohortAnalysis cohort_size must be >= 1",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Validate cohort_size >= 1 before storing; return 422 otherwise",
+      "ui_behavior": null,
+      "db_constraint": null
+    }
+  ],
+  "_meta": {
+    "title": "revenue_analytics_spec.json",
+    "domain": "Operations",
+    "version": "1.0"
+  },
+  "design_system": {
+    "theme": "dark",
+    "bg": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber"
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK\u2192organizations, row-level security anchor"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null,
+      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
+    }
+  },
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {},
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "external_entity_refs": [
+    {
+      "name": "Invoice",
+      "defined_in": "invoice_billing_spec.json",
+      "table": "invoices",
+      "description": "Source invoice for revenue event.",
+      "fk_fields_in_this_spec": [
+        "RevenueEvent.invoice_id"
+      ]
+    },
+    {
+      "name": "Customer",
+      "defined_in": "invoice_billing_spec.json",
+      "table": "customers",
+      "description": "Customer associated with revenue metrics.",
+      "fk_fields_in_this_spec": [
+        "CustomerRevenueMetric.customer_id",
+        "RevenueEvent.customer_id"
+      ]
+    }
+  ]
+}

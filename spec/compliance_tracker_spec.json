@@ -1,0 +1,2831 @@
+{
+  "_meta": {
+    "title": "Compliance Tracker Application",
+    "domain": "Operations & Governance",
+    "version": "1.0"
+  },
+  "tech_stack": {
+    "frontend": [
+      "React 18 TS strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form + Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node/Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "background": "slate-950",
+    "accent": "teal",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber",
+    "status_colors": {
+      "compliant": "green",
+      "non_compliant": "red",
+      "in_progress": "blue",
+      "not_applicable": "slate",
+      "pending_review": "amber",
+      "overdue": "red",
+      "expired": "orange"
+    },
+    "severity_colors": {
+      "critical": "red",
+      "high": "orange",
+      "medium": "amber",
+      "low": "yellow",
+      "informational": "sky"
+    },
+    "framework_colors": {
+      "ISO27001": "blue",
+      "SOC2": "violet",
+      "GDPR": "emerald",
+      "HIPAA": "cyan",
+      "PCI_DSS": "orange",
+      "CCPA": "teal",
+      "custom": "slate"
+    }
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK\u2192organizations, indexed on every table"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null
+    }
+  },
+  "entities": [
+    {
+      "name": "ComplianceFramework",
+      "table": "compliance_frameworks",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "framework_type"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "is_active"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "framework_type",
+          "db_type": "ENUM('ISO27001','SOC2','GDPR','HIPAA','PCI_DSS','CCPA','NIST','custom')",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "custom",
+          "input_component": "Select",
+          "display_component": "FrameworkBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "version",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "maxLength": 50
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "BooleanBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "owner_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "review_frequency_days",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 365,
+          "notes": "How often controls should be reviewed (in days)",
+          "input_component": "NumberInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_compliance_frameworks_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_compliance_frameworks_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "ComplianceControl",
+      "table": "compliance_controls",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "framework_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "owner_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "category"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "next_review_date"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "severity"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "framework_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "compliance_frameworks",
+          "input_component": "FrameworkSelector",
+          "display_component": "FrameworkBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "control_id",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "notes": "e.g. A.5.1, CC6.1, Article 32",
+          "input_component": "TextInput",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 100
+          }
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TextLink",
+          "display_component_props": {
+            "href": "/controls/:id"
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 500
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "RichTextEditor",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "notes": "Framework-defined category e.g. Access Control, Data Protection",
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "severity",
+          "db_type": "ENUM('informational','low','medium','high','critical')",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "medium",
+          "input_component": "Select",
+          "display_component": "SeverityBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('compliant','non_compliant','in_progress','not_applicable','pending_review')",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "pending_review",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "owner_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "implementation_notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "RichTextEditor",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "remediation_plan",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "RichTextEditor",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "last_reviewed_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "next_review_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "evidence_count",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "compliance_evidence",
+            "formula": "COUNT(compliance_evidence) WHERE control_id = controls.id AND deleted_at IS NULL",
+            "trigger": [
+              "insert",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "is_automated",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "notes": "True if compliance status is auto-monitored",
+          "input_component": "Toggle",
+          "display_component": "BooleanBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "tags",
+          "db_type": "TEXT[]",
+          "ts_type": "string[]",
+          "nullable": false,
+          "default": "ARRAY[]::TEXT[]",
+          "input_component": "TagInput",
+          "display_component": "TagList",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_compliance_controls_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_compliance_controls_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "ComplianceEvidence",
+      "table": "compliance_evidence",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "control_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "uploaded_by"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "expires_at"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "evidence_type"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "control_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "compliance_controls",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 500
+          }
+        },
+        {
+          "name": "evidence_type",
+          "db_type": "ENUM('document','screenshot','log_export','policy','certificate','audit_report','test_result','link','other')",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "document",
+          "input_component": "Select",
+          "display_component": "EvidenceTypeBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "file_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "notes": "S3 URL for uploaded file",
+          "input_component": "FileUpload",
+          "display_component": "FileDownloadLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "external_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "notes": "External URL reference (for link type)",
+          "input_component": "TextInput",
+          "display_component": "ExternalLink",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "url": true
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "uploaded_by",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "collected_at",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "CURRENT_DATE",
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "expires_at",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "is_expired",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "computed": {
+            "source": "self",
+            "formula": "expires_at IS NOT NULL AND expires_at < CURRENT_DATE",
+            "trigger": [
+              "cron_daily"
+            ],
+            "storage": "stored"
+          },
+          "formula": "expires_at IS NOT NULL AND expires_at < CURRENT_DATE",
+          "input_component": null,
+          "display_component": "BooleanBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "file_name",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "file_size_bytes",
+          "db_type": "BIGINT",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "FileSizeDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_compliance_evidence_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_compliance_evidence_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "ComplianceTask",
+      "table": "compliance_tasks",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "control_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "assignee_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "due_date"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "control_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "compliance_controls",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 500
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "assignee_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('open','in_progress','completed','cancelled')",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "open",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "completed_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "is_recurring",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": "Toggle",
+          "display_component": "BooleanBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "recurrence_days",
+          "db_type": "INTEGER",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "notes": "If recurring, re-create task every N days after completion",
+          "input_component": "NumberInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": null
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_compliance_tasks_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_compliance_tasks_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "AuditLog",
+      "table": "compliance_audit_logs",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "entity_type",
+            "entity_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "actor_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "action"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "created_at"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "entity_type",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "entity_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "action",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "notes": "e.g. status_changed, evidence_uploaded, review_completed",
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "actor_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "changes",
+          "db_type": "JSONB",
+          "ts_type": "Record<string, {from: unknown; to: unknown}>",
+          "nullable": true,
+          "default": null,
+          "notes": "Field-level diff of changes made",
+          "input_component": null,
+          "display_component": "DiffDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "ip_address",
+          "db_type": "INET",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeTime",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": null
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_compliance_audit_logs_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_compliance_audit_logs_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "name": "ComplianceDashboard",
+      "type": "Dashboard",
+      "widgets": [
+        "ComplianceSummaryStats",
+        "FrameworkProgressGrid",
+        "ControlsByStatusChart",
+        "OverdueControlsWidget",
+        "ExpiringEvidenceWidget",
+        "ComplianceTrendChart"
+      ]
+    },
+    {
+      "name": "ControlsTable",
+      "type": "DataTable",
+      "props": {
+        "columns": [
+          "control_id",
+          "title",
+          "framework_id",
+          "category",
+          "severity",
+          "status",
+          "owner_id",
+          "evidence_count",
+          "last_reviewed_at",
+          "next_review_date"
+        ]
+      },
+      "features": [
+        "filter_by_framework",
+        "filter_by_status",
+        "filter_by_severity",
+        "filter_by_owner",
+        "search",
+        "export_csv",
+        "bulk_assign",
+        "bulk_status_update"
+      ]
+    },
+    {
+      "name": "ControlDetailDrawer",
+      "type": "Drawer",
+      "props": {
+        "width": "xl"
+      },
+      "features": [
+        "control_info",
+        "evidence_list",
+        "task_list",
+        "audit_log",
+        "comments",
+        "edit_control",
+        "upload_evidence",
+        "log_review"
+      ]
+    },
+    {
+      "name": "FrameworkProgressCard",
+      "type": "Card",
+      "props": {
+        "fields": [
+          "name",
+          "framework_type",
+          "compliant_pct",
+          "control_count",
+          "non_compliant_count",
+          "last_review"
+        ]
+      },
+      "features": [
+        "click_to_filter",
+        "manage_controls"
+      ]
+    },
+    {
+      "name": "EvidenceList",
+      "type": "List",
+      "features": [
+        "upload_evidence",
+        "preview_file",
+        "download",
+        "delete",
+        "expiry_warning",
+        "filter_by_type",
+        "sort_by_date"
+      ]
+    },
+    {
+      "name": "EvidenceUploadModal",
+      "type": "Modal",
+      "props": {
+        "fields": [
+          "title",
+          "evidence_type",
+          "file_or_url",
+          "description",
+          "collected_at",
+          "expires_at"
+        ]
+      },
+      "features": [
+        "drag_drop",
+        "multi_file",
+        "s3_upload"
+      ]
+    },
+    {
+      "name": "ComplianceSummaryStats",
+      "type": "StatsGrid",
+      "metrics": [
+        {
+          "label": "Total Controls",
+          "field": "total_count",
+          "format": "number"
+        },
+        {
+          "label": "Compliant",
+          "field": "compliant_count",
+          "format": "number",
+          "color": "green"
+        },
+        {
+          "label": "Non-Compliant",
+          "field": "non_compliant_count",
+          "format": "number",
+          "color": "red"
+        },
+        {
+          "label": "Pending Review",
+          "field": "pending_review_count",
+          "format": "number",
+          "color": "amber"
+        },
+        {
+          "label": "Overall Score",
+          "field": "compliance_score_pct",
+          "format": "percent"
+        }
+      ]
+    },
+    {
+      "name": "ControlsByStatusChart",
+      "type": "DonutChart",
+      "library": "Recharts",
+      "props": {
+        "dataKey": "count",
+        "nameKey": "status",
+        "color_map": "status_colors"
+      }
+    },
+    {
+      "name": "ComplianceTrendChart",
+      "type": "LineChart",
+      "library": "Recharts",
+      "props": {
+        "xAxis": "month",
+        "yAxis": "compliance_score_pct",
+        "series_per": "framework"
+      }
+    },
+    {
+      "name": "OverdueControlsWidget",
+      "type": "Widget",
+      "features": [
+        "overdue_list",
+        "click_to_control",
+        "send_reminder"
+      ]
+    },
+    {
+      "name": "ExpiringEvidenceWidget",
+      "type": "Widget",
+      "features": [
+        "expiring_in_30_days",
+        "click_to_control",
+        "renew_evidence"
+      ]
+    },
+    {
+      "name": "ComplianceTaskList",
+      "type": "List",
+      "features": [
+        "add_task",
+        "inline_edit",
+        "assign",
+        "set_due_date",
+        "status_toggle",
+        "recurring_indicator",
+        "overdue_highlight"
+      ]
+    },
+    {
+      "name": "AuditLogTable",
+      "type": "DataTable",
+      "props": {
+        "columns": [
+          "created_at",
+          "actor_id",
+          "entity_type",
+          "action",
+          "changes"
+        ]
+      },
+      "features": [
+        "filter_by_actor",
+        "filter_by_action",
+        "filter_by_date",
+        "export_csv"
+      ]
+    },
+    {
+      "name": "ReviewControlModal",
+      "type": "Modal",
+      "props": {
+        "fields": [
+          "status",
+          "implementation_notes",
+          "remediation_plan",
+          "next_review_date",
+          "notes"
+        ]
+      },
+      "features": [
+        "status_change",
+        "note_required_for_non_compliant"
+      ]
+    },
+    {
+      "name": "FrameworkImportModal",
+      "type": "Modal",
+      "features": [
+        "select_framework_template",
+        "preview_controls",
+        "bulk_import",
+        "duplicate_check"
+      ]
+    }
+  ],
+  "modules": [
+    {
+      "name": "ComplianceDashboardPage",
+      "path": "/compliance",
+      "description": "Executive compliance overview across all frameworks",
+      "components": [
+        "ComplianceDashboard"
+      ]
+    },
+    {
+      "name": "FrameworksPage",
+      "path": "/compliance/frameworks",
+      "description": "Manage compliance frameworks and view per-framework progress",
+      "components": [
+        "FrameworkProgressCard",
+        "FrameworkImportModal"
+      ],
+      "features": [
+        "add_framework",
+        "import_template",
+        "archive_framework"
+      ]
+    },
+    {
+      "name": "ControlsPage",
+      "path": "/compliance/controls",
+      "description": "Full controls register across all active frameworks",
+      "components": [
+        "ControlsTable",
+        "ControlDetailDrawer",
+        "ComplianceSummaryStats"
+      ],
+      "views": [
+        "Table",
+        "By Framework"
+      ]
+    },
+    {
+      "name": "EvidencePage",
+      "path": "/compliance/evidence",
+      "description": "Manage all compliance evidence files and links",
+      "components": [
+        "EvidenceList",
+        "EvidenceUploadModal",
+        "ExpiringEvidenceWidget"
+      ],
+      "tabs": [
+        "All",
+        "Expiring Soon",
+        "Expired"
+      ]
+    },
+    {
+      "name": "TasksPage",
+      "path": "/compliance/tasks",
+      "description": "Compliance tasks and remediation action tracking",
+      "components": [
+        "ComplianceTaskList"
+      ],
+      "default_filters": {
+        "assignee_id": "current_user"
+      },
+      "tabs": [
+        "My Tasks",
+        "All Tasks",
+        "Overdue"
+      ]
+    },
+    {
+      "name": "AuditLogPage",
+      "path": "/compliance/audit-log",
+      "description": "Immutable audit trail of all compliance-related actions",
+      "components": [
+        "AuditLogTable"
+      ],
+      "features": [
+        "export_csv",
+        "filter_by_actor",
+        "filter_by_date_range"
+      ]
+    }
+  ],
+  "api": {
+    "frameworks": {
+      "GET /api/compliance/frameworks": {
+        "description": "List frameworks",
+        "response": "ComplianceFramework[]",
+        "query_params": [
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response_envelope": {
+          "data": "ComplianceFramework[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "POST /api/compliance/frameworks": {
+        "description": "Create framework",
+        "body": "CreateFrameworkDto",
+        "response": "ComplianceFramework"
+      },
+      "GET /api/compliance/frameworks/:id": {
+        "description": "Get framework with progress",
+        "response": "FrameworkWithProgress"
+      },
+      "PATCH /api/compliance/frameworks/:id": {
+        "description": "Update framework",
+        "body": "UpdateFrameworkDto",
+        "response": "ComplianceFramework"
+      },
+      "DELETE /api/compliance/frameworks/:id": {
+        "description": "Soft delete framework",
+        "response": "void"
+      },
+      "POST /api/compliance/frameworks/import": {
+        "description": "Import controls from template",
+        "body": "ImportFrameworkDto",
+        "response": "ComplianceFramework"
+      }
+    },
+    "controls": {
+      "GET /api/compliance/controls": {
+        "description": "List controls",
+        "query_params": [
+          "framework_id",
+          "status",
+          "severity",
+          "owner_id",
+          "category",
+          "search",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "PaginatedControl[]",
+        "response_envelope": {
+          "data": "PaginatedControl[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "POST /api/compliance/controls": {
+        "description": "Create control",
+        "body": "CreateControlDto",
+        "response": "ComplianceControl"
+      },
+      "GET /api/compliance/controls/:id": {
+        "description": "Get control detail",
+        "response": "ControlWithRelations"
+      },
+      "PATCH /api/compliance/controls/:id": {
+        "description": "Update control",
+        "body": "UpdateControlDto",
+        "response": "ComplianceControl"
+      },
+      "DELETE /api/compliance/controls/:id": {
+        "description": "Soft delete control",
+        "response": "void"
+      },
+      "POST /api/compliance/controls/:id/review": {
+        "description": "Log control review",
+        "body": "ReviewControlDto",
+        "response": "ComplianceControl"
+      },
+      "POST /api/compliance/controls/bulk-assign": {
+        "description": "Bulk assign owner",
+        "body": "BulkAssignDto",
+        "response": "BulkOperationResult"
+      }
+    },
+    "evidence": {
+      "GET /api/compliance/controls/:controlId/evidence": {
+        "description": "List evidence for control",
+        "response": "ComplianceEvidence[]",
+        "query_params": [
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response_envelope": {
+          "data": "ComplianceEvidence[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "POST /api/compliance/controls/:controlId/evidence": {
+        "description": "Upload evidence",
+        "body": "FormData | CreateEvidenceDto",
+        "response": "ComplianceEvidence"
+      },
+      "PATCH /api/compliance/evidence/:id": {
+        "description": "Update evidence metadata",
+        "body": "UpdateEvidenceDto",
+        "response": "ComplianceEvidence"
+      },
+      "DELETE /api/compliance/evidence/:id": {
+        "description": "Delete evidence",
+        "response": "void"
+      },
+      "GET /api/compliance/evidence": {
+        "description": "List all evidence",
+        "query_params": [
+          "evidence_type",
+          "is_expired",
+          "expires_before",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "PaginatedEvidence[]",
+        "response_envelope": {
+          "data": "PaginatedEvidence[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      }
+    },
+    "tasks": {
+      "GET /api/compliance/tasks": {
+        "description": "List compliance tasks",
+        "query_params": [
+          "control_id",
+          "assignee_id",
+          "status",
+          "due_date_before",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "PaginatedComplianceTask[]",
+        "response_envelope": {
+          "data": "PaginatedComplianceTask[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "POST /api/compliance/controls/:controlId/tasks": {
+        "description": "Create task for control",
+        "body": "CreateTaskDto",
+        "response": "ComplianceTask"
+      },
+      "PATCH /api/compliance/tasks/:id": {
+        "description": "Update task",
+        "body": "UpdateTaskDto",
+        "response": "ComplianceTask"
+      },
+      "DELETE /api/compliance/tasks/:id": {
+        "description": "Delete task",
+        "response": "void"
+      }
+    },
+    "analytics": {
+      "GET /api/compliance/analytics/summary": {
+        "description": "Overall compliance stats",
+        "query_params": [
+          "framework_id",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "ComplianceSummaryStats",
+        "response_envelope": {
+          "data": "ComplianceSummaryStats",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "GET /api/compliance/analytics/by-framework": {
+        "description": "Compliance score per framework",
+        "response": "FrameworkScore[]",
+        "query_params": [
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response_envelope": {
+          "data": "FrameworkScore[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "GET /api/compliance/analytics/trend": {
+        "description": "Compliance score trend over time",
+        "query_params": [
+          "framework_id",
+          "months",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "ComplianceTrend[]",
+        "response_envelope": {
+          "data": "ComplianceTrend[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      },
+      "GET /api/compliance/analytics/overdue": {
+        "description": "Overdue controls and expiring evidence",
+        "response": "OverdueItems",
+        "query_params": [
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response_envelope": {
+          "data": "OverdueItems",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      }
+    },
+    "audit": {
+      "GET /api/compliance/audit-log": {
+        "description": "Get audit log",
+        "query_params": [
+          "entity_type",
+          "entity_id",
+          "actor_id",
+          "action",
+          "date_from",
+          "date_to",
+          "page",
+          "limit",
+          "sort",
+          "cursor"
+        ],
+        "response": "PaginatedAuditLog[]",
+        "response_envelope": {
+          "data": "PaginatedAuditLog[]",
+          "meta": {
+            "total": "integer",
+            "limit": "integer",
+            "cursor": "string | null",
+            "has_more": "boolean"
+          }
+        }
+      }
+    }
+  },
+  "permissions": {
+    "roles": [
+      "owner",
+      "admin",
+      "compliance_manager",
+      "auditor",
+      "employee",
+      "viewer"
+    ],
+    "matrix": {
+      "framework.create": [
+        "owner",
+        "admin",
+        "compliance_manager"
+      ],
+      "framework.edit": [
+        "owner",
+        "admin",
+        "compliance_manager"
+      ],
+      "framework.delete": [
+        "owner",
+        "admin"
+      ],
+      "control.create": [
+        "owner",
+        "admin",
+        "compliance_manager"
+      ],
+      "control.edit_own": [
+        "owner",
+        "admin",
+        "compliance_manager",
+        "employee"
+      ],
+      "control.edit_any": [
+        "owner",
+        "admin",
+        "compliance_manager"
+      ],
+      "control.view_all": [
+        "owner",
+        "admin",
+        "compliance_manager",
+        "auditor"
+      ],
+      "control.view_assigned": [
+        "employee",
+        "viewer"
+      ],
+      "evidence.upload": [
+        "owner",
+        "admin",
+        "compliance_manager",
+        "employee"
+      ],
+      "evidence.delete": [
+        "owner",
+        "admin",
+        "compliance_manager"
+      ],
+      "evidence.view": [
+        "owner",
+        "admin",
+        "compliance_manager",
+        "auditor",
+        "employee"
+      ],
+      "task.create": [
+        "owner",
+        "admin",
+        "compliance_manager"
+      ],
+      "task.complete_own": [
+        "owner",
+        "admin",
+        "compliance_manager",
+        "employee"
+      ],
+      "audit_log.view": [
+        "owner",
+        "admin",
+        "compliance_manager",
+        "auditor"
+      ],
+      "analytics.view": [
+        "owner",
+        "admin",
+        "compliance_manager",
+        "auditor"
+      ],
+      "analytics.export": [
+        "owner",
+        "admin",
+        "compliance_manager"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      {
+        "name": "complianceStore",
+        "state": [
+          "activeFramework",
+          "viewMode",
+          "activeFilters",
+          "selectedControls"
+        ],
+        "actions": [
+          "setActiveFramework",
+          "setViewMode",
+          "setActiveFilters",
+          "setSelectedControls",
+          "clearFilters"
+        ]
+      }
+    ],
+    "query_keys": [
+      "frameworks.list",
+      "frameworks.detail(id)",
+      "controls.list(filters)",
+      "controls.detail(id)",
+      "evidence.by-control(controlId)",
+      "evidence.list(filters)",
+      "tasks.list(filters)",
+      "audit-log.list(filters)",
+      "analytics.summary(frameworkId)",
+      "analytics.trend(frameworkId,months)"
+    ]
+  },
+  "websocket": {
+    "events": [
+      {
+        "name": "control:status_changed",
+        "payload": "ComplianceControl",
+        "description": "Notify compliance manager when control status changes"
+      },
+      {
+        "name": "evidence:expired",
+        "payload": "ComplianceEvidence",
+        "description": "Notify control owner when evidence expires"
+      },
+      {
+        "name": "task:overdue",
+        "payload": "ComplianceTask",
+        "description": "Notify assignee when task becomes overdue"
+      },
+      {
+        "name": "control:review_due",
+        "payload": "ComplianceControl",
+        "description": "Remind owner when next_review_date approaches"
+      }
+    ]
+  },
+  "flows": [
+    {
+      "name": "Import Framework Controls",
+      "trigger": "Compliance manager selects framework template",
+      "steps": [
+        "Show FrameworkImportModal with template preview (all controls in the framework)",
+        "User reviews and deselects any N/A controls",
+        "On confirm: bulk create ComplianceControl records",
+        "Set all statuses to pending_review",
+        "Calculate next_review_date = created_at + review_frequency_days",
+        "Notify compliance manager to begin assigning owners"
+      ]
+    },
+    {
+      "name": "Review Control",
+      "trigger": "Owner opens control and clicks Log Review",
+      "steps": [
+        "Show ReviewControlModal with current status pre-filled",
+        "User updates status, adds notes, sets next_review_date",
+        "If status = non_compliant \u2192 require remediation_plan",
+        "Save control updates",
+        "Create AuditLog entry: action = review_completed",
+        "Set control.last_reviewed_at = NOW()",
+        "If next_review_date set \u2192 schedule reminder"
+      ]
+    },
+    {
+      "name": "Upload Evidence",
+      "trigger": "User uploads file or adds link",
+      "steps": [
+        "Upload file to S3 (if file type)",
+        "Create ComplianceEvidence record with file_url and metadata",
+        "Increment control.evidence_count",
+        "Create AuditLog entry: action = evidence_uploaded",
+        "If evidence satisfies control requirement \u2192 suggest updating control status to compliant"
+      ]
+    }
+  ],
+  "computed_fields": [
+    {
+      "name": "evidence_count",
+      "entity": "ComplianceControl",
+      "formula": "COUNT(compliance_evidence) WHERE control_id = controls.id AND deleted_at IS NULL",
+      "stored": false
+    },
+    {
+      "name": "compliant_pct",
+      "entity": "Framework",
+      "formula": "COUNT(controls WHERE status='compliant') / COUNT(controls WHERE status != 'not_applicable') * 100",
+      "stored": false
+    },
+    {
+      "name": "compliance_score_pct",
+      "entity": "Analytics",
+      "formula": "AVG(compliant_pct) across active frameworks",
+      "stored": false
+    },
+    {
+      "name": "is_expired",
+      "entity": "ComplianceEvidence",
+      "formula": "expires_at IS NOT NULL AND expires_at < CURRENT_DATE",
+      "stored": false
+    },
+    {
+      "name": "is_overdue",
+      "entity": "ComplianceControl",
+      "formula": "next_review_date IS NOT NULL AND next_review_date < CURRENT_DATE AND status != 'compliant'",
+      "stored": false
+    }
+  ],
+  "domain_rules": [
+    "Each control belongs to exactly one framework",
+    "Evidence is soft-deleted; deletion requires confirmation and creates an audit log entry",
+    "Audit log entries are immutable: no UPDATE or DELETE allowed on compliance_audit_logs",
+    "Non-compliant controls require a remediation_plan before saving if severity is high or critical",
+    "Evidence expiry reminders sent 30 days and 7 days before expiry",
+    "Control review reminders sent 14 days before next_review_date",
+    "Framework import uses seed data for standard frameworks (ISO27001, SOC2, GDPR, etc.)",
+    "Recurring compliance tasks auto-regenerate recurrence_days after completion",
+    "Compliance score = (compliant / (total - not_applicable)) * 100 per framework"
+  ],
+  "folder_structure": {
+    "src": {
+      "features": {
+        "compliance": {
+          "components": [
+            "ComplianceDashboard.tsx",
+            "ControlsTable.tsx",
+            "ControlDetailDrawer.tsx",
+            "FrameworkProgressCard.tsx",
+            "EvidenceList.tsx",
+            "EvidenceUploadModal.tsx",
+            "ComplianceSummaryStats.tsx",
+            "ComplianceTrendChart.tsx",
+            "OverdueControlsWidget.tsx",
+            "ReviewControlModal.tsx",
+            "AuditLogTable.tsx",
+            "FrameworkImportModal.tsx",
+            "ComplianceTaskList.tsx"
+          ],
+          "pages": [
+            "ComplianceDashboardPage.tsx",
+            "FrameworksPage.tsx",
+            "ControlsPage.tsx",
+            "EvidencePage.tsx",
+            "TasksPage.tsx",
+            "AuditLogPage.tsx"
+          ],
+          "hooks": [
+            "useComplianceFrameworks.ts",
+            "useControls.ts",
+            "useEvidence.ts",
+            "useComplianceTasks.ts",
+            "useAuditLog.ts",
+            "useComplianceAnalytics.ts"
+          ],
+          "store": [
+            "complianceStore.ts"
+          ],
+          "api": [
+            "frameworksApi.ts",
+            "controlsApi.ts",
+            "evidenceApi.ts",
+            "complianceTasksApi.ts",
+            "auditLogApi.ts",
+            "complianceAnalyticsApi.ts"
+          ],
+          "types": [
+            "compliance.types.ts"
+          ],
+          "utils": [
+            "complianceScoreUtils.ts",
+            "frameworkTemplates.ts",
+            "evidenceUtils.ts"
+          ],
+          "data": [
+            "iso27001_controls.ts",
+            "soc2_controls.ts",
+            "gdpr_controls.ts",
+            "hipaa_controls.ts",
+            "pci_dss_controls.ts"
+          ]
+        }
+      }
+    }
+  },
+  "generation_rules": [
+    "Framework control templates stored as seed data files in /data directory; imported on demand",
+    "Audit log writes are fire-and-forget via middleware hooks; never block main request",
+    "S3 evidence files use presigned URLs with 1-hour expiry for secure access",
+    "Evidence expiry cron job runs daily at 8am to send reminders and update is_expired flags",
+    "Compliance score recalculated on every control status change; cached in Redis for 5 minutes",
+    "Bulk control import runs in background job; user notified via websocket on completion",
+    "AuditLog table has no soft delete; use partitioning by created_at year for large datasets",
+    "Control review_frequency_days defaults to 365 (annual) for new frameworks"
+  ],
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {
+    "framework_type_enum": {
+      "pg_type": "framework_type_type",
+      "ts_type": "FrameworkTypeEnum",
+      "values": [
+        "ISO27001",
+        "SOC2",
+        "GDPR",
+        "HIPAA",
+        "PCI_DSS",
+        "CCPA",
+        "NIST",
+        "custom"
+      ],
+      "pg_ddl": "CREATE TYPE framework_type_type AS ENUM ('ISO27001', 'SOC2', 'GDPR', 'HIPAA', 'PCI_DSS', 'CCPA', 'NIST', 'custom')"
+    },
+    "severity_enum": {
+      "pg_type": "severity_type",
+      "ts_type": "SeverityEnum",
+      "values": [
+        "informational",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "pg_ddl": "CREATE TYPE severity_type AS ENUM ('informational', 'low', 'medium', 'high', 'critical')"
+    },
+    "status_enum": {
+      "pg_type": "status_type",
+      "ts_type": "StatusEnum",
+      "values": [
+        "open",
+        "in_progress",
+        "completed",
+        "cancelled"
+      ],
+      "pg_ddl": "CREATE TYPE status_type AS ENUM ('open', 'in_progress', 'completed', 'cancelled')"
+    },
+    "evidence_type_enum": {
+      "pg_type": "evidence_type_type",
+      "ts_type": "EvidenceTypeEnum",
+      "values": [
+        "document",
+        "screenshot",
+        "log_export",
+        "policy",
+        "certificate",
+        "audit_report",
+        "test_result",
+        "link",
+        "other"
+      ],
+      "pg_ddl": "CREATE TYPE evidence_type_type AS ENUM ('document', 'screenshot', 'log_export', 'policy', 'certificate', 'audit_report', 'test_result', 'link', 'other')"
+    }
+  },
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  }
+}

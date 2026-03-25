@@ -1,0 +1,3396 @@
+{
+  "_meta": {
+    "title": "Internal Knowledge Base",
+    "domain": "Operations & Internal Tools",
+    "version": "1.0.0",
+    "generated_at": "2026-03-23"
+  },
+  "tech_stack": {
+    "frontend": [
+      "React 18",
+      "TypeScript",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form",
+      "Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node.js",
+      "Express"
+    ],
+    "database": "PostgreSQL 15+",
+    "cache": "Redis",
+    "auth": "JWT",
+    "storage": "S3",
+    "realtime": "Socket.io"
+  },
+  "design_system": {
+    "theme": "dark",
+    "base_bg": "bg-slate-950",
+    "article_bg": "bg-slate-900",
+    "reading_width": "max-w-3xl mx-auto",
+    "typography": {
+      "h1": "text-3xl font-bold",
+      "h2": "text-2xl font-semibold",
+      "body": "text-slate-200 leading-relaxed text-base"
+    }
+  },
+  "global_rules": {
+    "every_entity_has": [
+      "id (UUID PK)",
+      "org_id (UUID NOT NULL FK→organizations indexed)",
+      "created_at",
+      "updated_at",
+      "deleted_at"
+    ],
+    "every_field_has": [
+      "name",
+      "db_type",
+      "ts_type",
+      "nullable",
+      "default",
+      "input_component",
+      "display_component",
+      "editable",
+      "sortable",
+      "filterable",
+      "show_in_table",
+      "show_in_form",
+      "validation"
+    ],
+    "domain_rules_shape": {
+      "rule": "string",
+      "enforced_at": "array",
+      "api_guard": "string",
+      "ui_behavior": "string",
+      "db_constraint": "string"
+    }
+  },
+  "entities": {
+    "Article": {
+      "table": "kb_articles",
+      "description": "A knowledge base article with versioning and full-text search support",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "article_number": {
+          "name": "article_number",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "auto-generated KB-NNNN",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "pattern": "^KB-[0-9]{4,}$"
+          }
+        },
+        "title": {
+          "name": "title",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TextLink",
+          "display_component_props": {
+            "href": "/kb/:id"
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "slug": {
+          "name": "slug",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "auto-generated from title",
+          "input_component": "TextInput",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "maxLength": 500,
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        "content": {
+          "name": "content",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "RichTextEditor",
+          "display_component": "RichTextDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'draft' | 'published' | 'archived'",
+          "nullable": false,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "published",
+            "archived"
+          ],
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "published",
+              "archived"
+            ]
+          }
+        },
+        "category_id": {
+          "name": "category_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "CategorySelect",
+          "display_component": "CategoryBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "kb_categories.id"
+        },
+        "author_id": {
+          "name": "author_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "current_user_id",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "users.id"
+        },
+        "cover_image_url": {
+          "name": "cover_image_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "FileUploader",
+          "display_component": "ImageDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          }
+        },
+        "is_featured": {
+          "name": "is_featured",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "boolean"
+          }
+        },
+        "view_count": {
+          "name": "view_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "helpful_count": {
+          "name": "helpful_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "not_helpful_count": {
+          "name": "not_helpful_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "reading_time_minutes": {
+          "name": "reading_time_minutes",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "default": null,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for reading_time_minutes computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "formula": "CEIL(word_count / 238)",
+          "input_component": null,
+          "display_component": "DurationDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "published_at": {
+          "name": "published_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "search_vector": {
+          "name": "search_vector",
+          "db_type": "TSVECTOR",
+          "ts_type": "never",
+          "nullable": true,
+          "default": null,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for search_vector computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "note": "Updated via PostgreSQL trigger on content/title change. GIN indexed.",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": null
+        },
+        "tag_ids": {
+          "name": "tag_ids",
+          "db_type": "UUID[] NOT NULL DEFAULT '{}'",
+          "ts_type": "string[]",
+          "nullable": false,
+          "default": "[]",
+          "input_component": "TagInput",
+          "display_component": "TagList",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_kb_articles_org_status",
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "name": "idx_kb_articles_org_category",
+          "columns": [
+            "org_id",
+            "category_id"
+          ]
+        },
+        {
+          "name": "idx_kb_articles_org_author",
+          "columns": [
+            "org_id",
+            "author_id"
+          ]
+        },
+        {
+          "name": "idx_kb_articles_org_featured",
+          "columns": [
+            "org_id",
+            "is_featured"
+          ]
+        },
+        {
+          "name": "idx_kb_articles_search_vector",
+          "type": "GIN",
+          "columns": [
+            "search_vector"
+          ]
+        },
+        {
+          "name": "uq_kb_articles_org_slug",
+          "type": "UNIQUE",
+          "columns": [
+            "org_id",
+            "slug"
+          ]
+        }
+      ]
+    },
+    "Category": {
+      "table": "kb_categories",
+      "description": "Hierarchical categorization for knowledge base articles",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "name": {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "CategoryBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "slug": {
+          "name": "slug",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "auto-generated from name",
+          "input_component": "TextInput",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "maxLength": 255,
+            "pattern": "^[a-z0-9-]+$"
+          }
+        },
+        "description": {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "parent_category_id": {
+          "name": "parent_category_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "CategorySelect",
+          "display_component": "CategoryBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fk": "kb_categories.id"
+        },
+        "icon": {
+          "name": "icon",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "IconSelect",
+          "display_component": "IconDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "maxLength": 50,
+            "nullable": true
+          }
+        },
+        "color": {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "ColorPicker",
+          "display_component": "ColorSwatch",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "nullable": true
+          }
+        },
+        "category_order": {
+          "name": "category_order",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "article_count": {
+          "name": "article_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for article_count computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "formula": "COUNT(kb_articles WHERE category_id=id AND status='published')",
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "is_active": {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "boolean"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_kb_categories_org_parent",
+          "columns": [
+            "org_id",
+            "parent_category_id"
+          ]
+        },
+        {
+          "name": "uq_kb_categories_org_slug",
+          "type": "UNIQUE",
+          "columns": [
+            "org_id",
+            "slug"
+          ]
+        }
+      ]
+    },
+    "Tag": {
+      "table": "kb_tags",
+      "description": "Tags for flexible labeling of knowledge base articles",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "name": {
+          "name": "name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TagBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "color": {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "ColorPicker",
+          "display_component": "ColorSwatch",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "nullable": true
+          }
+        },
+        "usage_count": {
+          "name": "usage_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for usage_count computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "formula": "COUNT(kb_articles WHERE tag_id IN article.tag_ids)",
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "uq_kb_tags_org_name",
+          "type": "UNIQUE",
+          "columns": [
+            "org_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "Revision": {
+      "table": "kb_revisions",
+      "description": "Immutable snapshots of article content at each edit",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "article_id": {
+          "name": "article_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "kb_articles.id",
+          "on_delete": "CASCADE"
+        },
+        "version_number": {
+          "name": "version_number",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "title": {
+          "name": "title",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "content": {
+          "name": "content",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "RichTextDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "change_summary": {
+          "name": "change_summary",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "revised_by": {
+          "name": "revised_by",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "users.id"
+        },
+        "is_published_version": {
+          "name": "is_published_version",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": null,
+          "display_component": "YesNoBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "boolean"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_kb_revisions_org_article",
+          "columns": [
+            "org_id",
+            "article_id"
+          ]
+        },
+        {
+          "name": "uq_kb_revisions_org_article_version",
+          "type": "UNIQUE",
+          "columns": [
+            "org_id",
+            "article_id",
+            "version_number"
+          ]
+        }
+      ]
+    },
+    "Comment": {
+      "table": "kb_comments",
+      "description": "User comments on knowledge base articles with threaded reply support",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "article_id": {
+          "name": "article_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "kb_articles.id",
+          "on_delete": "CASCADE"
+        },
+        "content": {
+          "name": "content",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "RichTextDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "author_id": {
+          "name": "author_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "current_user_id",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "users.id"
+        },
+        "parent_comment_id": {
+          "name": "parent_comment_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fk": "kb_comments.id"
+        },
+        "is_approved": {
+          "name": "is_approved",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "boolean"
+          }
+        },
+        "is_edited": {
+          "name": "is_edited",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": null,
+          "display_component": "YesNoBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "boolean"
+          }
+        },
+        "edited_at": {
+          "name": "edited_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_kb_comments_org_article",
+          "columns": [
+            "org_id",
+            "article_id"
+          ]
+        },
+        {
+          "name": "idx_kb_comments_org_author",
+          "columns": [
+            "org_id",
+            "author_id"
+          ]
+        }
+      ]
+    },
+    "Attachment": {
+      "table": "kb_attachments",
+      "description": "File attachments associated with knowledge base articles",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "article_id": {
+          "name": "article_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "kb_articles.id",
+          "on_delete": "CASCADE"
+        },
+        "filename": {
+          "name": "filename",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "FilenameLink",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "file_url": {
+          "name": "file_url",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uri"
+          }
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "FileTypeIcon",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "maxLength": 255
+          }
+        },
+        "file_size_bytes": {
+          "name": "file_size_bytes",
+          "db_type": "BIGINT NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "FileSizeDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "uploaded_by": {
+          "name": "uploaded_by",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "current_user_id",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fk": "users.id"
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_kb_attachments_org_article",
+          "columns": [
+            "org_id",
+            "article_id"
+          ]
+        }
+      ]
+    },
+    "SearchQuery": {
+      "table": "kb_search_queries",
+      "description": "Log of user search queries for analytics and improving search experience",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "query": {
+          "name": "query",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "user_id": {
+          "name": "user_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fk": "users.id"
+        },
+        "result_count": {
+          "name": "result_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "clicked_article_id": {
+          "name": "clicked_article_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "fk": "kb_articles.id"
+        },
+        "searched_at": {
+          "name": "searched_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_kb_search_queries_org_searched_at",
+          "columns": [
+            "org_id",
+            "searched_at"
+          ]
+        },
+        {
+          "name": "idx_kb_search_queries_org_query",
+          "columns": [
+            "org_id",
+            "query"
+          ]
+        }
+      ]
+    }
+  },
+  "computed_fields": [
+    {
+      "entity": "Article",
+      "field": "revision_count",
+      "formula": "COUNT(kb_revisions WHERE article_id=id)",
+      "triggers": [
+        "Revision created"
+      ]
+    },
+    {
+      "entity": "Article",
+      "field": "reading_time_minutes",
+      "formula": "CEIL(word_count / 238)",
+      "triggers": [
+        "content changed"
+      ]
+    },
+    {
+      "entity": "Article",
+      "field": "search_rank",
+      "formula": "PostgreSQL ts_rank based on search_vector vs query (query-time computation)",
+      "triggers": [
+        "query-time"
+      ]
+    },
+    {
+      "entity": "Category",
+      "field": "article_count",
+      "formula": "COUNT(kb_articles WHERE category_id=id AND status='published')",
+      "triggers": [
+        "Article.status changed",
+        "Article.category_id changed"
+      ]
+    },
+    {
+      "entity": "Tag",
+      "field": "usage_count",
+      "formula": "COUNT(kb_articles WHERE tag_id IN article.tag_ids)",
+      "triggers": [
+        "Article.tag_ids updated"
+      ]
+    }
+  ],
+  "domain_rules": [
+    {
+      "id": 1,
+      "rule": "Slug must be unique within org",
+      "enforced_at": [
+        "db"
+      ],
+      "api_guard": null,
+      "ui_behavior": "Show validation error if slug already exists",
+      "db_constraint": "UNIQUE INDEX on (org_id, slug)"
+    },
+    {
+      "id": 2,
+      "rule": "Draft articles not visible to viewer role",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 403 if status=draft AND user.role=viewer",
+      "ui_behavior": "Hide draft articles from viewer role listing",
+      "db_constraint": null
+    },
+    {
+      "id": 3,
+      "rule": "Published articles create a revision snapshot before each edit",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Before PATCH: if current status=published, create kb_revision with current content",
+      "ui_behavior": "Show 'revision saved' notification on editor open for published article",
+      "db_constraint": null
+    },
+    {
+      "id": 4,
+      "rule": "search_vector updated via PostgreSQL trigger on content/title change",
+      "enforced_at": [
+        "db"
+      ],
+      "api_guard": null,
+      "ui_behavior": null,
+      "db_constraint": "TRIGGER on kb_articles BEFORE INSERT OR UPDATE OF content, title"
+    },
+    {
+      "id": 5,
+      "rule": "Article requires category before publishing",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 422 if category_id is null on publish attempt",
+      "ui_behavior": "Disable publish button if category_id is not set; show tooltip",
+      "db_constraint": null
+    },
+    {
+      "id": 6,
+      "rule": "Archived articles cannot be edited — must restore to draft first",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 403 if article.status=archived on PATCH request",
+      "ui_behavior": "Disable edit button for archived articles; show restore-to-draft option",
+      "db_constraint": null
+    }
+  ],
+  "permissions": {
+    "roles": [
+      "admin",
+      "editor",
+      "author",
+      "viewer"
+    ],
+    "matrix": {
+      "articles.publish": [
+        "admin",
+        "editor"
+      ],
+      "articles.create": [
+        "admin",
+        "editor",
+        "author"
+      ],
+      "articles.edit_any": [
+        "admin",
+        "editor"
+      ],
+      "articles.edit_own": [
+        "author"
+      ],
+      "categories.manage": [
+        "admin",
+        "editor"
+      ],
+      "all.view": [
+        "admin",
+        "editor",
+        "author",
+        "viewer"
+      ]
+    }
+  },
+  "api": {
+    "base_path": "/api/v1/kb",
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/articles",
+        "description": "List articles with filtering, pagination and sorting",
+        "request_schema": {
+          "query": {
+            "status": "string?",
+            "category_id": "string?",
+            "tag_ids": "string[]?",
+            "author_id": "string?",
+            "is_featured": "boolean?",
+            "search": "string?",
+            "page": "number?",
+            "limit": "number?",
+            "sort": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Article[]",
+          "total": "number",
+          "page": "number",
+          "limit": "number"
+        },
+        "react_query_hook": "useArticles",
+        "query_key": [
+          "articles",
+          "list"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/articles/:id",
+        "description": "Get single article by ID, increments view_count",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useArticle",
+        "query_key": [
+          "articles",
+          "detail",
+          ":id"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/articles",
+        "description": "Create a new article in draft status",
+        "request_schema": {
+          "body": {
+            "title": "string",
+            "content": "string",
+            "category_id": "string",
+            "tag_ids": "string[]?",
+            "cover_image_url": "string?",
+            "is_featured": "boolean?"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useCreateArticle",
+        "query_key": null,
+        "invalidates": [
+          "articles.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/articles/:id",
+        "description": "Update article fields; auto-saves revision if currently published",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "title": "string?",
+            "content": "string?",
+            "category_id": "string?",
+            "tag_ids": "string[]?",
+            "cover_image_url": "string?",
+            "is_featured": "boolean?",
+            "slug": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useUpdateArticle",
+        "query_key": null,
+        "invalidates": [
+          "articles.list",
+          "articles.detail"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/articles/:id",
+        "description": "Soft-delete article",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteArticle",
+        "query_key": null,
+        "invalidates": [
+          "articles.list"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:id/publish",
+        "description": "Publish a draft article; validates category is set; updates search_vector",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "usePublishArticle",
+        "query_key": null,
+        "invalidates": [
+          "articles.list",
+          "articles.detail",
+          "categories.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:id/archive",
+        "description": "Archive a published or draft article",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useArchiveArticle",
+        "query_key": null,
+        "invalidates": [
+          "articles.list",
+          "articles.detail"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:id/duplicate",
+        "description": "Duplicate an article as a new draft",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useDuplicateArticle",
+        "query_key": null,
+        "invalidates": [
+          "articles.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:id/helpful",
+        "description": "Increment helpful_count on an article",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useMarkHelpful",
+        "query_key": null,
+        "invalidates": [
+          "articles.detail"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:id/not-helpful",
+        "description": "Increment not_helpful_count on an article",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useMarkNotHelpful",
+        "query_key": null,
+        "invalidates": [
+          "articles.detail"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "GET",
+        "path": "/articles/:id/revisions",
+        "description": "Get revision history for an article",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Revision[]"
+        },
+        "react_query_hook": "useArticleRevisions",
+        "query_key": [
+          "revisions",
+          "byArticle",
+          ":id"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:id/revisions/restore/:versionNumber",
+        "description": "Restore article to a previous revision; saves current as new revision first",
+        "request_schema": {
+          "params": {
+            "id": "string",
+            "versionNumber": "number"
+          }
+        },
+        "response_schema": {
+          "data": "Article"
+        },
+        "react_query_hook": "useRestoreRevision",
+        "query_key": null,
+        "invalidates": [
+          "articles.detail",
+          "revisions.byArticle"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/categories",
+        "description": "List all categories for org",
+        "request_schema": {
+          "query": {
+            "parent_category_id": "string?",
+            "is_active": "boolean?"
+          }
+        },
+        "response_schema": {
+          "data": "Category[]"
+        },
+        "react_query_hook": "useCategories",
+        "query_key": [
+          "categories",
+          "list"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/categories",
+        "description": "Create a new category",
+        "request_schema": {
+          "body": {
+            "name": "string",
+            "description": "string?",
+            "parent_category_id": "string?",
+            "icon": "string?",
+            "color": "string?",
+            "category_order": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "Category"
+        },
+        "react_query_hook": "useCreateCategory",
+        "query_key": null,
+        "invalidates": [
+          "categories.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/categories/:id",
+        "description": "Update a category",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "name": "string?",
+            "description": "string?",
+            "parent_category_id": "string?",
+            "icon": "string?",
+            "color": "string?",
+            "category_order": "number?",
+            "is_active": "boolean?"
+          }
+        },
+        "response_schema": {
+          "data": "Category"
+        },
+        "react_query_hook": "useUpdateCategory",
+        "query_key": null,
+        "invalidates": [
+          "categories.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/categories/:id",
+        "description": "Delete a category (only if no articles assigned)",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteCategory",
+        "query_key": null,
+        "invalidates": [
+          "categories.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/tags",
+        "description": "List all tags for org",
+        "request_schema": {},
+        "response_schema": {
+          "data": "Tag[]"
+        },
+        "react_query_hook": "useTags",
+        "query_key": [
+          "tags",
+          "all"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/tags",
+        "description": "Create a new tag",
+        "request_schema": {
+          "body": {
+            "name": "string",
+            "color": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Tag"
+        },
+        "react_query_hook": "useCreateTag",
+        "query_key": null,
+        "invalidates": [
+          "tags.all"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/tags/:id",
+        "description": "Update a tag",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "name": "string?",
+            "color": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Tag"
+        },
+        "react_query_hook": "useUpdateTag",
+        "query_key": null,
+        "invalidates": [
+          "tags.all"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/tags/:id",
+        "description": "Delete a tag",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteTag",
+        "query_key": null,
+        "invalidates": [
+          "tags.all"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/articles/:articleId/comments",
+        "description": "Get comments for an article",
+        "request_schema": {
+          "params": {
+            "articleId": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Comment[]"
+        },
+        "react_query_hook": "useArticleComments",
+        "query_key": [
+          "comments",
+          "byArticle",
+          ":articleId"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:articleId/comments",
+        "description": "Add a comment to an article",
+        "request_schema": {
+          "params": {
+            "articleId": "string"
+          },
+          "body": {
+            "content": "string",
+            "parent_comment_id": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Comment"
+        },
+        "react_query_hook": "useCreateComment",
+        "query_key": null,
+        "invalidates": [
+          "comments.byArticle"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "PATCH",
+        "path": "/articles/:articleId/comments/:id",
+        "description": "Edit a comment",
+        "request_schema": {
+          "params": {
+            "articleId": "string",
+            "id": "string"
+          },
+          "body": {
+            "content": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Comment"
+        },
+        "react_query_hook": "useUpdateComment",
+        "query_key": null,
+        "invalidates": [
+          "comments.byArticle"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/articles/:articleId/comments/:id",
+        "description": "Delete a comment",
+        "request_schema": {
+          "params": {
+            "articleId": "string",
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteComment",
+        "query_key": null,
+        "invalidates": [
+          "comments.byArticle"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "GET",
+        "path": "/articles/:articleId/attachments",
+        "description": "Get attachments for an article",
+        "request_schema": {
+          "params": {
+            "articleId": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Attachment[]"
+        },
+        "react_query_hook": "useArticleAttachments",
+        "query_key": [
+          "attachments",
+          "byArticle",
+          ":articleId"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/articles/:articleId/attachments",
+        "description": "Upload a file attachment to an article (multipart/form-data)",
+        "request_schema": {
+          "params": {
+            "articleId": "string"
+          },
+          "body": {
+            "file": "File"
+          }
+        },
+        "response_schema": {
+          "data": "Attachment"
+        },
+        "react_query_hook": "useUploadAttachment",
+        "query_key": null,
+        "invalidates": [
+          "attachments.byArticle"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/articles/:articleId/attachments/:id",
+        "description": "Delete an attachment",
+        "request_schema": {
+          "params": {
+            "articleId": "string",
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteAttachment",
+        "query_key": null,
+        "invalidates": [
+          "attachments.byArticle"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "GET",
+        "path": "/kb/search",
+        "description": "Full-text search articles using PostgreSQL tsvector; logs SearchQuery record",
+        "request_schema": {
+          "query": {
+            "q": "string",
+            "category_id": "string?",
+            "tag_ids": "string[]?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "ArticleSearchResult[]",
+          "total": "number"
+        },
+        "react_query_hook": "useKBSearch",
+        "query_key": [
+          "articles",
+          "search"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/analytics/kb/popular-articles",
+        "description": "Get most viewed articles",
+        "request_schema": {
+          "query": {
+            "limit": "number?",
+            "from": "string?",
+            "to": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "ArticleAnalytics[]"
+        },
+        "react_query_hook": "usePopularArticles",
+        "query_key": [
+          "analytics",
+          "kb",
+          "popular-articles"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/analytics/kb/search-queries",
+        "description": "Get top search queries and zero-result queries",
+        "request_schema": {
+          "query": {
+            "from": "string?",
+            "to": "string?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "SearchQueryAnalytics[]"
+        },
+        "react_query_hook": "useSearchQueryAnalytics",
+        "query_key": [
+          "analytics",
+          "kb",
+          "search-queries"
+        ],
+        "invalidates": [],
+        "optimistic_updates": false
+      }
+    ]
+  },
+  "state_management": {
+    "stores": {
+      "authStore": {
+        "description": "Authentication state — user, token, role",
+        "fields": [
+          "user",
+          "token",
+          "role",
+          "isAuthenticated"
+        ]
+      },
+      "uiStore": {
+        "description": "Global UI state — sidebar, modals, toasts",
+        "fields": [
+          "sidebarOpen",
+          "activeModal",
+          "toasts"
+        ]
+      },
+      "editorStore": {
+        "description": "Rich text editor state with auto-save support",
+        "fields": [
+          "articleDraft",
+          "autoSaveStatus",
+          "wordCount",
+          "isDirty",
+          "lastSavedAt"
+        ]
+      },
+      "searchStore": {
+        "description": "KB search query state",
+        "fields": [
+          "query",
+          "results",
+          "filters",
+          "isSearching"
+        ]
+      },
+      "filterStore": {
+        "description": "Table/list filter state",
+        "fields": [
+          "activeFilters",
+          "sort",
+          "page",
+          "limit"
+        ]
+      }
+    },
+    "query_keys": {
+      "articles": [
+        "articles.all",
+        "articles.list",
+        "articles.detail",
+        "articles.byCategory",
+        "articles.byTag"
+      ],
+      "categories": [
+        "categories.all",
+        "categories.list"
+      ],
+      "tags": [
+        "tags.all"
+      ],
+      "revisions": [
+        "revisions.byArticle"
+      ],
+      "comments": [
+        "comments.byArticle"
+      ]
+    }
+  },
+  "websocket_events": [
+    {
+      "event": "article.published",
+      "payload": {
+        "article_id": "string",
+        "title": "string"
+      },
+      "description": "Broadcast when article is published"
+    },
+    {
+      "event": "article.updated",
+      "payload": {
+        "article_id": "string",
+        "updated_by": "string"
+      },
+      "description": "Broadcast when article is updated"
+    },
+    {
+      "event": "comment.added",
+      "payload": {
+        "comment_id": "string",
+        "article_id": "string",
+        "author_id": "string"
+      },
+      "description": "Broadcast when comment is added"
+    },
+    {
+      "event": "ws.reconnected",
+      "payload": {},
+      "description": "Client reconnected; trigger query invalidation"
+    }
+  ],
+  "flows": [
+    {
+      "name": "Create and Publish Article",
+      "steps": [
+        "POST /articles with status=draft",
+        "User writes content in RichTextEditor (auto-save every 30s via debounced PATCH to editorStore + PATCH /articles/:id)",
+        "User adds tags, category, cover image",
+        "POST /articles/:id/publish",
+        "Article status=published, search_vector updated via DB trigger, revision snapshot created"
+      ]
+    },
+    {
+      "name": "Revise Article",
+      "steps": [
+        "PATCH /articles/:id with new content",
+        "API auto-creates new Revision with previous content",
+        "revision_count incremented",
+        "Article author notified"
+      ]
+    },
+    {
+      "name": "Search KB",
+      "steps": [
+        "GET /kb/search?q=<query>",
+        "PostgreSQL full-text search on search_vector with ts_rank ranking",
+        "Results returned with highlighted excerpts",
+        "SearchQuery record logged",
+        "ArticleCards displayed with matched text highlights"
+      ]
+    },
+    {
+      "name": "Restore Revision",
+      "steps": [
+        "POST /articles/:id/revisions/restore/:versionNumber",
+        "Current content saved as a new Revision to preserve state",
+        "Article content replaced with revision.content",
+        "Article search_vector updated",
+        "UI refreshes ArticleEditor with restored content"
+      ]
+    }
+  ],
+  "components": [
+    "DataTable",
+    "SlideOverForm",
+    "Modal",
+    "StatusBadge",
+    "CategoryBadge",
+    "CategorySelect",
+    "TagBadge",
+    "TagList",
+    "TagInput",
+    "UserAvatar",
+    "RichTextEditor",
+    "RichTextDisplay",
+    "FileUploader",
+    "FilenameLink",
+    "FileTypeIcon",
+    "FileSizeDisplay",
+    "SearchBar",
+    "SearchResults",
+    "RevisionDiffViewer",
+    "ArticleCard",
+    "FeaturedArticleCard",
+    "BreadcrumbNav",
+    "TableOfContents",
+    "HelpfulnessWidget",
+    "EmptyState",
+    "LoadingSkeleton",
+    "ConfirmationDialog",
+    "PageHeader",
+    "FilterPanel",
+    "TabPanel",
+    "TextInput",
+    "Textarea",
+    "Select",
+    "MultiSelect",
+    "Toggle",
+    "AbsoluteDate",
+    "RelativeDate",
+    "MonospaceText",
+    "PlainText",
+    "TruncatedText",
+    "TextLink",
+    "NumberDisplay",
+    "StatCard",
+    "ActivityTimeline",
+    "NotificationBell",
+    "AuthGuard",
+    "IconSelect",
+    "IconDisplay",
+    "ColorPicker",
+    "DurationDisplay"
+  ],
+  "modules": [
+    {
+      "name": "KBHome",
+      "path": "/kb",
+      "description": "Public-style knowledge base browse page"
+    },
+    {
+      "name": "ArticleView",
+      "path": "/kb/:slug",
+      "description": "Full reading view for a single article"
+    },
+    {
+      "name": "ArticleEditor",
+      "path": "/kb/:id/edit",
+      "description": "Rich text editor for article authoring"
+    },
+    {
+      "name": "CategoryBrowser",
+      "path": "/kb/categories",
+      "description": "Browse articles by category hierarchy"
+    },
+    {
+      "name": "DraftsList",
+      "path": "/kb/drafts",
+      "description": "List of draft articles for current user"
+    },
+    {
+      "name": "RevisionHistory",
+      "path": "/kb/:id/revisions",
+      "description": "View and restore previous article revisions"
+    },
+    {
+      "name": "SearchModule",
+      "path": "/kb/search",
+      "description": "Full-text search interface with filters"
+    },
+    {
+      "name": "KBSettings",
+      "path": "/settings/knowledge-base",
+      "description": "Manage KB settings, categories, and tags"
+    }
+  ],
+  "folder_structure": {
+    "src": {
+      "components": {
+        "common": [
+          "DataTable.tsx",
+          "SlideOverForm.tsx",
+          "Modal.tsx",
+          "EmptyState.tsx",
+          "LoadingSkeleton.tsx",
+          "ConfirmationDialog.tsx",
+          "PageHeader.tsx",
+          "FilterPanel.tsx",
+          "TabPanel.tsx",
+          "AuthGuard.tsx",
+          "NotificationBell.tsx",
+          "ActivityTimeline.tsx",
+          "StatCard.tsx"
+        ],
+        "forms": [
+          "TextInput.tsx",
+          "Textarea.tsx",
+          "Select.tsx",
+          "MultiSelect.tsx",
+          "Toggle.tsx",
+          "IconSelect.tsx",
+          "ColorPicker.tsx"
+        ],
+        "display": [
+          "StatusBadge.tsx",
+          "CategoryBadge.tsx",
+          "TagBadge.tsx",
+          "TagList.tsx",
+          "UserAvatar.tsx",
+          "FilenameLink.tsx",
+          "FileTypeIcon.tsx",
+          "FileSizeDisplay.tsx",
+          "MonospaceText.tsx",
+          "PlainText.tsx",
+          "TruncatedText.tsx",
+          "TextLink.tsx",
+          "NumberDisplay.tsx",
+          "AbsoluteDate.tsx",
+          "RelativeDate.tsx",
+          "YesNoBadge.tsx",
+          "IconDisplay.tsx",
+          "ColorSwatch.tsx",
+          "DurationDisplay.tsx"
+        ],
+        "kb": [
+          "ArticleCard.tsx",
+          "FeaturedArticleCard.tsx",
+          "RichTextEditor.tsx",
+          "RichTextDisplay.tsx",
+          "BreadcrumbNav.tsx",
+          "TableOfContents.tsx",
+          "HelpfulnessWidget.tsx",
+          "RevisionDiffViewer.tsx",
+          "SearchBar.tsx",
+          "SearchResults.tsx",
+          "CategorySelect.tsx",
+          "TagInput.tsx",
+          "FileUploader.tsx"
+        ]
+      },
+      "modules": {
+        "kb": [
+          "KBHome.tsx",
+          "ArticleView.tsx",
+          "ArticleEditor.tsx",
+          "CategoryBrowser.tsx",
+          "DraftsList.tsx",
+          "RevisionHistory.tsx"
+        ],
+        "search": [
+          "SearchModule.tsx"
+        ],
+        "settings": [
+          "KBSettings.tsx"
+        ]
+      },
+      "stores": [
+        "authStore.ts",
+        "uiStore.ts",
+        "editorStore.ts",
+        "searchStore.ts",
+        "filterStore.ts"
+      ],
+      "hooks": [
+        "useArticles.ts",
+        "useArticle.ts",
+        "useCreateArticle.ts",
+        "useUpdateArticle.ts",
+        "useDeleteArticle.ts",
+        "usePublishArticle.ts",
+        "useCategories.ts",
+        "useTags.ts",
+        "useArticleRevisions.ts",
+        "useRestoreRevision.ts",
+        "useArticleComments.ts",
+        "useKBSearch.ts"
+      ],
+      "api": [
+        "articles.ts",
+        "categories.ts",
+        "tags.ts",
+        "revisions.ts",
+        "comments.ts",
+        "attachments.ts",
+        "search.ts",
+        "analytics.ts"
+      ],
+      "lib": [
+        "queryClient.ts",
+        "axios.ts",
+        "socket.ts",
+        "zod-schemas.ts"
+      ],
+      "router": [
+        "index.tsx",
+        "routes.ts"
+      ],
+      "types": [
+        "Article.ts",
+        "Category.ts",
+        "Tag.ts",
+        "Revision.ts",
+        "Comment.ts",
+        "Attachment.ts",
+        "SearchQuery.ts"
+      ]
+    }
+  },
+  "generation_rules": {
+    "rich_text_editor": "Use TipTap or Slate.js for RichTextEditor component",
+    "auto_save": "Auto-save every 30 seconds via debounced PATCH using editorStore dirty state",
+    "full_text_search": "Full-text search via PostgreSQL tsvector with GIN index; ts_rank for relevance scoring",
+    "slug_generation": "Auto-generate slug from title on create; allow manual override in editor settings",
+    "revision_creation": "Create revision snapshot server-side before applying PATCH if article is published",
+    "search_vector_update": "PostgreSQL TRIGGER on kb_articles BEFORE INSERT OR UPDATE OF title, content sets search_vector = to_tsvector('english', title || ' ' || content)"
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK→organizations, row-level security anchor"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null,
+      "notes": "Soft delete — all queries filter deleted_at IS NULL"
+    }
+  },
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {},
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  }
+}

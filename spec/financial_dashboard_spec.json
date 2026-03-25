@@ -1,0 +1,3258 @@
+{
+  "spec_name": "financial_dashboard_spec",
+  "version": "1.0.0",
+  "tech_stack": {
+    "frontend": [
+      "React 18",
+      "TypeScript strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form v7",
+      "Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node.js",
+      "Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "background": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber"
+  },
+  "entities": {
+    "DashboardWidget": {
+      "table": "dashboard_widgets",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "name": {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "widget_type": {
+          "name": "widget_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'kpi_card' | 'bar_chart' | 'line_chart' | 'pie_chart' | 'donut_chart' | 'area_chart' | 'table' | 'funnel' | 'gauge' | 'text'",
+          "nullable": false,
+          "default": "kpi_card",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "kpi_card",
+              "bar_chart",
+              "line_chart",
+              "pie_chart",
+              "donut_chart",
+              "area_chart",
+              "table",
+              "funnel",
+              "gauge",
+              "text"
+            ]
+          }
+        },
+        "data_source": {
+          "name": "data_source",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'revenue' | 'expenses' | 'cash_flow' | 'ar_aging' | 'ap_aging' | 'invoices' | 'payments' | 'payroll' | 'budget' | 'custom'",
+          "nullable": false,
+          "default": null,
+          "input_component": "DataSourceSelector",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "revenue",
+              "expenses",
+              "cash_flow",
+              "ar_aging",
+              "ap_aging",
+              "invoices",
+              "payments",
+              "payroll",
+              "budget",
+              "custom"
+            ]
+          }
+        },
+        "metric_key": {
+          "name": "metric_key",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "MetricSelector",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 100
+          }
+        },
+        "period": {
+          "name": "period",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'today' | 'this_week' | 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'ytd' | 'last_year' | 'custom'",
+          "nullable": false,
+          "default": "this_month",
+          "input_component": "PeriodSelector",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "today",
+              "this_week",
+              "this_month",
+              "last_month",
+              "this_quarter",
+              "last_quarter",
+              "ytd",
+              "last_year",
+              "custom"
+            ]
+          }
+        },
+        "comparison_period": {
+          "name": "comparison_period",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'previous_period' | 'same_period_last_year' | 'none'",
+          "nullable": false,
+          "default": "previous_period",
+          "input_component": "ComparisonPicker",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "previous_period",
+              "same_period_last_year",
+              "none"
+            ]
+          }
+        },
+        "display_format": {
+          "name": "display_format",
+          "db_type": "VARCHAR(15) NOT NULL",
+          "ts_type": "'currency' | 'percentage' | 'number' | 'text'",
+          "nullable": false,
+          "default": "currency",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "currency",
+              "percentage",
+              "number",
+              "text"
+            ]
+          }
+        },
+        "chart_config": {
+          "name": "chart_config",
+          "db_type": "JSONB",
+          "ts_type": "Record<string, unknown> | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "description": "axis labels, colors, legend config"
+          }
+        },
+        "position_x": {
+          "name": "position_x",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "position_y": {
+          "name": "position_y",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "width": {
+          "name": "width",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 4,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 1,
+            "max": 12,
+            "description": "grid cols out of 12"
+          }
+        },
+        "height": {
+          "name": "height",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 2,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 1,
+            "description": "grid rows"
+          }
+        },
+        "is_visible": {
+          "name": "is_visible",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "dashboard_widgets_org_created_by_idx",
+          "columns": [
+            "org_id",
+            "created_by"
+          ]
+        },
+        {
+          "name": "dashboard_widgets_org_data_source_idx",
+          "columns": [
+            "org_id",
+            "data_source"
+          ]
+        },
+        {
+          "name": "dashboard_widgets_org_widget_type_idx",
+          "columns": [
+            "org_id",
+            "widget_type"
+          ]
+        }
+      ]
+    },
+    "Dashboard": {
+      "table": "dashboards",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "name": {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "description": {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "is_default": {
+          "name": "is_default",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "layout_config": {
+          "name": "layout_config",
+          "db_type": "JSONB",
+          "ts_type": "Record<string, unknown> | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "description": "grid configuration object"
+          }
+        },
+        "widget_ids": {
+          "name": "widget_ids",
+          "db_type": "UUID[]",
+          "ts_type": "string[]",
+          "nullable": false,
+          "default": "{}",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "description": "ordered array of widget UUIDs"
+          }
+        },
+        "share_with": {
+          "name": "share_with",
+          "db_type": "VARCHAR(10) NOT NULL",
+          "ts_type": "'private' | 'team' | 'org'",
+          "nullable": false,
+          "default": "private",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "private",
+              "team",
+              "org"
+            ]
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "dashboards_org_created_by_idx",
+          "columns": [
+            "org_id",
+            "created_by"
+          ]
+        },
+        {
+          "name": "dashboards_org_is_default_idx",
+          "columns": [
+            "org_id",
+            "is_default"
+          ]
+        }
+      ]
+    },
+    "KPIMetric": {
+      "table": "kpi_metrics",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "name": {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "metric_key": {
+          "name": "metric_key",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 100,
+            "pattern": "^[a-z0-9_]+$",
+            "uniqueWithin": "org_id"
+          }
+        },
+        "category": {
+          "name": "category",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'revenue' | 'profitability' | 'cash_flow' | 'receivables' | 'payables' | 'expenses' | 'payroll' | 'growth'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "revenue",
+              "profitability",
+              "cash_flow",
+              "receivables",
+              "payables",
+              "expenses",
+              "payroll",
+              "growth"
+            ]
+          }
+        },
+        "formula": {
+          "name": "formula",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "description": "SQL or formula expression"
+          }
+        },
+        "period_aggregation": {
+          "name": "period_aggregation",
+          "db_type": "VARCHAR(15) NOT NULL",
+          "ts_type": "'sum' | 'average' | 'last_value' | 'count'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "sum",
+              "average",
+              "last_value",
+              "count"
+            ]
+          }
+        },
+        "unit": {
+          "name": "unit",
+          "db_type": "VARCHAR(15) NOT NULL",
+          "ts_type": "'currency' | 'percentage' | 'number' | 'days'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "currency",
+              "percentage",
+              "number",
+              "days"
+            ]
+          }
+        },
+        "is_active": {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "description": {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "benchmark_value": {
+          "name": "benchmark_value",
+          "db_type": "NUMERIC(15,4)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "description": "target or benchmark value"
+          }
+        },
+        "alert_threshold": {
+          "name": "alert_threshold",
+          "db_type": "NUMERIC(15,4)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "alert_direction": {
+          "name": "alert_direction",
+          "db_type": "VARCHAR(10)",
+          "ts_type": "'above' | 'below' | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "enum": [
+              "above",
+              "below"
+            ]
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "kpi_metrics_org_metric_key_unique",
+          "columns": [
+            "org_id",
+            "metric_key"
+          ],
+          "unique": true
+        },
+        {
+          "name": "kpi_metrics_org_category_idx",
+          "columns": [
+            "org_id",
+            "category"
+          ]
+        },
+        {
+          "name": "kpi_metrics_org_is_active_idx",
+          "columns": [
+            "org_id",
+            "is_active"
+          ]
+        }
+      ]
+    },
+    "MetricSnapshot": {
+      "table": "metric_snapshots",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "metric_key": {
+          "name": "metric_key",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "maxLength": 100,
+            "foreignKey": "kpi_metrics.metric_key"
+          }
+        },
+        "snapshot_date": {
+          "name": "snapshot_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "value": {
+          "name": "value",
+          "db_type": "NUMERIC(15,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        "period_start": {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "period_end": {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "computed_at": {
+          "name": "computed_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601",
+            "mustBeAfter": "period_end"
+          }
+        },
+        "metadata": {
+          "name": "metadata",
+          "db_type": "JSONB",
+          "ts_type": "Record<string, unknown> | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "description": "breakdown data for the snapshot"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "metric_snapshots_org_metric_key_snapshot_date_unique",
+          "columns": [
+            "org_id",
+            "metric_key",
+            "snapshot_date"
+          ],
+          "unique": true
+        },
+        {
+          "name": "metric_snapshots_org_snapshot_date_idx",
+          "columns": [
+            "org_id",
+            "snapshot_date"
+          ]
+        },
+        {
+          "name": "metric_snapshots_org_metric_key_date_desc_idx",
+          "columns": [
+            "org_id",
+            "metric_key",
+            "snapshot_date DESC"
+          ]
+        }
+      ]
+    },
+    "FinancialAlert": {
+      "table": "financial_alerts",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "metric_key": {
+          "name": "metric_key",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "MetricSelector",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 100
+          }
+        },
+        "alert_name": {
+          "name": "alert_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "condition": {
+          "name": "condition",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'above' | 'below' | 'equals' | 'percent_change_above' | 'percent_change_below'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "above",
+              "below",
+              "equals",
+              "percent_change_above",
+              "percent_change_below"
+            ]
+          }
+        },
+        "threshold": {
+          "name": "threshold",
+          "db_type": "NUMERIC(15,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "comparison_window": {
+          "name": "comparison_window",
+          "db_type": "VARCHAR(10) NOT NULL",
+          "ts_type": "'current' | '7d' | '30d' | '90d'",
+          "nullable": false,
+          "default": "current",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "current",
+              "7d",
+              "30d",
+              "90d"
+            ]
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(15) NOT NULL",
+          "ts_type": "'active' | 'triggered' | 'dismissed'",
+          "nullable": false,
+          "default": "active",
+          "input_component": null,
+          "display_component": "AlertBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "active",
+              "triggered",
+              "dismissed"
+            ]
+          }
+        },
+        "last_triggered_at": {
+          "name": "last_triggered_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "last_value_at_trigger": {
+          "name": "last_value_at_trigger",
+          "db_type": "NUMERIC(15,4)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "notification_channels": {
+          "name": "notification_channels",
+          "db_type": "JSONB NOT NULL",
+          "ts_type": "{ type: 'email' | 'slack' | 'webhook'; target: string }[]",
+          "nullable": false,
+          "default": "[]",
+          "input_component": "MultiSelect",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "is_active": {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "financial_alerts_org_is_active_idx",
+          "columns": [
+            "org_id",
+            "is_active"
+          ]
+        },
+        {
+          "name": "financial_alerts_org_metric_key_idx",
+          "columns": [
+            "org_id",
+            "metric_key"
+          ]
+        },
+        {
+          "name": "financial_alerts_org_status_idx",
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        }
+      ]
+    }
+  },
+  "computed_fields": {
+    "description": "KPI metric values are computed on-demand and cached as MetricSnapshots",
+    "standard_kpis": [
+      {
+        "metric_key": "mrr",
+        "formula": "SUM(subscriptions.current_price) WHERE status = 'active'"
+      },
+      {
+        "metric_key": "arr",
+        "formula": "mrr * 12"
+      },
+      {
+        "metric_key": "revenue_this_month",
+        "formula": "SUM(invoices.total) WHERE status = 'paid' AND paid_at BETWEEN period_start AND period_end"
+      },
+      {
+        "metric_key": "outstanding_ar",
+        "formula": "SUM(invoices.balance_due) WHERE status NOT IN ('void', 'paid')"
+      },
+      {
+        "metric_key": "outstanding_ap",
+        "formula": "SUM(bills.balance_due) WHERE status NOT IN ('void', 'paid')"
+      },
+      {
+        "metric_key": "cash_balance",
+        "formula": "SUM(bank_accounts.current_balance) WHERE is_active = true"
+      },
+      {
+        "metric_key": "net_income_mtd",
+        "formula": "revenue_mtd - expenses_mtd"
+      },
+      {
+        "metric_key": "gross_margin_pct",
+        "formula": "(revenue_mtd - cogs_mtd) / revenue_mtd * 100"
+      },
+      {
+        "metric_key": "avg_days_to_pay",
+        "formula": "AVG(paid_at - issue_date) FROM invoices WHERE status = 'paid' AND paid_at >= period_start"
+      },
+      {
+        "metric_key": "overdue_invoices_count",
+        "formula": "COUNT(invoices) WHERE status = 'overdue'"
+      },
+      {
+        "metric_key": "burn_rate",
+        "formula": "total_expenses_this_month"
+      },
+      {
+        "metric_key": "runway_months",
+        "formula": "cash_balance / burn_rate IF burn_rate > 0"
+      }
+    ]
+  },
+  "domain_rules": [
+    {
+      "rule": "Default dashboard: only one per org allowed",
+      "enforced_at": [
+        "db",
+        "api"
+      ],
+      "api_guard": "when setting is_default=true, first unset is_default on any existing default dashboard for org",
+      "ui_behavior": "Set as Default action available in dashboard list; current default indicated with star icon",
+      "db_constraint": "CREATE UNIQUE INDEX dashboards_org_is_default_unique ON dashboards(org_id) WHERE is_default = true"
+    },
+    {
+      "rule": "Widget data is cached for 15 minutes \u2014 stale data shown with indicator",
+      "enforced_at": [
+        "ui"
+      ],
+      "api_guard": null,
+      "ui_behavior": "Show amber stale-data badge on widget if computed_at older than 15 minutes; manual refresh button triggers GET /widgets/:id/data bypassing cache",
+      "db_constraint": null
+    },
+    {
+      "rule": "metric_key must be unique within org for KPIMetrics",
+      "enforced_at": [
+        "db"
+      ],
+      "api_guard": "Zod uniqueness validated via pre-check query on create",
+      "ui_behavior": "show inline error 'metric key already in use' on form field",
+      "db_constraint": "CREATE UNIQUE INDEX kpi_metrics_org_metric_key_unique ON kpi_metrics(org_id, metric_key)"
+    },
+    {
+      "rule": "Report exports expire after 24 hours from S3",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "generate signed S3 URLs with 86400 second expiry; return expiry timestamp in response",
+      "ui_behavior": "show expiry time on export download link; disable link if expired",
+      "db_constraint": null
+    },
+    {
+      "rule": "MetricSnapshot computed_at must be after period_end",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "reject snapshot creation if computed_at <= period_end; return 422",
+      "ui_behavior": null,
+      "db_constraint": null
+    },
+    {
+      "rule": "Alert cannot reference inactive KPIMetric",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "reject create/update of FinancialAlert if referenced kpi_metric.is_active = false",
+      "ui_behavior": "MetricSelector in alert form filters out inactive metrics; show warning badge on existing alerts whose metric is deactivated",
+      "db_constraint": null
+    }
+  ],
+  "components": [
+    {
+      "name": "DataTable",
+      "type": "organism",
+      "description": "Sortable, filterable, paginated data table",
+      "props": {
+        "columns": "ColumnDef[]",
+        "data": "T[]",
+        "isLoading": "boolean",
+        "onRowClick": "(row: T) => void",
+        "pagination": "PaginationState"
+      },
+      "behavior": "Sticky header; skeleton rows during load; empty state",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 overflow-hidden"
+    },
+    {
+      "name": "StatusBadge",
+      "type": "atom",
+      "description": "Colored pill badge for enum status values",
+      "props": {
+        "status": "string",
+        "size": "'sm' | 'md'"
+      },
+      "behavior": "Maps status to color class",
+      "variants": [
+        "active",
+        "triggered",
+        "dismissed",
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "CurrencyDisplay",
+      "type": "atom",
+      "description": "Formatted currency display",
+      "props": {
+        "value": "number | null",
+        "currency": "string"
+      },
+      "behavior": "Intl.NumberFormat; dash for null",
+      "variants": [
+        "default",
+        "positive",
+        "negative"
+      ],
+      "tailwind": "tabular-nums text-right font-medium text-slate-100"
+    },
+    {
+      "name": "NumberDisplay",
+      "type": "atom",
+      "description": "Locale-aware numeric display",
+      "props": {
+        "value": "number | null",
+        "decimals": "number"
+      },
+      "behavior": "dash for null",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "tabular-nums text-slate-100"
+    },
+    {
+      "name": "PercentageDisplay",
+      "type": "atom",
+      "description": "Percentage value with % suffix",
+      "props": {
+        "value": "number | null",
+        "decimals": "number",
+        "colorCode": "boolean"
+      },
+      "behavior": "positive=green, negative=red when colorCode=true",
+      "variants": [
+        "default",
+        "color-coded"
+      ],
+      "tailwind": "tabular-nums text-sm font-medium"
+    },
+    {
+      "name": "PlainText",
+      "type": "atom",
+      "description": "Plain text display",
+      "props": {
+        "value": "string | null",
+        "fallback": "string"
+      },
+      "behavior": "Dash on null",
+      "variants": [
+        "default",
+        "muted"
+      ],
+      "tailwind": "text-slate-100 text-sm"
+    },
+    {
+      "name": "Select",
+      "type": "molecule",
+      "description": "Radix UI dropdown select",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "options": "{ label: string; value: string }[]",
+        "disabled": "boolean"
+      },
+      "behavior": "Keyboard navigable; accessible; React Hook Form",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "MultiSelect",
+      "type": "molecule",
+      "description": "Multi-value select with chips",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "options": "{ label: string; value: string }[]"
+      },
+      "behavior": "Removable chips; searchable",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 min-h-[42px] px-2 py-1 flex flex-wrap gap-1"
+    },
+    {
+      "name": "Toggle",
+      "type": "atom",
+      "description": "Boolean toggle switch",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "disabled": "boolean"
+      },
+      "behavior": "role=switch",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative inline-flex h-6 w-11 items-center rounded-full bg-slate-700 data-[checked]:bg-blue-600"
+    },
+    {
+      "name": "DatePicker",
+      "type": "molecule",
+      "description": "Date picker with calendar popover",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string"
+      },
+      "behavior": "date-fns; Radix Popover",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "TextInput",
+      "type": "molecule",
+      "description": "Standard text input",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "disabled": "boolean"
+      },
+      "behavior": "React Hook Form",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "Textarea",
+      "type": "molecule",
+      "description": "Multi-line text area",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "rows": "number"
+      },
+      "behavior": "React Hook Form",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 resize-y"
+    },
+    {
+      "name": "PageHeader",
+      "type": "organism",
+      "description": "Page header with title, breadcrumbs, actions",
+      "props": {
+        "title": "string",
+        "breadcrumbs": "{ label: string; href?: string }[]",
+        "actions": "ReactNode"
+      },
+      "behavior": "Sticky; responsive",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-950 border-b border-slate-800 px-6 py-4 flex items-center justify-between"
+    },
+    {
+      "name": "TabPanel",
+      "type": "molecule",
+      "description": "Horizontal tab navigation",
+      "props": {
+        "tabs": "{ id: string; label: string }[]",
+        "activeTab": "string",
+        "onChange": "(id: string) => void"
+      },
+      "behavior": "Radix Tabs; animated indicator",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "border-b border-slate-800"
+    },
+    {
+      "name": "EmptyState",
+      "type": "molecule",
+      "description": "Empty placeholder with CTA",
+      "props": {
+        "icon": "LucideIcon",
+        "title": "string",
+        "description": "string",
+        "action": "ReactNode"
+      },
+      "behavior": "Centered layout",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "flex flex-col items-center justify-center py-16 text-center"
+    },
+    {
+      "name": "LoadingSkeleton",
+      "type": "atom",
+      "description": "Shimmer loading placeholder",
+      "props": {
+        "rows": "number"
+      },
+      "behavior": "Animated shimmer",
+      "variants": [
+        "table",
+        "card"
+      ],
+      "tailwind": "animate-pulse bg-slate-800 rounded"
+    },
+    {
+      "name": "ConfirmationDialog",
+      "type": "organism",
+      "description": "Destructive action confirmation modal",
+      "props": {
+        "open": "boolean",
+        "onConfirm": "() => void",
+        "title": "string",
+        "description": "string",
+        "variant": "'danger' | 'warning'"
+      },
+      "behavior": "Radix AlertDialog",
+      "variants": [
+        "danger",
+        "warning"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-2xl max-w-md w-full"
+    },
+    {
+      "name": "StatCard",
+      "type": "molecule",
+      "description": "KPI stat card",
+      "props": {
+        "label": "string",
+        "value": "string | number",
+        "trend": "number",
+        "icon": "LucideIcon"
+      },
+      "behavior": "Green/red trend arrows",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-5 flex flex-col gap-2"
+    },
+    {
+      "name": "AuthGuard",
+      "type": "utility",
+      "description": "Permission-based route guard",
+      "props": {
+        "permission": "string",
+        "fallback": "ReactNode",
+        "children": "ReactNode"
+      },
+      "behavior": "Reads authStore",
+      "variants": [
+        "default"
+      ],
+      "tailwind": null
+    },
+    {
+      "name": "NotificationBell",
+      "type": "atom",
+      "description": "Bell icon with unread count badge",
+      "props": {
+        "unreadCount": "number",
+        "onClick": "() => void"
+      },
+      "behavior": "Pulsing badge; click opens dropdown",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative p-2 rounded-lg hover:bg-slate-800 transition-colors"
+    },
+    {
+      "name": "WidgetCard",
+      "type": "organism",
+      "description": "Container card for any dashboard widget with header, stale indicator, and drag handle",
+      "props": {
+        "widget": "DashboardWidget",
+        "isStale": "boolean",
+        "onRefresh": "() => void",
+        "onEdit": "() => void",
+        "onDelete": "() => void",
+        "children": "ReactNode"
+      },
+      "behavior": "Amber stale badge if data older than 15min; drag handle visible in edit mode; overflow menu with edit/delete/refresh",
+      "variants": [
+        "default",
+        "edit-mode"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 flex flex-col"
+    },
+    {
+      "name": "KPICard",
+      "type": "molecule",
+      "description": "Large KPI value card with trend and sparkline",
+      "props": {
+        "label": "string",
+        "value": "number",
+        "previousValue": "number",
+        "changePct": "number",
+        "displayFormat": "'currency' | 'percentage' | 'number' | 'days'",
+        "sparklineData": "number[]"
+      },
+      "behavior": "Renders value in display_format; TrendArrow for change; SparklineChart below",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex flex-col gap-3 p-5"
+    },
+    {
+      "name": "TrendArrow",
+      "type": "atom",
+      "description": "Arrow icon indicating metric trend direction",
+      "props": {
+        "changePct": "number",
+        "positiveIsGood": "boolean"
+      },
+      "behavior": "Up arrow = green if positiveIsGood, red if not; down arrow inverse",
+      "variants": [
+        "up-good",
+        "up-bad",
+        "down-good",
+        "down-bad"
+      ],
+      "tailwind": "inline-flex items-center gap-1 text-sm font-medium"
+    },
+    {
+      "name": "ChangeIndicator",
+      "type": "atom",
+      "description": "Percentage change pill with directional color",
+      "props": {
+        "changePct": "number",
+        "positiveIsGood": "boolean"
+      },
+      "behavior": "Colored pill: green/red based on direction and positiveIsGood",
+      "variants": [
+        "positive",
+        "negative",
+        "neutral"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+    },
+    {
+      "name": "SparklineChart",
+      "type": "molecule",
+      "description": "Minimal inline trend chart",
+      "props": {
+        "data": "number[]",
+        "color": "string",
+        "width": "number",
+        "height": "number"
+      },
+      "behavior": "Recharts LineChart without axes; smooth curve",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "opacity-80"
+    },
+    {
+      "name": "BarChartWidget",
+      "type": "organism",
+      "description": "Bar chart Recharts widget for dashboard",
+      "props": {
+        "data": "{ name: string; value: number; previousValue?: number }[]",
+        "xAxisKey": "string",
+        "config": "ChartConfig",
+        "displayFormat": "string"
+      },
+      "behavior": "Recharts BarChart; grouped bars for comparison; tooltips; legend; responsive container",
+      "variants": [
+        "single",
+        "grouped",
+        "stacked"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
+    },
+    {
+      "name": "LineChartWidget",
+      "type": "organism",
+      "description": "Line chart for time-series metrics",
+      "props": {
+        "data": "{ date: string; value: number; compareValue?: number }[]",
+        "config": "ChartConfig",
+        "displayFormat": "string"
+      },
+      "behavior": "Recharts LineChart; smooth curves; reference line for benchmark; grid lines; tooltips",
+      "variants": [
+        "default",
+        "with-comparison"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
+    },
+    {
+      "name": "PieChartWidget",
+      "type": "organism",
+      "description": "Pie chart for distribution data",
+      "props": {
+        "data": "{ name: string; value: number; color: string }[]",
+        "displayFormat": "string"
+      },
+      "behavior": "Recharts PieChart; hover highlights slice; legend; center total label",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
+    },
+    {
+      "name": "DonutChartWidget",
+      "type": "organism",
+      "description": "Donut chart with center metric",
+      "props": {
+        "data": "{ name: string; value: number; color: string }[]",
+        "centerLabel": "string",
+        "centerValue": "string"
+      },
+      "behavior": "Recharts PieChart with innerRadius; center displays centerLabel and centerValue",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
+    },
+    {
+      "name": "AreaChartWidget",
+      "type": "organism",
+      "description": "Area chart for cumulative metrics",
+      "props": {
+        "data": "{ date: string; value: number }[]",
+        "config": "ChartConfig",
+        "displayFormat": "string"
+      },
+      "behavior": "Recharts AreaChart; gradient fill; tooltips",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
+    },
+    {
+      "name": "GaugeWidget",
+      "type": "organism",
+      "description": "Radial gauge for bounded metrics",
+      "props": {
+        "value": "number",
+        "min": "number",
+        "max": "number",
+        "label": "string",
+        "thresholds": "{ value: number; color: string }[]"
+      },
+      "behavior": "Recharts RadialBarChart; color zones by threshold; center value display",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
+    },
+    {
+      "name": "FunnelWidget",
+      "type": "organism",
+      "description": "Funnel chart for conversion metrics",
+      "props": {
+        "data": "{ name: string; value: number; fill: string }[]"
+      },
+      "behavior": "Recharts FunnelChart; step labels; conversion rate annotations",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
+    },
+    {
+      "name": "TableWidget",
+      "type": "organism",
+      "description": "Tabular data widget for dashboard",
+      "props": {
+        "columns": "ColumnDef[]",
+        "data": "T[]",
+        "maxRows": "number"
+      },
+      "behavior": "Compact DataTable variant; no pagination; scrollable if overflow",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800"
+    },
+    {
+      "name": "DashboardGrid",
+      "type": "organism",
+      "description": "Drag-and-drop grid layout for dashboard widgets",
+      "props": {
+        "widgets": "DashboardWidget[]",
+        "editMode": "boolean",
+        "onLayoutChange": "(layout: Layout[]) => void"
+      },
+      "behavior": "12-column grid; draggable and resizable in edit mode via react-grid-layout pattern; position/size persisted to layout_config",
+      "variants": [
+        "view",
+        "edit"
+      ],
+      "tailwind": "relative w-full"
+    },
+    {
+      "name": "WidgetConfigModal",
+      "type": "organism",
+      "description": "Modal for configuring a dashboard widget",
+      "props": {
+        "open": "boolean",
+        "widget": "DashboardWidget | null",
+        "onSave": "(widget: Partial<DashboardWidget>) => void",
+        "onClose": "() => void"
+      },
+      "behavior": "Multi-step form: choose widget_type, data_source, metric_key, period, comparison, display options; live preview pane",
+      "variants": [
+        "create",
+        "edit"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-2xl max-w-2xl w-full"
+    },
+    {
+      "name": "PeriodSelector",
+      "type": "molecule",
+      "description": "Dropdown for selecting time period",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string"
+      },
+      "behavior": "Preset options + custom date range via DateRangePicker when custom selected",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "ComparisonPicker",
+      "type": "molecule",
+      "description": "Selector for comparison period in widgets",
+      "props": {
+        "name": "string",
+        "control": "Control"
+      },
+      "behavior": "Options: previous_period, same_period_last_year, none",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "MetricSelector",
+      "type": "molecule",
+      "description": "Searchable dropdown of KPI metrics",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "filterActive": "boolean"
+      },
+      "behavior": "Combobox; shows metric_key + name; filters inactive if filterActive=true",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2"
+    },
+    {
+      "name": "DataSourceSelector",
+      "type": "molecule",
+      "description": "Selector for widget data source",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string"
+      },
+      "behavior": "Icon + label options for each data source enum value",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "AlertBadge",
+      "type": "atom",
+      "description": "Badge for financial alert status",
+      "props": {
+        "status": "'active' | 'triggered' | 'dismissed'"
+      },
+      "behavior": "active=blue, triggered=red with pulse animation, dismissed=gray",
+      "variants": [
+        "active",
+        "triggered",
+        "dismissed"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+    },
+    {
+      "name": "BenchmarkLine",
+      "type": "atom",
+      "description": "Reference line on charts indicating benchmark value",
+      "props": {
+        "value": "number",
+        "label": "string"
+      },
+      "behavior": "Recharts ReferenceLine; dashed amber line; label at end",
+      "variants": [
+        "default"
+      ],
+      "tailwind": null
+    },
+    {
+      "name": "ColorPicker",
+      "type": "molecule",
+      "description": "Hex color picker",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string"
+      },
+      "behavior": "Native color input + hex entry",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "flex items-center gap-2"
+    },
+    {
+      "name": "ChartColorPicker",
+      "type": "molecule",
+      "description": "Color picker for chart series colors",
+      "props": {
+        "seriesCount": "number",
+        "value": "string[]",
+        "onChange": "(colors: string[]) => void"
+      },
+      "behavior": "One ColorPicker per series; preset palette swatches",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "flex flex-col gap-2"
+    },
+    {
+      "name": "DragHandle",
+      "type": "atom",
+      "description": "Drag handle icon for draggable widgets",
+      "props": {
+        "className": "string"
+      },
+      "behavior": "GripVertical Lucide icon; cursor-grab; only visible in edit mode",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-slate-500 hover:text-slate-300 cursor-grab active:cursor-grabbing"
+    },
+    {
+      "name": "ResizeHandle",
+      "type": "atom",
+      "description": "Resize handle for widget grid cells",
+      "props": {
+        "position": "'se' | 's' | 'e'"
+      },
+      "behavior": "Corner/edge indicator; only visible in edit mode",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "absolute bottom-1 right-1 text-slate-600 hover:text-slate-400"
+    },
+    {
+      "name": "DateRangePicker",
+      "type": "molecule",
+      "description": "Dual date picker for custom date ranges",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string"
+      },
+      "behavior": "Two DatePickers: from/to; validates from <= to; date-fns formatting",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "flex items-center gap-2"
+    },
+    {
+      "name": "TruncatedText",
+      "type": "atom",
+      "description": "Text truncated with tooltip",
+      "props": {
+        "value": "string | null",
+        "maxLength": "number"
+      },
+      "behavior": "Radix Tooltip on hover",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-slate-300 text-sm truncate max-w-xs"
+    },
+    {
+      "name": "MonospaceText",
+      "type": "atom",
+      "description": "Monospace text for codes",
+      "props": {
+        "value": "string | null"
+      },
+      "behavior": "font-mono",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "font-mono text-slate-300 text-sm"
+    },
+    {
+      "name": "AbsoluteDate",
+      "type": "atom",
+      "description": "Absolute date display",
+      "props": {
+        "value": "string | null",
+        "showTime": "boolean"
+      },
+      "behavior": "date-fns format; dash for null",
+      "variants": [
+        "date-only",
+        "datetime"
+      ],
+      "tailwind": "text-slate-300 text-sm tabular-nums"
+    },
+    {
+      "name": "RelativeDate",
+      "type": "atom",
+      "description": "Relative time display",
+      "props": {
+        "value": "string | null"
+      },
+      "behavior": "date-fns formatDistanceToNow; tooltip shows absolute",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-slate-400 text-sm"
+    },
+    {
+      "name": "YesNoBadge",
+      "type": "atom",
+      "description": "Yes/No badge for booleans",
+      "props": {
+        "value": "boolean | null"
+      },
+      "behavior": "true=green, false=red",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+    }
+  ],
+  "modules": [
+    {
+      "name": "DashboardHome",
+      "route": "/dashboard",
+      "tabs": [],
+      "description": "Default dashboard with DashboardGrid, drag-and-drop widget arrangement, and global period selector"
+    },
+    {
+      "name": "DashboardList",
+      "route": "/dashboards",
+      "tabs": [],
+      "description": "List of all saved dashboards with set-default and duplicate actions"
+    },
+    {
+      "name": "DashboardDetail",
+      "route": "/dashboards/:id",
+      "tabs": [],
+      "description": "Named dashboard view with full widget grid"
+    },
+    {
+      "name": "KPIMetricList",
+      "route": "/kpis",
+      "tabs": [],
+      "description": "Configure and manage KPI metrics with formula editor and compute-now action"
+    },
+    {
+      "name": "FinancialAlertList",
+      "route": "/alerts",
+      "tabs": [],
+      "description": "View and manage financial alerts with dismiss and status filter"
+    },
+    {
+      "name": "ReportsHub",
+      "route": "/reports",
+      "tabs": [],
+      "description": "List all available financial reports with navigation cards"
+    },
+    {
+      "name": "ReportView",
+      "route": "/reports/:reportId",
+      "tabs": [],
+      "description": "Render specific report with date/comparison filters and export button"
+    }
+  ],
+  "api": {
+    "dashboards": [
+      {
+        "method": "GET",
+        "path": "/dashboards",
+        "description": "List dashboards"
+      },
+      {
+        "method": "POST",
+        "path": "/dashboards",
+        "description": "Create dashboard"
+      },
+      {
+        "method": "GET",
+        "path": "/dashboards/:id",
+        "description": "Get dashboard"
+      },
+      {
+        "method": "PATCH",
+        "path": "/dashboards/:id",
+        "description": "Update dashboard"
+      },
+      {
+        "method": "DELETE",
+        "path": "/dashboards/:id",
+        "description": "Delete dashboard"
+      },
+      {
+        "method": "POST",
+        "path": "/dashboards/:id/set-default",
+        "description": "Set as default dashboard for org"
+      },
+      {
+        "method": "POST",
+        "path": "/dashboards/:id/duplicate",
+        "description": "Duplicate dashboard"
+      }
+    ],
+    "widgets": [
+      {
+        "method": "GET",
+        "path": "/widgets",
+        "description": "List widgets for org"
+      },
+      {
+        "method": "POST",
+        "path": "/widgets",
+        "description": "Create widget"
+      },
+      {
+        "method": "GET",
+        "path": "/widgets/:id",
+        "description": "Get widget config"
+      },
+      {
+        "method": "PATCH",
+        "path": "/widgets/:id",
+        "description": "Update widget config"
+      },
+      {
+        "method": "DELETE",
+        "path": "/widgets/:id",
+        "description": "Delete widget"
+      },
+      {
+        "method": "GET",
+        "path": "/widgets/:id/data",
+        "description": "Fetch computed data for widget: { current_value, previous_value, change_pct, chart_data, breakdown }"
+      }
+    ],
+    "kpi_metrics": [
+      {
+        "method": "GET",
+        "path": "/kpi-metrics",
+        "description": "List KPI metrics"
+      },
+      {
+        "method": "POST",
+        "path": "/kpi-metrics",
+        "description": "Create KPI metric"
+      },
+      {
+        "method": "GET",
+        "path": "/kpi-metrics/:id",
+        "description": "Get KPI metric"
+      },
+      {
+        "method": "PATCH",
+        "path": "/kpi-metrics/:id",
+        "description": "Update KPI metric"
+      },
+      {
+        "method": "DELETE",
+        "path": "/kpi-metrics/:id",
+        "description": "Delete KPI metric"
+      },
+      {
+        "method": "POST",
+        "path": "/kpi-metrics/:id/compute-now",
+        "description": "Force immediate recomputation of metric snapshot"
+      },
+      {
+        "method": "GET",
+        "path": "/kpi-metrics/:key/history",
+        "description": "Get metric snapshot history: query params from, to"
+      }
+    ],
+    "metric_snapshots": [
+      {
+        "method": "GET",
+        "path": "/metric-snapshots",
+        "description": "Query snapshots: params metric_key, from, to"
+      },
+      {
+        "method": "POST",
+        "path": "/metric-snapshots/compute-all",
+        "description": "Background job: compute snapshots for all active KPI metrics"
+      }
+    ],
+    "financial_alerts": [
+      {
+        "method": "GET",
+        "path": "/alerts",
+        "description": "List financial alerts"
+      },
+      {
+        "method": "POST",
+        "path": "/alerts",
+        "description": "Create alert"
+      },
+      {
+        "method": "GET",
+        "path": "/alerts/:id",
+        "description": "Get alert"
+      },
+      {
+        "method": "PATCH",
+        "path": "/alerts/:id",
+        "description": "Update alert"
+      },
+      {
+        "method": "DELETE",
+        "path": "/alerts/:id",
+        "description": "Delete alert"
+      },
+      {
+        "method": "POST",
+        "path": "/alerts/:id/dismiss",
+        "description": "Dismiss triggered alert"
+      }
+    ],
+    "reports": [
+      {
+        "method": "GET",
+        "path": "/reports/profit-loss",
+        "description": "P&L report: params from, to, comparison"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/balance-sheet",
+        "description": "Balance sheet: param as_of"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/cash-flow",
+        "description": "Cash flow: params from, to"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/ar-aging",
+        "description": "AR aging: param as_of"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/ap-aging",
+        "description": "AP aging: param as_of"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/general-ledger",
+        "description": "General ledger: params from, to, account_id"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/trial-balance",
+        "description": "Trial balance: param as_of"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/expense-summary",
+        "description": "Expense summary: params from, to"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/budget-vs-actual",
+        "description": "Budget vs actual: params budget_id, from, to"
+      },
+      {
+        "method": "POST",
+        "path": "/reports/:reportId/export",
+        "description": "Export report to PDF or XLSX; runs as background job; returns download URL"
+      }
+    ]
+  },
+  "permissions": {
+    "roles": [
+      "admin",
+      "financial_manager",
+      "accountant",
+      "viewer"
+    ],
+    "matrix": {
+      "dashboards.create": [
+        "admin",
+        "financial_manager",
+        "accountant"
+      ],
+      "dashboards.edit": [
+        "admin",
+        "financial_manager",
+        "accountant"
+      ],
+      "dashboards.view": [
+        "admin",
+        "financial_manager",
+        "accountant",
+        "viewer"
+      ],
+      "kpis.manage": [
+        "admin",
+        "financial_manager"
+      ],
+      "alerts.manage": [
+        "admin",
+        "financial_manager",
+        "accountant"
+      ],
+      "reports.view": [
+        "admin",
+        "financial_manager",
+        "accountant",
+        "viewer"
+      ],
+      "reports.export": [
+        "admin",
+        "financial_manager",
+        "accountant"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      "authStore",
+      "uiStore",
+      "dashboardStore",
+      "alertStore"
+    ],
+    "dashboardStore": {
+      "state": [
+        "activeDashboardId",
+        "editMode",
+        "widgetDragState",
+        "globalPeriod",
+        "globalComparisonPeriod"
+      ],
+      "actions": [
+        "setActiveDashboard",
+        "toggleEditMode",
+        "setGlobalPeriod",
+        "updateWidgetPosition",
+        "saveLayout"
+      ]
+    },
+    "alertStore": {
+      "state": [
+        "unreadAlertCount",
+        "alerts"
+      ],
+      "actions": [
+        "incrementUnread",
+        "markAllRead",
+        "dismissAlert"
+      ]
+    },
+    "query_keys": [
+      "dashboards",
+      "widgets",
+      "widgetData",
+      "kpiMetrics",
+      "metricSnapshots",
+      "financialAlerts",
+      "reports"
+    ]
+  },
+  "websocket": {
+    "events": [
+      {
+        "event": "metric.alert_triggered",
+        "payload": {
+          "alert_id": "string",
+          "metric_key": "string",
+          "value": "number",
+          "threshold": "number",
+          "triggered_at": "string"
+        }
+      },
+      {
+        "event": "metric.snapshot_updated",
+        "payload": {
+          "metric_key": "string",
+          "snapshot_date": "string",
+          "value": "number"
+        }
+      },
+      {
+        "event": "dashboard.shared",
+        "payload": {
+          "dashboard_id": "string",
+          "shared_by": "string",
+          "share_with": "string"
+        }
+      },
+      {
+        "event": "report.export_ready",
+        "payload": {
+          "report_id": "string",
+          "format": "string",
+          "download_url": "string",
+          "expires_at": "string"
+        }
+      }
+    ]
+  },
+  "flows": [
+    {
+      "name": "Build Dashboard",
+      "steps": [
+        "Create dashboard: POST /dashboards with name, description, share_with",
+        "Add widgets: POST /widgets with widget_type, data_source, metric_key, period, comparison_period, display_format",
+        "Configure each widget: open WidgetConfigModal, set chart_config (colors, legend, axis labels)",
+        "Drag widgets to arrange on DashboardGrid; positions saved to layout_config on drop",
+        "Resize widgets using ResizeHandle to adjust width/height grid units",
+        "Save layout: PATCH /dashboards/:id with updated widget_ids and layout_config",
+        "Optionally POST /dashboards/:id/set-default to make this the org landing dashboard"
+      ]
+    },
+    {
+      "name": "Aggregate Data (background)",
+      "steps": [
+        "Scheduled job runs every 15 minutes: POST /metric-snapshots/compute-all",
+        "For each active KPIMetric, execute formula expression against PostgreSQL",
+        "Store computed value as MetricSnapshot (upsert on org_id + metric_key + snapshot_date)",
+        "After each snapshot stored, check all active FinancialAlerts referencing this metric_key",
+        "Evaluate alert condition against new value (and comparison_window lookback if applicable)",
+        "If condition met: update alert status to triggered, set last_triggered_at and last_value_at_trigger",
+        "Emit metric.alert_triggered websocket event",
+        "Deliver via notification_channels (email/slack/webhook) asynchronously",
+        "Emit metric.snapshot_updated websocket event to update live dashboards"
+      ]
+    },
+    {
+      "name": "Display Analytics",
+      "steps": [
+        "Widget mounts and calls GET /widgets/:id/data with configured period parameters",
+        "Server computes metric for period: current_value, previous_value, change_pct",
+        "Server returns chart_data array and breakdown object",
+        "Frontend renders appropriate chart component based on widget_type",
+        "If computed_at older than 15 minutes, show stale-data amber badge on WidgetCard",
+        "Manual refresh calls GET /widgets/:id/data with cache-bust header"
+      ]
+    },
+    {
+      "name": "Export Report",
+      "steps": [
+        "User configures report parameters (date range, comparison, filters) in ReportView",
+        "POST /reports/:reportId/export with format (pdf or xlsx) and parameters",
+        "Background job generates report file server-side",
+        "Generated file stored in AWS S3 with signed URL expiring after 24 hours",
+        "report.export_ready websocket event emitted with download_url and expires_at",
+        "NotificationBell updates unread count; user clicks to download"
+      ]
+    }
+  ],
+  "_meta": {
+    "title": "financial_dashboard_spec",
+    "domain": "Operations",
+    "version": "1.0.0"
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK\u2192organizations, row-level security anchor"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null,
+      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
+    }
+  },
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {},
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "external_entity_refs": [
+    {
+      "name": "RevenueAccount",
+      "defined_in": "invoice_billing_spec.json",
+      "table": "revenue_accounts",
+      "description": "GL account a KPI metric is scoped to.",
+      "fk_fields_in_this_spec": [
+        "KPIMetric.account_id"
+      ]
+    },
+    {
+      "name": "FinancialPeriod",
+      "defined_in": "invoice_billing_spec.json",
+      "table": "financial_periods",
+      "description": "Period a metric snapshot belongs to.",
+      "fk_fields_in_this_spec": [
+        "MetricSnapshot.period_id"
+      ]
+    }
+  ]
+}

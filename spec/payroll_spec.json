@@ -1,0 +1,3869 @@
+{
+  "spec_name": "payroll_spec",
+  "version": "1.0.0",
+  "tech_stack": {
+    "frontend": [
+      "React 18",
+      "TypeScript strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form v7",
+      "Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node.js",
+      "Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "background": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber"
+  },
+  "entities": {
+    "Employee": {
+      "table": "employees",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "employee_number": {
+          "name": "employee_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "auto-generated EMP-NNNN",
+          "input_component": "TextInput",
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "pattern": "^EMP-\\d{4,}$",
+            "maxLength": 50
+          }
+        },
+        "first_name": {
+          "name": "first_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "last_name": {
+          "name": "last_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 100
+          }
+        },
+        "email": {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "EmailInput",
+          "display_component": "TextLink",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "email",
+            "maxLength": 255,
+            "uniqueWithin": "org_id"
+          }
+        },
+        "phone": {
+          "name": "phone",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TelInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "maxLength": 50
+          }
+        },
+        "date_of_birth": {
+          "name": "date_of_birth",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date"
+          }
+        },
+        "hire_date": {
+          "name": "hire_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "termination_date": {
+          "name": "termination_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date",
+            "greaterThan": "hire_date"
+          }
+        },
+        "employment_type": {
+          "name": "employment_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'full_time' | 'part_time' | 'contractor' | 'intern'",
+          "nullable": false,
+          "default": "full_time",
+          "input_component": "Select",
+          "display_component": "EmploymentTypeBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "full_time",
+              "part_time",
+              "contractor",
+              "intern"
+            ]
+          }
+        },
+        "department": {
+          "name": "department",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "DepartmentBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "maxLength": 100
+          }
+        },
+        "job_title": {
+          "name": "job_title",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "maxLength": 255
+          }
+        },
+        "manager_id": {
+          "name": "manager_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "EmployeeSelector",
+          "display_component": "TextLink",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "uuid",
+            "notSelf": true
+          }
+        },
+        "user_id": {
+          "name": "user_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "bank_account_name": {
+          "name": "bank_account_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "maxLength": 255
+          }
+        },
+        "bank_account_number_masked": {
+          "name": "bank_account_number_masked",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "maxLength": 20,
+            "description": "masked display only"
+          }
+        },
+        "bank_routing_number_masked": {
+          "name": "bank_routing_number_masked",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "maxLength": 20,
+            "description": "masked display only"
+          }
+        },
+        "payment_method": {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'direct_deposit' | 'check' | 'cash'",
+          "nullable": false,
+          "default": "direct_deposit",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "direct_deposit",
+              "check",
+              "cash"
+            ]
+          }
+        },
+        "tax_filing_status": {
+          "name": "tax_filing_status",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'single' | 'married' | 'head_of_household'",
+          "nullable": false,
+          "default": "single",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "single",
+              "married",
+              "head_of_household"
+            ]
+          }
+        },
+        "federal_allowances": {
+          "name": "federal_allowances",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "state_code": {
+          "name": "state_code",
+          "db_type": "CHAR(2)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "length": 2,
+            "pattern": "^[A-Z]{2}$"
+          }
+        },
+        "is_active": {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "avatar_url": {
+          "name": "avatar_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uri"
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "employees_org_employee_number_unique",
+          "columns": [
+            "org_id",
+            "employee_number"
+          ],
+          "unique": true
+        },
+        {
+          "name": "employees_org_email_unique",
+          "columns": [
+            "org_id",
+            "email"
+          ],
+          "unique": true
+        },
+        {
+          "name": "employees_org_is_active_idx",
+          "columns": [
+            "org_id",
+            "is_active"
+          ]
+        },
+        {
+          "name": "employees_org_department_idx",
+          "columns": [
+            "org_id",
+            "department"
+          ]
+        },
+        {
+          "name": "employees_org_manager_id_idx",
+          "columns": [
+            "org_id",
+            "manager_id"
+          ]
+        }
+      ]
+    },
+    "PayrollRun": {
+      "table": "payroll_runs",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "run_number": {
+          "name": "run_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "auto-generated PAY-YYYYMMDD-NNNN",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "pattern": "^PAY-\\d{8}-\\d{4,}$",
+            "maxLength": 50,
+            "unique": true
+          }
+        },
+        "period_start": {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "period_end": {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date",
+            "greaterThan": "period_start"
+          }
+        },
+        "pay_date": {
+          "name": "pay_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "frequency": {
+          "name": "frequency",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'weekly' | 'bi_weekly' | 'semi_monthly' | 'monthly'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "PayFrequencyBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "weekly",
+              "bi_weekly",
+              "semi_monthly",
+              "monthly"
+            ]
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'draft' | 'processing' | 'approved' | 'paid' | 'cancelled'",
+          "nullable": false,
+          "default": "draft",
+          "input_component": "Select",
+          "display_component": "PayrollRunStatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "draft",
+              "processing",
+              "approved",
+              "paid",
+              "cancelled"
+            ]
+          }
+        },
+        "employee_count": {
+          "name": "employee_count",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "gross_pay_total": {
+          "name": "gross_pay_total",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "deductions_total": {
+          "name": "deductions_total",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "taxes_total": {
+          "name": "taxes_total",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "net_pay_total": {
+          "name": "net_pay_total",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "employer_taxes_total": {
+          "name": "employer_taxes_total",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "approved_by": {
+          "name": "approved_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "approved_at": {
+          "name": "approved_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "payroll_runs_org_status_idx",
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "name": "payroll_runs_org_pay_date_idx",
+          "columns": [
+            "org_id",
+            "pay_date"
+          ]
+        },
+        {
+          "name": "payroll_runs_org_period_start_idx",
+          "columns": [
+            "org_id",
+            "period_start"
+          ]
+        }
+      ]
+    },
+    "PayrollEntry": {
+      "table": "payroll_entries",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "payroll_run_id": {
+          "name": "payroll_run_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "employee_id": {
+          "name": "employee_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "EmployeeSelector",
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "base_pay": {
+          "name": "base_pay",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "hours_worked": {
+          "name": "hours_worked",
+          "db_type": "NUMERIC(8,2)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "min": 0
+          }
+        },
+        "overtime_hours": {
+          "name": "overtime_hours",
+          "db_type": "NUMERIC(8,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "overtime_pay": {
+          "name": "overtime_pay",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "bonus": {
+          "name": "bonus",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "commission": {
+          "name": "commission",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "reimbursements": {
+          "name": "reimbursements",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "gross_pay": {
+          "name": "gross_pay",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "federal_income_tax": {
+          "name": "federal_income_tax",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "state_income_tax": {
+          "name": "state_income_tax",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "social_security_tax": {
+          "name": "social_security_tax",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "medicare_tax": {
+          "name": "medicare_tax",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "other_deductions_total": {
+          "name": "other_deductions_total",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "net_pay": {
+          "name": "net_pay",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "computed": true
+          }
+        },
+        "employer_social_security": {
+          "name": "employer_social_security",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "employer_medicare": {
+          "name": "employer_medicare",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "employer_futa": {
+          "name": "employer_futa",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "employer_suta": {
+          "name": "employer_suta",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "'draft' | 'confirmed' | 'paid'",
+          "nullable": false,
+          "default": "draft",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "draft",
+              "confirmed",
+              "paid"
+            ]
+          }
+        },
+        "paid_at": {
+          "name": "paid_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "payroll_entries_org_run_id_idx",
+          "columns": [
+            "org_id",
+            "payroll_run_id"
+          ]
+        },
+        {
+          "name": "payroll_entries_org_employee_id_idx",
+          "columns": [
+            "org_id",
+            "employee_id"
+          ]
+        },
+        {
+          "name": "payroll_entries_org_status_idx",
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        }
+      ]
+    },
+    "Salary": {
+      "table": "salaries",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "employee_id": {
+          "name": "employee_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "salary_type": {
+          "name": "salary_type",
+          "db_type": "VARCHAR(10) NOT NULL",
+          "ts_type": "'annual' | 'hourly' | 'daily'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "annual",
+              "hourly",
+              "daily"
+            ]
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "currency": {
+          "name": "currency",
+          "db_type": "CHAR(3) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "USD",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "length": 3
+          }
+        },
+        "effective_date": {
+          "name": "effective_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "end_date": {
+          "name": "end_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date",
+            "greaterThan": "effective_date"
+          }
+        },
+        "is_current": {
+          "name": "is_current",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "salaries_org_employee_id_idx",
+          "columns": [
+            "org_id",
+            "employee_id"
+          ]
+        },
+        {
+          "name": "salaries_org_is_current_idx",
+          "columns": [
+            "org_id",
+            "is_current"
+          ]
+        },
+        {
+          "name": "salaries_org_effective_date_idx",
+          "columns": [
+            "org_id",
+            "effective_date"
+          ]
+        }
+      ]
+    },
+    "Deduction": {
+      "table": "deductions",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "employee_id": {
+          "name": "employee_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "deduction_type": {
+          "name": "deduction_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'health_insurance' | 'dental' | 'vision' | '401k' | '403b' | 'garnishment' | 'union_dues' | 'other'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "health_insurance",
+              "dental",
+              "vision",
+              "401k",
+              "403b",
+              "garnishment",
+              "union_dues",
+              "other"
+            ]
+          }
+        },
+        "name": {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "amount_type": {
+          "name": "amount_type",
+          "db_type": "VARCHAR(10) NOT NULL",
+          "ts_type": "'fixed' | 'percentage'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "fixed",
+              "percentage"
+            ]
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "db_type": "NUMERIC(15,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "is_pre_tax": {
+          "name": "is_pre_tax",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "is_recurring": {
+          "name": "is_recurring",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "effective_date": {
+          "name": "effective_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "end_date": {
+          "name": "end_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date",
+            "greaterThan": "effective_date"
+          }
+        },
+        "is_active": {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "deductions_org_employee_id_idx",
+          "columns": [
+            "org_id",
+            "employee_id"
+          ]
+        },
+        {
+          "name": "deductions_org_is_active_idx",
+          "columns": [
+            "org_id",
+            "is_active"
+          ]
+        },
+        {
+          "name": "deductions_org_deduction_type_idx",
+          "columns": [
+            "org_id",
+            "deduction_type"
+          ]
+        }
+      ]
+    },
+    "TaxWithholding": {
+      "table": "tax_withholdings",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "iso8601"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "iso8601"
+          }
+        },
+        "payroll_entry_id": {
+          "name": "payroll_entry_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "tax_type": {
+          "name": "tax_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "'federal_income' | 'state_income' | 'social_security' | 'medicare' | 'futa' | 'suta' | 'local'",
+          "nullable": false,
+          "default": null,
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "federal_income",
+              "state_income",
+              "social_security",
+              "medicare",
+              "futa",
+              "suta",
+              "local"
+            ]
+          }
+        },
+        "jurisdiction": {
+          "name": "jurisdiction",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "maxLength": 100
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "rate_used": {
+          "name": "rate_used",
+          "db_type": "NUMERIC(6,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "employee_portion": {
+          "name": "employee_portion",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "employer_portion": {
+          "name": "employer_portion",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "tax_withholdings_org_entry_id_idx",
+          "columns": [
+            "org_id",
+            "payroll_entry_id"
+          ]
+        },
+        {
+          "name": "tax_withholdings_org_tax_type_idx",
+          "columns": [
+            "org_id",
+            "tax_type"
+          ]
+        }
+      ]
+    }
+  },
+  "computed_fields": {
+    "PayrollEntry.gross_pay": "base_pay + overtime_pay + bonus + commission + reimbursements",
+    "PayrollEntry.other_deductions_total": "SUM(deductions applied to this entry)",
+    "PayrollEntry.net_pay": "gross_pay - federal_income_tax - state_income_tax - social_security_tax - medicare_tax - other_deductions_total",
+    "PayrollRun.gross_pay_total": "SUM(payroll_entries.gross_pay WHERE payroll_run_id = id)",
+    "PayrollRun.deductions_total": "SUM(payroll_entries.other_deductions_total WHERE payroll_run_id = id)",
+    "PayrollRun.taxes_total": "SUM(payroll_entries.federal_income_tax + state_income_tax + social_security_tax + medicare_tax WHERE payroll_run_id = id)",
+    "PayrollRun.net_pay_total": "SUM(payroll_entries.net_pay WHERE payroll_run_id = id)",
+    "PayrollRun.employee_count": "COUNT(payroll_entries WHERE payroll_run_id = id)"
+  },
+  "domain_rules": [
+    {
+      "rule": "Terminated employees cannot be included in new payroll runs",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "reject if employee.termination_date IS NOT NULL AND employee.termination_date <= payroll_run.period_start",
+      "ui_behavior": "filter out terminated employees from employee selection; show warning badge",
+      "db_constraint": null
+    },
+    {
+      "rule": "Payroll run period cannot overlap with another paid run for same frequency",
+      "enforced_at": [
+        "db",
+        "api"
+      ],
+      "api_guard": "check for existing paid payroll_runs with overlapping period_start/period_end for same org and frequency",
+      "ui_behavior": "show overlap error in form before submission",
+      "db_constraint": "EXCLUDE USING gist (org_id WITH =, frequency WITH =, daterange(period_start, period_end, '[]') WITH &&) WHERE (status = 'paid')"
+    },
+    {
+      "rule": "Net pay must not be negative",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "reject if net_pay < 0 after deductions; return 422 with field-level error",
+      "ui_behavior": "show red highlight on net_pay field; block confirmation action",
+      "db_constraint": null
+    },
+    {
+      "rule": "Approved payroll runs cannot be edited — must cancel and recreate",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "reject PATCH on payroll_run or payroll_entry if payroll_run.status IN ['approved', 'paid']",
+      "ui_behavior": "disable all edit controls; show informational banner with Cancel Run CTA",
+      "db_constraint": null
+    },
+    {
+      "rule": "Social security tax capped at annual wage base ($160,200 for 2024)",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "track YTD social_security taxable wages per employee; cap additional withholding once wage_base reached",
+      "ui_behavior": null,
+      "db_constraint": null
+    },
+    {
+      "rule": "Pre-tax deductions reduce federal/state taxable income but not FICA",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "subtract pre_tax deductions from income before computing federal_income_tax and state_income_tax; use gross_pay for FICA base",
+      "ui_behavior": null,
+      "db_constraint": null
+    }
+  ],
+  "components": [
+    {
+      "name": "DataTable",
+      "type": "organism",
+      "description": "Sortable, filterable, paginated data table with column visibility controls",
+      "props": {
+        "columns": "ColumnDef[]",
+        "data": "T[]",
+        "isLoading": "boolean",
+        "onRowClick": "(row: T) => void",
+        "pagination": "PaginationState",
+        "sorting": "SortingState",
+        "rowSelection": "RowSelectionState"
+      },
+      "behavior": "Renders rows with hover highlight; supports sticky header; empty state via EmptyState component; skeleton rows during loading",
+      "variants": [
+        "default",
+        "compact",
+        "striped"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 overflow-hidden"
+    },
+    {
+      "name": "SlideOverForm",
+      "type": "organism",
+      "description": "Right-side slide-over panel containing a React Hook Form form",
+      "props": {
+        "open": "boolean",
+        "onClose": "() => void",
+        "title": "string",
+        "onSubmit": "(data: T) => void",
+        "isSubmitting": "boolean",
+        "children": "ReactNode"
+      },
+      "behavior": "Traps focus; closes on Escape or backdrop click; shows spinner on submit; form validation via Zod",
+      "variants": [
+        "narrow",
+        "wide"
+      ],
+      "tailwind": "fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 shadow-2xl border-l border-slate-800 flex flex-col"
+    },
+    {
+      "name": "StatusBadge",
+      "type": "atom",
+      "description": "Colored pill badge for enum status values",
+      "props": {
+        "status": "string",
+        "size": "'sm' | 'md'"
+      },
+      "behavior": "Maps status string to tailwind color class; renders pill",
+      "variants": [
+        "draft",
+        "processing",
+        "approved",
+        "paid",
+        "cancelled",
+        "active",
+        "inactive"
+      ],
+      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "CurrencyDisplay",
+      "type": "atom",
+      "description": "Formats and displays a numeric value as currency",
+      "props": {
+        "value": "number | null",
+        "currency": "string",
+        "locale": "string"
+      },
+      "behavior": "Uses Intl.NumberFormat; handles null with dash placeholder",
+      "variants": [
+        "default",
+        "positive",
+        "negative"
+      ],
+      "tailwind": "tabular-nums text-right font-medium text-slate-100"
+    },
+    {
+      "name": "CurrencyInput",
+      "type": "molecule",
+      "description": "Controlled currency input with prefix symbol",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "currency": "string",
+        "disabled": "boolean"
+      },
+      "behavior": "Strips non-numeric characters; formats on blur; integrates with React Hook Form Controller",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "relative flex items-center rounded-lg border border-slate-700 bg-slate-800 focus-within:ring-2 focus-within:ring-blue-500"
+    },
+    {
+      "name": "NumberInput",
+      "type": "molecule",
+      "description": "Controlled numeric input field",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "min": "number",
+        "max": "number",
+        "step": "number",
+        "disabled": "boolean"
+      },
+      "behavior": "Validates numeric range via Zod; shows error message below",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "NumberDisplay",
+      "type": "atom",
+      "description": "Formatted numeric display",
+      "props": {
+        "value": "number | null",
+        "decimals": "number",
+        "suffix": "string"
+      },
+      "behavior": "Formats with locale-aware number format; shows dash for null",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "tabular-nums text-slate-100"
+    },
+    {
+      "name": "Select",
+      "type": "molecule",
+      "description": "Dropdown select using Radix UI Select primitive",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "options": "{ label: string; value: string }[]",
+        "placeholder": "string",
+        "disabled": "boolean"
+      },
+      "behavior": "Controlled via React Hook Form; keyboard navigable; accessible",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "MultiSelect",
+      "type": "molecule",
+      "description": "Multi-value select with tag chips",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "options": "{ label: string; value: string }[]",
+        "disabled": "boolean"
+      },
+      "behavior": "Shows selected values as removable chips; searchable dropdown",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 min-h-[42px] px-2 py-1 flex flex-wrap gap-1"
+    },
+    {
+      "name": "Toggle",
+      "type": "atom",
+      "description": "Boolean toggle switch",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "disabled": "boolean"
+      },
+      "behavior": "Controlled via React Hook Form; accessible role=switch",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative inline-flex h-6 w-11 items-center rounded-full bg-slate-700 data-[checked]:bg-blue-600"
+    },
+    {
+      "name": "DatePicker",
+      "type": "molecule",
+      "description": "Date picker input with calendar popover",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "minDate": "Date",
+        "maxDate": "Date",
+        "disabled": "boolean"
+      },
+      "behavior": "Calendar built with date-fns; formats to ISO date string; Radix Popover",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "TextInput",
+      "type": "molecule",
+      "description": "Standard text input field",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "placeholder": "string",
+        "maxLength": "number",
+        "disabled": "boolean"
+      },
+      "behavior": "Integrates with React Hook Form; shows character count if maxLength set",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500"
+    },
+    {
+      "name": "Textarea",
+      "type": "molecule",
+      "description": "Multi-line text area",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "rows": "number",
+        "disabled": "boolean"
+      },
+      "behavior": "Auto-resize optional; integrates with React Hook Form",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 resize-y"
+    },
+    {
+      "name": "EmailInput",
+      "type": "molecule",
+      "description": "Email-specific input with validation",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "disabled": "boolean"
+      },
+      "behavior": "type=email; Zod email validation; integrates with React Hook Form",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "TelInput",
+      "type": "molecule",
+      "description": "Phone number input",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "disabled": "boolean"
+      },
+      "behavior": "type=tel; formats as user types",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
+    },
+    {
+      "name": "PlainText",
+      "type": "atom",
+      "description": "Plain text display cell",
+      "props": {
+        "value": "string | null",
+        "fallback": "string"
+      },
+      "behavior": "Shows fallback dash when null",
+      "variants": [
+        "default",
+        "muted"
+      ],
+      "tailwind": "text-slate-100 text-sm"
+    },
+    {
+      "name": "MonospaceText",
+      "type": "atom",
+      "description": "Monospace text for IDs, codes, and masked values",
+      "props": {
+        "value": "string | null"
+      },
+      "behavior": "Renders in font-mono; truncates with ellipsis if too long",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "font-mono text-slate-300 text-sm"
+    },
+    {
+      "name": "TruncatedText",
+      "type": "atom",
+      "description": "Text truncated with tooltip on hover",
+      "props": {
+        "value": "string | null",
+        "maxLength": "number"
+      },
+      "behavior": "Truncates at maxLength chars; Radix Tooltip shows full text",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-slate-300 text-sm truncate max-w-xs"
+    },
+    {
+      "name": "TextLink",
+      "type": "atom",
+      "description": "Clickable text that navigates to related entity",
+      "props": {
+        "value": "string",
+        "href": "string"
+      },
+      "behavior": "React Router Link; hover underline",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-blue-400 hover:text-blue-300 hover:underline text-sm"
+    },
+    {
+      "name": "AbsoluteDate",
+      "type": "atom",
+      "description": "Displays a date in absolute format",
+      "props": {
+        "value": "string | null",
+        "format": "string",
+        "showTime": "boolean"
+      },
+      "behavior": "Formats with date-fns format(); null shows dash",
+      "variants": [
+        "date-only",
+        "datetime"
+      ],
+      "tailwind": "text-slate-300 text-sm tabular-nums"
+    },
+    {
+      "name": "RelativeDate",
+      "type": "atom",
+      "description": "Displays relative time (e.g. '2 days ago')",
+      "props": {
+        "value": "string | null"
+      },
+      "behavior": "Uses date-fns formatDistanceToNow(); tooltip shows absolute date",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-slate-400 text-sm"
+    },
+    {
+      "name": "YesNoBadge",
+      "type": "atom",
+      "description": "Green Yes / Red No badge for boolean values",
+      "props": {
+        "value": "boolean | null"
+      },
+      "behavior": "True = green Yes badge; False = red No badge; null = gray dash",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+    },
+    {
+      "name": "UserAvatar",
+      "type": "atom",
+      "description": "Circular avatar with image or initials fallback",
+      "props": {
+        "avatarUrl": "string | null",
+        "firstName": "string",
+        "lastName": "string",
+        "size": "'sm' | 'md' | 'lg'"
+      },
+      "behavior": "Shows image if avatarUrl present; else renders initials on colored background",
+      "variants": [
+        "sm",
+        "md",
+        "lg"
+      ],
+      "tailwind": "rounded-full bg-slate-700 flex items-center justify-center text-slate-200 font-medium"
+    },
+    {
+      "name": "PageHeader",
+      "type": "organism",
+      "description": "Top-of-page header with title, breadcrumbs, and action buttons",
+      "props": {
+        "title": "string",
+        "breadcrumbs": "{ label: string; href?: string }[]",
+        "actions": "ReactNode"
+      },
+      "behavior": "Sticky on scroll; responsive collapse of breadcrumbs on mobile",
+      "variants": [
+        "default",
+        "with-tabs"
+      ],
+      "tailwind": "bg-slate-950 border-b border-slate-800 px-6 py-4 flex items-center justify-between"
+    },
+    {
+      "name": "FilterPanel",
+      "type": "organism",
+      "description": "Collapsible panel of filter controls above a data table",
+      "props": {
+        "filters": "FilterConfig[]",
+        "values": "FilterValues",
+        "onChange": "(values: FilterValues) => void",
+        "onReset": "() => void"
+      },
+      "behavior": "Each filter renders appropriate input; debounced text search; active filter count badge",
+      "variants": [
+        "horizontal",
+        "vertical"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4"
+    },
+    {
+      "name": "TabPanel",
+      "type": "molecule",
+      "description": "Horizontal tab navigation with panel content",
+      "props": {
+        "tabs": "{ id: string; label: string; count?: number }[]",
+        "activeTab": "string",
+        "onChange": "(id: string) => void",
+        "children": "ReactNode"
+      },
+      "behavior": "Radix Tabs; animated underline indicator; shows count badge on tabs if provided",
+      "variants": [
+        "default",
+        "pills"
+      ],
+      "tailwind": "border-b border-slate-800"
+    },
+    {
+      "name": "EmptyState",
+      "type": "molecule",
+      "description": "Empty data placeholder with icon and CTA",
+      "props": {
+        "icon": "LucideIcon",
+        "title": "string",
+        "description": "string",
+        "action": "ReactNode"
+      },
+      "behavior": "Centered layout; renders action button below description",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "flex flex-col items-center justify-center py-16 text-center"
+    },
+    {
+      "name": "LoadingSkeleton",
+      "type": "atom",
+      "description": "Animated shimmer placeholder for loading states",
+      "props": {
+        "rows": "number",
+        "columns": "number"
+      },
+      "behavior": "Renders grid of shimmer boxes matching expected table layout",
+      "variants": [
+        "table",
+        "card",
+        "list"
+      ],
+      "tailwind": "animate-pulse bg-slate-800 rounded"
+    },
+    {
+      "name": "ConfirmationDialog",
+      "type": "organism",
+      "description": "Modal dialog for destructive action confirmation",
+      "props": {
+        "open": "boolean",
+        "onClose": "() => void",
+        "onConfirm": "() => void",
+        "title": "string",
+        "description": "string",
+        "confirmLabel": "string",
+        "variant": "'danger' | 'warning'"
+      },
+      "behavior": "Radix AlertDialog; Enter confirms; red confirm button for danger variant",
+      "variants": [
+        "danger",
+        "warning"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-2xl max-w-md w-full"
+    },
+    {
+      "name": "ActivityTimeline",
+      "type": "organism",
+      "description": "Chronological list of audit events for an entity",
+      "props": {
+        "events": "ActivityEvent[]",
+        "isLoading": "boolean"
+      },
+      "behavior": "Renders vertical timeline with icons per event type; relative timestamps with tooltip",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative pl-6 border-l border-slate-800 space-y-4"
+    },
+    {
+      "name": "StatCard",
+      "type": "molecule",
+      "description": "KPI stat card with value, label, and optional trend",
+      "props": {
+        "label": "string",
+        "value": "string | number",
+        "trend": "number",
+        "trendLabel": "string",
+        "icon": "LucideIcon"
+      },
+      "behavior": "Green up arrow for positive trend; red down arrow for negative",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-5 flex flex-col gap-2"
+    },
+    {
+      "name": "NotificationBell",
+      "type": "atom",
+      "description": "Bell icon with unread count badge",
+      "props": {
+        "unreadCount": "number",
+        "onClick": "() => void"
+      },
+      "behavior": "Pulsing badge when count > 0; click opens notification dropdown",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative p-2 rounded-lg hover:bg-slate-800 transition-colors"
+    },
+    {
+      "name": "AuthGuard",
+      "type": "utility",
+      "description": "Route wrapper that enforces permission checks",
+      "props": {
+        "permission": "string",
+        "fallback": "ReactNode",
+        "children": "ReactNode"
+      },
+      "behavior": "Reads from authStore; renders fallback if permission not met",
+      "variants": [
+        "default"
+      ],
+      "tailwind": null
+    },
+    {
+      "name": "EmployeeSelector",
+      "type": "molecule",
+      "description": "Searchable employee picker with avatar",
+      "props": {
+        "name": "string",
+        "control": "Control",
+        "label": "string",
+        "excludeIds": "string[]",
+        "disabled": "boolean"
+      },
+      "behavior": "Combobox with debounced search; shows avatar + full name + employee_number",
+      "variants": [
+        "default",
+        "error"
+      ],
+      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2"
+    },
+    {
+      "name": "DepartmentBadge",
+      "type": "atom",
+      "description": "Colored badge for department names",
+      "props": {
+        "value": "string | null"
+      },
+      "behavior": "Derives color from hash of department name for consistency",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-200"
+    },
+    {
+      "name": "EmploymentTypeBadge",
+      "type": "atom",
+      "description": "Badge for employment type enum values",
+      "props": {
+        "value": "'full_time' | 'part_time' | 'contractor' | 'intern' | null"
+      },
+      "behavior": "Color-coded: full_time=blue, part_time=purple, contractor=amber, intern=teal",
+      "variants": [
+        "full_time",
+        "part_time",
+        "contractor",
+        "intern"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+    },
+    {
+      "name": "PayrollRunStatusBadge",
+      "type": "atom",
+      "description": "Status badge specifically for payroll run lifecycle states",
+      "props": {
+        "status": "'draft' | 'processing' | 'approved' | 'paid' | 'cancelled'"
+      },
+      "behavior": "draft=gray, processing=amber, approved=blue, paid=green, cancelled=red",
+      "variants": [
+        "draft",
+        "processing",
+        "approved",
+        "paid",
+        "cancelled"
+      ],
+      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "PayslipPreview",
+      "type": "organism",
+      "description": "Read-only payslip layout showing gross-to-net breakdown for one employee",
+      "props": {
+        "entry": "PayrollEntry",
+        "employee": "Employee",
+        "payrollRun": "PayrollRun",
+        "deductions": "Deduction[]",
+        "taxWithholdings": "TaxWithholding[]"
+      },
+      "behavior": "Renders structured payslip sections; print-friendly layout; download PDF button calls GET /payroll-runs/:id/payslip",
+      "variants": [
+        "screen",
+        "print"
+      ],
+      "tailwind": "bg-white text-slate-900 p-8 rounded-xl shadow-lg max-w-2xl mx-auto"
+    },
+    {
+      "name": "PayrollSummaryCard",
+      "type": "molecule",
+      "description": "Summary card showing payroll run totals",
+      "props": {
+        "payrollRun": "PayrollRun"
+      },
+      "behavior": "Displays gross, taxes, deductions, net in a 2x2 grid of stat items",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-5 grid grid-cols-2 gap-4"
+    },
+    {
+      "name": "DeductionTable",
+      "type": "organism",
+      "description": "Table listing all deductions for an employee with add/edit/delete controls",
+      "props": {
+        "employeeId": "string",
+        "deductions": "Deduction[]",
+        "isLoading": "boolean",
+        "canEdit": "boolean"
+      },
+      "behavior": "Inline status toggle; opens SlideOverForm for add/edit",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800"
+    },
+    {
+      "name": "TaxBreakdownTable",
+      "type": "organism",
+      "description": "Detailed table of tax withholdings for a payroll entry",
+      "props": {
+        "taxWithholdings": "TaxWithholding[]",
+        "isLoading": "boolean"
+      },
+      "behavior": "Groups by tax_type; shows employee and employer portions; totals row",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800"
+    },
+    {
+      "name": "GrossNetDiffDisplay",
+      "type": "molecule",
+      "description": "Visual display of gross pay, deductions, taxes, and resulting net pay",
+      "props": {
+        "grossPay": "number",
+        "deductions": "number",
+        "taxes": "number",
+        "netPay": "number",
+        "currency": "string"
+      },
+      "behavior": "Renders horizontal flow with minus signs between values; highlights net in larger font",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex items-center gap-2 text-slate-100"
+    },
+    {
+      "name": "PayFrequencyBadge",
+      "type": "atom",
+      "description": "Badge for pay frequency enum",
+      "props": {
+        "value": "'weekly' | 'bi_weekly' | 'semi_monthly' | 'monthly' | null"
+      },
+      "behavior": "Color-coded frequency pill",
+      "variants": [
+        "weekly",
+        "bi_weekly",
+        "semi_monthly",
+        "monthly"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-700 text-slate-200"
+    }
+  ],
+  "modules": [
+    {
+      "name": "PayrollRunList",
+      "route": "/payroll",
+      "tabs": [
+        "All",
+        "Draft",
+        "Processing",
+        "Approved",
+        "Paid"
+      ],
+      "description": "List all payroll runs with filter tabs and create button"
+    },
+    {
+      "name": "PayrollRunDetail",
+      "route": "/payroll/:id",
+      "tabs": [
+        "Overview",
+        "Entries",
+        "Taxes",
+        "Payslips"
+      ],
+      "description": "Detail view for a single payroll run with entry management and approval actions"
+    },
+    {
+      "name": "PayrollRunCreate",
+      "route": "/payroll/new",
+      "tabs": [],
+      "description": "Form to create a new payroll run with period and pay date selection"
+    },
+    {
+      "name": "EmployeeList",
+      "route": "/employees",
+      "tabs": [
+        "All",
+        "Active",
+        "Terminated"
+      ],
+      "description": "Browse and search all employees"
+    },
+    {
+      "name": "EmployeeDetail",
+      "route": "/employees/:id",
+      "tabs": [
+        "Overview",
+        "Salary History",
+        "Deductions",
+        "Pay History"
+      ],
+      "description": "Full employee profile with related compensation data"
+    },
+    {
+      "name": "SalaryManagement",
+      "route": "/employees/:id/salary",
+      "tabs": [],
+      "description": "Manage salary history for an employee"
+    },
+    {
+      "name": "DeductionManagement",
+      "route": "/employees/:id/deductions",
+      "tabs": [],
+      "description": "Manage recurring deductions for an employee"
+    },
+    {
+      "name": "PayrollSettings",
+      "route": "/settings/payroll",
+      "tabs": [],
+      "description": "Configure tax tables, pay schedules, and deduction types"
+    }
+  ],
+  "api": {
+    "employees": [
+      {
+        "method": "GET",
+        "path": "/employees",
+        "description": "List employees with pagination and filters"
+      },
+      {
+        "method": "POST",
+        "path": "/employees",
+        "description": "Create new employee"
+      },
+      {
+        "method": "GET",
+        "path": "/employees/:id",
+        "description": "Get single employee"
+      },
+      {
+        "method": "PATCH",
+        "path": "/employees/:id",
+        "description": "Update employee"
+      },
+      {
+        "method": "DELETE",
+        "path": "/employees/:id",
+        "description": "Soft delete employee"
+      },
+      {
+        "method": "GET",
+        "path": "/employees/:id/salary",
+        "description": "Get current salary for employee"
+      },
+      {
+        "method": "GET",
+        "path": "/employees/:id/deductions",
+        "description": "List deductions for employee"
+      },
+      {
+        "method": "GET",
+        "path": "/employees/:id/payroll-history",
+        "description": "List past payroll entries for employee"
+      }
+    ],
+    "payroll_runs": [
+      {
+        "method": "GET",
+        "path": "/payroll-runs",
+        "description": "List payroll runs"
+      },
+      {
+        "method": "POST",
+        "path": "/payroll-runs",
+        "description": "Create new payroll run"
+      },
+      {
+        "method": "GET",
+        "path": "/payroll-runs/:id",
+        "description": "Get payroll run detail"
+      },
+      {
+        "method": "PATCH",
+        "path": "/payroll-runs/:id",
+        "description": "Update draft payroll run"
+      },
+      {
+        "method": "POST",
+        "path": "/payroll-runs/:id/process",
+        "description": "Auto-calculate all entries for the run"
+      },
+      {
+        "method": "POST",
+        "path": "/payroll-runs/:id/approve",
+        "description": "Approve payroll run"
+      },
+      {
+        "method": "POST",
+        "path": "/payroll-runs/:id/pay",
+        "description": "Mark payroll run as paid; triggers payslip generation"
+      },
+      {
+        "method": "POST",
+        "path": "/payroll-runs/:id/cancel",
+        "description": "Cancel payroll run"
+      },
+      {
+        "method": "GET",
+        "path": "/payroll-runs/:id/payslip",
+        "description": "Download payslip PDF"
+      }
+    ],
+    "payroll_entries": [
+      {
+        "method": "GET",
+        "path": "/payroll-runs/:id/entries",
+        "description": "List entries for a payroll run"
+      },
+      {
+        "method": "GET",
+        "path": "/payroll-entries/:id",
+        "description": "Get single payroll entry"
+      },
+      {
+        "method": "PATCH",
+        "path": "/payroll-entries/:id",
+        "description": "Manual override for a payroll entry (draft runs only)"
+      }
+    ],
+    "salaries": [
+      {
+        "method": "GET",
+        "path": "/employees/:id/salaries",
+        "description": "List salary history for employee"
+      },
+      {
+        "method": "POST",
+        "path": "/employees/:id/salaries",
+        "description": "Add new salary record"
+      },
+      {
+        "method": "PATCH",
+        "path": "/salaries/:id",
+        "description": "Update salary record"
+      }
+    ],
+    "deductions": [
+      {
+        "method": "GET",
+        "path": "/employees/:id/deductions",
+        "description": "List deductions for employee"
+      },
+      {
+        "method": "POST",
+        "path": "/employees/:id/deductions",
+        "description": "Add new deduction"
+      },
+      {
+        "method": "PATCH",
+        "path": "/deductions/:id",
+        "description": "Update deduction"
+      },
+      {
+        "method": "DELETE",
+        "path": "/deductions/:id",
+        "description": "Remove deduction"
+      }
+    ]
+  },
+  "permissions": {
+    "roles": [
+      "admin",
+      "payroll_admin",
+      "hr_manager",
+      "employee",
+      "viewer"
+    ],
+    "matrix": {
+      "payroll.run": [
+        "admin",
+        "payroll_admin"
+      ],
+      "payroll.approve": [
+        "admin"
+      ],
+      "employees.manage": [
+        "admin",
+        "hr_manager"
+      ],
+      "employees.view_salary": [
+        "admin",
+        "payroll_admin",
+        "hr_manager"
+      ],
+      "deductions.manage": [
+        "admin",
+        "payroll_admin"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      "authStore",
+      "uiStore",
+      "payrollRunStore",
+      "filterStore"
+    ],
+    "payrollRunStore": {
+      "state": [
+        "activeRunId",
+        "entries",
+        "calculationStatus",
+        "unsavedOverrides"
+      ],
+      "actions": [
+        "setActiveRun",
+        "updateEntry",
+        "resetEntries",
+        "setCalculationStatus"
+      ]
+    },
+    "query_keys": [
+      "payrollRuns",
+      "payrollEntries",
+      "employees",
+      "salaries",
+      "deductions",
+      "taxWithholdings"
+    ]
+  },
+  "websocket": {
+    "events": [
+      {
+        "event": "payroll_run.processing_started",
+        "payload": {
+          "payroll_run_id": "string",
+          "org_id": "string"
+        }
+      },
+      {
+        "event": "payroll_run.processing_completed",
+        "payload": {
+          "payroll_run_id": "string",
+          "employee_count": "number",
+          "gross_pay_total": "number"
+        }
+      },
+      {
+        "event": "payroll_run.paid",
+        "payload": {
+          "payroll_run_id": "string",
+          "paid_at": "string"
+        }
+      },
+      {
+        "event": "payslip.generated",
+        "payload": {
+          "payroll_entry_id": "string",
+          "employee_id": "string",
+          "download_url": "string"
+        }
+      }
+    ]
+  },
+  "flows": [
+    {
+      "name": "Run Payroll",
+      "steps": [
+        "Create PayrollRun: POST /payroll-runs with period_start, period_end, pay_date, frequency",
+        "Process run: POST /payroll-runs/:id/process — for each active employee fetch current salary, calculate base_pay, apply hours_worked if hourly, add bonus/commission/overtime, apply employee deductions (fixed or percentage of gross), compute federal/state taxable income after pre-tax deductions, calculate tax withholdings using tax tables for jurisdiction, compute gross_pay and net_pay, create PayrollEntry per employee",
+        "Review entries in PayrollRunDetail/Entries tab; override individual entries via PATCH /payroll-entries/:id if needed",
+        "Approve run: POST /payroll-runs/:id/approve — requires admin or payroll_admin role",
+        "Mark as paid: POST /payroll-runs/:id/pay — triggers payslip generation, journal entry creation, employee last_pay_date update"
+      ],
+      "backend_mutations": [
+        "POST /payroll-runs",
+        "POST /payroll-runs/:id/process (bulk entry creation)",
+        "POST /payroll-runs/:id/pay"
+      ],
+      "cross_entity_updates": [
+        "employee.last_pay_date updated on pay",
+        "TaxWithholding records created per entry during process"
+      ],
+      "journal_entry_side_effects": {
+        "debits": [
+          "DR Salary Expense = gross_pay_total",
+          "DR Payroll Tax Expense = employer_taxes_total"
+        ],
+        "credits": [
+          "CR Payroll Taxes Payable = taxes_total + employer_taxes_total",
+          "CR Wages Payable / Bank = net_pay_total"
+        ]
+      }
+    },
+    {
+      "name": "Calculate Deductions",
+      "steps": [
+        "For each active employee deduction where effective_date <= period_end AND (end_date IS NULL OR end_date >= period_start)",
+        "If amount_type = fixed, apply amount directly",
+        "If amount_type = percentage, apply amount * gross_pay / 100",
+        "If is_pre_tax = true, subtract from federal and state taxable income (not FICA base)",
+        "Sum all applied deductions into payroll_entry.other_deductions_total"
+      ]
+    },
+    {
+      "name": "Generate Payslip",
+      "steps": [
+        "POST /payroll-runs/:id/payslip triggers payslip generation job",
+        "For each PayrollEntry in run, generate PDF with employee info, gross_pay breakdown, deductions table, tax withholdings table, net_pay",
+        "Store generated PDF as attachment in AWS S3",
+        "Emit payslip.generated websocket event with download_url",
+        "Send email to employee with payslip attachment"
+      ]
+    }
+  ],
+  "_meta": {
+    "title": "payroll_spec",
+    "domain": "Operations",
+    "version": "1.0.0"
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK→organizations, row-level security anchor"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null,
+      "notes": "Soft delete — all queries filter deleted_at IS NULL"
+    }
+  },
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {},
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  }
+}

@@ -1,0 +1,5697 @@
+{
+  "_meta": {
+    "title": "Project Management System",
+    "domain": "Operations & Internal Tools",
+    "version": "1.0"
+  },
+  "tech_stack": {
+    "frontend": [
+      "React 18 TS strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form + Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node/Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design_system": {
+    "theme": "dark",
+    "background": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber",
+    "priority_colors": {
+      "low": "slate",
+      "medium": "blue",
+      "high": "amber",
+      "critical": "red"
+    },
+    "status_colors_source": "constants/statusColors.ts"
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK→organizations, indexed on every table"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null
+    }
+  },
+  "entities": [
+    {
+      "name": "Project",
+      "table": "projects",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "owner_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "is_archived"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "end_date"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "project_number",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "auto-gen PRJ-NNNN",
+          "unique": true,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "maxLength": 50
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TextLink",
+          "display_component_props": {
+            "href": "/projects/:id"
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "RichTextEditor",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('planning','active','on_hold','completed','cancelled')",
+          "ts_type": "'planning' | 'active' | 'on_hold' | 'completed' | 'cancelled'",
+          "nullable": false,
+          "default": "planning",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "display_component_props": {
+            "badge_colors": {
+              "planning": "slate",
+              "active": "blue",
+              "on_hold": "amber",
+              "completed": "green",
+              "cancelled": "red"
+            }
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "planning",
+              "active",
+              "on_hold",
+              "completed",
+              "cancelled"
+            ]
+          }
+        },
+        {
+          "name": "priority",
+          "db_type": "ENUM('low','medium','high','critical')",
+          "ts_type": "'low' | 'medium' | 'high' | 'critical'",
+          "nullable": false,
+          "default": "medium",
+          "input_component": "Select",
+          "display_component": "PriorityBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          }
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "budget",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "spent",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for spent computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "owner_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "#3b82f6",
+          "input_component": "ColorPicker",
+          "display_component": "ColorSwatch",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        {
+          "name": "cover_image_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "FileUploader",
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "is_archived",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "progress_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "key_results",
+            "formula": "COALESCE(SUM(kr.progress_pct * kr.weight) / NULLIF(SUM(kr.weight),0), 0) for objectives; ((current_value - start_value)/(target_value - start_value))*100 for metric KRs",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "ProgressBar",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_projects_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_projects_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "ProjectPhase",
+      "table": "project_phases",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "project_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "projects",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "phase_order",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('pending','in_progress','completed')",
+          "ts_type": "'pending' | 'in_progress' | 'completed'",
+          "nullable": false,
+          "default": "pending",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "pending",
+              "in_progress",
+              "completed"
+            ]
+          }
+        },
+        {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "ColorPicker",
+          "display_component": "ColorSwatch",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_project_phases_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_project_phases_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Milestone",
+      "table": "milestones",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "project_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "due_date"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "projects",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "phase_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "project_phases",
+          "input_component": "Select",
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TextLink",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 255
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('pending','achieved','missed')",
+          "ts_type": "'pending' | 'achieved' | 'missed'",
+          "nullable": false,
+          "default": "pending",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "pending",
+              "achieved",
+              "missed"
+            ]
+          }
+        },
+        {
+          "name": "achieved_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "owner_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "is_critical",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_milestones_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_milestones_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Task",
+      "table": "project_tasks",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "project_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "assignee_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "status"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "due_date"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "parent_task_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "projects",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "phase_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "project_phases",
+          "input_component": "Select",
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "milestone_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "milestones",
+          "input_component": "Select",
+          "display_component": null,
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TextLink",
+          "display_component_props": {
+            "href": "/tasks/:id"
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 500
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "RichTextEditor",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "status",
+          "db_type": "ENUM('todo','in_progress','review','done','cancelled')",
+          "ts_type": "'todo' | 'in_progress' | 'review' | 'done' | 'cancelled'",
+          "nullable": false,
+          "default": "todo",
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "display_component_props": {
+            "badge_colors": {
+              "todo": "slate",
+              "in_progress": "blue",
+              "review": "amber",
+              "done": "green",
+              "cancelled": "red"
+            }
+          },
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "todo",
+              "in_progress",
+              "review",
+              "done",
+              "cancelled"
+            ]
+          }
+        },
+        {
+          "name": "priority",
+          "db_type": "ENUM('low','medium','high','critical')",
+          "ts_type": "'low' | 'medium' | 'high' | 'critical'",
+          "nullable": false,
+          "default": "medium",
+          "input_component": "Select",
+          "display_component": "PriorityBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "critical"
+            ]
+          }
+        },
+        {
+          "name": "assignee_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "estimated_hours",
+          "db_type": "NUMERIC(8,2)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "NumberInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "actual_hours",
+          "db_type": "NUMERIC(8,2)",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for actual_hours computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "input_component": null,
+          "display_component": "NumberDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "label_ids",
+          "db_type": "UUID[]",
+          "ts_type": "string[]",
+          "nullable": false,
+          "default": "[]",
+          "input_component": "MultiSelect",
+          "display_component": "LabelList",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {}
+        },
+        {
+          "name": "is_archived",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "task_order",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "parent_task_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "project_tasks",
+          "notes": "For subtasks",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_project_tasks_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_project_tasks_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "TaskComment",
+      "table": "task_comments",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "task_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "author_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "task_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "project_tasks",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "content",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "RichTextEditor",
+          "display_component": "RichTextDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "author_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "is_edited",
+          "db_type": "BOOLEAN",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "edited_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "mentioned_user_ids",
+          "db_type": "UUID[]",
+          "ts_type": "string[]",
+          "nullable": false,
+          "default": "[]",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_task_comments_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_task_comments_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Attachment",
+      "table": "project_attachments",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "entity_type",
+            "entity_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "uploaded_by"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "entity_type",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "notes": "e.g. project|task|milestone",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "entity_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "filename",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "FilenameLink",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "maxLength": 500
+          }
+        },
+        {
+          "name": "file_url",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "thumbnail_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "mime_type",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "FileTypeIcon",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "file_size_bytes",
+          "db_type": "BIGINT",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "FileSizeDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "uploaded_by",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_project_attachments_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_project_attachments_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "TeamMember",
+      "table": "project_team_members",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "project_id"
+          ]
+        },
+        {
+          "type": "UNIQUE",
+          "columns": [
+            "org_id",
+            "project_id",
+            "user_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "projects",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "user_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "users",
+          "input_component": "UserSelector",
+          "display_component": "UserAvatar",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "role",
+          "db_type": "ENUM('owner','manager','member','viewer')",
+          "ts_type": "'owner' | 'manager' | 'member' | 'viewer'",
+          "nullable": false,
+          "default": "member",
+          "input_component": "Select",
+          "display_component": "RoleBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "owner",
+              "manager",
+              "member",
+              "viewer"
+            ]
+          }
+        },
+        {
+          "name": "joined_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "invited_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "users",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_project_team_members_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_project_team_members_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Dependency",
+      "table": "task_dependencies",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "task_id"
+          ]
+        },
+        {
+          "columns": [
+            "org_id",
+            "depends_on_task_id"
+          ]
+        },
+        {
+          "type": "UNIQUE",
+          "columns": [
+            "org_id",
+            "task_id",
+            "depends_on_task_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "task_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "project_tasks",
+          "on_delete": "CASCADE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "depends_on_task_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "references": "project_tasks",
+          "input_component": "Select",
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "dependency_type",
+          "db_type": "ENUM('finish_to_start','start_to_start','finish_to_finish','start_to_finish')",
+          "ts_type": "'finish_to_start' | 'start_to_start' | 'finish_to_finish' | 'start_to_finish'",
+          "nullable": false,
+          "default": "finish_to_start",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "finish_to_start",
+              "start_to_start",
+              "finish_to_finish",
+              "start_to_finish"
+            ]
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_task_dependencies_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_task_dependencies_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    },
+    {
+      "name": "Label",
+      "table": "project_labels",
+      "indexes": [
+        {
+          "columns": [
+            "org_id",
+            "project_id"
+          ]
+        }
+      ],
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "LabelBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "maxLength": 100
+          }
+        },
+        {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "ColorPicker",
+          "display_component": "ColorSwatch",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "pattern": "^#[0-9a-fA-F]{6}$"
+          }
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "references": "projects",
+          "notes": "null means org-wide label",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "NOW()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 1,
+          "notes": "Optimistic lock version — incremented on every UPDATE",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {}
+        }
+      ],
+      "db_constraints": [
+        {
+          "name": "chk_project_labels_deleted_order",
+          "type": "CHECK",
+          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+        },
+        {
+          "name": "idx_project_labels_org_deleted",
+          "type": "INDEX",
+          "columns": [
+            "org_id",
+            "deleted_at"
+          ],
+          "note": "Covers global filter"
+        }
+      ]
+    }
+  ],
+  "components": [
+    {
+      "name": "DataTable",
+      "type": "organism",
+      "description": "Sortable, filterable, paginated table with column configuration",
+      "props": [
+        "columns",
+        "data",
+        "isLoading",
+        "onSort",
+        "onFilter",
+        "pagination",
+        "rowActions"
+      ],
+      "behavior": "Renders rows with hover state, supports bulk selection, sticky headers",
+      "variants": [
+        "default",
+        "compact",
+        "borderless"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-800 rounded-lg"
+    },
+    {
+      "name": "KanbanBoard",
+      "type": "organism",
+      "description": "Drag-and-drop kanban with columns by status",
+      "props": [
+        "columns",
+        "cards",
+        "onDragEnd",
+        "onCardClick",
+        "isLoading"
+      ],
+      "behavior": "Uses boardStore for drag state, DnD Kit for interactions, optimistic updates",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex gap-4 overflow-x-auto p-4"
+    },
+    {
+      "name": "CalendarView",
+      "type": "organism",
+      "description": "Month/week/day calendar showing tasks and milestones",
+      "props": [
+        "events",
+        "view",
+        "onViewChange",
+        "onDateClick",
+        "onEventClick"
+      ],
+      "behavior": "Uses calendarStore for view state and selected date",
+      "variants": [
+        "month",
+        "week",
+        "day"
+      ],
+      "tailwind": "bg-slate-900 rounded-lg border border-slate-800"
+    },
+    {
+      "name": "GanttChart",
+      "type": "organism",
+      "description": "Timeline chart rendering phases, milestones, and tasks",
+      "props": [
+        "phases",
+        "milestones",
+        "tasks",
+        "startDate",
+        "endDate",
+        "onItemClick"
+      ],
+      "behavior": "Horizontal scrollable timeline, drag to resize task bars",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 overflow-x-auto"
+    },
+    {
+      "name": "ProgressBar",
+      "type": "atom",
+      "description": "Horizontal progress indicator",
+      "props": [
+        "value",
+        "max",
+        "color",
+        "showLabel",
+        "size"
+      ],
+      "behavior": "Animated fill, label shows percentage",
+      "variants": [
+        "default",
+        "slim",
+        "labeled"
+      ],
+      "tailwind": "h-2 bg-slate-700 rounded-full overflow-hidden"
+    },
+    {
+      "name": "SlideOverForm",
+      "type": "organism",
+      "description": "Right-side panel form for create/edit",
+      "props": [
+        "isOpen",
+        "onClose",
+        "title",
+        "children",
+        "onSubmit",
+        "isSubmitting"
+      ],
+      "behavior": "Traps focus, ESC to close, backdrop click to close",
+      "variants": [
+        "default",
+        "wide"
+      ],
+      "tailwind": "fixed inset-y-0 right-0 w-96 bg-slate-900 shadow-xl"
+    },
+    {
+      "name": "FullPageForm",
+      "type": "organism",
+      "description": "Full page form layout for complex create flows",
+      "props": [
+        "title",
+        "steps",
+        "currentStep",
+        "onBack",
+        "onNext",
+        "onSubmit"
+      ],
+      "behavior": "Multi-step with progress indicator",
+      "variants": [
+        "single",
+        "multi-step"
+      ],
+      "tailwind": "min-h-screen bg-slate-950 p-8"
+    },
+    {
+      "name": "Modal",
+      "type": "organism",
+      "description": "Centered dialog overlay",
+      "props": [
+        "isOpen",
+        "onClose",
+        "title",
+        "children",
+        "size"
+      ],
+      "behavior": "Focus trap, backdrop blur, ESC to close",
+      "variants": [
+        "sm",
+        "md",
+        "lg",
+        "xl"
+      ],
+      "tailwind": "fixed inset-0 z-50 flex items-center justify-center"
+    },
+    {
+      "name": "StatusBadge",
+      "type": "atom",
+      "description": "Pill badge for status display",
+      "props": [
+        "status",
+        "badgeColors",
+        "size"
+      ],
+      "behavior": "Maps status string to color variant",
+      "variants": [
+        "default",
+        "sm",
+        "lg"
+      ],
+      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "PriorityBadge",
+      "type": "atom",
+      "description": "Badge with icon for priority display",
+      "props": [
+        "priority",
+        "showLabel"
+      ],
+      "behavior": "Shows colored dot + label based on priority level",
+      "variants": [
+        "default",
+        "icon-only"
+      ],
+      "tailwind": "inline-flex items-center gap-1 text-xs font-medium"
+    },
+    {
+      "name": "LabelBadge",
+      "type": "atom",
+      "description": "Colored label chip",
+      "props": [
+        "label",
+        "onRemove"
+      ],
+      "behavior": "Displays label name with custom background color",
+      "variants": [
+        "default",
+        "removable"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+    },
+    {
+      "name": "LabelList",
+      "type": "molecule",
+      "description": "Horizontal list of LabelBadge components",
+      "props": [
+        "labels",
+        "maxVisible"
+      ],
+      "behavior": "Shows up to maxVisible labels then +N overflow badge",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex flex-wrap gap-1"
+    },
+    {
+      "name": "UserSelector",
+      "type": "molecule",
+      "description": "Searchable dropdown to select a user",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "users",
+        "isLoading"
+      ],
+      "behavior": "Debounced search, shows avatar + name in options",
+      "variants": [
+        "default",
+        "multi"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "UserAvatar",
+      "type": "atom",
+      "description": "Circular user avatar with fallback initials",
+      "props": [
+        "user",
+        "size",
+        "showTooltip"
+      ],
+      "behavior": "Shows image or initials, tooltip on hover",
+      "variants": [
+        "xs",
+        "sm",
+        "md",
+        "lg"
+      ],
+      "tailwind": "rounded-full bg-slate-700 flex items-center justify-center"
+    },
+    {
+      "name": "AvatarGroup",
+      "type": "molecule",
+      "description": "Overlapping group of UserAvatars",
+      "props": [
+        "users",
+        "max",
+        "size"
+      ],
+      "behavior": "Stacks avatars, shows +N for overflow",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "flex -space-x-2"
+    },
+    {
+      "name": "RoleBadge",
+      "type": "atom",
+      "description": "Badge for team member role",
+      "props": [
+        "role"
+      ],
+      "behavior": "Maps role to color",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+    },
+    {
+      "name": "ColorPicker",
+      "type": "atom",
+      "description": "Color selection input with hex input",
+      "props": [
+        "value",
+        "onChange",
+        "presets"
+      ],
+      "behavior": "Popover with color swatches and manual hex input",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "ColorSwatch",
+      "type": "atom",
+      "description": "Circular color preview dot",
+      "props": [
+        "color",
+        "size"
+      ],
+      "behavior": "Shows filled circle in given color",
+      "variants": [
+        "sm",
+        "md"
+      ],
+      "tailwind": "rounded-full border border-slate-600"
+    },
+    {
+      "name": "RichTextEditor",
+      "type": "organism",
+      "description": "WYSIWYG rich text editor",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "toolbar",
+        "readOnly"
+      ],
+      "behavior": "Supports bold, italic, lists, mentions, links",
+      "variants": [
+        "default",
+        "minimal"
+      ],
+      "tailwind": "border border-slate-700 rounded-lg bg-slate-900 p-3"
+    },
+    {
+      "name": "RichTextDisplay",
+      "type": "atom",
+      "description": "Renders sanitized rich text HTML",
+      "props": [
+        "content",
+        "className"
+      ],
+      "behavior": "Sanitizes HTML before render, applies prose styles",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "prose prose-invert max-w-none"
+    },
+    {
+      "name": "FileUploader",
+      "type": "organism",
+      "description": "Drag-and-drop file upload with S3",
+      "props": [
+        "onUpload",
+        "accept",
+        "maxSize",
+        "multiple",
+        "existingFiles"
+      ],
+      "behavior": "Drag zone + click to browse, shows upload progress, calls S3 presigned URL",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "border-2 border-dashed border-slate-700 rounded-lg p-6"
+    },
+    {
+      "name": "FilenameLink",
+      "type": "atom",
+      "description": "Clickable filename that opens file",
+      "props": [
+        "filename",
+        "url"
+      ],
+      "behavior": "Opens file in new tab on click",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-blue-400 hover:text-blue-300 underline text-sm"
+    },
+    {
+      "name": "FileTypeIcon",
+      "type": "atom",
+      "description": "Icon based on MIME type",
+      "props": [
+        "mimeType",
+        "size"
+      ],
+      "behavior": "Maps MIME type to Lucide icon",
+      "variants": [
+        "sm",
+        "md",
+        "lg"
+      ],
+      "tailwind": "text-slate-400"
+    },
+    {
+      "name": "FileSizeDisplay",
+      "type": "atom",
+      "description": "Human-readable file size",
+      "props": [
+        "bytes"
+      ],
+      "behavior": "Converts bytes to KB/MB/GB",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-slate-400 text-sm"
+    },
+    {
+      "name": "EmptyState",
+      "type": "molecule",
+      "description": "Empty content placeholder with CTA",
+      "props": [
+        "icon",
+        "title",
+        "description",
+        "action"
+      ],
+      "behavior": "Centered layout with icon, text, optional button",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex flex-col items-center justify-center py-16 text-center"
+    },
+    {
+      "name": "LoadingSkeleton",
+      "type": "atom",
+      "description": "Animated placeholder for loading states",
+      "props": [
+        "variant",
+        "count"
+      ],
+      "behavior": "Pulse animation, matches layout of actual content",
+      "variants": [
+        "table",
+        "card",
+        "list",
+        "text"
+      ],
+      "tailwind": "animate-pulse bg-slate-800 rounded"
+    },
+    {
+      "name": "ConfirmationDialog",
+      "type": "organism",
+      "description": "Modal for destructive action confirmation",
+      "props": [
+        "isOpen",
+        "onConfirm",
+        "onCancel",
+        "title",
+        "description",
+        "confirmLabel",
+        "variant"
+      ],
+      "behavior": "Shows warning, requires explicit confirm click",
+      "variants": [
+        "danger",
+        "warning",
+        "neutral"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl p-6 max-w-md"
+    },
+    {
+      "name": "PageHeader",
+      "type": "molecule",
+      "description": "Page title with breadcrumbs and actions",
+      "props": [
+        "title",
+        "breadcrumbs",
+        "actions",
+        "tabs"
+      ],
+      "behavior": "Sticky on scroll, responsive collapse for mobile",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "flex items-center justify-between py-6"
+    },
+    {
+      "name": "FilterPanel",
+      "type": "organism",
+      "description": "Sidebar filter panel with multiple filter types",
+      "props": [
+        "filters",
+        "values",
+        "onChange",
+        "onReset"
+      ],
+      "behavior": "Collapsible sections per filter group",
+      "variants": [
+        "sidebar",
+        "inline"
+      ],
+      "tailwind": "bg-slate-900 border-r border-slate-800 p-4"
+    },
+    {
+      "name": "FilterBar",
+      "type": "molecule",
+      "description": "Horizontal filter chips row",
+      "props": [
+        "activeFilters",
+        "onRemove",
+        "onClear"
+      ],
+      "behavior": "Shows active filters as removable chips",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "flex flex-wrap gap-2 py-2"
+    },
+    {
+      "name": "TabPanel",
+      "type": "molecule",
+      "description": "Tab content container",
+      "props": [
+        "activeTab",
+        "children"
+      ],
+      "behavior": "Renders only active tab content",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "mt-4"
+    },
+    {
+      "name": "Tabs",
+      "type": "molecule",
+      "description": "Tab navigation bar",
+      "props": [
+        "tabs",
+        "activeTab",
+        "onChange"
+      ],
+      "behavior": "Underline active tab, badge support for counts",
+      "variants": [
+        "default",
+        "pill"
+      ],
+      "tailwind": "flex border-b border-slate-800"
+    },
+    {
+      "name": "TextInput",
+      "type": "atom",
+      "description": "Standard text input field",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "label",
+        "error",
+        "disabled"
+      ],
+      "behavior": "Controlled input with label, error message support",
+      "variants": [
+        "default",
+        "sm",
+        "lg"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+    },
+    {
+      "name": "Textarea",
+      "type": "atom",
+      "description": "Multi-line text input",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "rows",
+        "label",
+        "error"
+      ],
+      "behavior": "Auto-resize option, character count",
+      "variants": [
+        "default",
+        "auto-resize"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+    },
+    {
+      "name": "NumberInput",
+      "type": "atom",
+      "description": "Numeric input with increment/decrement",
+      "props": [
+        "value",
+        "onChange",
+        "min",
+        "max",
+        "step",
+        "label"
+      ],
+      "behavior": "Prevents non-numeric input, respects min/max",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+    },
+    {
+      "name": "Select",
+      "type": "atom",
+      "description": "Dropdown select using Radix UI",
+      "props": [
+        "value",
+        "onChange",
+        "options",
+        "placeholder",
+        "label",
+        "error"
+      ],
+      "behavior": "Accessible dropdown with search support",
+      "variants": [
+        "default",
+        "sm"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg"
+    },
+    {
+      "name": "MultiSelect",
+      "type": "molecule",
+      "description": "Multiple selection dropdown",
+      "props": [
+        "value",
+        "onChange",
+        "options",
+        "placeholder",
+        "label"
+      ],
+      "behavior": "Shows selected as chips, searchable dropdown",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "Toggle",
+      "type": "atom",
+      "description": "Boolean toggle switch",
+      "props": [
+        "checked",
+        "onChange",
+        "label",
+        "disabled"
+      ],
+      "behavior": "Accessible switch component",
+      "variants": [
+        "default",
+        "sm"
+      ],
+      "tailwind": "relative inline-flex h-6 w-11 items-center rounded-full"
+    },
+    {
+      "name": "DatePicker",
+      "type": "molecule",
+      "description": "Calendar date picker",
+      "props": [
+        "value",
+        "onChange",
+        "placeholder",
+        "minDate",
+        "maxDate",
+        "label"
+      ],
+      "behavior": "Popover calendar, keyboard navigation, date-fns formatting",
+      "variants": [
+        "default",
+        "range"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "DateRangePicker",
+      "type": "molecule",
+      "description": "Date range selection",
+      "props": [
+        "startDate",
+        "endDate",
+        "onChange",
+        "label"
+      ],
+      "behavior": "Two-month calendar for range selection",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "CurrencyInput",
+      "type": "atom",
+      "description": "Currency formatted number input",
+      "props": [
+        "value",
+        "onChange",
+        "currency",
+        "label",
+        "error"
+      ],
+      "behavior": "Formats as currency on blur, strips formatting on focus",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2"
+    },
+    {
+      "name": "CurrencyDisplay",
+      "type": "atom",
+      "description": "Formatted currency value display",
+      "props": [
+        "value",
+        "currency",
+        "locale"
+      ],
+      "behavior": "Formats number as localized currency string",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "font-mono text-sm"
+    },
+    {
+      "name": "YesNoBadge",
+      "type": "atom",
+      "description": "Boolean value as badge",
+      "props": [
+        "value"
+      ],
+      "behavior": "Green Yes or slate No badge",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs"
+    },
+    {
+      "name": "AbsoluteDate",
+      "type": "atom",
+      "description": "Formatted absolute date display",
+      "props": [
+        "date",
+        "format",
+        "showTime"
+      ],
+      "behavior": "Uses date-fns to format date, tooltip with full datetime",
+      "variants": [
+        "date-only",
+        "with-time"
+      ],
+      "tailwind": "text-sm text-slate-300"
+    },
+    {
+      "name": "RelativeDate",
+      "type": "atom",
+      "description": "Relative time display (e.g. 2 hours ago)",
+      "props": [
+        "date"
+      ],
+      "behavior": "Uses date-fns formatDistanceToNow, tooltip with absolute date",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-sm text-slate-400"
+    },
+    {
+      "name": "MonospaceText",
+      "type": "atom",
+      "description": "Monospace font text for IDs/codes",
+      "props": [
+        "text",
+        "copyable"
+      ],
+      "behavior": "Optional copy-to-clipboard button",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "font-mono text-sm text-slate-300"
+    },
+    {
+      "name": "PlainText",
+      "type": "atom",
+      "description": "Simple text display",
+      "props": [
+        "text",
+        "className"
+      ],
+      "behavior": "Renders text with optional truncation",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "text-sm text-slate-200"
+    },
+    {
+      "name": "TruncatedText",
+      "type": "atom",
+      "description": "Text truncated with ellipsis and tooltip",
+      "props": [
+        "text",
+        "maxLength",
+        "lines"
+      ],
+      "behavior": "Shows tooltip with full text on hover",
+      "variants": [
+        "single-line",
+        "multi-line"
+      ],
+      "tailwind": "overflow-hidden text-ellipsis"
+    },
+    {
+      "name": "TextLink",
+      "type": "atom",
+      "description": "Styled router link",
+      "props": [
+        "to",
+        "children",
+        "className"
+      ],
+      "behavior": "React Router Link with blue color",
+      "variants": [
+        "default",
+        "subtle"
+      ],
+      "tailwind": "text-blue-400 hover:text-blue-300"
+    },
+    {
+      "name": "StatCard",
+      "type": "molecule",
+      "description": "KPI metric card",
+      "props": [
+        "title",
+        "value",
+        "change",
+        "icon",
+        "trend"
+      ],
+      "behavior": "Shows metric with optional trend indicator",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-900 rounded-lg border border-slate-800 p-4"
+    },
+    {
+      "name": "ActivityTimeline",
+      "type": "organism",
+      "description": "Chronological activity feed",
+      "props": [
+        "activities",
+        "isLoading",
+        "onLoadMore"
+      ],
+      "behavior": "Vertical timeline with user avatar, action description, timestamp",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "space-y-4"
+    },
+    {
+      "name": "NotificationBell",
+      "type": "molecule",
+      "description": "Header notification icon with dropdown",
+      "props": [
+        "count",
+        "notifications",
+        "onMarkRead"
+      ],
+      "behavior": "Badge with count, dropdown list of notifications",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative"
+    },
+    {
+      "name": "AuthGuard",
+      "type": "organism",
+      "description": "Route-level permission guard",
+      "props": [
+        "requiredRoles",
+        "children",
+        "fallback"
+      ],
+      "behavior": "Checks authStore for role, renders fallback if unauthorized",
+      "variants": [
+        "default"
+      ],
+      "tailwind": ""
+    },
+    {
+      "name": "MilestoneTimeline",
+      "type": "organism",
+      "description": "Horizontal milestone progress visualization",
+      "props": [
+        "milestones",
+        "projectStart",
+        "projectEnd"
+      ],
+      "behavior": "Shows milestones on timeline with status indicators",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "relative overflow-x-auto"
+    },
+    {
+      "name": "TaskCard",
+      "type": "molecule",
+      "description": "Card representation of a task for Kanban",
+      "props": [
+        "task",
+        "onClick",
+        "onDrag",
+        "isDragging"
+      ],
+      "behavior": "Shows title, priority badge, assignee avatar, due date",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-800 rounded-lg border border-slate-700 p-3 cursor-pointer"
+    },
+    {
+      "name": "ProjectCard",
+      "type": "molecule",
+      "description": "Card for project list/grid view",
+      "props": [
+        "project",
+        "onClick"
+      ],
+      "behavior": "Shows name, status, progress bar, owner avatar, task count",
+      "variants": [
+        "default",
+        "compact"
+      ],
+      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4 hover:border-slate-600"
+    },
+    {
+      "name": "DependencyArrow",
+      "type": "atom",
+      "description": "Visual arrow between dependent tasks in Gantt",
+      "props": [
+        "fromX",
+        "fromY",
+        "toX",
+        "toY",
+        "type"
+      ],
+      "behavior": "SVG path rendered based on dependency type",
+      "variants": [
+        "finish_to_start",
+        "start_to_start",
+        "finish_to_finish",
+        "start_to_finish"
+      ],
+      "tailwind": ""
+    },
+    {
+      "name": "BurndownChart",
+      "type": "organism",
+      "description": "Project burndown chart using Recharts",
+      "props": [
+        "data",
+        "startDate",
+        "endDate",
+        "totalTasks"
+      ],
+      "behavior": "Line chart with ideal vs actual burndown",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-lg p-4"
+    },
+    {
+      "name": "VelocityChart",
+      "type": "organism",
+      "description": "Team velocity bar chart",
+      "props": [
+        "data",
+        "period"
+      ],
+      "behavior": "Bar chart showing tasks completed per period",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "bg-slate-900 rounded-lg p-4"
+    },
+    {
+      "name": "SubtaskList",
+      "type": "organism",
+      "description": "Nested list of subtasks with inline add",
+      "props": [
+        "parentTaskId",
+        "subtasks",
+        "onAdd",
+        "onStatusChange"
+      ],
+      "behavior": "Collapsible, supports adding new subtasks inline",
+      "variants": [
+        "default"
+      ],
+      "tailwind": "mt-4 space-y-2 pl-4 border-l border-slate-700"
+    }
+  ],
+  "modules": [
+    {
+      "name": "ProjectDashboard",
+      "route": "/projects/dashboard",
+      "sidebar_label": "Dashboard",
+      "icon": "LayoutDashboard",
+      "page_component": "ProjectDashboardPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useProjectStats",
+        "useMyTasks",
+        "useRecentActivity",
+        "useUpcomingMilestones"
+      ],
+      "query_keys": [
+        "projects.stats",
+        "tasks.myTasks",
+        "milestones.upcoming"
+      ],
+      "primary_actions": [
+        {
+          "label": "New Project",
+          "hook": "useCreateProject",
+          "variant": "primary"
+        }
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "ProjectList",
+      "route": "/projects",
+      "sidebar_label": "Projects",
+      "icon": "FolderKanban",
+      "page_component": "ProjectListPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useProjects"
+      ],
+      "query_keys": [
+        "projects.list"
+      ],
+      "primary_actions": [
+        {
+          "label": "New Project",
+          "hook": "useCreateProject",
+          "variant": "primary"
+        }
+      ],
+      "tabs": [
+        "All",
+        "Active",
+        "Planning",
+        "Completed",
+        "Archived"
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "ProjectDetail",
+      "route": "/projects/:id",
+      "sidebar_label": null,
+      "icon": null,
+      "page_component": "ProjectDetailPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useProject",
+        "useProjectPhases",
+        "useProjectTasks",
+        "useProjectMilestones",
+        "useProjectTeamMembers",
+        "useProjectAttachments"
+      ],
+      "query_keys": [
+        "projects.detail",
+        "phases.byProject",
+        "tasks.byProject",
+        "milestones.byProject",
+        "teamMembers.byProject",
+        "attachments.byEntity"
+      ],
+      "primary_actions": [
+        {
+          "label": "Add Task",
+          "hook": "useCreateTask",
+          "variant": "primary"
+        },
+        {
+          "label": "Edit Project",
+          "hook": "useUpdateProject",
+          "variant": "secondary"
+        }
+      ],
+      "tabs": [
+        "Overview",
+        "Board",
+        "Timeline",
+        "Milestones",
+        "Files",
+        "Team",
+        "Settings"
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "TaskList",
+      "route": "/tasks",
+      "sidebar_label": "Tasks",
+      "icon": "CheckSquare",
+      "page_component": "TaskListPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useTasks"
+      ],
+      "query_keys": [
+        "tasks.list"
+      ],
+      "primary_actions": [
+        {
+          "label": "New Task",
+          "hook": "useCreateTask",
+          "variant": "primary"
+        }
+      ],
+      "tabs": [
+        "My Tasks",
+        "All",
+        "Overdue",
+        "Upcoming"
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "TaskDetail",
+      "route": "/tasks/:id",
+      "sidebar_label": null,
+      "icon": null,
+      "page_component": "TaskDetailPage",
+      "layout": "SlideOverLayout",
+      "permissions": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useTask",
+        "useTaskComments",
+        "useTaskSubtasks",
+        "useTaskAttachments"
+      ],
+      "query_keys": [
+        "tasks.detail",
+        "comments.byTask",
+        "attachments.byEntity"
+      ],
+      "primary_actions": [
+        {
+          "label": "Complete Task",
+          "hook": "useCompleteTask",
+          "variant": "success"
+        },
+        {
+          "label": "Edit",
+          "hook": "useUpdateTask",
+          "variant": "secondary"
+        }
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "CalendarModule",
+      "route": "/calendar",
+      "sidebar_label": "Calendar",
+      "icon": "Calendar",
+      "page_component": "CalendarPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useCalendarEvents"
+      ],
+      "query_keys": [
+        "tasks.list",
+        "milestones.byProject"
+      ],
+      "primary_actions": [
+        {
+          "label": "New Task",
+          "hook": "useCreateTask",
+          "variant": "primary"
+        }
+      ],
+      "child_routes": []
+    },
+    {
+      "name": "ProjectReports",
+      "route": "/reports/projects",
+      "sidebar_label": "Reports",
+      "icon": "BarChart2",
+      "page_component": "ProjectReportsPage",
+      "layout": "AppLayout",
+      "permissions": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "data_sources": [
+        "useProjectReports",
+        "useVelocityData",
+        "useBurndownData"
+      ],
+      "query_keys": [
+        "projects.stats",
+        "tasks.byProject"
+      ],
+      "primary_actions": [
+        {
+          "label": "Export",
+          "hook": "useExportReport",
+          "variant": "secondary"
+        }
+      ],
+      "child_routes": []
+    }
+  ],
+  "api": {
+    "projects": [
+      {
+        "method": "GET",
+        "path": "/projects",
+        "description": "List projects with filters",
+        "request_schema": {
+          "query": {
+            "status": "string?",
+            "owner_id": "string?",
+            "is_archived": "boolean?",
+            "q": "string?",
+            "page": "number?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "Project[]",
+          "total": "number",
+          "page": "number"
+        },
+        "react_query_hook": "useProjects",
+        "query_key": "projects.list",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/projects",
+        "description": "Create a new project",
+        "request_schema": {
+          "body": {
+            "name": "string",
+            "description": "string?",
+            "status": "string?",
+            "priority": "string?",
+            "start_date": "string?",
+            "end_date": "string?",
+            "budget": "number?",
+            "owner_id": "string",
+            "color": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Project"
+        },
+        "react_query_hook": "useCreateProject",
+        "query_key": null,
+        "invalidates": [
+          "projects.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/projects/:id",
+        "description": "Get project by ID",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Project"
+        },
+        "react_query_hook": "useProject",
+        "query_key": "projects.detail",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/projects/:id",
+        "description": "Update project fields",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<Project>"
+        },
+        "response_schema": {
+          "data": "Project"
+        },
+        "react_query_hook": "useUpdateProject",
+        "query_key": null,
+        "invalidates": [
+          "projects.detail",
+          "projects.list"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/projects/:id",
+        "description": "Soft delete project",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteProject",
+        "query_key": null,
+        "invalidates": [
+          "projects.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/projects/:id/archive",
+        "description": "Archive project",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Project"
+        },
+        "react_query_hook": "useArchiveProject",
+        "query_key": null,
+        "invalidates": [
+          "projects.detail",
+          "projects.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/projects/:id/close",
+        "description": "Close project and set status to completed",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "archive_open_tasks": "boolean?"
+          }
+        },
+        "response_schema": {
+          "data": "Project"
+        },
+        "react_query_hook": "useCloseProject",
+        "query_key": null,
+        "invalidates": [
+          "projects.detail",
+          "projects.list"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/projects/:id/stats",
+        "description": "Get project statistics",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": {
+            "total_tasks": "number",
+            "completed_tasks": "number",
+            "overdue_tasks": "number",
+            "progress_pct": "number",
+            "team_count": "number"
+          }
+        },
+        "react_query_hook": "useProjectStats",
+        "query_key": "projects.stats",
+        "invalidates": [],
+        "optimistic_updates": false
+      }
+    ],
+    "project_phases": [
+      {
+        "method": "GET",
+        "path": "/projects/:id/phases",
+        "description": "List phases for project",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "ProjectPhase[]"
+        },
+        "react_query_hook": "useProjectPhases",
+        "query_key": "phases.byProject",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/projects/:id/phases",
+        "description": "Create a new phase",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "name": "string",
+            "description": "string?",
+            "start_date": "string?",
+            "end_date": "string?",
+            "color": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "ProjectPhase"
+        },
+        "react_query_hook": "useCreatePhase",
+        "query_key": null,
+        "invalidates": [
+          "phases.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/phases/:id",
+        "description": "Update a phase",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<ProjectPhase>"
+        },
+        "response_schema": {
+          "data": "ProjectPhase"
+        },
+        "react_query_hook": "useUpdatePhase",
+        "query_key": null,
+        "invalidates": [
+          "phases.byProject"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/phases/:id",
+        "description": "Delete a phase",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeletePhase",
+        "query_key": null,
+        "invalidates": [
+          "phases.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PUT",
+        "path": "/projects/:id/phases/reorder",
+        "description": "Reorder phases",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "phase_ids": "string[]"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useReorderPhases",
+        "query_key": null,
+        "invalidates": [
+          "phases.byProject"
+        ],
+        "optimistic_updates": true
+      }
+    ],
+    "milestones": [
+      {
+        "method": "GET",
+        "path": "/milestones",
+        "description": "List milestones with optional project_id filter",
+        "request_schema": {
+          "query": {
+            "project_id": "string?",
+            "status": "string?",
+            "due_before": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Milestone[]"
+        },
+        "react_query_hook": "useMilestones",
+        "query_key": "milestones.byProject",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/milestones",
+        "description": "Create a milestone",
+        "request_schema": {
+          "body": {
+            "project_id": "string",
+            "phase_id": "string?",
+            "name": "string",
+            "due_date": "string",
+            "owner_id": "string?",
+            "is_critical": "boolean?"
+          }
+        },
+        "response_schema": {
+          "data": "Milestone"
+        },
+        "react_query_hook": "useCreateMilestone",
+        "query_key": null,
+        "invalidates": [
+          "milestones.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/milestones/:id",
+        "description": "Get milestone by ID",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Milestone"
+        },
+        "react_query_hook": "useMilestone",
+        "query_key": "milestones.detail",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/milestones/:id",
+        "description": "Update milestone",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<Milestone>"
+        },
+        "response_schema": {
+          "data": "Milestone"
+        },
+        "react_query_hook": "useUpdateMilestone",
+        "query_key": null,
+        "invalidates": [
+          "milestones.byProject"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/milestones/:id",
+        "description": "Delete milestone",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteMilestone",
+        "query_key": null,
+        "invalidates": [
+          "milestones.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/milestones/:id/achieve",
+        "description": "Mark milestone as achieved",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Milestone"
+        },
+        "react_query_hook": "useAchieveMilestone",
+        "query_key": null,
+        "invalidates": [
+          "milestones.byProject"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "tasks": [
+      {
+        "method": "GET",
+        "path": "/tasks",
+        "description": "List tasks with filters",
+        "request_schema": {
+          "query": {
+            "project_id": "string?",
+            "assignee_id": "string?",
+            "status": "string?",
+            "priority": "string?",
+            "due_before": "string?",
+            "due_after": "string?",
+            "label_ids": "string?",
+            "q": "string?",
+            "page": "number?",
+            "limit": "number?"
+          }
+        },
+        "response_schema": {
+          "data": "Task[]",
+          "total": "number"
+        },
+        "react_query_hook": "useTasks",
+        "query_key": "tasks.list",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/tasks",
+        "description": "Create a new task",
+        "request_schema": {
+          "body": {
+            "project_id": "string",
+            "title": "string",
+            "description": "string?",
+            "status": "string?",
+            "priority": "string?",
+            "assignee_id": "string?",
+            "due_date": "string?",
+            "phase_id": "string?",
+            "milestone_id": "string?",
+            "parent_task_id": "string?",
+            "label_ids": "string[]?"
+          }
+        },
+        "response_schema": {
+          "data": "Task"
+        },
+        "react_query_hook": "useCreateTask",
+        "query_key": null,
+        "invalidates": [
+          "tasks.list",
+          "tasks.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/tasks/:id",
+        "description": "Get task by ID",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Task"
+        },
+        "react_query_hook": "useTask",
+        "query_key": "tasks.detail",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/tasks/:id",
+        "description": "Update task fields",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": "Partial<Task>"
+        },
+        "response_schema": {
+          "data": "Task"
+        },
+        "react_query_hook": "useUpdateTask",
+        "query_key": null,
+        "invalidates": [
+          "tasks.detail",
+          "tasks.list",
+          "tasks.byProject"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/tasks/:id",
+        "description": "Soft delete task",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteTask",
+        "query_key": null,
+        "invalidates": [
+          "tasks.list",
+          "tasks.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/tasks/:id/assign",
+        "description": "Assign task to user",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "assignee_id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Task"
+        },
+        "react_query_hook": "useAssignTask",
+        "query_key": null,
+        "invalidates": [
+          "tasks.detail",
+          "tasks.list"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "POST",
+        "path": "/tasks/:id/complete",
+        "description": "Mark task as done",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Task"
+        },
+        "react_query_hook": "useCompleteTask",
+        "query_key": null,
+        "invalidates": [
+          "tasks.detail",
+          "tasks.list",
+          "projects.detail"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/tasks/:id/archive",
+        "description": "Archive a task",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Task"
+        },
+        "react_query_hook": "useArchiveTask",
+        "query_key": null,
+        "invalidates": [
+          "tasks.list",
+          "tasks.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "GET",
+        "path": "/tasks/:id/subtasks",
+        "description": "List subtasks of a task",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Task[]"
+        },
+        "react_query_hook": "useSubtasks",
+        "query_key": "tasks.subtasks",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/tasks/:id/dependencies",
+        "description": "Add a dependency to a task",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "depends_on_task_id": "string",
+            "dependency_type": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Dependency"
+        },
+        "react_query_hook": "useAddDependency",
+        "query_key": null,
+        "invalidates": [
+          "tasks.detail"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "task_comments": [
+      {
+        "method": "GET",
+        "path": "/tasks/:id/comments",
+        "description": "List comments on a task",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "TaskComment[]"
+        },
+        "react_query_hook": "useTaskComments",
+        "query_key": "comments.byTask",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/tasks/:id/comments",
+        "description": "Add comment to task",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "content": "string",
+            "mentioned_user_ids": "string[]?"
+          }
+        },
+        "response_schema": {
+          "data": "TaskComment"
+        },
+        "react_query_hook": "useCreateComment",
+        "query_key": null,
+        "invalidates": [
+          "comments.byTask"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "PATCH",
+        "path": "/comments/:id",
+        "description": "Edit a comment",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "content": "string"
+          }
+        },
+        "response_schema": {
+          "data": "TaskComment"
+        },
+        "react_query_hook": "useUpdateComment",
+        "query_key": null,
+        "invalidates": [
+          "comments.byTask"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/comments/:id",
+        "description": "Delete a comment",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteComment",
+        "query_key": null,
+        "invalidates": [
+          "comments.byTask"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "team_members": [
+      {
+        "method": "GET",
+        "path": "/projects/:id/members",
+        "description": "List project team members",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "TeamMember[]"
+        },
+        "react_query_hook": "useTeamMembers",
+        "query_key": "teamMembers.byProject",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/projects/:id/members",
+        "description": "Add team member to project",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "user_id": "string",
+            "role": "string"
+          }
+        },
+        "response_schema": {
+          "data": "TeamMember"
+        },
+        "react_query_hook": "useAddTeamMember",
+        "query_key": null,
+        "invalidates": [
+          "teamMembers.byProject"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/project-members/:id",
+        "description": "Update team member role",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "role": "string"
+          }
+        },
+        "response_schema": {
+          "data": "TeamMember"
+        },
+        "react_query_hook": "useUpdateTeamMember",
+        "query_key": null,
+        "invalidates": [
+          "teamMembers.byProject"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/project-members/:id",
+        "description": "Remove team member",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useRemoveTeamMember",
+        "query_key": null,
+        "invalidates": [
+          "teamMembers.byProject"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "attachments": [
+      {
+        "method": "GET",
+        "path": "/attachments",
+        "description": "List attachments for an entity",
+        "request_schema": {
+          "query": {
+            "entity_type": "string",
+            "entity_id": "string"
+          }
+        },
+        "response_schema": {
+          "data": "Attachment[]"
+        },
+        "react_query_hook": "useAttachments",
+        "query_key": "attachments.byEntity",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/attachments",
+        "description": "Upload attachment",
+        "request_schema": {
+          "body": {
+            "entity_type": "string",
+            "entity_id": "string",
+            "filename": "string",
+            "file_url": "string",
+            "mime_type": "string",
+            "file_size_bytes": "number"
+          }
+        },
+        "response_schema": {
+          "data": "Attachment"
+        },
+        "react_query_hook": "useUploadAttachment",
+        "query_key": null,
+        "invalidates": [
+          "attachments.byEntity"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "DELETE",
+        "path": "/attachments/:id",
+        "description": "Delete attachment",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteAttachment",
+        "query_key": null,
+        "invalidates": [
+          "attachments.byEntity"
+        ],
+        "optimistic_updates": false
+      }
+    ],
+    "labels": [
+      {
+        "method": "GET",
+        "path": "/labels",
+        "description": "List labels, optionally filtered by project_id",
+        "request_schema": {
+          "query": {
+            "project_id": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Label[]"
+        },
+        "react_query_hook": "useLabels",
+        "query_key": "labels.all",
+        "invalidates": [],
+        "optimistic_updates": false
+      },
+      {
+        "method": "POST",
+        "path": "/labels",
+        "description": "Create label",
+        "request_schema": {
+          "body": {
+            "name": "string",
+            "color": "string",
+            "project_id": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Label"
+        },
+        "react_query_hook": "useCreateLabel",
+        "query_key": null,
+        "invalidates": [
+          "labels.all"
+        ],
+        "optimistic_updates": false
+      },
+      {
+        "method": "PATCH",
+        "path": "/labels/:id",
+        "description": "Update label",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          },
+          "body": {
+            "name": "string?",
+            "color": "string?"
+          }
+        },
+        "response_schema": {
+          "data": "Label"
+        },
+        "react_query_hook": "useUpdateLabel",
+        "query_key": null,
+        "invalidates": [
+          "labels.all"
+        ],
+        "optimistic_updates": true
+      },
+      {
+        "method": "DELETE",
+        "path": "/labels/:id",
+        "description": "Delete label",
+        "request_schema": {
+          "params": {
+            "id": "string"
+          }
+        },
+        "response_schema": {
+          "success": "boolean"
+        },
+        "react_query_hook": "useDeleteLabel",
+        "query_key": null,
+        "invalidates": [
+          "labels.all"
+        ],
+        "optimistic_updates": false
+      }
+    ]
+  },
+  "permissions": {
+    "roles": [
+      "admin",
+      "manager",
+      "member",
+      "viewer"
+    ],
+    "matrix": {
+      "projects.create": [
+        "admin",
+        "manager"
+      ],
+      "projects.edit": [
+        "admin",
+        "manager",
+        "project_owner"
+      ],
+      "tasks.create": [
+        "admin",
+        "manager",
+        "member"
+      ],
+      "tasks.assign": [
+        "admin",
+        "manager"
+      ],
+      "tasks.complete": [
+        "assignee",
+        "admin",
+        "manager"
+      ],
+      "team.manage": [
+        "admin",
+        "manager"
+      ],
+      "reports.view": [
+        "admin",
+        "manager",
+        "member",
+        "viewer"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      {
+        "name": "authStore",
+        "fields": [
+          "user",
+          "token",
+          "org",
+          "roles"
+        ]
+      },
+      {
+        "name": "uiStore",
+        "fields": [
+          "sidebarOpen",
+          "theme",
+          "notifications"
+        ]
+      },
+      {
+        "name": "projectStore",
+        "fields": [
+          "activeProject",
+          "activeView"
+        ],
+        "activeView_values": [
+          "board",
+          "list",
+          "timeline"
+        ]
+      },
+      {
+        "name": "boardStore",
+        "fields": [
+          "columnOrder",
+          "isDragging",
+          "activeCardId",
+          "overColumnId"
+        ]
+      },
+      {
+        "name": "calendarStore",
+        "fields": [
+          "selectedDate",
+          "view"
+        ],
+        "view_values": [
+          "month",
+          "week",
+          "day"
+        ]
+      },
+      {
+        "name": "filterStore",
+        "fields": [
+          "filters"
+        ],
+        "notes": "keyed by module name"
+      },
+      {
+        "name": "editorStore",
+        "fields": [
+          "activeEditorId",
+          "editorContent",
+          "isDirty"
+        ]
+      }
+    ],
+    "query_keys": {
+      "projects": [
+        "projects.all",
+        "projects.list",
+        "projects.detail",
+        "projects.stats"
+      ],
+      "tasks": [
+        "tasks.all",
+        "tasks.list",
+        "tasks.detail",
+        "tasks.byProject"
+      ],
+      "milestones": [
+        "milestones.byProject"
+      ],
+      "phases": [
+        "phases.byProject"
+      ],
+      "comments": [
+        "comments.byTask"
+      ],
+      "attachments": [
+        "attachments.byEntity"
+      ],
+      "labels": [
+        "labels.all"
+      ],
+      "teamMembers": [
+        "teamMembers.byProject"
+      ]
+    }
+  },
+  "websocket": {
+    "events": [
+      {
+        "name": "task.created",
+        "payload": {
+          "task_id": "string",
+          "project_id": "string",
+          "created_by": "string"
+        },
+        "client_action": "invalidate tasks.byProject, tasks.list"
+      },
+      {
+        "name": "task.updated",
+        "payload": {
+          "task_id": "string",
+          "project_id": "string",
+          "changes": "object"
+        },
+        "client_action": "invalidate tasks.detail, tasks.list"
+      },
+      {
+        "name": "task.assigned",
+        "payload": {
+          "task_id": "string",
+          "assignee_id": "string",
+          "assigned_by": "string"
+        },
+        "client_action": "invalidate tasks.detail, show notification if assignee === current user"
+      },
+      {
+        "name": "task.completed",
+        "payload": {
+          "task_id": "string",
+          "project_id": "string",
+          "completed_by": "string"
+        },
+        "client_action": "invalidate tasks.detail, projects.detail (progress_pct)"
+      },
+      {
+        "name": "comment.added",
+        "payload": {
+          "comment_id": "string",
+          "task_id": "string",
+          "author_id": "string"
+        },
+        "client_action": "invalidate comments.byTask, notify mentioned users"
+      },
+      {
+        "name": "milestone.achieved",
+        "payload": {
+          "milestone_id": "string",
+          "project_id": "string",
+          "achieved_by": "string"
+        },
+        "client_action": "invalidate milestones.byProject, show achievement toast"
+      },
+      {
+        "name": "project.status_changed",
+        "payload": {
+          "project_id": "string",
+          "old_status": "string",
+          "new_status": "string"
+        },
+        "client_action": "invalidate projects.detail, projects.list"
+      },
+      {
+        "name": "ws.reconnected",
+        "payload": {},
+        "client_action": "invalidate all active query keys"
+      }
+    ]
+  },
+  "flows": [
+    {
+      "name": "Create Project",
+      "steps": [
+        "POST /projects",
+        "POST /projects/:id/members (add team members)",
+        "POST /projects/:id/phases (create phases)",
+        "POST /milestones (add milestones)",
+        "POST /tasks with project_id (assign tasks)",
+        "PATCH /projects/:id status→active"
+      ],
+      "backend_mutations": [
+        "POST /projects",
+        "POST /projects/:id/members",
+        "POST /projects/:id/phases",
+        "POST /milestones",
+        "POST /tasks"
+      ],
+      "cross_entity_updates": [
+        "Project.progress_pct recomputed as tasks complete"
+      ]
+    },
+    {
+      "name": "Assign Task",
+      "steps": [
+        "PATCH /tasks/:id with assignee_id",
+        "WebSocket task.assigned emitted to assignee",
+        "Notification created for assignee"
+      ],
+      "backend_mutations": [
+        "PATCH /tasks/:id"
+      ],
+      "cross_entity_updates": [
+        "task.assignee_id updated",
+        "notification created for assignee"
+      ]
+    },
+    {
+      "name": "Track Progress",
+      "steps": [
+        "POST /tasks/:id/complete → status→done",
+        "Project.progress_pct recomputed = completed_tasks / total_tasks * 100",
+        "If all milestone tasks done: milestone can be marked achieved",
+        "If all tasks done: project can be closed"
+      ],
+      "backend_mutations": [
+        "POST /tasks/:id/complete"
+      ],
+      "cross_entity_updates": [
+        "Project.progress_pct updated",
+        "Milestone.status may become achievable"
+      ]
+    },
+    {
+      "name": "Close Project",
+      "steps": [
+        "POST /projects/:id/close",
+        "status→completed",
+        "Optionally archive open tasks",
+        "Generate summary report"
+      ],
+      "backend_mutations": [
+        "POST /projects/:id/close"
+      ],
+      "cross_entity_updates": [
+        "Project.status=completed",
+        "TeamMember records archived"
+      ]
+    },
+    {
+      "name": "Manage Dependencies",
+      "steps": [
+        "POST /tasks/:id/dependencies",
+        "Validate no circular dependencies (DFS)",
+        "If dependency not met: task cannot change status to in_progress"
+      ],
+      "backend_mutations": [
+        "POST /tasks/:id/dependencies"
+      ],
+      "cross_entity_updates": [
+        "Dependency record created, task status transitions gated"
+      ]
+    }
+  ],
+  "computed_fields": [
+    {
+      "entity": "Project",
+      "field": "progress_pct",
+      "formula": "COUNT(tasks WHERE status=done) / COUNT(tasks WHERE status != cancelled) * 100",
+      "triggers": [
+        "Task.status changed"
+      ],
+      "display_precision": 1
+    },
+    {
+      "entity": "Project",
+      "field": "overdue_tasks_count",
+      "formula": "COUNT(tasks WHERE due_date < NOW() AND status NOT IN [done, cancelled])",
+      "triggers": [
+        "Task.due_date",
+        "Task.status",
+        "time"
+      ]
+    },
+    {
+      "entity": "Project",
+      "field": "completion_rate",
+      "formula": "COUNT(tasks WHERE status=done) / COUNT(tasks) * 100",
+      "triggers": [
+        "Task.status"
+      ]
+    },
+    {
+      "entity": "Project",
+      "field": "spent",
+      "formula": "SUM(time_entries.hours * billable_rate WHERE project_id=id) if time tracking integrated, else 0",
+      "triggers": [
+        "TimeEntry created"
+      ]
+    },
+    {
+      "entity": "Task",
+      "field": "actual_hours",
+      "formula": "SUM(time_entries.duration WHERE task_id=id)",
+      "triggers": [
+        "TimeEntry mutated"
+      ]
+    },
+    {
+      "entity": "Milestone",
+      "field": "days_until_due",
+      "formula": "due_date - TODAY()",
+      "triggers": [
+        "time"
+      ],
+      "notes": "Negative = overdue"
+    }
+  ],
+  "domain_rules": [
+    {
+      "rule": "Circular task dependencies not allowed",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Detect cycle using DFS before creating dependency",
+      "ui_behavior": "Show error if cycle detected",
+      "db_constraint": null
+    },
+    {
+      "rule": "Task cannot start if blocking dependency not done",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 409 if status→in_progress and has unmet finish_to_start dependency",
+      "ui_behavior": "Disable status change to in_progress if dependency unmet",
+      "db_constraint": null
+    },
+    {
+      "rule": "Project end_date must be after start_date",
+      "enforced_at": [
+        "db",
+        "api",
+        "ui"
+      ],
+      "api_guard": "Validate end_date > start_date before save",
+      "ui_behavior": "Disable end_date before start_date in DatePicker",
+      "db_constraint": "CHECK (end_date > start_date)"
+    },
+    {
+      "rule": "Only project team members can be assigned tasks",
+      "enforced_at": [
+        "api"
+      ],
+      "api_guard": "Validate assignee_id in project_team_members before save",
+      "ui_behavior": "UserSelector shows only team members",
+      "db_constraint": null
+    },
+    {
+      "rule": "Archived projects are read-only",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 403 if project is_archived=true on mutating requests",
+      "ui_behavior": "Disable all edit controls, show archived banner",
+      "db_constraint": null
+    },
+    {
+      "rule": "project_number unique within org",
+      "enforced_at": [
+        "db"
+      ],
+      "api_guard": null,
+      "ui_behavior": null,
+      "db_constraint": "UNIQUE INDEX on (org_id, project_number)"
+    }
+  ],
+  "folder_structure": {
+    "src": {
+      "domains": {
+        "project_management": {
+          "api": [
+            "projectsApi.ts",
+            "tasksApi.ts",
+            "milestonesApi.ts",
+            "phasesApi.ts",
+            "commentsApi.ts",
+            "attachmentsApi.ts",
+            "labelsApi.ts",
+            "teamMembersApi.ts"
+          ],
+          "hooks": [
+            "useProjects.ts",
+            "useProject.ts",
+            "useCreateProject.ts",
+            "useUpdateProject.ts",
+            "useDeleteProject.ts",
+            "useArchiveProject.ts",
+            "useCloseProject.ts",
+            "useProjectStats.ts",
+            "useTasks.ts",
+            "useTask.ts",
+            "useCreateTask.ts",
+            "useUpdateTask.ts",
+            "useCompleteTask.ts",
+            "useAssignTask.ts",
+            "useSubtasks.ts",
+            "useAddDependency.ts",
+            "useMilestones.ts",
+            "useMilestone.ts",
+            "useCreateMilestone.ts",
+            "useAchieveMilestone.ts",
+            "useProjectPhases.ts",
+            "useCreatePhase.ts",
+            "useReorderPhases.ts",
+            "useTeamMembers.ts",
+            "useAddTeamMember.ts",
+            "useTaskComments.ts",
+            "useCreateComment.ts",
+            "useAttachments.ts",
+            "useLabels.ts"
+          ],
+          "stores": [
+            "projectStore.ts",
+            "boardStore.ts"
+          ],
+          "components": {
+            "projects": [
+              "ProjectCard.tsx",
+              "ProjectList.tsx",
+              "ProjectTable.tsx",
+              "ProjectForm.tsx",
+              "ProjectFilters.tsx"
+            ],
+            "tasks": [
+              "TaskCard.tsx",
+              "TaskList.tsx",
+              "TaskTable.tsx",
+              "TaskForm.tsx",
+              "TaskDetail.tsx",
+              "SubtaskList.tsx"
+            ],
+            "board": [
+              "KanbanBoard.tsx",
+              "BoardColumn.tsx",
+              "BoardCard.tsx"
+            ],
+            "gantt": [
+              "GanttChart.tsx",
+              "GanttRow.tsx",
+              "DependencyArrow.tsx"
+            ],
+            "milestones": [
+              "MilestoneTimeline.tsx",
+              "MilestoneForm.tsx",
+              "MilestoneList.tsx"
+            ],
+            "phases": [
+              "PhaseList.tsx",
+              "PhaseForm.tsx"
+            ],
+            "team": [
+              "TeamMemberList.tsx",
+              "AddMemberForm.tsx"
+            ],
+            "attachments": [
+              "AttachmentList.tsx",
+              "FileUploader.tsx"
+            ],
+            "comments": [
+              "CommentThread.tsx",
+              "CommentForm.tsx"
+            ],
+            "labels": [
+              "LabelManager.tsx",
+              "LabelBadge.tsx",
+              "LabelList.tsx"
+            ],
+            "reports": [
+              "BurndownChart.tsx",
+              "VelocityChart.tsx",
+              "ProjectReportPage.tsx"
+            ]
+          },
+          "pages": [
+            "ProjectDashboardPage.tsx",
+            "ProjectListPage.tsx",
+            "ProjectDetailPage.tsx",
+            "TaskListPage.tsx",
+            "TaskDetailPage.tsx",
+            "CalendarPage.tsx",
+            "ProjectReportsPage.tsx"
+          ],
+          "types": [
+            "project.types.ts",
+            "task.types.ts",
+            "milestone.types.ts",
+            "phase.types.ts"
+          ],
+          "constants": [
+            "statusColors.ts",
+            "priorityColors.ts"
+          ]
+        }
+      },
+      "components": {
+        "ui": [
+          "DataTable.tsx",
+          "Modal.tsx",
+          "SlideOverForm.tsx",
+          "ProgressBar.tsx",
+          "StatusBadge.tsx",
+          "PriorityBadge.tsx",
+          "UserAvatar.tsx",
+          "AvatarGroup.tsx",
+          "UserSelector.tsx",
+          "ColorPicker.tsx",
+          "ColorSwatch.tsx",
+          "RichTextEditor.tsx",
+          "RichTextDisplay.tsx",
+          "DatePicker.tsx",
+          "DateRangePicker.tsx",
+          "TextInput.tsx",
+          "Textarea.tsx",
+          "NumberInput.tsx",
+          "Select.tsx",
+          "MultiSelect.tsx",
+          "Toggle.tsx",
+          "CurrencyInput.tsx",
+          "CurrencyDisplay.tsx",
+          "EmptyState.tsx",
+          "LoadingSkeleton.tsx",
+          "ConfirmationDialog.tsx",
+          "PageHeader.tsx",
+          "FilterPanel.tsx",
+          "FilterBar.tsx",
+          "Tabs.tsx",
+          "TabPanel.tsx",
+          "StatCard.tsx",
+          "ActivityTimeline.tsx",
+          "NotificationBell.tsx",
+          "AuthGuard.tsx",
+          "MonospaceText.tsx",
+          "TruncatedText.tsx",
+          "TextLink.tsx",
+          "AbsoluteDate.tsx",
+          "RelativeDate.tsx",
+          "YesNoBadge.tsx",
+          "FilenameLink.tsx",
+          "FileTypeIcon.tsx",
+          "FileSizeDisplay.tsx"
+        ]
+      },
+      "lib": [
+        "queryClient.ts",
+        "axiosInstance.ts",
+        "socket.ts"
+      ],
+      "router": [
+        "AppRouter.tsx",
+        "routes.ts"
+      ],
+      "stores": [
+        "authStore.ts",
+        "uiStore.ts",
+        "calendarStore.ts",
+        "filterStore.ts",
+        "editorStore.ts"
+      ]
+    }
+  },
+  "generation_rules": [
+    "KanbanBoard uses boardStore for drag state via DnD Kit",
+    "CalendarView uses calendarStore for view mode and selected date",
+    "GanttChart renders phases, milestones, and tasks on a shared timeline with DependencyArrow SVG overlays",
+    "Every mutation hook implements onMutate (optimistic update), onError (rollback), onSettled (invalidate)",
+    "All forms use React Hook Form with Zod schema validation",
+    "Authenticated requests attach JWT from authStore via Axios interceptor",
+    "WebSocket events handled in a global SocketProvider with per-event invalidation logic",
+    "All lists support infinite scroll via TanStack Query useInfiniteQuery"
+  ],
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {
+    "status_enum": {
+      "pg_type": "status_type",
+      "ts_type": "StatusEnum",
+      "values": [
+        "todo",
+        "in_progress",
+        "review",
+        "done",
+        "cancelled"
+      ],
+      "pg_ddl": "CREATE TYPE status_type AS ENUM ('todo', 'in_progress', 'review', 'done', 'cancelled')"
+    },
+    "priority_enum": {
+      "pg_type": "priority_type",
+      "ts_type": "PriorityEnum",
+      "values": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "pg_ddl": "CREATE TYPE priority_type AS ENUM ('low', 'medium', 'high', 'critical')"
+    },
+    "role_enum": {
+      "pg_type": "role_type",
+      "ts_type": "RoleEnum",
+      "values": [
+        "owner",
+        "manager",
+        "member",
+        "viewer"
+      ],
+      "pg_ddl": "CREATE TYPE role_type AS ENUM ('owner', 'manager', 'member', 'viewer')"
+    },
+    "dependency_type_enum": {
+      "pg_type": "dependency_type_type",
+      "ts_type": "DependencyTypeEnum",
+      "values": [
+        "finish_to_start",
+        "start_to_start",
+        "finish_to_finish",
+        "start_to_finish"
+      ],
+      "pg_ddl": "CREATE TYPE dependency_type_type AS ENUM ('finish_to_start', 'start_to_start', 'finish_to_finish', 'start_to_finish')"
+    }
+  },
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  }
+}

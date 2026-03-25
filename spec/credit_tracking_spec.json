@@ -1,0 +1,2807 @@
+{
+  "file": "credit_tracking_spec.json",
+  "version": "1.0.0",
+  "tech_stack": {
+    "frontend": [
+      "React 18",
+      "TypeScript strict",
+      "Tailwind CSS",
+      "TanStack Query v5",
+      "React Hook Form v7",
+      "Zod",
+      "Zustand v4",
+      "React Router v6",
+      "Recharts",
+      "date-fns",
+      "Lucide React",
+      "Radix UI"
+    ],
+    "backend": [
+      "Node.js",
+      "Express",
+      "PostgreSQL 15+",
+      "Redis",
+      "JWT",
+      "AWS S3",
+      "Socket.io"
+    ]
+  },
+  "design": {
+    "theme": "dark",
+    "bg": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber"
+  },
+  "entities": {
+    "CreditAccount": {
+      "table": "credit_accounts",
+      "description": "A credit facility (credit card, line of credit, etc.) held by the organization.",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "primary_key": true,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "organizations.id",
+          "indexed": true,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "account_number": {
+          "name": "account_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "auto-generated CRA-NNNN",
+          "unique_within_org": true,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "maxLength": 50,
+            "pattern": "CRA-\\d{4}"
+          }
+        },
+        "account_name": {
+          "name": "account_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "account_type": {
+          "name": "account_type",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "'revolving_credit' | 'line_of_credit' | 'credit_card' | 'overdraft' | 'term_loan'",
+          "nullable": false,
+          "default": null,
+          "enum": [
+            "revolving_credit",
+            "line_of_credit",
+            "credit_card",
+            "overdraft",
+            "term_loan"
+          ],
+          "input_component": "Select",
+          "display_component": "CreditTypeBadge",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "revolving_credit",
+              "line_of_credit",
+              "credit_card",
+              "overdraft",
+              "term_loan"
+            ]
+          }
+        },
+        "lender_name": {
+          "name": "lender_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1,
+            "maxLength": 255
+          }
+        },
+        "credit_limit": {
+          "name": "credit_limit",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0.01
+          }
+        },
+        "current_balance": {
+          "name": "current_balance",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "journal_lines",
+            "formula": "SUM(debit_amount) - SUM(credit_amount)",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "materialized"
+          },
+          "computed_from": "SUM(charges + interest + fees) - SUM(payments + credits) for account_id=id",
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "available_credit": {
+          "name": "available_credit",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for available_credit computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "computed_from": "credit_limit - current_balance",
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "interest_rate_annual": {
+          "name": "interest_rate_annual",
+          "db_type": "NUMERIC(8,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PercentageDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "max": 100
+          }
+        },
+        "interest_rate_type": {
+          "name": "interest_rate_type",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "'fixed' | 'variable'",
+          "nullable": false,
+          "default": null,
+          "enum": [
+            "fixed",
+            "variable"
+          ],
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "fixed",
+              "variable"
+            ]
+          }
+        },
+        "billing_cycle_day": {
+          "name": "billing_cycle_day",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "db_constraint": "CHECK (billing_cycle_day >= 1 AND billing_cycle_day <= 31)",
+          "input_component": "TextInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 1,
+            "max": 31
+          }
+        },
+        "payment_due_day": {
+          "name": "payment_due_day",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "db_constraint": "CHECK (payment_due_day >= 1 AND payment_due_day <= 31)",
+          "input_component": "TextInput",
+          "display_component": "NumberDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 1,
+            "max": 31
+          }
+        },
+        "minimum_payment_pct": {
+          "name": "minimum_payment_pct",
+          "db_type": "NUMERIC(6,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 2.0,
+          "input_component": "TextInput",
+          "display_component": "PercentageDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0,
+            "max": 100
+          }
+        },
+        "minimum_payment_fixed": {
+          "name": "minimum_payment_fixed",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "min": 0
+          }
+        },
+        "currency": {
+          "name": "currency",
+          "db_type": "CHAR(3) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "USD",
+          "input_component": "Select",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "length": 3
+          }
+        },
+        "gl_account_id": {
+          "name": "gl_account_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "foreign_key": "accounts.id",
+          "input_component": "AccountSelector",
+          "display_component": "AccountLink",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "is_active": {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": true,
+          "input_component": "Toggle",
+          "display_component": "YesNoBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "opened_date": {
+          "name": "opened_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "closed_date": {
+          "name": "closed_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date"
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "foreign_key": "users.id",
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "datetime"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_ca_org_account_number",
+          "columns": [
+            "org_id",
+            "account_number"
+          ],
+          "unique": true
+        },
+        {
+          "name": "idx_ca_org_is_active",
+          "columns": [
+            "org_id",
+            "is_active"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_ca_org_account_type",
+          "columns": [
+            "org_id",
+            "account_type"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    "CreditTransaction": {
+      "table": "credit_transactions",
+      "description": "A single transaction on a credit account (charge, payment, interest, fee, etc.).",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "primary_key": true,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "organizations.id",
+          "indexed": true,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "credit_account_id": {
+          "name": "credit_account_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "credit_accounts.id",
+          "input_component": "Select",
+          "display_component": "CreditAccountCard",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "transaction_date": {
+          "name": "transaction_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "posted_date": {
+          "name": "posted_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date"
+          }
+        },
+        "description": {
+          "name": "description",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "TruncatedText",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "minLength": 1
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0.01
+          }
+        },
+        "direction": {
+          "name": "direction",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "'charge' | 'payment' | 'credit' | 'interest' | 'fee'",
+          "nullable": false,
+          "default": null,
+          "enum": [
+            "charge",
+            "payment",
+            "credit",
+            "interest",
+            "fee"
+          ],
+          "input_component": "Select",
+          "display_component": "TransactionDirectionBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "charge",
+              "payment",
+              "credit",
+              "interest",
+              "fee"
+            ]
+          }
+        },
+        "category": {
+          "name": "category",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "maxLength": 100
+          }
+        },
+        "reference": {
+          "name": "reference",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "MonospaceText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "maxLength": 255
+          }
+        },
+        "source_entity_type": {
+          "name": "source_entity_type",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "maxLength": 50
+          }
+        },
+        "source_entity_id": {
+          "name": "source_entity_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "TextLink",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "is_reconciled": {
+          "name": "is_reconciled",
+          "db_type": "BOOLEAN NOT NULL",
+          "ts_type": "boolean",
+          "nullable": false,
+          "default": false,
+          "input_component": "Toggle",
+          "display_component": "ReconciliationStatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "reconciled_at": {
+          "name": "reconciled_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "datetime"
+          }
+        },
+        "statement_period": {
+          "name": "statement_period",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "pattern": "^\\d{4}-\\d{2}$"
+          }
+        },
+        "balance_after": {
+          "name": "balance_after",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "foreign_key": "users.id",
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "datetime"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_ct_org_account",
+          "columns": [
+            "org_id",
+            "credit_account_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_ct_org_transaction_date",
+          "columns": [
+            "org_id",
+            "transaction_date"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_ct_org_direction",
+          "columns": [
+            "org_id",
+            "direction"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_ct_org_is_reconciled",
+          "columns": [
+            "org_id",
+            "is_reconciled"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_ct_org_statement_period",
+          "columns": [
+            "org_id",
+            "statement_period"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    "CreditStatement": {
+      "table": "credit_statements",
+      "description": "A monthly billing statement for a credit account.",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "primary_key": true,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "organizations.id",
+          "indexed": true,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "credit_account_id": {
+          "name": "credit_account_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "credit_accounts.id",
+          "input_component": "Select",
+          "display_component": "CreditAccountCard",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "statement_period": {
+          "name": "statement_period",
+          "db_type": "VARCHAR(7) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "pattern": "^\\d{4}-\\d{2}$"
+          }
+        },
+        "period_start": {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "period_end": {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "opening_balance": {
+          "name": "opening_balance",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "closing_balance": {
+          "name": "closing_balance",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true
+          }
+        },
+        "total_charges": {
+          "name": "total_charges",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for total_charges computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "computed_from": "SUM(credit_transactions.amount WHERE direction='charge' AND statement_period=period)",
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "min": 0
+          }
+        },
+        "total_payments": {
+          "name": "total_payments",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "computed": {
+            "source": "derived",
+            "formula": "See domain_rules for total_payments computation logic",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "computed_from": "SUM(credit_transactions.amount WHERE direction='payment' AND statement_period=period)",
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "min": 0
+          }
+        },
+        "total_interest": {
+          "name": "total_interest",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "total_fees": {
+          "name": "total_fees",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": 0,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "minimum_payment_due": {
+          "name": "minimum_payment_due",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "min": 0
+          }
+        },
+        "payment_due_date": {
+          "name": "payment_due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "PaymentDueBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "'open' | 'due' | 'paid' | 'overdue'",
+          "nullable": false,
+          "default": "open",
+          "enum": [
+            "open",
+            "due",
+            "paid",
+            "overdue"
+          ],
+          "input_component": null,
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "open",
+              "due",
+              "paid",
+              "overdue"
+            ]
+          }
+        },
+        "file_url": {
+          "name": "file_url",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "StatementUploader",
+          "display_component": "TextLink",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "url"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "datetime"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_cs_org_account_period",
+          "columns": [
+            "org_id",
+            "credit_account_id",
+            "statement_period"
+          ],
+          "unique": true
+        },
+        {
+          "name": "idx_cs_org_payment_due_date",
+          "columns": [
+            "org_id",
+            "payment_due_date"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_cs_org_status",
+          "columns": [
+            "org_id",
+            "status"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    "CreditPayment": {
+      "table": "credit_payments",
+      "description": "A payment made toward a credit account balance.",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "primary_key": true,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "organizations.id",
+          "indexed": true,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "credit_account_id": {
+          "name": "credit_account_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "credit_accounts.id",
+          "input_component": "Select",
+          "display_component": "CreditAccountCard",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "statement_id": {
+          "name": "statement_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "foreign_key": "credit_statements.id",
+          "input_component": "Select",
+          "display_component": "TextLink",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": "CurrencyInput",
+          "display_component": "CurrencyDisplay",
+          "editable": true,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "min": 0.01
+          }
+        },
+        "payment_date": {
+          "name": "payment_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "payment_method": {
+          "name": "payment_method",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "'bank_transfer' | 'ach' | 'check' | 'auto_pay'",
+          "nullable": false,
+          "default": null,
+          "enum": [
+            "bank_transfer",
+            "ach",
+            "check",
+            "auto_pay"
+          ],
+          "input_component": "Select",
+          "display_component": "StatusBadge",
+          "editable": true,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "validation": {
+            "required": true,
+            "enum": [
+              "bank_transfer",
+              "ach",
+              "check",
+              "auto_pay"
+            ]
+          }
+        },
+        "bank_account_id": {
+          "name": "bank_account_id",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "foreign_key": "bank_accounts.id",
+          "input_component": "BankAccountSelector",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "reference": {
+          "name": "reference",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "TextInput",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "maxLength": 255
+          }
+        },
+        "status": {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "'scheduled' | 'processing' | 'completed' | 'failed'",
+          "nullable": false,
+          "default": "completed",
+          "enum": [
+            "scheduled",
+            "processing",
+            "completed",
+            "failed"
+          ],
+          "input_component": null,
+          "display_component": "StatusBadge",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "enum": [
+              "scheduled",
+              "processing",
+              "completed",
+              "failed"
+            ]
+          }
+        },
+        "scheduled_date": {
+          "name": "scheduled_date",
+          "db_type": "DATE",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "DatePicker",
+          "display_component": "AbsoluteDate",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false,
+            "format": "date"
+          }
+        },
+        "notes": {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": "Textarea",
+          "display_component": "PlainText",
+          "editable": true,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "validation": {
+            "required": false
+          }
+        },
+        "created_by": {
+          "name": "created_by",
+          "db_type": "UUID",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "foreign_key": "users.id",
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "uuid"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "RelativeDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "datetime"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_cp_org_account",
+          "columns": [
+            "org_id",
+            "credit_account_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_cp_org_statement",
+          "columns": [
+            "org_id",
+            "statement_id"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_cp_org_payment_date",
+          "columns": [
+            "org_id",
+            "payment_date"
+          ],
+          "unique": false
+        },
+        {
+          "name": "idx_cp_org_status",
+          "columns": [
+            "org_id",
+            "status"
+          ],
+          "unique": false
+        }
+      ]
+    },
+    "CreditUtilizationSnapshot": {
+      "table": "credit_utilization_snapshots",
+      "description": "A daily snapshot of credit utilization for trend analysis.",
+      "fields": {
+        "id": {
+          "name": "id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "gen_random_uuid()",
+          "primary_key": true,
+          "input_component": null,
+          "display_component": "MonospaceText",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "org_id": {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "organizations.id",
+          "indexed": true,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "credit_account_id": {
+          "name": "credit_account_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "foreign_key": "credit_accounts.id",
+          "input_component": null,
+          "display_component": "PlainText",
+          "editable": false,
+          "sortable": false,
+          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "uuid"
+          }
+        },
+        "snapshot_date": {
+          "name": "snapshot_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": true,
+          "filterable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "date"
+          }
+        },
+        "balance": {
+          "name": "balance",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        "credit_limit": {
+          "name": "credit_limit",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "CurrencyDisplay",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true
+          }
+        },
+        "utilization_pct": {
+          "name": "utilization_pct",
+          "db_type": "NUMERIC(8,4) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "default": null,
+          "computed": {
+            "source": "allocations",
+            "formula": "(allocated_hours / (capacity_hours_per_day * working_days_in_period)) * 100",
+            "trigger": [
+              "insert",
+              "update",
+              "delete"
+            ],
+            "storage": "stored"
+          },
+          "computed_from": "(balance / credit_limit) * 100",
+          "input_component": null,
+          "display_component": "UtilizationBar",
+          "editable": false,
+          "sortable": true,
+          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "validation": {
+            "required": false
+          }
+        },
+        "computed_at": {
+          "name": "computed_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": null,
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "created_at": {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": "AbsoluteDate",
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "default": "now()",
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": true,
+            "format": "datetime"
+          }
+        },
+        "deleted_at": {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string | null",
+          "nullable": true,
+          "default": null,
+          "input_component": null,
+          "display_component": null,
+          "editable": false,
+          "sortable": false,
+          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "validation": {
+            "required": false,
+            "format": "datetime"
+          }
+        }
+      },
+      "indexes": [
+        {
+          "name": "idx_cus_org_account_date",
+          "columns": [
+            "org_id",
+            "credit_account_id",
+            "snapshot_date"
+          ],
+          "unique": true
+        },
+        {
+          "name": "idx_cus_org_snapshot_date",
+          "columns": [
+            "org_id",
+            "snapshot_date"
+          ],
+          "unique": false
+        }
+      ]
+    }
+  },
+  "components": [
+    "DataTable",
+    "SlideOverForm",
+    "StatusBadge",
+    "CurrencyDisplay",
+    "CurrencyInput",
+    "NumberDisplay",
+    "PercentageDisplay",
+    "Select",
+    "MultiSelect",
+    "Toggle",
+    "DatePicker",
+    "TextInput",
+    "Textarea",
+    "PlainText",
+    "MonospaceText",
+    "TruncatedText",
+    "TextLink",
+    "AbsoluteDate",
+    "RelativeDate",
+    "YesNoBadge",
+    "PageHeader",
+    "FilterPanel",
+    "TabPanel",
+    "EmptyState",
+    "LoadingSkeleton",
+    "ConfirmationDialog",
+    "StatCard",
+    "ActivityTimeline",
+    "AuthGuard",
+    "NotificationBell",
+    "AccountSelector",
+    "AccountLink",
+    "BankAccountSelector",
+    "CreditAccountCard",
+    "UtilizationGauge",
+    "UtilizationBar",
+    "TransactionDirectionBadge",
+    "CreditTypeBadge",
+    "StatementCard",
+    "MinimumPaymentAlert",
+    "PaymentDueBadge",
+    "ReconciliationStatusBadge",
+    "InterestCalculator",
+    "BalanceTrendChart",
+    "UtilizationTrendChart",
+    "StatementUploader",
+    "PaymentScheduleCalendar"
+  ],
+  "modules": [
+    {
+      "name": "CreditAccountList",
+      "route": "/credit-accounts",
+      "tabs": [
+        "All",
+        "Active",
+        "Inactive"
+      ]
+    },
+    {
+      "name": "CreditAccountDetail",
+      "route": "/credit-accounts/:id",
+      "tabs": [
+        "Overview",
+        "Transactions",
+        "Statements",
+        "Payments",
+        "Activity"
+      ]
+    },
+    {
+      "name": "CreditAccountCreate",
+      "route": "/credit-accounts/new",
+      "tabs": []
+    },
+    {
+      "name": "StatementList",
+      "route": "/credit-statements",
+      "tabs": [
+        "Open",
+        "Due",
+        "Overdue",
+        "Paid"
+      ]
+    },
+    {
+      "name": "CreditTransactionList",
+      "route": "/credit-transactions",
+      "tabs": []
+    },
+    {
+      "name": "CreditPaymentList",
+      "route": "/credit-payments",
+      "tabs": []
+    },
+    {
+      "name": "CreditAnalytics",
+      "route": "/analytics/credit",
+      "tabs": []
+    },
+    {
+      "name": "CreditSettings",
+      "route": "/settings/credit",
+      "tabs": []
+    }
+  ],
+  "api": {
+    "credit_accounts": [
+      {
+        "method": "GET",
+        "path": "/credit-accounts",
+        "description": "List credit accounts"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-accounts",
+        "description": "Create credit account"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-accounts/:id",
+        "description": "Get credit account"
+      },
+      {
+        "method": "PATCH",
+        "path": "/credit-accounts/:id",
+        "description": "Update credit account"
+      },
+      {
+        "method": "DELETE",
+        "path": "/credit-accounts/:id",
+        "description": "Delete credit account"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-accounts/:id/transactions",
+        "description": "Get account transactions"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-accounts/:id/statements",
+        "description": "Get account statements"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-accounts/:id/payments",
+        "description": "Get account payments"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-accounts/:id/utilization-history",
+        "description": "Get utilization history"
+      }
+    ],
+    "credit_transactions": [
+      {
+        "method": "GET",
+        "path": "/credit-transactions",
+        "description": "List transactions"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-transactions",
+        "description": "Create transaction"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-transactions/:id",
+        "description": "Get transaction"
+      },
+      {
+        "method": "PATCH",
+        "path": "/credit-transactions/:id",
+        "description": "Update transaction"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-transactions/import",
+        "description": "Import transactions from CSV"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-transactions/unreconciled",
+        "description": "Get unreconciled transactions"
+      }
+    ],
+    "credit_statements": [
+      {
+        "method": "GET",
+        "path": "/credit-statements",
+        "description": "List statements"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-statements",
+        "description": "Create/generate statement for period"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-statements/:id",
+        "description": "Get statement"
+      },
+      {
+        "method": "PATCH",
+        "path": "/credit-statements/:id",
+        "description": "Update statement"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-statements/:id/upload-pdf",
+        "description": "Upload statement PDF"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-statements/:id/reconcile-transactions",
+        "description": "Reconcile transactions against statement"
+      }
+    ],
+    "credit_payments": [
+      {
+        "method": "GET",
+        "path": "/credit-payments",
+        "description": "List payments"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-payments",
+        "description": "Create payment"
+      },
+      {
+        "method": "GET",
+        "path": "/credit-payments/:id",
+        "description": "Get payment"
+      },
+      {
+        "method": "PATCH",
+        "path": "/credit-payments/:id",
+        "description": "Update payment"
+      },
+      {
+        "method": "POST",
+        "path": "/credit-payments/:id/cancel",
+        "description": "Cancel payment"
+      }
+    ],
+    "snapshots": [
+      {
+        "method": "POST",
+        "path": "/credit-utilization-snapshots/compute",
+        "description": "Compute daily utilization snapshots (background job)"
+      }
+    ],
+    "analytics": [
+      {
+        "method": "GET",
+        "path": "/analytics/credit/utilization",
+        "params": [
+          "account_id",
+          "from",
+          "to"
+        ],
+        "description": "Utilization over time"
+      },
+      {
+        "method": "GET",
+        "path": "/analytics/credit/interest-accrued",
+        "params": [
+          "from",
+          "to"
+        ],
+        "description": "Interest accrued by period"
+      },
+      {
+        "method": "GET",
+        "path": "/analytics/credit/payment-history",
+        "params": [
+          "account_id"
+        ],
+        "description": "Payment history"
+      }
+    ]
+  },
+  "permissions": {
+    "roles": [
+      "admin",
+      "accountant",
+      "finance_manager",
+      "viewer"
+    ],
+    "matrix": {
+      "credit_accounts.create": [
+        "admin",
+        "finance_manager",
+        "accountant"
+      ],
+      "credit_accounts.edit": [
+        "admin",
+        "finance_manager",
+        "accountant"
+      ],
+      "transactions.create": [
+        "admin",
+        "finance_manager",
+        "accountant"
+      ],
+      "payments.create": [
+        "admin",
+        "finance_manager",
+        "accountant"
+      ],
+      "statements.reconcile": [
+        "admin",
+        "accountant"
+      ],
+      "all.view": [
+        "admin",
+        "finance_manager",
+        "accountant",
+        "viewer"
+      ]
+    }
+  },
+  "state": {
+    "stores": [
+      "authStore",
+      "uiStore",
+      "creditTransactionStore",
+      "filterStore"
+    ],
+    "creditTransactionStore_description": "Stores CSV import state and reconciliation session state",
+    "query_keys": [
+      "creditAccounts",
+      "creditTransactions",
+      "creditStatements",
+      "creditPayments",
+      "utilizationSnapshots"
+    ]
+  },
+  "websocket_events": [
+    {
+      "event": "payment.due_soon",
+      "description": "Emitted 3 days before payment due date"
+    },
+    {
+      "event": "payment.overdue",
+      "description": "Emitted when statement payment is overdue"
+    },
+    {
+      "event": "statement.available",
+      "description": "Emitted when a new statement is generated"
+    },
+    {
+      "event": "utilization.high_alert",
+      "description": "Emitted when utilization exceeds 80%"
+    }
+  ],
+  "flows": {
+    "track_credit_balance": {
+      "steps": [
+        "Transactions imported via CSV or entered manually",
+        "Running balance updated with balance_after snapshot per transaction",
+        "Daily background job computes CreditUtilizationSnapshot",
+        "Alert emitted if utilization_pct > configured threshold"
+      ]
+    },
+    "process_statement": {
+      "steps": [
+        "POST /credit-statements for billing period",
+        "Links credit_transactions in period date range",
+        "Compute total_charges, total_payments, total_interest, total_fees",
+        "Set minimum_payment_due = MAX(minimum_payment_fixed, current_balance * minimum_payment_pct / 100)",
+        "Status = due on billing_cycle_day"
+      ]
+    },
+    "record_credit_payment": {
+      "steps": [
+        "POST /credit-payments",
+        "Update credit_account.current_balance -= amount",
+        "If statement_id linked: update statement.status = paid",
+        "Create CreditTransaction of direction = payment"
+      ],
+      "journal_entry_side_effects": [
+        "DR Accounts Payable (credit card) / CR Bank on payment"
+      ]
+    },
+    "reconcile_statement": {
+      "steps": [
+        "POST /credit-statements/:id/reconcile-transactions",
+        "Match credit_transactions against statement period",
+        "Mark is_reconciled = true for matched transactions",
+        "Flag unmatched transactions for manual review"
+      ]
+    }
+  },
+  "computed_fields": [
+    {
+      "entity": "CreditAccount",
+      "field": "current_balance",
+      "formula": "SUM(charges + interest + fees) - SUM(payments + credits) for all transactions on account"
+    },
+    {
+      "entity": "CreditAccount",
+      "field": "available_credit",
+      "formula": "credit_limit - current_balance"
+    },
+    {
+      "entity": "CreditStatement",
+      "field": "total_charges",
+      "formula": "SUM(credit_transactions.amount WHERE direction='charge' AND statement_period=period AND credit_account_id=id)"
+    },
+    {
+      "entity": "CreditStatement",
+      "field": "total_payments",
+      "formula": "SUM(credit_transactions.amount WHERE direction='payment' AND statement_period=period AND credit_account_id=id)"
+    },
+    {
+      "entity": "CreditUtilizationSnapshot",
+      "field": "utilization_pct",
+      "formula": "(balance / credit_limit) * 100"
+    },
+    {
+      "entity": "CreditAccount",
+      "field": "minimum_payment_due",
+      "formula": "MAX(minimum_payment_fixed, current_balance * minimum_payment_pct / 100)"
+    }
+  ],
+  "domain_rules": [
+    {
+      "rule": "Charges cannot exceed credit_limit unless account_type is revolving_credit with grace",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 422 if amount would push balance > credit_limit for non-revolving accounts",
+      "ui_behavior": "Show over-limit warning; block submission for non-revolving accounts",
+      "db_constraint": null
+    },
+    {
+      "rule": "Payment cannot exceed current_balance",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 422 if payment.amount > current_balance",
+      "ui_behavior": "Disable submit and show error if payment exceeds current_balance",
+      "db_constraint": null
+    },
+    {
+      "rule": "Closed accounts cannot receive new transactions",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 422 if credit_account.closed_date is not null",
+      "ui_behavior": "Disable add transaction button for closed accounts; show closed badge",
+      "db_constraint": null
+    },
+    {
+      "rule": "Statement period cannot overlap for same credit account",
+      "enforced_at": [
+        "db"
+      ],
+      "api_guard": "Unique constraint violation returns 409",
+      "ui_behavior": "Show error if duplicate statement period attempted",
+      "db_constraint": "UNIQUE INDEX on (org_id, credit_account_id, statement_period)"
+    },
+    {
+      "rule": "Utilization above 90% triggers mandatory alert",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Emit utilization.high_alert WebSocket event; log alert",
+      "ui_behavior": "UtilizationGauge shows red danger state; MinimumPaymentAlert displayed prominently",
+      "db_constraint": null
+    },
+    {
+      "rule": "Credit payment must be linked to an active bank_account",
+      "enforced_at": [
+        "api",
+        "ui"
+      ],
+      "api_guard": "Return 422 if bank_account is inactive or not found",
+      "ui_behavior": "BankAccountSelector only shows active accounts",
+      "db_constraint": null
+    }
+  ],
+  "_meta": {
+    "title": "credit_tracking_spec.json",
+    "domain": "Operations",
+    "version": "1.0.0"
+  },
+  "design_system": {
+    "theme": "dark",
+    "bg": "slate-950",
+    "accent": "blue",
+    "success": "green",
+    "danger": "red",
+    "warning": "amber"
+  },
+  "global_fields": {
+    "id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "gen_random_uuid()",
+      "notes": "Primary key"
+    },
+    "org_id": {
+      "db_type": "UUID",
+      "ts_type": "string",
+      "nullable": false,
+      "default": null,
+      "notes": "FK→organizations, row-level security anchor"
+    },
+    "created_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "updated_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string",
+      "nullable": false,
+      "default": "NOW()"
+    },
+    "deleted_at": {
+      "db_type": "TIMESTAMPTZ",
+      "ts_type": "string | null",
+      "nullable": true,
+      "default": null,
+      "notes": "Soft delete — all queries filter deleted_at IS NULL"
+    }
+  },
+  "security": {
+    "row_level_security": {
+      "enabled": true,
+      "policy": "org_id = current_setting('app.current_org_id')::uuid",
+      "enforcement": [
+        "postgres_rls",
+        "application_middleware"
+      ],
+      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
+    },
+    "org_id_injection": {
+      "source": "jwt_claims",
+      "never_from_client": true,
+      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
+      "jwt_claim": "org_id"
+    },
+    "auth_required": true,
+    "api_rate_limiting": {
+      "enabled": true,
+      "strategy": "sliding_window",
+      "limits": {
+        "default": "1000/min",
+        "write": "200/min",
+        "bulk": "50/min"
+      }
+    }
+  },
+  "global_query_filters": [
+    "deleted_at IS NULL",
+    "org_id = :current_org_id"
+  ],
+  "concurrency": {
+    "strategy": "optimistic_locking",
+    "version_field": {
+      "name": "version",
+      "db_type": "INTEGER",
+      "default": 1,
+      "increment_on": [
+        "update"
+      ]
+    },
+    "conflict_response": {
+      "http_status": 409,
+      "message": "Record was modified by another user. Refresh and retry.",
+      "include_current_version": true
+    },
+    "high_contention_tables": "see entities with high write concurrency",
+    "pessimistic_locking": {
+      "use_for": [
+        "financial_transactions",
+        "inventory_updates",
+        "balance_changes"
+      ],
+      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
+    }
+  },
+  "transactions": {
+    "isolation_level": "READ COMMITTED",
+    "financial_operations": {
+      "isolation_level": "SERIALIZABLE",
+      "operations": [
+        "journal_post",
+        "payment_apply",
+        "balance_update",
+        "invoice_finalize"
+      ]
+    },
+    "patterns": [
+      {
+        "name": "write_with_audit",
+        "steps": [
+          "BEGIN",
+          "acquire_row_lock",
+          "validate_business_rules",
+          "write_entity",
+          "write_audit_log",
+          "COMMIT"
+        ],
+        "on_error": "ROLLBACK with full error detail"
+      },
+      {
+        "name": "bulk_operation",
+        "steps": [
+          "BEGIN",
+          "validate_all_records",
+          "write_batch",
+          "write_audit_log_batch",
+          "COMMIT"
+        ],
+        "max_batch_size": 500,
+        "on_error": "ROLLBACK entire batch"
+      }
+    ],
+    "deadlock_handling": {
+      "retry_attempts": 3,
+      "backoff_ms": [
+        50,
+        150,
+        500
+      ],
+      "on_exhaustion": "Return 503 with Retry-After header"
+    }
+  },
+  "pagination": {
+    "default_strategy": "cursor",
+    "fallback_strategy": "offset",
+    "cursor_field": "id",
+    "default_page_size": 25,
+    "max_page_size": 100,
+    "response_envelope": {
+      "data": "T[]",
+      "meta": {
+        "total": "integer (offset only)",
+        "page": "integer (offset only)",
+        "limit": "integer",
+        "cursor": "string | null (cursor strategy)",
+        "has_more": "boolean"
+      }
+    },
+    "sorting": {
+      "default": "created_at DESC",
+      "allowed_fields": "see individual entity sortable fields",
+      "multi_sort": true
+    },
+    "filtering": {
+      "engine": "query_params",
+      "operators": [
+        "eq",
+        "neq",
+        "gt",
+        "gte",
+        "lt",
+        "lte",
+        "in",
+        "like",
+        "is_null"
+      ],
+      "full_text_search": {
+        "enabled": true,
+        "fields": "see entity filterable fields",
+        "engine": "pg_trgm"
+      }
+    }
+  },
+  "audit_trail": {
+    "enabled": true,
+    "table": "audit_logs",
+    "captures": [
+      "insert",
+      "update",
+      "delete"
+    ],
+    "fields_tracked": "all non-computed, non-system fields",
+    "schema": {
+      "id": "UUID PK",
+      "org_id": "UUID NOT NULL",
+      "entity_type": "VARCHAR(100) NOT NULL",
+      "entity_id": "UUID NOT NULL",
+      "action": "ENUM('insert','update','delete')",
+      "actor_id": "UUID REFERENCES users",
+      "actor_ip": "INET",
+      "before": "JSONB",
+      "after": "JSONB",
+      "diff": "JSONB (computed: keys where before != after)",
+      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
+    },
+    "indexes": [
+      {
+        "columns": [
+          "org_id",
+          "entity_type",
+          "entity_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "actor_id"
+        ]
+      },
+      {
+        "columns": [
+          "org_id",
+          "created_at"
+        ]
+      }
+    ],
+    "retention_days": 2555,
+    "immutable": true,
+    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+  },
+  "db_constraints_policy": {
+    "naming_convention": "{table}_{column(s)}_{constraint_type}",
+    "standard_constraints": [
+      {
+        "type": "NOT NULL",
+        "applies_to": [
+          "id",
+          "org_id",
+          "created_at",
+          "updated_at"
+        ]
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_deleted_order",
+        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+      },
+      {
+        "type": "INDEX",
+        "name": "idx_{table}_org_deleted",
+        "columns": [
+          "org_id",
+          "deleted_at"
+        ],
+        "note": "Covers global query filter"
+      }
+    ],
+    "financial_constraints": [
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_positive_amount",
+        "expression": "amount >= 0",
+        "applies_to": "monetary amount fields"
+      },
+      {
+        "type": "CHECK",
+        "name": "chk_{table}_valid_currency",
+        "expression": "char_length(currency) = 3",
+        "applies_to": "currency fields"
+      }
+    ],
+    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
+  },
+  "enums": {},
+  "soft_delete_policy": {
+    "field": "deleted_at",
+    "type": "TIMESTAMPTZ",
+    "filter": "deleted_at IS NULL applied globally via query builder middleware",
+    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
+    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
+    "restore": "Set deleted_at = NULL; triggers audit log entry"
+  },
+  "naming_conventions": {
+    "db_tables": "snake_case plural (e.g. invoice_lines)",
+    "db_columns": "snake_case (e.g. created_at)",
+    "ts_types": "PascalCase (e.g. InvoiceLine)",
+    "ts_fields": "camelCase (e.g. createdAt)",
+    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
+    "api_params": "snake_case (e.g. ?created_at_from=)",
+    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
+    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
+    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
+    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
+    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  }
+}
