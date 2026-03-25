@@ -10,15 +10,27 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from db import engine, Base
 from routes import all_routers
+
+# Import all models so Base.metadata knows every table
+import models  # noqa: F401
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup (use Alembic migrations in production)
+    # On first deploy: nuke old schema if RESET_DB=1, then create all tables
+    if os.getenv("RESET_DB") == "1":
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP SCHEMA public CASCADE"))
+            await conn.execute(text("CREATE SCHEMA public"))
+            await conn.execute(text("GRANT ALL ON SCHEMA public TO PUBLIC"))
+        print("🗑️  Old schema dropped.")
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    print("✅ All tables ready.")
     yield
     await engine.dispose()
 
