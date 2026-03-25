@@ -25,29 +25,29 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4">
       <div className="w-full max-w-2xl">
         {/* Logo / Brand */}
         <div className="mb-12 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-violet-600">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-black">
             <Sparkles className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-3xl font-bold text-black">
             What do you want to build?
           </h1>
-          <p className="mt-3 text-slate-400">
+          <p className="mt-3 text-gray-500">
             Describe your app and we'll generate it for you — CRM, inventory system,
             project tracker, or anything else.
           </p>
         </div>
 
         {/* Prompt input */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-1.5">
+        <div className="rounded-2xl border border-gray-200 bg-white p-1.5 shadow-sm">
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. Build me a CRM for real estate with lead tracking, deal pipeline, and task management..."
-            className="w-full resize-none rounded-xl bg-transparent px-4 py-4 text-white placeholder-slate-500 focus:outline-none"
+            className="w-full resize-none rounded-xl bg-transparent px-4 py-4 text-black placeholder-gray-400 focus:outline-none"
             rows={4}
             disabled={loading}
             onKeyDown={(e) => {
@@ -55,13 +55,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             }}
           />
           <div className="flex items-center justify-between px-2 pb-1">
-            <span className="text-xs text-slate-500">
+            <span className="text-xs text-gray-400">
               {loading ? "Generating your app..." : "Cmd+Enter to submit"}
             </span>
             <button
               onClick={handleSubmit}
               disabled={!prompt.trim() || loading}
-              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <>
@@ -79,7 +79,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         </div>
 
         {error && (
-          <div className="mt-4 rounded-lg border border-red-800 bg-red-950/50 px-4 py-3 text-sm text-red-400">
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
             {error}
           </div>
         )}
@@ -95,7 +95,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               key={example}
               onClick={() => setPrompt(example)}
               disabled={loading}
-              className="rounded-xl border border-slate-800 bg-slate-900/50 px-4 py-3 text-left text-sm text-slate-400 transition hover:border-slate-700 hover:text-slate-300"
+              className="rounded-xl border border-gray-200 bg-white px-4 py-3 text-left text-sm text-gray-500 transition hover:border-gray-300 hover:text-black"
             >
               {example}
             </button>

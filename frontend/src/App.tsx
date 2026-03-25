@@ -107,10 +107,10 @@ export default function App() {
 
   if (status === "loading") {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950">
+      <div className="flex h-screen items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          <p className="text-sm text-slate-400">Loading...</p>
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-black border-t-transparent" />
+          <p className="text-sm text-gray-500">Loading...</p>
         </div>
       </div>
     );
@@ -118,10 +118,10 @@ export default function App() {
 
   if (status === "error") {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-950">
-        <div className="rounded-xl border border-red-800 bg-red-950/50 p-6 text-center">
-          <h2 className="text-lg font-semibold text-red-400">Something went wrong</h2>
-          <p className="mt-2 text-sm text-slate-400">{error}</p>
+      <div className="flex h-screen items-center justify-center bg-white">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+          <h2 className="text-lg font-semibold text-red-600">Something went wrong</h2>
+          <p className="mt-2 text-sm text-gray-500">{error}</p>
         </div>
       </div>
     );
