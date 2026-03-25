@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Search, Download, Eye, X, Star } from "lucide-react";
+import { Search, Download, Eye, X, Star, Check } from "lucide-react";
 import JSZip from "jszip";
+import { useAppStore } from "@/stores/appStore";
 
 type Category = "all" | "software" | "websites" | "apps" | "agents";
 
@@ -239,10 +240,24 @@ const CATEGORY_BADGE: Record<string, string> = {
   agents: "bg-amber-100 text-amber-700",
 };
 
+const GRADIENT_TO_COLOR: Record<string, string> = {
+  "from-emerald-500 to-teal-600": "#10b981",
+  "from-blue-500 to-indigo-600": "#3b82f6",
+  "from-orange-500 to-red-500": "#f97316",
+  "from-gray-700 to-gray-900": "#374151",
+  "from-green-500 to-emerald-600": "#22c55e",
+  "from-purple-500 to-violet-600": "#8b5cf6",
+  "from-pink-500 to-rose-600": "#ec4899",
+  "from-cyan-500 to-blue-600": "#06b6d4",
+  "from-amber-500 to-orange-600": "#f59e0b",
+};
+
 export function MarketplacePage() {
   const [category, setCategory] = useState<Category>("all");
   const [search, setSearch] = useState("");
   const [previewItem, setPreviewItem] = useState<MarketplaceItem | null>(null);
+  const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
+  const { addApp, apps } = useAppStore();
 
   const filtered = MOCK_ITEMS.filter((item) => {
     if (category !== "all" && item.category !== category) return false;
@@ -253,6 +268,23 @@ export function MarketplacePage() {
   const handleDownload = async (item: MarketplaceItem) => {
     if (!item.downloadable) return;
 
+    // Add to My Apps if not already there
+    const alreadyInApps = apps.some(
+      (a) => a.name === item.title && a.source === "marketplace"
+    );
+    if (!alreadyInApps) {
+      addApp({
+        name: item.title,
+        type: item.category === "websites" ? "website" : item.category === "agents" ? "agent" : item.category === "apps" ? "app" : "software",
+        status: "online",
+        color: GRADIENT_TO_COLOR[item.preview] || "#3b82f6",
+        source: "marketplace",
+        htmlContent: item.downloadable,
+      });
+    }
+    setJustAdded((prev) => new Set(prev).add(item.id));
+
+    // Also download to PC
     const slug = item.title.toLowerCase().replace(/\s+/g, "-");
     const zip = new JSZip();
     const folder = zip.folder(slug)!;
@@ -465,10 +497,23 @@ Requires [Node.js](https://nodejs.org) installed.
                   <button
                     onClick={() => handleDownload(item)}
                     disabled={!item.downloadable && item.price > 0}
-                    className="flex items-center gap-1.5 rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                      justAdded.has(item.id)
+                        ? "bg-green-600 text-white"
+                        : "bg-black text-white hover:bg-gray-800"
+                    }`}
                   >
-                    <Download className="h-3 w-3" />
-                    {item.downloadable ? "Download" : item.price === 0 ? "Download" : "Buy"}
+                    {justAdded.has(item.id) ? (
+                      <>
+                        <Check className="h-3 w-3" />
+                        Added & Downloaded
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-3 w-3" />
+                        {item.downloadable ? "Download" : item.price === 0 ? "Download" : "Buy"}
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -552,7 +597,7 @@ Requires [Node.js](https://nodejs.org) installed.
                   className="flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Download className="h-4 w-4" />
-                  {previewItem.downloadable ? "Download to Desktop" : previewItem.price === 0 ? "Download to Desktop" : "Buy & Download"}
+                  Download & Add to My Apps
                 </button>
               </div>
             </div>
