@@ -303,17 +303,21 @@ app.on("window-all-closed", () => app.quit());
       `#!/bin/bash
 cd "$(dirname "$0")"
 if ! command -v npm &>/dev/null; then
-  echo "Node.js is required. Install it from https://nodejs.org"
+  echo ""
+  echo "  Node.js is required to run this app."
+  echo "  Install it from: https://nodejs.org"
+  echo ""
   read -p "Press Enter to exit..."
   exit 1
 fi
 if [ ! -d node_modules ]; then
-  echo "Installing dependencies (first run only)..."
+  echo "Installing dependencies (first run only, may take a minute)..."
   npm install --no-fund --no-audit
 fi
 echo "Launching ${item.title}..."
 npx electron .
-`
+`,
+      { unixPermissions: "755" }
     );
 
     // start.bat — double-click launcher for Windows
@@ -321,9 +325,9 @@ npx electron .
       "start.bat",
       `@echo off
 cd /d "%~dp0"
-where npm >nul 2>nul || (echo Node.js is required. Install it from https://nodejs.org && pause && exit /b 1)
+where npm >nul 2>nul || (echo. & echo   Node.js is required. Install from https://nodejs.org & echo. & pause & exit /b 1)
 if not exist node_modules (
-  echo Installing dependencies (first run only)...
+  echo Installing dependencies [first run only, may take a minute]...
   npm install --no-fund --no-audit
 )
 echo Launching ${item.title}...
@@ -340,11 +344,19 @@ Built with [isibi.ai](https://isibi.ai)
 
 ## Run as Desktop App
 
-**Mac:** Double-click \`start.command\`
-**Windows:** Double-click \`start.bat\`
+### Mac
+1. Unzip this folder
+2. Open Terminal
+3. Run: \`cd ${slug} && chmod +x start.command && open start.command\`
 
-Or manually:
+Or right-click \`start.command\` > Open (to bypass macOS Gatekeeper)
+
+### Windows
+Double-click \`start.bat\`
+
+### Manual (any OS)
 \`\`\`
+cd ${slug}
 npm install
 npm start
 \`\`\`
@@ -353,7 +365,7 @@ Requires [Node.js](https://nodejs.org) installed.
 `
     );
 
-    const blob = await zip.generateAsync({ type: "blob" });
+    const blob = await zip.generateAsync({ type: "blob", platform: "UNIX" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
