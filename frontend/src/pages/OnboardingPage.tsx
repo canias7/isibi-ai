@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { ArrowUp, Loader2, ChevronDown, Check } from "lucide-react";
+import { ArrowUp, Loader2, ChevronDown, Check, User, Settings, CreditCard, HelpCircle, LogOut } from "lucide-react";
 import { post } from "@/api/client";
 
 interface Props {
@@ -25,6 +25,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,6 +36,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setModelOpen(false);
+      }
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -76,8 +81,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
-      {/* Top bar with model selector */}
-      <div className="flex items-center px-4 py-3">
+      {/* Top bar */}
+      <div className="flex items-center justify-between px-4 py-3">
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setModelOpen(!modelOpen)}
@@ -103,6 +108,42 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   )}
                 </button>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Profile menu */}
+        <div className="relative" ref={profileRef}>
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+          >
+            <User className="h-4 w-4 text-gray-600" />
+          </button>
+          {profileOpen && (
+            <div className="absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+              <div className="border-b border-gray-100 px-3 py-2">
+                <p className="text-sm font-medium text-black">My Account</p>
+                <p className="text-xs text-gray-400">user@isibi.ai</p>
+              </div>
+              <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
+                <Settings className="h-4 w-4" />
+                Settings
+              </button>
+              <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
+                <CreditCard className="h-4 w-4" />
+                Billing
+              </button>
+              <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
+                <HelpCircle className="h-4 w-4" />
+                Help & FAQ
+              </button>
+              <div className="border-t border-gray-100 mt-1 pt-1">
+                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-500 transition hover:bg-gray-50">
+                  <LogOut className="h-4 w-4" />
+                  Log out
+                </button>
+              </div>
             </div>
           )}
         </div>
