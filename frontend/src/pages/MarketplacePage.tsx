@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Search, Download, Eye, X, Star } from "lucide-react";
+import JSZip from "jszip";
 
 type Category = "all" | "software" | "websites" | "apps" | "agents";
 
@@ -23,6 +24,10 @@ const TASK_TRACKER_HTML = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Task Tracker Pro</title>
+<link rel="manifest" href="data:application/json;base64,">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#ffffff">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;color:#1a1a1a;min-height:100vh}
@@ -245,13 +250,114 @@ export function MarketplacePage() {
     return true;
   });
 
-  const handleDownload = (item: MarketplaceItem) => {
+  const handleDownload = async (item: MarketplaceItem) => {
     if (!item.downloadable) return;
-    const blob = new Blob([item.downloadable], { type: "text/html" });
+
+    const slug = item.title.toLowerCase().replace(/\s+/g, "-");
+    const zip = new JSZip();
+    const folder = zip.folder(slug)!;
+
+    // index.html — the actual app
+    folder.file("index.html", item.downloadable);
+
+    // package.json — Electron wrapper
+    folder.file(
+      "package.json",
+      JSON.stringify(
+        {
+          name: slug,
+          version: "1.0.0",
+          main: "main.js",
+          scripts: { start: "electron ." },
+          dependencies: { electron: "^33.0.0" },
+        },
+        null,
+        2
+      )
+    );
+
+    // main.js — Electron entry point
+    folder.file(
+      "main.js",
+      `const { app, BrowserWindow } = require("electron");
+const path = require("path");
+
+app.whenReady().then(() => {
+  const win = new BrowserWindow({
+    width: 1024,
+    height: 700,
+    title: ${JSON.stringify(item.title)},
+    webPreferences: { nodeIntegration: false, contextIsolation: true },
+  });
+  win.loadFile("index.html");
+  win.setMenuBarVisibility(false);
+});
+
+app.on("window-all-closed", () => app.quit());
+`
+    );
+
+    // start.command — double-click launcher for Mac
+    folder.file(
+      "start.command",
+      `#!/bin/bash
+cd "$(dirname "$0")"
+if ! command -v npm &>/dev/null; then
+  echo "Node.js is required. Install it from https://nodejs.org"
+  read -p "Press Enter to exit..."
+  exit 1
+fi
+if [ ! -d node_modules ]; then
+  echo "Installing dependencies (first run only)..."
+  npm install --no-fund --no-audit
+fi
+echo "Launching ${item.title}..."
+npx electron .
+`
+    );
+
+    // start.bat — double-click launcher for Windows
+    folder.file(
+      "start.bat",
+      `@echo off
+cd /d "%~dp0"
+where npm >nul 2>nul || (echo Node.js is required. Install it from https://nodejs.org && pause && exit /b 1)
+if not exist node_modules (
+  echo Installing dependencies (first run only)...
+  npm install --no-fund --no-audit
+)
+echo Launching ${item.title}...
+npx electron .
+`
+    );
+
+    // README
+    folder.file(
+      "README.md",
+      `# ${item.title}
+
+Built with [isibi.ai](https://isibi.ai)
+
+## Run as Desktop App
+
+**Mac:** Double-click \`start.command\`
+**Windows:** Double-click \`start.bat\`
+
+Or manually:
+\`\`\`
+npm install
+npm start
+\`\`\`
+
+Requires [Node.js](https://nodejs.org) installed.
+`
+    );
+
+    const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${item.title.toLowerCase().replace(/\s+/g, "-")}.html`;
+    a.download = `${slug}.zip`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
