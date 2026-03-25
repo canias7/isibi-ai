@@ -12,7 +12,11 @@ let _spec: AppSpec | null = null;
  *   1. GET /api/spec  (backend serves the generated spec for this org)
  *   2. Bundled fallback for local dev
  */
-export async function loadSpec(): Promise<AppSpec> {
+/**
+ * Load the spec from the backend.
+ * Returns null if no spec exists yet (user hasn't generated one).
+ */
+export async function loadSpec(): Promise<AppSpec | null> {
   try {
     const apiBase = import.meta.env.VITE_API_URL || "/api";
     const res = await fetch(`${apiBase}/spec`);
@@ -23,11 +27,7 @@ export async function loadSpec(): Promise<AppSpec> {
   } catch {
     // backend not available
   }
-
-  // Fallback: bundled spec for dev
-  const fallback = await import("../../crm_spec.json");
-  _spec = fallback.default as unknown as AppSpec;
-  return _spec;
+  return null;
 }
 
 export function getSpec(): AppSpec {

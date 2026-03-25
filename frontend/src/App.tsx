@@ -5,6 +5,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { EntityListPage } from "@/pages/EntityListPage";
 import { EntityDetailPage } from "@/pages/EntityDetailPage";
+import { OnboardingPage } from "@/pages/OnboardingPage";
 import { loadSpec, getAllModules, getEntityForModule } from "@/lib/spec";
 import type { ModuleSpec } from "@/types/spec";
 
@@ -23,14 +24,12 @@ function SpecDrivenRoutes({ modules }: { modules: ModuleSpec[] }) {
         {modules.map((mod) => {
           const entity = getEntityForModule(mod);
 
-          // Dashboard is a special page
           if (mod.name === "Dashboard") {
             return (
               <Route key={mod.route} path={mod.route} element={<DashboardPage />} />
             );
           }
 
-          // Modules with a matching entity get dynamic CRUD pages
           if (entity) {
             return [
               <Route
@@ -38,7 +37,6 @@ function SpecDrivenRoutes({ modules }: { modules: ModuleSpec[] }) {
                 path={mod.route}
                 element={<EntityListPage entity={entity} />}
               />,
-              // Detail route: use spec's detail_view.route or fallback to /:id
               entity.ui_config.detail_view?.route ? (
                 <Route
                   key={entity.ui_config.detail_view.route}
@@ -61,7 +59,6 @@ function SpecDrivenRoutes({ modules }: { modules: ModuleSpec[] }) {
             ];
           }
 
-          // Modules without entity match → placeholder page
           return (
             <Route
               key={mod.route}
@@ -83,41 +80,62 @@ function SpecDrivenRoutes({ modules }: { modules: ModuleSpec[] }) {
 }
 
 export default function App() {
-  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState<"loading" | "has-spec" | "no-spec" | "error">("loading");
   const [modules, setModules] = useState<ModuleSpec[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const attemptLoad = () => {
+    setStatus("loading");
     loadSpec()
-      .then(() => {
-        setModules(getAllModules());
-        setReady(true);
+      .then((spec) => {
+        if (spec) {
+          setModules(getAllModules());
+          setStatus("has-spec");
+        } else {
+          setStatus("no-spec");
+        }
       })
       .catch((err) => {
         setError(String(err));
-        setReady(true);
+        setStatus("error");
       });
+  };
+
+  useEffect(() => {
+    attemptLoad();
   }, []);
 
-  if (!ready) {
+  if (status === "loading") {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-          <p className="text-sm text-slate-400">Loading spec…</p>
+          <p className="text-sm text-slate-400">Loading...</p>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (status === "error") {
     return (
       <div className="flex h-screen items-center justify-center bg-slate-950">
         <div className="rounded-xl border border-red-800 bg-red-950/50 p-6 text-center">
-          <h2 className="text-lg font-semibold text-red-400">Failed to load spec</h2>
+          <h2 className="text-lg font-semibold text-red-400">Something went wrong</h2>
           <p className="mt-2 text-sm text-slate-400">{error}</p>
         </div>
       </div>
+    );
+  }
+
+  if (status === "no-spec") {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="*" element={<OnboardingPage onSpecCreated={attemptLoad} />} />
+          </Routes>
+        </BrowserRouter>
+      </QueryClientProvider>
     );
   }
 
