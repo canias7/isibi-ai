@@ -12,7 +12,10 @@ interface Message {
 }
 
 const MODELS = [
-  { id: "anias-1.0", label: "Anias 1.0" },
+  { id: "anias-1.0", label: "Anias 1.0", description: "Software builder" },
+  { id: "ambar-1.0", label: "Ambar 1.0", description: "Website builder" },
+  { id: "mario-1.0", label: "Mario 1.0", description: "App builder" },
+  { id: "claw-1.0", label: "Claw 1.0", description: "Agent builder" },
 ];
 
 export function OnboardingPage({ onSpecCreated }: Props) {
@@ -92,7 +95,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
           </button>
           {modelOpen && (
-            <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+            <div className="absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
               {MODELS.map((model) => (
                 <button
                   key={model.id}
@@ -100,11 +103,14 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     setSelectedModel(model);
                     setModelOpen(false);
                   }}
-                  className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-black transition hover:bg-gray-50"
+                  className="flex w-full items-center justify-between px-3 py-2.5 text-left transition hover:bg-gray-50"
                 >
-                  {model.label}
+                  <div>
+                    <p className="text-sm font-medium text-black">{model.label}</p>
+                    <p className="text-xs text-gray-400">{model.description}</p>
+                  </div>
                   {selectedModel.id === model.id && (
-                    <Check className="h-4 w-4 text-black" />
+                    <Check className="h-4 w-4 shrink-0 text-black" />
                   )}
                 </button>
               ))}
