@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { post } from "@/api/client";
 import { MarketplacePage } from "./MarketplacePage";
+import { MyAppsPage } from "./MyAppsPage";
 
 interface Props {
   onSpecCreated: () => void;
@@ -37,11 +38,12 @@ const MODELS = [
   { id: "claw-1.0", label: "Claw 1.0", description: "Agent builder" },
 ];
 
-type View = "chat" | "marketplace" | "projects" | "templates" | "docs" | "history";
+type View = "chat" | "marketplace" | "projects" | "myapps" | "templates" | "docs" | "history";
 
 const SIDEBAR_ITEMS: { id: View; label: string; icon: typeof Plus }[] = [
   { id: "chat", label: "New Chat", icon: Plus },
   { id: "projects", label: "My Projects", icon: FolderOpen },
+  { id: "myapps", label: "My Apps", icon: LayoutTemplate },
   { id: "marketplace", label: "isibi marketplace", icon: Store },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
   { id: "docs", label: "Docs", icon: BookOpen },
@@ -267,7 +269,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         </div>
 
         {/* View content */}
-        {activeView === "marketplace" ? (
+        {activeView === "myapps" ? (
+          <MyAppsPage />
+        ) : activeView === "marketplace" ? (
           <MarketplacePage />
         ) : activeView === "projects" ? (
           <div className="flex flex-1 items-center justify-center">
