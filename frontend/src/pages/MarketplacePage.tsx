@@ -14,9 +14,113 @@ interface MarketplaceItem {
   downloads: number;
   preview: string; // placeholder color/gradient
   tags: string[];
+  downloadable?: string; // HTML content to download as a standalone app
 }
 
+const TASK_TRACKER_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Task Tracker Pro</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;color:#1a1a1a;min-height:100vh}
+.header{background:#fff;border-bottom:1px solid #e5e7eb;padding:16px 24px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:18px;font-weight:600}
+.header .badge{background:#000;color:#fff;font-size:10px;padding:2px 8px;border-radius:99px}
+.container{max-width:800px;margin:0 auto;padding:24px}
+.add-bar{display:flex;gap:8px;margin-bottom:24px}
+.add-bar input{flex:1;padding:10px 14px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none}
+.add-bar input:focus{border-color:#000}
+.add-bar select{padding:10px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:14px;outline:none;background:#fff}
+.add-bar button{padding:10px 20px;background:#000;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:500;cursor:pointer}
+.add-bar button:hover{background:#333}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;text-align:center}
+.stat .num{font-size:28px;font-weight:700}
+.stat .lbl{font-size:12px;color:#6b7280;margin-top:2px}
+.filters{display:flex;gap:6px;margin-bottom:16px}
+.filters button{padding:6px 14px;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;background:#fff;cursor:pointer}
+.filters button.active{background:#000;color:#fff;border-color:#000}
+.task{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:8px;transition:all .15s}
+.task:hover{border-color:#ccc}
+.task.done{opacity:.5}
+.task.done .title{text-decoration:line-through}
+.cb{width:20px;height:20px;border:2px solid #d1d5db;border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cb.checked{background:#000;border-color:#000}
+.cb.checked::after{content:'\\2713';color:#fff;font-size:12px}
+.title{flex:1;font-size:14px}
+.priority{font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500}
+.priority.high{background:#fee2e2;color:#dc2626}
+.priority.medium{background:#fef3c7;color:#d97706}
+.priority.low{background:#d1fae5;color:#059669}
+.del{width:28px;height:28px;border:none;background:transparent;cursor:pointer;border-radius:6px;font-size:16px;color:#9ca3af;display:flex;align-items:center;justify-content:center}
+.del:hover{background:#fee2e2;color:#dc2626}
+.empty{text-align:center;padding:60px 20px;color:#9ca3af;font-size:14px}
+</style>
+</head>
+<body>
+<div class="header">
+<h1>Task Tracker Pro</h1>
+<span class="badge">Built with isibi.ai</span>
+</div>
+<div class="container">
+<div class="add-bar">
+<input id="inp" type="text" placeholder="Add a new task..." onkeydown="if(event.key==='Enter')addTask()">
+<select id="pri"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option></select>
+<button onclick="addTask()">Add Task</button>
+</div>
+<div class="stats" id="stats"></div>
+<div class="filters" id="filters"></div>
+<div id="list"></div>
+</div>
+<script>
+let tasks=JSON.parse(localStorage.getItem('tt_tasks')||'[]');
+let filter='all';
+function id(){return Math.random().toString(36).slice(2,9)}
+function addTask(){const inp=document.getElementById('inp');const v=inp.value.trim();if(!v)return;tasks.push({id:id(),title:v,priority:document.getElementById('pri').value,done:false,created:Date.now()});inp.value='';save();render()}
+function toggle(tid){const t=tasks.find(x=>x.id===tid);if(t)t.done=!t.done;save();render()}
+function del(tid){tasks=tasks.filter(x=>x.id!==tid);save();render()}
+function save(){localStorage.setItem('tt_tasks',JSON.stringify(tasks))}
+function setFilter(f){filter=f;render()}
+function render(){
+const list=document.getElementById('list');
+const filtered=filter==='all'?tasks:filter==='active'?tasks.filter(t=>!t.done):tasks.filter(t=>t.done);
+const total=tasks.length,done=tasks.filter(t=>t.done).length,active=total-done;
+const high=tasks.filter(t=>t.priority==='high'&&!t.done).length;
+document.getElementById('stats').innerHTML=\`
+<div class="stat"><div class="num">\${total}</div><div class="lbl">Total</div></div>
+<div class="stat"><div class="num">\${active}</div><div class="lbl">Active</div></div>
+<div class="stat"><div class="num">\${done}</div><div class="lbl">Completed</div></div>
+<div class="stat"><div class="num">\${high}</div><div class="lbl">High Priority</div></div>\`;
+document.getElementById('filters').innerHTML=['all','active','completed'].map(f=>\`<button class="\${filter===f?'active':''}" onclick="setFilter('\${f}')">\${f.charAt(0).toUpperCase()+f.slice(1)}</button>\`).join('');
+if(!filtered.length){list.innerHTML='<div class="empty">No tasks here. Add one above!</div>';return}
+list.innerHTML=filtered.map(t=>\`<div class="task \${t.done?'done':''}">
+<div class="cb \${t.done?'checked':''}" onclick="toggle('\${t.id}')"></div>
+<span class="title">\${t.title}</span>
+<span class="priority \${t.priority}">\${t.priority}</span>
+<button class="del" onclick="del('\${t.id}')">&#10005;</button>
+</div>\`).join('')}
+render();
+<\/script>
+</body>
+</html>`;
+
 const MOCK_ITEMS: MarketplaceItem[] = [
+  {
+    id: "0",
+    title: "Task Tracker Pro",
+    description: "A complete task management app with priority levels (high/medium/low), filters, stats dashboard, and local storage persistence. Add tasks, mark complete, delete, and filter by status. Works entirely offline — no server needed.",
+    creator: "isibi",
+    category: "software",
+    price: 0,
+    rating: 4.9,
+    downloads: 4820,
+    preview: "from-emerald-500 to-teal-600",
+    tags: ["Tasks", "Productivity", "Offline", "Free"],
+    downloadable: TASK_TRACKER_HTML,
+  },
   {
     id: "1",
     title: "Real Estate CRM",
@@ -141,6 +245,19 @@ export function MarketplacePage() {
     return true;
   });
 
+  const handleDownload = (item: MarketplaceItem) => {
+    if (!item.downloadable) return;
+    const blob = new Blob([item.downloadable], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${item.title.toLowerCase().replace(/\s+/g, "-")}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="flex-1 overflow-y-auto">
       <div className="mx-auto max-w-6xl px-6 py-8">
@@ -227,9 +344,13 @@ export function MarketplacePage() {
                   <span className="text-sm font-semibold text-black">
                     {item.price === 0 ? "Free" : `$${item.price}`}
                   </span>
-                  <button className="flex items-center gap-1.5 rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gray-800">
+                  <button
+                    onClick={() => handleDownload(item)}
+                    disabled={!item.downloadable && item.price > 0}
+                    className="flex items-center gap-1.5 rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
                     <Download className="h-3 w-3" />
-                    {item.price === 0 ? "Download" : "Buy"}
+                    {item.downloadable ? "Download" : item.price === 0 ? "Download" : "Buy"}
                   </button>
                 </div>
               </div>
@@ -307,9 +428,13 @@ export function MarketplacePage() {
                 <span className="text-2xl font-bold text-black">
                   {previewItem.price === 0 ? "Free" : `$${previewItem.price}`}
                 </span>
-                <button className="flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800">
+                <button
+                  onClick={() => { handleDownload(previewItem); setPreviewItem(null); }}
+                  disabled={!previewItem.downloadable && previewItem.price > 0}
+                  className="flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
                   <Download className="h-4 w-4" />
-                  {previewItem.price === 0 ? "Download to Desktop" : "Buy & Download"}
+                  {previewItem.downloadable ? "Download to Desktop" : previewItem.price === 0 ? "Download to Desktop" : "Buy & Download"}
                 </button>
               </div>
             </div>
