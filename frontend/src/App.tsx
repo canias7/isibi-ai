@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { EntityListPage } from "@/pages/EntityListPage";
 import { EntityDetailPage } from "@/pages/EntityDetailPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
+import { LoginPage } from "@/pages/LoginPage";
+import { SignupPage } from "@/pages/SignupPage";
+import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
+import { useAuthStore } from "@/stores/authStore";
 import { loadSpec, getAllModules, getEntityForModule } from "@/lib/spec";
 import type { ModuleSpec } from "@/types/spec";
 
@@ -65,8 +69,8 @@ function SpecDrivenRoutes({ modules }: { modules: ModuleSpec[] }) {
               path={mod.route}
               element={
                 <div className="p-6">
-                  <h1 className="text-2xl font-bold text-white">{mod.name}</h1>
-                  <p className="mt-2 text-slate-400">
+                  <h1 className="text-2xl font-bold text-black">{mod.name}</h1>
+                  <p className="mt-2 text-gray-500">
                     This module is defined in the spec but has no entity mapping yet.
                   </p>
                 </div>
@@ -79,33 +83,92 @@ function SpecDrivenRoutes({ modules }: { modules: ModuleSpec[] }) {
   );
 }
 
+function AuthRouter() {
+  const navigate = useNavigate();
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+
+  if (verifyEmail) {
+    return (
+      <VerifyEmailPage
+        email={verifyEmail}
+        onVerified={() => {
+          setVerifyEmail(null);
+          navigate("/");
+          window.location.reload();
+        }}
+      />
+    );
+  }
+
+  return (
+    <Routes>
+      <Route
+        path="/signup"
+        element={
+          <SignupPage
+            onSignup={(email) => setVerifyEmail(email)}
+          />
+        }
+      />
+      <Route
+        path="/login"
+        element={
+          <LoginPage
+            onLogin={() => {
+              navigate("/");
+              window.location.reload();
+            }}
+            onNeedVerify={(email) => setVerifyEmail(email)}
+          />
+        }
+      />
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Routes>
+  );
+}
+
 export default function App() {
-  const [status, setStatus] = useState<"loading" | "has-spec" | "no-spec" | "error">("loading");
+  const { isAuthenticated } = useAuthStore();
+  const [appStatus, setAppStatus] = useState<"loading" | "has-spec" | "no-spec" | "error">("loading");
   const [modules, setModules] = useState<ModuleSpec[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const attemptLoad = () => {
-    setStatus("loading");
+    setAppStatus("loading");
     loadSpec()
       .then((spec) => {
         if (spec) {
           setModules(getAllModules());
-          setStatus("has-spec");
+          setAppStatus("has-spec");
         } else {
-          setStatus("no-spec");
+          setAppStatus("no-spec");
         }
       })
       .catch((err) => {
         setError(String(err));
-        setStatus("error");
+        setAppStatus("no-spec"); // Fall back to onboarding on error
       });
   };
 
   useEffect(() => {
-    attemptLoad();
-  }, []);
+    if (isAuthenticated) {
+      attemptLoad();
+    }
+  }, [isAuthenticated]);
 
-  if (status === "loading") {
+  // Not logged in → auth pages
+  if (!isAuthenticated) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthRouter />
+        </BrowserRouter>
+      </QueryClientProvider>
+    );
+  }
+
+  // Logged in, loading spec
+  if (appStatus === "loading") {
     return (
       <div className="flex h-screen items-center justify-center bg-white">
         <div className="flex flex-col items-center gap-3">
@@ -116,18 +179,8 @@ export default function App() {
     );
   }
 
-  if (status === "error") {
-    return (
-      <div className="flex h-screen items-center justify-center bg-white">
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-          <h2 className="text-lg font-semibold text-red-600">Something went wrong</h2>
-          <p className="mt-2 text-sm text-gray-500">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "no-spec") {
+  // Logged in, no spec or error → onboarding (chat)
+  if (appStatus === "no-spec" || appStatus === "error") {
     return (
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
@@ -139,6 +192,7 @@ export default function App() {
     );
   }
 
+  // Logged in with spec → full app
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

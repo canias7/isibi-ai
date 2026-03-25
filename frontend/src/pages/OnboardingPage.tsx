@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import { post } from "@/api/client";
+import { useAuthStore } from "@/stores/authStore";
 import { MarketplacePage } from "./MarketplacePage";
 import { MyAppsPage } from "./MyAppsPage";
 
@@ -51,6 +52,7 @@ const SIDEBAR_ITEMS: { id: View; label: string; icon: typeof Plus }[] = [
 ];
 
 export function OnboardingPage({ onSpecCreated }: Props) {
+  const { user, clearAuth } = useAuthStore();
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -242,8 +244,15 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             {profileOpen && (
               <div className="absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
                 <div className="border-b border-gray-100 px-3 py-2">
-                  <p className="text-sm font-medium text-black">My Account</p>
-                  <p className="text-xs text-gray-400">user@isibi.ai</p>
+                  <p className="text-sm font-medium text-black">
+                    {user ? `${user.first_name} ${user.last_name}` : "My Account"}
+                  </p>
+                  <p className="text-xs text-gray-400">{user?.email || ""}</p>
+                  {user?.account_type && (
+                    <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
+                      {user.account_type === "developer" ? "Developer" : "User"}
+                    </span>
+                  )}
                 </div>
                 <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
                   <Settings className="h-4 w-4" />
@@ -258,7 +267,10 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   Help & FAQ
                 </button>
                 <div className="mt-1 border-t border-gray-100 pt-1">
-                  <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-500 transition hover:bg-gray-50">
+                  <button
+                    onClick={() => { clearAuth(); window.location.href = "/login"; }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-500 transition hover:bg-gray-50"
+                  >
                     <LogOut className="h-4 w-4" />
                     Log out
                   </button>

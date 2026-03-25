@@ -16,6 +16,12 @@ async function request<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
+    // Auto-logout on 401
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.href = "/login";
+    }
     throw { status: res.status, detail: body.detail ?? res.statusText };
   }
 
