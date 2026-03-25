@@ -15,3 +15,22 @@ services:
         value: HS256
       - key: PYTHON_VERSION
         value: "3.11"
+
+  - type: web
+    name: isibi-frontend
+    runtime: static
+    region: oregon
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        value: https://isibi-backend.onrender.com/api
