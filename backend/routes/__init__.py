@@ -16,6 +16,8 @@ from .app_auth import router as app_auth_router
 from .stripe_integration import router as stripe_router
 from .collaboration import router as collaboration_router
 from .custom_domains import router as custom_domains_router
+from .figma_import import router as figma_import_router
+from .preview_stream import router as preview_stream_router
 
 all_routers = [
     auth_router,
@@ -36,4 +38,6 @@ all_routers = [
     stripe_router,
     collaboration_router,
     custom_domains_router,
+    figma_import_router,
+    preview_stream_router,
 ]

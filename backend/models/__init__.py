@@ -11,9 +11,11 @@ from .app_user import AppUser
 from .stripe_config import StripeConfig
 from .workspace import Workspace, WorkspaceMember
 from .custom_domain import CustomDomain
+from .design_import import DesignImport
 
 __all__ = [
     "Lead", "Task", "Deal", "User", "Conversation", "PipelineStage",
     "Project", "ProjectVersion", "FileUpload", "AppUser",
     "StripeConfig", "Workspace", "WorkspaceMember", "CustomDomain",
+    "DesignImport",
 ]

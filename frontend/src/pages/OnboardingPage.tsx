@@ -33,6 +33,7 @@ import {
   RotateCcw,
   Eye,
   Rocket,
+  Pencil,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -40,6 +41,7 @@ import { MarketplacePage } from "./MarketplacePage";
 import { MyAppsPage } from "./MyAppsPage";
 import { DevMarketplacePage } from "./DevMarketplacePage";
 import { SpecPreview } from "@/components/SpecPreview";
+import { VisualEditor } from "@/components/VisualEditor";
 
 interface Props {
   onSpecCreated: () => void;
@@ -121,6 +123,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [chatPanelOpen, setChatPanelOpen] = useState(true);
   const [builtSpec, setBuiltSpec] = useState<any>(null);
   const [builtProjectId, setBuiltProjectId] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
 
   // Deploy state
   const [deploying, setDeploying] = useState(false);
@@ -594,6 +597,20 @@ npx electron .`;
             <Smartphone className="h-4 w-4" />
           </button>
           <div className="mx-2 h-4 w-px bg-gray-200" />
+          {builtSpec && (
+            <button
+              onClick={() => setEditMode(!editMode)}
+              className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
+                editMode
+                  ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                  : "text-gray-400 hover:bg-gray-100 hover:text-black"
+              }`}
+              title={editMode ? "Exit visual editor" : "Edit visually"}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              {editMode ? "Editing" : "Edit"}
+            </button>
+          )}
           <button className="rounded-lg p-1.5 text-gray-400 transition hover:text-black">
             <ExternalLink className="h-4 w-4" />
           </button>
@@ -680,7 +697,13 @@ npx electron .`;
 
             {/* Preview area */}
             <div className="flex-1 overflow-hidden">
-              {builtSpec ? (
+              {builtSpec && editMode ? (
+                <VisualEditor
+                  spec={builtSpec}
+                  device={previewDevice}
+                  onSpecUpdate={(updatedSpec) => setBuiltSpec(updatedSpec)}
+                />
+              ) : builtSpec ? (
                 <SpecPreview spec={builtSpec} device={previewDevice} />
               ) : (
                 <div className="flex h-full items-center justify-center p-8">
