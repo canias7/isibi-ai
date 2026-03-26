@@ -48,8 +48,10 @@ Your job: Generate a COMPLETE, VALID JSON spec for the requested application.
 9. **Always include a Dashboard module** (sidebar_order: 1) with dashboard config.
 10. **Include design_system** with dark theme colors, spacing, buttons, table, typography.
 11. **sidebar_icon values** must be valid Lucide React icon names (PascalCase): e.g. Users, ShoppingCart, CalendarDays, Building2, UtensilsCrossed, Briefcase, etc.
-12. **Generate 4-8 entities** depending on complexity of what the user asked for.
+12. **Generate 3-6 entities** depending on complexity — keep it focused, don't over-generate.
 13. **Include a dashboard section** with stat_cards relevant to the domain.
+14. **Keep field definitions compact** — only include essential attributes (name, db_type, ts_type, nullable, show_in_table, show_in_form, editable, input_component, display_component). Skip validation unless needed.
+15. **Keep UI configs minimal** — list_view needs columns + empty_state. Forms need field_order + required_fields. Detail view needs header + primary_fields.
 
 ## Important
 - Be thorough. A real frontend renderer will read this spec to build the entire UI.
@@ -102,7 +104,7 @@ Now generate the COMPLETE JSON spec for what the user requested. Output ONLY the
 
     response = client.messages.create(
         model=MODEL,
-        max_tokens=16000,
+        max_tokens=64000,
         system=SYSTEM_PROMPT,
         messages=messages,
     )
@@ -115,6 +117,10 @@ Now generate the COMPLETE JSON spec for what the user requested. Output ONLY the
         raw_text = raw_text.split("\n", 1)[1]
         if raw_text.endswith("```"):
             raw_text = raw_text[:-3].strip()
+
+    # If output was truncated (stop_reason == "max_tokens"), try to repair
+    if response.stop_reason == "max_tokens":
+        raw_text = _attempt_json_repair(raw_text)
 
     spec = json.loads(raw_text)
 
@@ -153,7 +159,7 @@ async def refine_spec(
 
     response = client.messages.create(
         model=MODEL,
-        max_tokens=16000,
+        max_tokens=64000,
         system=SYSTEM_PROMPT,
         messages=messages,
     )
@@ -164,9 +170,71 @@ async def refine_spec(
         if raw_text.endswith("```"):
             raw_text = raw_text[:-3].strip()
 
+    if response.stop_reason == "max_tokens":
+        raw_text = _attempt_json_repair(raw_text)
+
     spec = json.loads(raw_text)
     _validate_spec(spec)
     return spec
+
+
+def _attempt_json_repair(text: str) -> str:
+    """Try to close truncated JSON so it parses."""
+    # Count open braces/brackets
+    opens = 0
+    in_string = False
+    escape = False
+    for ch in text:
+        if escape:
+            escape = False
+            continue
+        if ch == '\\':
+            escape = True
+            continue
+        if ch == '"' and not escape:
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch in ('{', '['):
+            opens += 1
+        elif ch in ('}', ']'):
+            opens -= 1
+
+    # If we're inside a string, close it
+    if in_string:
+        text += '"'
+
+    # Close any remaining open structures
+    # Walk backwards through the text to determine bracket/brace order
+    closers = []
+    stack = []
+    in_str = False
+    esc = False
+    for ch in text:
+        if esc:
+            esc = False
+            continue
+        if ch == '\\':
+            esc = True
+            continue
+        if ch == '"':
+            in_str = not in_str
+            continue
+        if in_str:
+            continue
+        if ch == '{':
+            stack.append('}')
+        elif ch == '[':
+            stack.append(']')
+        elif ch in ('}', ']') and stack:
+            stack.pop()
+
+    # Close remaining open structures
+    while stack:
+        text += stack.pop()
+
+    return text
 
 
 def _validate_spec(spec: dict) -> None:
