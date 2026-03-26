@@ -19,6 +19,14 @@ import {
   X,
   AppWindow,
   BarChart3,
+  MessageSquare,
+  Monitor,
+  Smartphone,
+  Tablet,
+  Code,
+  ExternalLink,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { post } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -33,6 +41,14 @@ interface Props {
 interface Message {
   role: "user" | "assistant";
   content: string;
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  messages: Message[];
+  model: string;
+  createdAt: string;
 }
 
 const MODELS = [
@@ -51,7 +67,6 @@ interface SidebarItem {
   badge?: string;
 }
 
-// Developer sidebar: build tools + marketplace management, no My Apps
 const DEV_SIDEBAR: SidebarItem[] = [
   { id: "chat", label: "New Chat", icon: Plus },
   { id: "projects", label: "My Projects", icon: FolderOpen },
@@ -62,7 +77,6 @@ const DEV_SIDEBAR: SidebarItem[] = [
   { id: "history", label: "History", icon: Clock },
 ];
 
-// User sidebar: My Apps + marketplace browsing, no build tools
 const USER_SIDEBAR: SidebarItem[] = [
   { id: "myapps", label: "My Apps", icon: AppWindow },
   { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
@@ -90,6 +104,17 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<View>(defaultView);
 
+  // Chat history
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+
+  // Preview state
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [previewTab, setPreviewTab] = useState<"preview" | "code">("preview");
+  const [chatPanelOpen, setChatPanelOpen] = useState(true);
+
+  const hasStartedChat = messages.length > 0 && activeView === "chat";
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -115,6 +140,31 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     }
   }, [prompt]);
 
+  const startNewChat = () => {
+    if (messages.length > 0 && activeChatId) {
+      setChatSessions((prev) =>
+        prev.map((s) => (s.id === activeChatId ? { ...s, messages } : s))
+      );
+    }
+    setMessages([]);
+    setActiveChatId(null);
+    setError(null);
+    setActiveView("chat");
+    setChatPanelOpen(true);
+  };
+
+  const loadChat = (session: ChatSession) => {
+    if (messages.length > 0 && activeChatId) {
+      setChatSessions((prev) =>
+        prev.map((s) => (s.id === activeChatId ? { ...s, messages } : s))
+      );
+    }
+    setMessages(session.messages);
+    setActiveChatId(session.id);
+    setActiveView("chat");
+    setChatPanelOpen(true);
+  };
+
   const handleSubmit = async () => {
     if (!prompt.trim() || loading) return;
     const userMsg = prompt.trim();
@@ -124,6 +174,27 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     const newMessages: Message[] = [...messages, { role: "user", content: userMsg }];
     setMessages(newMessages);
     setLoading(true);
+
+    // Create a new chat session on first message
+    let currentChatId = activeChatId;
+    if (!currentChatId) {
+      const newId = Math.random().toString(36).slice(2, 9);
+      currentChatId = newId;
+      const title = userMsg.slice(0, 40) + (userMsg.length > 40 ? "..." : "");
+      const newSession: ChatSession = {
+        id: newId,
+        title,
+        messages: newMessages,
+        model: selectedModel.id,
+        createdAt: new Date().toISOString(),
+      };
+      setChatSessions((prev) => [newSession, ...prev]);
+      setActiveChatId(newId);
+    } else {
+      setChatSessions((prev) =>
+        prev.map((s) => (s.id === currentChatId ? { ...s, messages: newMessages } : s))
+      );
+    }
 
     try {
       const res = await post<{
@@ -136,13 +207,18 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         messages: newMessages,
       });
 
-      setMessages((prev) => [
-        ...prev,
+      const updatedMessages: Message[] = [
+        ...newMessages,
         { role: "assistant", content: res.reply },
-      ]);
+      ];
+      setMessages(updatedMessages);
+
+      const cid = currentChatId;
+      setChatSessions((prev) =>
+        prev.map((s) => (s.id === cid ? { ...s, messages: updatedMessages } : s))
+      );
 
       if (res.ready_to_build && res.project_id) {
-        // Project was created — trigger the spec load
         setTimeout(() => onSpecCreated(), 1500);
       }
     } catch (err: any) {
@@ -156,18 +232,210 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   const handleSidebarClick = (view: View) => {
     if (view === "chat") {
-      setActiveView("chat");
-      setMessages([]);
-      setError(null);
+      startNewChat();
     } else {
       setActiveView(view);
     }
-    setSidebarOpen(false);
+    if (window.innerWidth < 1024) setSidebarOpen(false);
   };
 
   const isEmpty = messages.length === 0;
 
-  // Render the active view content
+  // ─── Chat panel (used both centered and as left panel) ───
+  const chatInput = (
+    <div className="bg-white px-3 pb-4 pt-2">
+      <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+        <textarea
+          ref={textareaRef}
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="Describe what you want to build..."
+          className="w-full resize-none bg-transparent px-4 pb-2 pt-3 text-sm text-black placeholder-gray-400 focus:outline-none"
+          rows={1}
+          disabled={loading}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSubmit();
+            }
+          }}
+        />
+        <div className="flex items-center justify-end px-3 pb-2">
+          <button
+            onClick={handleSubmit}
+            disabled={!prompt.trim() || loading}
+            className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowUp className="h-4 w-4" />
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const chatMessages = (
+    <div className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
+      {messages.map((msg, i) => (
+        <div key={i} className="flex gap-3">
+          <div
+            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
+              msg.role === "user" ? "bg-gray-200 text-black" : "bg-black text-white"
+            }`}
+          >
+            {msg.role === "user" ? "Y" : "A"}
+          </div>
+          <div className="min-w-0 pt-0.5">
+            <p className="text-xs font-medium text-black">
+              {msg.role === "user" ? "You" : selectedModel.label}
+            </p>
+            <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+              {msg.content}
+            </p>
+          </div>
+        </div>
+      ))}
+      {loading && (
+        <div className="flex gap-3">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-xs font-medium text-white">
+            A
+          </div>
+          <div className="pt-0.5">
+            <p className="text-xs font-medium text-black">{selectedModel.label}</p>
+            <div className="mt-2 flex items-center gap-1">
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
+              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
+            </div>
+          </div>
+        </div>
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+
+  // ─── Preview panel (right side when chat is active) ───
+  const previewPanel = (
+    <div className="flex flex-1 flex-col overflow-hidden bg-gray-50">
+      {/* Preview toolbar */}
+      <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setPreviewTab("preview")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              previewTab === "preview" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+            }`}
+          >
+            Preview
+          </button>
+          <button
+            onClick={() => setPreviewTab("code")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              previewTab === "code" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+            }`}
+          >
+            <span className="flex items-center gap-1">
+              <Code className="h-3 w-3" />
+              Code
+            </span>
+          </button>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setPreviewDevice("desktop")}
+            className={`rounded-lg p-1.5 transition ${
+              previewDevice === "desktop" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black"
+            }`}
+          >
+            <Monitor className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setPreviewDevice("tablet")}
+            className={`rounded-lg p-1.5 transition ${
+              previewDevice === "tablet" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black"
+            }`}
+          >
+            <Tablet className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => setPreviewDevice("mobile")}
+            className={`rounded-lg p-1.5 transition ${
+              previewDevice === "mobile" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black"
+            }`}
+          >
+            <Smartphone className="h-4 w-4" />
+          </button>
+          <div className="mx-2 h-4 w-px bg-gray-200" />
+          <button className="rounded-lg p-1.5 text-gray-400 transition hover:text-black">
+            <ExternalLink className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* Preview content */}
+      <div className="flex flex-1 items-center justify-center p-6">
+        {previewTab === "preview" ? (
+          <div
+            className={`h-full rounded-xl border border-gray-200 bg-white shadow-sm transition-all ${
+              previewDevice === "desktop"
+                ? "w-full"
+                : previewDevice === "tablet"
+                ? "w-[768px] max-w-full"
+                : "w-[375px] max-w-full"
+            }`}
+          >
+            {/* Simulated browser bar */}
+            <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
+              <div className="flex gap-1.5">
+                <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
+                <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+                <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+              </div>
+              <div className="mx-2 flex-1 rounded-md bg-gray-50 px-3 py-1">
+                <p className="text-center text-[10px] text-gray-400">
+                  your-app.isibi.ai
+                </p>
+              </div>
+            </div>
+
+            {/* Preview area */}
+            <div className="flex h-[calc(100%-36px)] items-center justify-center p-8">
+              <div className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50">
+                  <Monitor className="h-8 w-8 text-gray-300" />
+                </div>
+                <p className="text-sm font-medium text-black">Building your app...</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Describe your requirements in the chat and the preview will appear here.
+                </p>
+                {loading && (
+                  <div className="mt-4 flex justify-center">
+                    <div className="h-1 w-32 overflow-hidden rounded-full bg-gray-100">
+                      <div className="h-full w-1/3 animate-pulse rounded-full bg-black" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-gray-900 p-4">
+            <pre className="text-xs text-gray-400">
+              <code>
+                {`// Generated code will appear here\n// Keep chatting to refine your app\n\n// Model: ${selectedModel.label}\n// Session: ${activeChatId || "new"}`}
+              </code>
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // ─── Render views ───
   const renderContent = () => {
     switch (activeView) {
       case "myapps":
@@ -182,11 +450,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             <div className="text-center">
               <FolderOpen className="mx-auto h-10 w-10 text-gray-300" />
               <p className="mt-3 text-sm font-medium text-black">No projects yet</p>
-              <p className="mt-1 text-xs text-gray-400">
-                Start a conversation to build your first project.
-              </p>
+              <p className="mt-1 text-xs text-gray-400">Start a conversation to build your first project.</p>
               <button
-                onClick={() => setActiveView("chat")}
+                onClick={() => handleSidebarClick("chat")}
                 className="mt-4 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
               >
                 New Chat
@@ -220,71 +486,69 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             <div className="text-center">
               <Clock className="mx-auto h-10 w-10 text-gray-300" />
               <p className="mt-3 text-sm font-medium text-black">Chat History</p>
-              <p className="mt-1 text-xs text-gray-400">
-                Your past conversations will appear here.
-              </p>
+              <p className="mt-1 text-xs text-gray-400">Your past conversations will appear here.</p>
             </div>
           </div>
         );
       case "chat":
       default:
+        // ─── SPLIT LAYOUT: chat has started ───
+        if (hasStartedChat) {
+          return (
+            <div className="flex flex-1 overflow-hidden">
+              {/* Left: Chat panel (collapsible) */}
+              {chatPanelOpen && (
+                <div className="flex w-[380px] shrink-0 flex-col border-r border-gray-200 bg-white">
+                  {/* Chat panel header */}
+                  <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-gray-400" />
+                      <span className="text-xs font-medium text-black">Chat</span>
+                    </div>
+                    <button
+                      onClick={() => setChatPanelOpen(false)}
+                      className="rounded-lg p-1 text-gray-400 transition hover:bg-gray-100 hover:text-black"
+                    >
+                      <PanelLeftClose className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {chatMessages}
+                  {chatInput}
+                </div>
+              )}
+
+              {/* Collapsed chat toggle */}
+              {!chatPanelOpen && (
+                <div className="flex w-10 flex-col items-center border-r border-gray-200 bg-white pt-3">
+                  <button
+                    onClick={() => setChatPanelOpen(true)}
+                    className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-black"
+                    title="Show chat"
+                  >
+                    <PanelLeftOpen className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* Right: Preview panel */}
+              {previewPanel}
+            </div>
+          );
+        }
+
+        // ─── CENTERED LAYOUT: empty state ───
         return (
           <>
             <div className="flex flex-1 flex-col items-center overflow-y-auto">
               <div className="w-full max-w-3xl flex-1 px-4">
-                {isEmpty ? (
-                  <div className="flex h-full flex-col items-center justify-center pb-32">
-                    <h1 className="text-2xl font-semibold text-black">
-                      What do you want to build?
-                    </h1>
-                  </div>
-                ) : (
-                  <div className="space-y-6 py-6">
-                    {messages.map((msg, i) => (
-                      <div key={i} className="flex gap-4">
-                        <div
-                          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-medium ${
-                            msg.role === "user"
-                              ? "bg-gray-200 text-black"
-                              : "bg-black text-white"
-                          }`}
-                        >
-                          {msg.role === "user" ? "Y" : "A"}
-                        </div>
-                        <div className="min-w-0 pt-1">
-                          <p className="text-sm font-medium text-black">
-                            {msg.role === "user" ? "You" : selectedModel.label}
-                          </p>
-                          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                            {msg.content}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                    {loading && (
-                      <div className="flex gap-4">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black text-xs font-medium text-white">
-                          A
-                        </div>
-                        <div className="pt-1">
-                          <p className="text-sm font-medium text-black">
-                            {selectedModel.label}
-                          </p>
-                          <div className="mt-2 flex items-center gap-1">
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
-                            <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
+                <div className="flex h-full flex-col items-center justify-center pb-32">
+                  <h1 className="text-2xl font-semibold text-black">
+                    What do you want to build?
+                  </h1>
+                </div>
               </div>
             </div>
-
-            {/* Input area */}
             <div className="bg-white px-4 pb-6 pt-2">
               <div className="mx-auto w-full max-w-3xl">
                 <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
@@ -356,8 +620,46 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           </button>
         </div>
 
+        {/* New Chat button */}
+        {isDev && (
+          <div className="px-3 pb-2">
+            <button
+              onClick={startNewChat}
+              className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-black transition hover:bg-gray-100"
+            >
+              <Plus className="h-4 w-4" />
+              New Chat
+            </button>
+          </div>
+        )}
+
+        {/* Chat sessions list */}
+        {isDev && chatSessions.length > 0 && (
+          <div className="border-b border-gray-200 px-2 pb-2">
+            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">
+              Recent Chats
+            </p>
+            <div className="max-h-48 space-y-0.5 overflow-y-auto">
+              {chatSessions.map((session) => (
+                <button
+                  key={session.id}
+                  onClick={() => loadChat(session)}
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ${
+                    activeChatId === session.id
+                      ? "bg-gray-200 font-medium text-black"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">{session.title}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Account type indicator */}
-        <div className="mx-3 mb-2 rounded-lg bg-gray-100 px-3 py-2">
+        <div className="mx-3 mb-2 mt-2 rounded-lg bg-gray-100 px-3 py-2">
           <p className="text-[11px] font-medium text-gray-500">
             {isDev ? "Developer Account" : "User Account"}
           </p>
@@ -366,40 +668,41 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           </p>
         </div>
 
-        {/* Sidebar items */}
+        {/* Navigation items */}
         <nav className="flex-1 space-y-0.5 px-2 py-2">
-          {sidebarItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeView === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSidebarClick(item.id)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                  isActive
-                    ? "bg-gray-200 font-medium text-black"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-black"
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {item.label}
-                {item.badge && (
-                  <span className="ml-auto rounded-full bg-black px-1.5 py-0.5 text-[9px] font-bold text-white">
-                    {item.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+          {sidebarItems
+            .filter((item) => item.id !== "chat")
+            .map((item) => {
+              const Icon = item.icon;
+              const isActive = activeView === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleSidebarClick(item.id)}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                    isActive
+                      ? "bg-gray-200 font-medium text-black"
+                      : "text-gray-600 hover:bg-gray-100 hover:text-black"
+                  }`}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  {item.label}
+                  {item.badge && (
+                    <span className="ml-auto rounded-full bg-black px-1.5 py-0.5 text-[9px] font-bold text-white">
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
         </nav>
       </div>
 
       {/* Main content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
           <div className="flex items-center gap-2">
-            {/* Sidebar toggle */}
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
@@ -407,7 +710,6 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <Menu className="h-4 w-4 text-gray-600" />
             </button>
 
-            {/* Model selector — only for developers */}
             {isDev && (
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -429,12 +731,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                         className="flex w-full items-center justify-between px-3 py-2.5 text-left transition hover:bg-gray-50"
                       >
                         <div>
-                          <p className="text-sm font-medium text-black">
-                            {model.label}
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            {model.description}
-                          </p>
+                          <p className="text-sm font-medium text-black">{model.label}</p>
+                          <p className="text-xs text-gray-400">{model.description}</p>
                         </div>
                         {selectedModel.id === model.id && (
                           <Check className="h-4 w-4 shrink-0 text-black" />
@@ -465,9 +763,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   {user?.account_type && (
                     <span
                       className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        isDev
-                          ? "bg-purple-100 text-purple-700"
-                          : "bg-gray-100 text-gray-600"
+                        isDev ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {isDev ? "Developer" : "User"}
