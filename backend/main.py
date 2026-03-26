@@ -87,6 +87,7 @@ from models.app_shared_view import AppSharedView  # noqa: F401
 from models.app_record_lock import AppRecordLock  # noqa: F401
 from models.app_record_view import AppRecordView  # noqa: F401
 from models.app_integration import AppIntegration  # noqa: F401
+from models.sso_config import SSOConfig  # noqa: F401
 
 # Import embeds public router (no auth, mounted without /api prefix)
 from routes.app_embeds import public_router as app_embeds_public_router
@@ -146,6 +147,13 @@ from routes.app_workflows import router as app_workflows_router
 from routes.app_collaboration import router as app_collaboration_router
 from routes.app_integrations import router as app_integrations_router
 
+# Import collaborative editing & enterprise feature routers
+from routes.collab_editing import router as collab_editing_router, ws_router as collab_ws_router
+from routes.custom_domain_ssl import router as custom_domain_ssl_router
+from routes.custom_domain_ssl import get_project_id_for_domain
+from routes.enterprise_sso import router as enterprise_sso_router
+from routes.app_uptime import router as app_uptime_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -189,6 +197,42 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Custom Domain Middleware ──
+# Resolves custom domains via the Host header and serves the matching project
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+
+
+class CustomDomainMiddleware(BaseHTTPMiddleware):
+    """If the Host header matches a registered custom domain, serve that project's HTML."""
+
+    SKIP_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "apps.isibi.ai"}
+
+    async def dispatch(self, request: StarletteRequest, call_next):
+        host = (request.headers.get("host") or "").split(":")[0].lower()
+        # Skip API requests, known hosts, and internal paths
+        if (
+            host in self.SKIP_HOSTS
+            or request.url.path.startswith("/api")
+            or request.url.path.startswith("/ws")
+            or request.url.path.startswith("/live")
+            or request.url.path.startswith("/health")
+        ):
+            return await call_next(request)
+
+        project_id = get_project_id_for_domain(host)
+        if project_id:
+            # Serve the deployed app for this custom domain
+            data = await _get_build_data(project_id)
+            if data and "index_html" in data:
+                from fastapi.responses import HTMLResponse as _HTML
+                return _HTML(content=data["index_html"])
+
+        return await call_next(request)
+
+
+app.add_middleware(CustomDomainMiddleware)
 
 for router in all_routers:
     app.include_router(router, prefix="/api")
@@ -250,6 +294,13 @@ app.include_router(app_view_configs_router, prefix="/api")
 app.include_router(app_workflows_router, prefix="/api")
 app.include_router(app_collaboration_router, prefix="/api")
 app.include_router(app_integrations_router, prefix="/api")
+
+# Register collaborative editing & enterprise feature routers
+app.include_router(collab_editing_router, prefix="/api")
+app.include_router(collab_ws_router)  # WebSocket at /ws/projects/{id}, no /api prefix
+app.include_router(custom_domain_ssl_router, prefix="/api")
+app.include_router(enterprise_sso_router, prefix="/api")
+app.include_router(app_uptime_router, prefix="/api")
 
 # Register 12-feature batch routers
 app.include_router(app_report_builder_router, prefix="/api")

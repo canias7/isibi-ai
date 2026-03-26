@@ -231,9 +231,37 @@ function ColorPicker({ value, onChange, label }: { value: string; onChange: (v: 
 }
 
 // ─── Main Component ───
+/** Skeleton shown while a settings section is loading */
+function SettingsSkeleton() {
+  return (
+    <div className="animate-pulse space-y-5">
+      <div>
+        <div className="h-5 bg-gray-200 rounded w-1/3 mb-1" />
+        <div className="h-3 bg-gray-200 rounded w-1/2" />
+      </div>
+      <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-4">
+        <div className="h-4 bg-gray-200 rounded w-1/4" />
+        <div className="h-9 bg-gray-200 rounded w-full" />
+        <div className="h-4 bg-gray-200 rounded w-1/3 mt-3" />
+        <div className="h-9 bg-gray-200 rounded w-full" />
+        <div className="h-4 bg-gray-200 rounded w-1/4 mt-3" />
+        <div className="h-9 bg-gray-200 rounded w-24" />
+      </div>
+    </div>
+  );
+}
+
 export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
   const [activeCategory, setActiveCategory] = useState<Category>("general");
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [sectionReady, setSectionReady] = useState(false);
+
+  // Show skeleton briefly when switching categories
+  useEffect(() => {
+    setSectionReady(false);
+    const timer = setTimeout(() => setSectionReady(true), 150);
+    return () => clearTimeout(timer);
+  }, [activeCategory]);
 
   const showToast = useCallback((type: "success" | "error", message: string) => {
     const id = ++toastId;
@@ -276,6 +304,10 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
       {/* Right panel */}
       <div className="flex-1 overflow-y-auto px-6 py-5">
         <div className="mx-auto max-w-2xl space-y-5">
+          {!sectionReady ? (
+            <SettingsSkeleton />
+          ) : (
+            <>
           {activeCategory === "general" && (
             <GeneralSettings
               projectId={projectId}
@@ -346,6 +378,8 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               showToast={showToast}
               apiBase={apiBase}
             />
+          )}
+            </>
           )}
         </div>
       </div>

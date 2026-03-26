@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Search, Download, Eye, X, Star, Check, ChevronDown } from "lucide-react";
 import JSZip from "jszip";
 import { useAppStore } from "@/stores/appStore";
@@ -334,6 +334,35 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
   );
 }
 
+/** Skeleton for marketplace grid while loading */
+function MarketplaceSkeleton() {
+  return (
+    <div className="mx-auto max-w-7xl px-6 py-8">
+      <div className="mb-8 flex gap-2 overflow-x-auto pb-2">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="h-9 w-20 animate-pulse rounded-full bg-gray-200" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="animate-pulse rounded-2xl border border-gray-200 bg-white">
+            <div className="h-36 rounded-t-2xl bg-gray-200" />
+            <div className="p-4 space-y-3">
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
+              <div className="h-3 bg-gray-200 rounded w-full" />
+              <div className="h-3 bg-gray-200 rounded w-1/2" />
+              <div className="flex items-center justify-between pt-2">
+                <div className="h-3 bg-gray-200 rounded w-20" />
+                <div className="h-5 bg-gray-200 rounded w-12" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function MarketplacePage() {
   const [category, setCategory] = useState<Category>("all");
   const [search, setSearch] = useState("");
@@ -341,7 +370,14 @@ export function MarketplacePage() {
   const [showSort, setShowSort] = useState(false);
   const [previewItem, setPreviewItem] = useState<MarketplaceItem | null>(null);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
+  const [initialLoading, setInitialLoading] = useState(true);
   const { addApp, apps } = useAppStore();
+
+  // Simulate initial load
+  useEffect(() => {
+    const timer = setTimeout(() => setInitialLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   const filtered = MOCK_ITEMS.filter((item) => {
     if (category !== "all" && item.category !== category) return false;
@@ -486,6 +522,22 @@ npx electron .
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  if (initialLoading) {
+    return (
+      <div className="flex-1 overflow-y-auto bg-white">
+        {/* Skeleton hero */}
+        <div className="animate-pulse px-6 py-16 sm:py-20" style={{ background: "linear-gradient(135deg, #ec4899 0%, #db2777 50%, #9d174d 100%)" }}>
+          <div className="mx-auto max-w-4xl text-center space-y-4">
+            <div className="h-10 bg-white/20 rounded w-1/3 mx-auto" />
+            <div className="h-5 bg-white/15 rounded w-1/2 mx-auto" />
+            <div className="h-12 bg-white/90 rounded-2xl max-w-xl mx-auto mt-6" />
+          </div>
+        </div>
+        <MarketplaceSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 overflow-y-auto bg-white">

@@ -86,13 +86,23 @@ interface Message {
   content: string;
 }
 
+/** Minimal shape for the generated app specification */
+interface AppSpec {
+  app_name?: string;
+  name?: string;
+  entities?: Array<{ name: string; table?: string; fields?: Array<Record<string, unknown>>; [key: string]: unknown }>;
+  modules?: Array<{ name: string; entity?: string; layout?: string; [key: string]: unknown }>;
+  design_system?: { colors?: { primary?: string }; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
 interface ChatSession {
   id: string;
   title: string;
   messages: Message[];
   model: string;
   createdAt: string;
-  spec: any | null;
+  spec: AppSpec | null;
   projectId: string | null;
   deployUrl: string | null;
 }
@@ -708,10 +718,11 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
         if (res.ready_to_build && res.project_id) {
           setBuiltProjectId(res.project_id);
-          // Switch to cloud IDE to show files being generated
+          // Switch to cloud IDE to show streaming file generation
           setIsGenerating(true);
           setPreviewTab("cloud");
-          // Fetch the generated spec to show in preview
+
+          // Fetch the generated spec — once it arrives, transition to preview
           try {
             const project = await get<{ spec: any }>(`/projects/${res.project_id}`);
             if (project?.spec) {
@@ -724,14 +735,17 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   s.id === cid ? { ...s, spec: sp, projectId: pid } : s
                 )
               );
+              // Spec arrived — let CloudIDE finish its animation, then auto-switch
+              // CloudIDE's onComplete callback will handle the transition
             }
           } catch {
             // Preview will show placeholder if fetch fails
+            setIsGenerating(false);
           }
         }
       }
-    } catch (err: any) {
-      const detail = err?.detail || "Something went wrong. Please try again.";
+    } catch (err: unknown) {
+      const detail = (err as Record<string, string>)?.detail || "Something went wrong. Please try again.";
       setMessages((prev) => [...prev, { role: "assistant", content: detail }]);
       setError(detail);
     } finally {
@@ -988,8 +1002,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       } else {
         alert("Deploy succeeded but no URL was returned. Check the backend logs.");
       }
-    } catch (err: any) {
-      const msg = err?.detail || err?.message || "Deploy failed";
+    } catch (err: unknown) {
+      const e = err as Record<string, string>;
+      const msg = e?.detail || e?.message || "Deploy failed";
       alert(`Error: ${msg}`);
     } finally {
       setDeploying(false);
@@ -1017,8 +1032,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             );
           }
         }
-      } catch (err: any) {
-        setError(err?.detail || "Deploy failed. Please try again.");
+      } catch (err: unknown) {
+        setError((err as Record<string, string>)?.detail || "Deploy failed. Please try again.");
         setDeploying(false);
         return;
       } finally {
@@ -1049,8 +1064,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         price: parseFloat(mpPrice) || 0,
       });
       setMpSuccess(res?.id || "published");
-    } catch (err: any) {
-      setMpError(err?.detail || err?.message || "Failed to publish. Please try again.");
+    } catch (err: unknown) {
+      const e = err as Record<string, string>;
+      setMpError(e?.detail || e?.message || "Failed to publish. Please try again.");
     } finally {
       setMpLoading(false);
     }
@@ -1366,14 +1382,19 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </div>
           </div>
         ) : previewTab === "cloud" ? (
-          <div className="h-full w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+          <div className={`h-full w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm transition-opacity duration-500 ${
+            !isGenerating && builtSpec ? "opacity-0" : "opacity-100"
+          }`}>
             <CloudIDE
               spec={builtSpec}
               generating={isGenerating}
               projectId={builtProjectId || undefined}
               onComplete={() => {
                 setIsGenerating(false);
-                setPreviewTab("preview");
+                // Smooth fade-out then switch to preview
+                setTimeout(() => {
+                  setPreviewTab("preview");
+                }, 500);
               }}
             />
           </div>
@@ -1707,7 +1728,20 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 </button>
               </div>
 
-              {chatSessions.length === 0 ? (
+              {!projectsLoaded ? (
+                <div className="animate-pulse space-y-3">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex items-start gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3.5">
+                      <div className="mt-0.5 h-9 w-9 shrink-0 rounded-lg bg-gray-200" />
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4" />
+                        <div className="h-3 bg-gray-200 rounded w-1/2" />
+                      </div>
+                      <div className="h-5 w-12 rounded-full bg-gray-200" />
+                    </div>
+                  ))}
+                </div>
+              ) : chatSessions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <FolderOpen className="mb-3 h-10 w-10 text-gray-300" />
                   <p className="text-sm font-medium text-black">No projects yet</p>
@@ -2071,7 +2105,19 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         )}
 
         {/* Chat sessions list */}
-        {isDev && chatSessions.length > 0 && (
+        {isDev && !projectsLoaded && (
+          <div className="border-b border-gray-200 px-2 pb-2">
+            <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+              Projects
+            </p>
+            <div className="animate-pulse space-y-1.5 px-2">
+              <div className="h-4 bg-gray-200 rounded w-3/4" />
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
+              <div className="h-4 bg-gray-200 rounded w-5/6" />
+            </div>
+          </div>
+        )}
+        {isDev && projectsLoaded && chatSessions.length > 0 && (
           <div className="border-b border-gray-200 px-2 pb-2">
             <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
               Projects

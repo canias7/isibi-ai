@@ -148,8 +148,8 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
       await post(`/apps/${projectId}/data/${tableName}`, data);
       showNotification("Created successfully");
       await fetchLiveData(tableName);
-    } catch (err: any) {
-      showNotification(err?.detail || "Create failed");
+    } catch (err: unknown) {
+      showNotification((err as Record<string, string>)?.detail || "Create failed");
     }
   };
 
@@ -159,8 +159,8 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
       await patch(`/apps/${projectId}/data/${tableName}/${rowId}`, data);
       showNotification("Updated successfully");
       await fetchLiveData(tableName);
-    } catch (err: any) {
-      showNotification(err?.detail || "Update failed");
+    } catch (err: unknown) {
+      showNotification((err as Record<string, string>)?.detail || "Update failed");
     }
   };
 
@@ -170,17 +170,20 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
       await del(`/apps/${projectId}/data/${tableName}/${rowId}`);
       showNotification("Deleted successfully");
       await fetchLiveData(tableName);
-    } catch (err: any) {
-      showNotification(err?.detail || "Delete failed");
+    } catch (err: unknown) {
+      showNotification((err as Record<string, string>)?.detail || "Delete failed");
     }
   };
 
   // Data source — mock or live
   const entityKey = currentEntity?.name || "";
   const entityTable = currentEntity?.table || "";
-  if (currentEntity && !mockDataMap[entityKey]) {
-    mockDataMap[entityKey] = [];
-  }
+  // Initialize mock data lazily (avoid direct mutation — use setter)
+  useEffect(() => {
+    if (currentEntity && entityKey && !mockDataMap[entityKey]) {
+      setMockDataMap((prev) => ({ ...prev, [entityKey]: [] }));
+    }
+  }, [entityKey, currentEntity]);
   const allRows = liveMode && entityTable
     ? (liveDataMap[entityTable] || [])
     : (mockDataMap[entityKey] || []);
@@ -359,10 +362,10 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
               <div className="flex h-6 w-6 items-center justify-center rounded-lg text-white text-[10px] font-bold shadow-sm"
                 style={{ background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.7)})` }}
               >
-                {(spec.app_name || spec.name || "A")[0].toUpperCase()}
+                {(spec?.app_name || spec?.name || "A")[0]?.toUpperCase() || "A"}
               </div>
               <p className="text-[12px] font-semibold tracking-tight text-gray-900">
-                {spec.app_name || spec.name || "My App"}
+                {spec?.app_name || spec?.name || "My App"}
               </p>
             </div>
           </div>
@@ -372,7 +375,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
               const isActive = i === activeModule;
               return (
                 <button
-                  key={i}
+                  key={mod.name || i}
                   onClick={() => handleModuleClick(i)}
                   className={`group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] transition-all duration-150 ${
                     isActive

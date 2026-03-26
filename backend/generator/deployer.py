@@ -215,7 +215,7 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>{app_name}</title>
 <style>
-*,*::before,*::after {{ margin:0;padding:0;box-sizing:border-box; }}
+*,*::before,*::after {{ margin:0;padding:0;box-sizing:border-box; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; }}
 :root {{
   --primary: {primary_color};
   --primary-hover: {primary_color}dd;
@@ -224,7 +224,7 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
   --secondary: {secondary_color};
   --bg: #f8f9fb;
   --bg-card: #ffffff;
-  --sidebar-bg: #ffffff;
+  --sidebar-bg: #fafafa;
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 0px;
   --border: #e5e7eb;
@@ -367,6 +367,7 @@ body {{
   transition:width var(--transition-slow), transform var(--transition-slow);
   z-index:40;
   position:relative;
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
 }}
 .sidebar-header {{
   padding:20px 20px 16px;
@@ -423,16 +424,16 @@ body {{
   width:100%;text-align:left;
   padding:8px 12px;
   border:none;background:none;
-  border-radius:var(--radius);
-  font-size:13px;font-weight:500;
-  color:var(--text-secondary);
+  border-radius:var(--radius-sm);
+  font-size:14px;font-weight:500;
+  color:#4b5563;
   cursor:pointer;
-  margin-bottom:1px;
-  transition:all var(--transition);
+  margin:1px 8px;
+  transition:all 0.15s cubic-bezier(.4,0,.2,1);
   position:relative;
   font-family:inherit;
 }}
-.sidebar-item:hover {{ background:var(--bg);color:var(--text); }}
+.sidebar-item:hover {{ background:rgba(0,0,0,.04);color:var(--text); }}
 .sidebar-item.active {{
   background:var(--primary-light);
   color:var(--primary);
@@ -538,10 +539,10 @@ body {{
   background:var(--bg-card);
   border:1px solid var(--border);
   border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-xs);
-  transition:box-shadow var(--transition);
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
+  transition:box-shadow var(--transition), transform var(--transition);
 }}
-.card:hover {{ box-shadow:var(--shadow-sm); }}
+.card:hover {{ box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 4px 8px rgba(0,0,0,.07), 0 16px 32px rgba(0,0,0,.07); }}
 
 /* ── Stats grid ── */
 .stats-grid {{
@@ -715,16 +716,16 @@ body {{
   overflow:hidden;
 }}
 table {{
-  width:100%;border-collapse:collapse;font-size:13px;
+  width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
 }}
 th {{
   text-align:left;padding:10px 16px;
-  background:var(--bg);
+  background:#fafafa;
   border-bottom:1px solid var(--border);
   font-weight:600;font-size:11px;
-  color:var(--text-muted);
+  color:#6b7280;
   text-transform:uppercase;
-  letter-spacing:0.04em;
+  letter-spacing:0.05em;
   cursor:pointer;
   user-select:none;
   transition:color var(--transition);
@@ -740,21 +741,22 @@ th:hover .sort-icon {{ opacity:0.7; }}
 th.sorted .sort-icon {{ opacity:1;color:var(--primary); }}
 td {{
   padding:12px 16px;
-  border-bottom:1px solid var(--border-light);
+  border-bottom:1px solid #f3f4f6;
   max-width:200px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:14px;color:#111827;
 }}
 tr:last-child td {{ border-bottom:none; }}
 tbody tr {{
   cursor:pointer;
-  transition:background var(--transition);
+  transition:all 0.15s cubic-bezier(.4,0,.2,1);
 }}
-tbody tr:hover {{ background:var(--primary-subtle); }}
+tbody tr:hover {{ background:rgba(0,0,0,.02); }}
 
 /* ── Status badges ── */
 .badge {{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 10px;border-radius:20px;
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:9999px;
   font-size:12px;font-weight:500;
   white-space:nowrap;
 }}
@@ -790,17 +792,17 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
 
 /* ── Empty state ── */
 .empty-state {{
-  text-align:center;padding:60px 20px;
-  color:var(--text-muted);
+  text-align:center;padding:64px 24px;
+  color:#9ca3af;
 }}
 .empty-state-icon {{
-  width:80px;height:80px;margin:0 auto 16px;
+  width:48px;height:48px;margin:0 auto 16px;
   border-radius:50%;
-  background:var(--bg);
+  border:2px dashed #d1d5db;
+  background:transparent;
   display:flex;align-items:center;justify-content:center;
-  border:2px dashed var(--border);
 }}
-.empty-state-icon svg {{ width:32px;height:32px;opacity:0.4;color:var(--text-muted); }}
+.empty-state-icon svg {{ width:24px;height:24px;opacity:0.4;color:var(--text-muted); }}
 .empty-state h3 {{
   font-size:15px;font-weight:600;color:var(--text);
   margin-bottom:4px;
@@ -846,22 +848,29 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   display:inline-flex;align-items:center;gap:6px;
   padding:8px 16px;
   border:1px solid var(--border);
-  border-radius:var(--radius);
-  font-size:13px;font-weight:500;
+  border-radius:8px;
+  font-size:14px;font-weight:500;
   cursor:pointer;background:var(--bg-card);
   color:var(--text);
-  transition:all var(--transition);
+  transition:all 0.15s cubic-bezier(.4,0,.2,1);
   font-family:inherit;
   white-space:nowrap;
 }}
-.btn:hover {{ background:var(--bg);border-color:var(--text-muted); }}
-.btn:active {{ transform:scale(0.98); }}
+.btn:hover {{ background:#f9fafb;border-color:#d1d5db; }}
+.btn:active {{ transform:scale(0.97); }}
 .btn-primary {{
   background:var(--primary);color:#fff;
-  border-color:var(--primary);
-  box-shadow:0 1px 3px {primary_color}30;
+  border:none;border-color:var(--primary);
+  border-radius:8px;
+  box-shadow:0 1px 2px rgba(0,0,0,.05);
 }}
-.btn-primary:hover {{ background:var(--primary-hover);border-color:var(--primary-hover); }}
+.btn-primary:hover {{ filter:brightness(1.1);box-shadow:0 2px 8px {primary_color}4d; }}
+.btn-secondary {{
+  background:white;color:#374151;
+  border:1px solid #e5e7eb;border-radius:8px;
+  padding:8px 16px;font-weight:500;font-size:14px;cursor:pointer;
+}}
+.btn-secondary:hover {{ background:#f9fafb;border-color:#d1d5db; }}
 .btn-danger {{
   color:var(--danger);border-color:var(--danger);
 }}
@@ -881,17 +890,17 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   z-index:100;
   opacity:0;
   transition:opacity var(--transition-slow);
-  backdrop-filter:blur(2px);
+  backdrop-filter:blur(4px);
 }}
-.modal-overlay.show {{ display:flex;opacity:1; }}
+.modal-overlay.show {{ display:flex;opacity:1;animation:fadeIn 0.2s ease; }}
 .slide-over {{
   position:fixed;top:0;right:-480px;bottom:0;
   width:480px;max-width:100vw;
   background:var(--bg-card);
-  box-shadow:var(--shadow-xl);
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
   z-index:101;
   display:flex;flex-direction:column;
-  transition:right var(--transition-slow);
+  transition:right 0.25s cubic-bezier(.4,0,.2,1);
 }}
 .slide-over.show {{ right:0; }}
 .slide-over-header {{
@@ -924,8 +933,8 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   background:var(--bg-card);
   border-radius:var(--radius-xl);
   width:400px;max-width:90vw;
-  box-shadow:var(--shadow-xl);
-  animation:dialogIn 0.2s ease;
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
+  animation:slideUp 0.25s cubic-bezier(.4,0,.2,1);
 }}
 @keyframes dialogIn {{
   from {{ transform:scale(0.95);opacity:0; }}
@@ -1009,13 +1018,14 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
 .form-group input,
 .form-group select,
 .form-group textarea {{
-  width:100%;padding:9px 12px;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  font-size:13px;color:var(--text);
+  width:100%;padding:8px 12px;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  font-size:14px;color:var(--text);
   background:var(--bg-card);
   outline:none;font-family:inherit;
-  transition:border-color var(--transition), box-shadow var(--transition);
+  box-sizing:border-box;
+  transition:border-color 0.15s, box-shadow 0.15s;
 }}
 .form-group input:focus,
 .form-group select:focus,
@@ -1047,10 +1057,10 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
 
 /* ── Skeleton loaders ── */
 .skeleton {{
-  background:linear-gradient(90deg, var(--bg) 25%, #e8eaee 50%, var(--bg) 75%);
+  background:linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
   background-size:200% 100%;
   animation:shimmer 1.5s infinite;
-  border-radius:var(--radius-sm);
+  border-radius:4px;
 }}
 @keyframes shimmer {{
   0% {{ background-position:200% 0; }}
@@ -1781,6 +1791,72 @@ tr.row-urgent {{ background:rgba(245,158,11,0.08) !important; }}
 }}
 .rt-editable ul, .rt-editable ol {{ margin:4px 0 4px 20px; }}
 .rt-editable b, .rt-editable strong {{ font-weight:600; }}
+
+/* ── Premium SaaS Polish ── */
+@keyframes fadeIn {{ from{{opacity:0}} to{{opacity:1}} }}
+@keyframes slideUp {{ from{{opacity:0;transform:translateY(16px)}} to{{opacity:1;transform:translateY(0)}} }}
+
+/* Micro-animations */
+button, a, .sidebar-item, tr {{ transition:all 0.15s cubic-bezier(.4,0,.2,1); }}
+button:active {{ transform:scale(0.97); }}
+
+/* Global form input polish */
+input, select, textarea {{
+  border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;
+  font-size:14px;transition:border-color 0.15s, box-shadow 0.15s;
+  outline:none;width:100%;box-sizing:border-box;
+}}
+input:focus, select:focus, textarea:focus {{
+  border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);
+}}
+
+/* Override for checkboxes */
+input[type="checkbox"], input[type="radio"] {{ width:auto; }}
+
+/* Override for search inputs inside wrappers */
+.search-input input {{ border:none;padding:0;width:100%; }}
+.search-input input:focus {{ box-shadow:none; }}
+.inline-edit-cell input, .inline-edit-cell select {{
+  border:2px solid var(--info);border-radius:var(--radius-sm);
+  padding:4px 8px;font-size:13px;
+  box-shadow:0 0 0 3px rgba(59,130,246,0.15);
+}}
+
+/* Enhanced stat cards */
+.stat-card {{
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
+}}
+.stat-card:hover {{
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 4px 8px rgba(0,0,0,.07), 0 16px 32px rgba(0,0,0,.07);
+}}
+
+/* Enhanced table container */
+.table-container {{
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
+}}
+
+/* Enhanced kanban cards */
+.kanban-card {{
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 1px 3px rgba(0,0,0,.05);
+}}
+.kanban-card:hover {{
+  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 4px 8px rgba(0,0,0,.07), 0 8px 16px rgba(0,0,0,.05);
+}}
+
+/* Focus ring for accessibility */
+:focus-visible {{
+  outline:2px solid var(--primary);
+  outline-offset:2px;
+}}
+
+/* Smooth scrollbar styling */
+::-webkit-scrollbar {{ width:6px;height:6px; }}
+::-webkit-scrollbar-track {{ background:transparent; }}
+::-webkit-scrollbar-thumb {{ background:#d1d5db;border-radius:3px; }}
+::-webkit-scrollbar-thumb:hover {{ background:#9ca3af; }}
+
+/* Selection color */
+::selection {{ background:var(--primary-light);color:var(--primary); }}
 </style>
 </head>
 <body>
@@ -1887,7 +1963,7 @@ tr.row-urgent {{ background:rgba(245,158,11,0.08) !important; }}
   </div>
   <div class="slide-over-body" id="modal-body"></div>
   <div class="slide-over-footer">
-    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" id="modal-save" onclick="saveRecord()">Save</button>
   </div>
 </div>
@@ -1902,7 +1978,7 @@ tr.row-urgent {{ background:rgba(245,158,11,0.08) !important; }}
       <h3>Delete Record</h3>
       <p id="confirm-message">Are you sure you want to delete this record? This action cannot be undone.</p>
       <div class="confirm-dialog-actions">
-        <button class="btn" onclick="closeConfirm()">Cancel</button>
+        <button class="btn btn-secondary" onclick="closeConfirm()">Cancel</button>
         <button class="btn btn-danger" id="confirm-delete-btn" onclick="confirmDeleteAction()">Delete</button>
       </div>
     </div>
@@ -2377,8 +2453,8 @@ tr.row-urgent {{ background:rgba(245,158,11,0.08) !important; }}
       }}
       actions.innerHTML = toggleHtml +
         '<div class="export-btn-group">' +
-          '<button class="btn btn-sm" onclick="exportCSV()" title="Export CSV"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>' +
-          '<button class="btn btn-sm" onclick="exportPDF()" title="Export PDF"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>PDF</button>' +
+          '<button class="btn btn-secondary btn-sm" onclick="exportCSV()" title="Export CSV"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>' +
+          '<button class="btn btn-secondary btn-sm" onclick="exportPDF()" title="Export PDF"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>PDF</button>' +
         '</div>' +
         '<button class="btn btn-primary btn-sm" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New</button>';
     }} else {{
