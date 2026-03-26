@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import re
+import traceback
 import anthropic
 from .rag import build_rag_context, get_full_spec_as_schema_reference
 
@@ -350,7 +351,13 @@ Use validation on fields where it makes sense (emails, prices, phones, dates).
 8. Use the RAG reference examples as structural templates — match their field format exactly.
 9. Use visible_when on fields that should only appear based on another field's value.
 10. Use computed fields for auto-calculated values (totals, full names, date differences).
-11. Use validation rules on fields where input validation makes sense (emails, phones, prices, URLs)."""
+11. Use validation rules on fields where input validation makes sense (emails, phones, prices, URLs).
+
+CRITICAL: After receiving ANY response from the user, you MUST output the JSON spec. Do NOT ask follow-up questions. If the user's response is ambiguous, make reasonable assumptions and build.
+
+If the user says "yes", "all of it", "sure", "ok", "sounds good", "go ahead", "build it", "do it", or similar short confirmations, immediately generate the JSON spec with all suggested features.
+
+Ask AT MOST 1-2 clarifying questions total. After the first question, you MUST generate the spec regardless of the answer."""
 
 
 async def generate_spec(user_prompt: str, conversation_history: list[dict] | None = None) -> dict:
@@ -397,6 +404,7 @@ Now generate the COMPLETE JSON spec for what the user requested.
     # First attempt
     spec = None
     last_error = None
+    raw_text = ""
 
     for attempt in range(1 + MAX_JSON_RETRIES):
         try:
@@ -433,18 +441,12 @@ Now generate the COMPLETE JSON spec for what the user requested.
 
             raw_text = response.content[0].text.strip()
 
-            # Strip markdown code fences
-            raw_text = _strip_code_fences(raw_text)
+            # If output was truncated, try to repair after stripping fences
+            truncated = response.stop_reason == "max_tokens"
 
-            # If output was truncated, try to repair
-            if response.stop_reason == "max_tokens":
-                raw_text = _attempt_json_repair(raw_text)
+            # Use robust JSON parsing with all recovery steps
+            spec = _robust_json_parse(raw_text, truncated=truncated)
 
-            spec = json.loads(raw_text)
-
-            # Handle nested string JSON
-            if isinstance(spec, str):
-                spec = json.loads(spec)
             if not isinstance(spec, dict):
                 raise ValueError(f"AI returned {type(spec).__name__} instead of a JSON object")
 
@@ -454,19 +456,31 @@ Now generate the COMPLETE JSON spec for what the user requested.
         except (json.JSONDecodeError, ValueError) as e:
             last_error = str(e)
 
-            # Try harder: find the first { and parse from there
-            if isinstance(e, json.JSONDecodeError):
-                brace_idx = raw_text.find("{")
-                if brace_idx >= 0:
-                    try:
-                        repaired = _attempt_json_repair(raw_text[brace_idx:])
-                        spec = json.loads(repaired)
-                        if isinstance(spec, dict):
-                            break
-                    except (json.JSONDecodeError, ValueError):
-                        pass
-
             if attempt >= MAX_JSON_RETRIES:
+                # Last resort: make one more API call asking for just JSON
+                logger.warning("All retries exhausted. Trying one final recovery API call.")
+                try:
+                    recovery_response = client.messages.create(
+                        model=MODEL,
+                        max_tokens=64000,
+                        system="You are a JSON repair assistant. Output ONLY valid JSON, nothing else.",
+                        messages=[{
+                            "role": "user",
+                            "content": (
+                                "Your previous response was not valid JSON. "
+                                f"Here's what you returned:\n\n{raw_text[:2000]}\n\n"
+                                "Please return ONLY the valid JSON spec, nothing else."
+                            ),
+                        }],
+                    )
+                    recovery_text = recovery_response.content[0].text.strip()
+                    spec = _robust_json_parse(recovery_text)
+                    if isinstance(spec, dict):
+                        logger.info("Recovery API call succeeded — got valid JSON")
+                        break
+                except Exception as recovery_err:
+                    logger.error("Recovery API call also failed: %s", recovery_err)
+
                 logger.error(
                     "All %d JSON parse attempts failed. Last error: %s. First 300 chars: %s",
                     MAX_JSON_RETRIES + 1, last_error, raw_text[:300]
@@ -513,6 +527,7 @@ async def refine_spec(
 
     last_error = None
     spec = None
+    raw_text = ""
 
     for attempt in range(1 + MAX_JSON_RETRIES):
         try:
@@ -543,14 +558,9 @@ async def refine_spec(
                 )
 
             raw_text = response.content[0].text.strip()
-            raw_text = _strip_code_fences(raw_text)
+            truncated = response.stop_reason == "max_tokens"
 
-            if response.stop_reason == "max_tokens":
-                raw_text = _attempt_json_repair(raw_text)
-
-            spec = json.loads(raw_text)
-            if isinstance(spec, str):
-                spec = json.loads(spec)
+            spec = _robust_json_parse(raw_text, truncated=truncated)
             if not isinstance(spec, dict):
                 raise ValueError(f"Expected dict, got {type(spec).__name__}")
             break
@@ -558,6 +568,27 @@ async def refine_spec(
         except (json.JSONDecodeError, ValueError) as e:
             last_error = str(e)
             if attempt >= MAX_JSON_RETRIES:
+                # Last resort recovery call
+                try:
+                    recovery_response = client.messages.create(
+                        model=MODEL,
+                        max_tokens=64000,
+                        system="You are a JSON repair assistant. Output ONLY valid JSON, nothing else.",
+                        messages=[{
+                            "role": "user",
+                            "content": (
+                                "Your previous response was not valid JSON. "
+                                f"Here's what you returned:\n\n{raw_text[:2000]}\n\n"
+                                "Please return ONLY the valid JSON spec, nothing else."
+                            ),
+                        }],
+                    )
+                    recovery_text = recovery_response.content[0].text.strip()
+                    spec = _robust_json_parse(recovery_text)
+                    if isinstance(spec, dict):
+                        break
+                except Exception:
+                    pass
                 raise ValueError(f"Refinement returned invalid JSON after retries: {last_error}")
 
     if spec is None:
@@ -569,6 +600,108 @@ async def refine_spec(
 
 
 # ── Helpers ─────────────────────────────────────────────────────────
+
+def _robust_json_parse(text: str, truncated: bool = False) -> dict:
+    """
+    Bulletproof JSON parsing with multiple recovery strategies.
+
+    Steps:
+      1. Try parsing as-is
+      2. Strip markdown code fences and retry
+      3. Find first '{' and last '}' and parse that substring
+      4. Fix common JSON errors (trailing commas, single quotes, unquoted keys)
+      5. If truncated, attempt structural repair (close open braces/brackets)
+
+    Returns a parsed dict or raises ValueError/JSONDecodeError.
+    """
+    # Step 1: Try parsing as-is
+    try:
+        result = json.loads(text)
+        if isinstance(result, str):
+            result = json.loads(result)
+        return result
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Step 2: Strip markdown code fences
+    stripped = _strip_code_fences(text)
+    try:
+        result = json.loads(stripped)
+        if isinstance(result, str):
+            result = json.loads(result)
+        return result
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # Step 3: Find the first '{' and last '}' and parse that substring
+    first_brace = stripped.find("{")
+    last_brace = stripped.rfind("}")
+    if first_brace >= 0 and last_brace > first_brace:
+        substr = stripped[first_brace:last_brace + 1]
+        try:
+            result = json.loads(substr)
+            if isinstance(result, str):
+                result = json.loads(result)
+            return result
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+        # Step 4: Fix common JSON errors on the substring
+        fixed = _fix_common_json_errors(substr)
+        try:
+            result = json.loads(fixed)
+            if isinstance(result, str):
+                result = json.loads(result)
+            return result
+        except (json.JSONDecodeError, ValueError):
+            pass
+
+    # Step 5: If truncated or all above failed, try structural repair
+    candidate = stripped if first_brace < 0 else stripped[first_brace:]
+    repaired = _attempt_json_repair(candidate)
+    repaired = _fix_common_json_errors(repaired)
+    try:
+        result = json.loads(repaired)
+        if isinstance(result, str):
+            result = json.loads(result)
+        return result
+    except (json.JSONDecodeError, ValueError):
+        pass
+
+    # All recovery steps failed — raise with context
+    raise json.JSONDecodeError(
+        f"All JSON recovery steps failed. First 200 chars: {text[:200]}",
+        text, 0
+    )
+
+
+def _fix_common_json_errors(text: str) -> str:
+    """
+    Fix common JSON errors that the AI might produce:
+    - Trailing commas before } or ]
+    - Single quotes instead of double quotes (outside of values)
+    - Unquoted keys
+    - JavaScript-style comments (// ...)
+    """
+    # Remove single-line comments (// ...)
+    text = re.sub(r'//[^\n]*', '', text)
+
+    # Remove trailing commas before } or ]
+    text = re.sub(r',\s*([}\]])', r'\1', text)
+
+    # Replace single quotes with double quotes (careful with apostrophes in values)
+    # Only do this if there are no double quotes at all (AI used all single quotes)
+    if "'" in text and text.count('"') < text.count("'") // 2:
+        # Heuristic: if single quotes outnumber double quotes by a lot,
+        # the AI probably used single quotes for JSON strings
+        text = text.replace("'", '"')
+
+    # Fix unquoted keys: word: -> "word":
+    # Match start-of-line or after { or , followed by whitespace then a bare word then :
+    text = re.sub(r'(?<=[\{,])\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*:', r' "\1":', text)
+
+    return text
+
 
 def _strip_code_fences(text: str) -> str:
     """Remove markdown code fences from AI output."""

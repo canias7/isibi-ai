@@ -25,6 +25,38 @@ REQUIRED_TOP_LEVEL_KEYS = {
     "pagination",
 }
 
+# PostgreSQL reserved words that should NOT be used as table names (conflict-prone)
+RESERVED_TABLE_NAMES = {
+    "user", "users", "session", "sessions", "event", "events",
+    "order", "orders", "group", "groups", "table", "tables",
+    "role", "roles", "grant", "grants", "select", "insert",
+    "update", "delete", "index", "constraint", "primary",
+    "foreign", "check", "default", "column", "row", "type",
+    "comment", "schema", "database", "trigger", "function",
+    "procedure", "sequence", "view", "lock", "key", "limit",
+    "offset", "all", "analyze", "and", "any", "array", "as",
+    "authorization", "between", "case", "cast", "create",
+}
+
+# Field names that are PostgreSQL reserved words
+RESERVED_FIELD_NAMES = {
+    "order", "user", "group", "table", "column", "row",
+    "type", "comment", "select", "insert", "update", "delete",
+    "index", "constraint", "primary", "foreign", "check",
+    "default", "key", "limit", "offset", "grant", "role",
+    "all", "and", "any", "as", "between", "case", "cast",
+    "create", "end", "in", "is", "like", "not", "null", "on",
+    "or", "to", "with", "desc", "asc", "join", "left", "right",
+    "inner", "outer", "cross", "natural", "using", "where",
+    "having", "from", "into", "values", "set", "begin",
+}
+
+# Generic app names that should be replaced
+GENERIC_APP_NAMES = {
+    "my app", "untitled", "new app", "test", "app", "my project",
+    "untitled app", "new project", "unnamed", "sample",
+}
+
 REQUIRED_FIELD_ATTRIBUTES = [
     "name",
     "db_type",
@@ -421,6 +453,9 @@ def validate_and_repair(spec: dict) -> dict:
     # 12. Duplicate entity names — rename by appending number
     spec["entities"] = _fix_duplicate_entity_names(spec["entities"])
 
+    # 17. Fix generic app names — generate from entity names
+    _fix_generic_app_name(spec)
+
     # Build entity lookup table (for FK detection)
     entity_tables: dict[str, str] = {}  # table_name -> entity_name
     for ent in spec["entities"]:
@@ -440,17 +475,47 @@ def validate_and_repair(spec: dict) -> dict:
         if "table" not in ent or not ent["table"]:
             ent["table"] = _generate_table_name(ent["name"])
 
+        # 18. Fix table names that don't match convention (lowercase + underscores)
+        ent["table"] = _fix_table_name_convention(ent["table"])
+
+        # 19. Fix reserved table names — prefix with "app_"
+        if ent["table"].lower() in RESERVED_TABLE_NAMES:
+            old_table = ent["table"]
+            ent["table"] = f"app_{ent['table']}"
+            logger.warning(
+                "Table name '%s' is a reserved word — renamed to '%s'",
+                old_table, ent["table"]
+            )
+
+        # 20. Fix reserved entity names
+        if ent["name"].lower() in {"user", "session", "event"}:
+            old_name = ent["name"]
+            ent["name"] = f"App{ent['name']}"
+            logger.warning(
+                "Entity name '%s' is reserved — renamed to '%s'",
+                old_name, ent["name"]
+            )
+
         if not isinstance(ent.get("fields"), list):
             ent["fields"] = []
 
+        # 21. Remove duplicate field names within an entity
+        _remove_duplicate_fields(ent)
+
         # 4. System fields — add missing ones
         _ensure_system_fields(ent)
+
+        # 22. Ensure entity has at least one custom field (not just system fields)
+        _ensure_minimum_custom_fields(ent)
 
         # 3. Field validation — ensure all 10 attributes
         for field in ent["fields"]:
             if not isinstance(field, dict):
                 continue
             _ensure_field_attributes(field)
+
+            # 23. Fix reserved field names — wrap in quotes for db_type
+            _fix_reserved_field_name(field)
 
             # 8. Enum badge_colors
             _ensure_badge_colors(field)
@@ -1029,3 +1094,116 @@ def _ensure_validation_rules(field: dict) -> None:
                 "message": f"{fname.replace('_', ' ').title()} must be a positive value",
             }
             return
+
+
+def _fix_table_name_convention(table_name: str) -> str:
+    """Auto-fix table names to lowercase with underscores."""
+    # Convert PascalCase/camelCase to snake_case
+    name = re.sub(r"(?<!^)(?=[A-Z])", "_", table_name).lower()
+    # Replace spaces and hyphens with underscores
+    name = re.sub(r"[\s\-]+", "_", name)
+    # Remove non-alphanumeric (except underscores)
+    name = re.sub(r"[^a-z0-9_]", "", name)
+    # Collapse multiple underscores
+    name = re.sub(r"_+", "_", name).strip("_")
+    return name or table_name
+
+
+def _remove_duplicate_fields(ent: dict) -> None:
+    """Remove duplicate field names within an entity, keeping the first occurrence."""
+    fields = ent.get("fields", [])
+    seen: set[str] = set()
+    deduped: list[dict] = []
+    for f in fields:
+        if not isinstance(f, dict):
+            continue
+        fname = f.get("name", "")
+        if fname in seen:
+            logger.warning(
+                "Entity '%s' has duplicate field '%s' — removing duplicate",
+                ent.get("name", ""), fname,
+            )
+            continue
+        seen.add(fname)
+        deduped.append(f)
+    ent["fields"] = deduped
+
+
+def _ensure_minimum_custom_fields(ent: dict) -> None:
+    """
+    Ensure entity has at least one custom field beyond system fields.
+    If it only has system fields, add a 'name' field.
+    """
+    system_field_names = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
+    custom_fields = [
+        f for f in ent.get("fields", [])
+        if isinstance(f, dict) and f.get("name") not in system_field_names
+    ]
+    if not custom_fields:
+        logger.warning(
+            "Entity '%s' has 0 custom fields — adding default 'name' field",
+            ent.get("name", ""),
+        )
+        # Insert after org_id (position 2, after id and org_id)
+        name_field = {
+            "name": "name",
+            "db_type": "VARCHAR(255) NOT NULL",
+            "ts_type": "string",
+            "nullable": False,
+            "editable": True,
+            "show_in_table": True,
+            "show_in_form": True,
+            "input_component": "TextInput",
+            "display_component": "Text",
+        }
+        # Find insertion point (after org_id)
+        insert_idx = 0
+        for i, f in enumerate(ent["fields"]):
+            if isinstance(f, dict) and f.get("name") in ("id", "org_id"):
+                insert_idx = i + 1
+        ent["fields"].insert(insert_idx, name_field)
+
+
+def _fix_reserved_field_name(field: dict) -> None:
+    """
+    If a field name is a PostgreSQL reserved word, note it in the field metadata
+    so the builder can quote it properly. We don't rename the field because the
+    frontend may depend on it, but we mark it.
+    """
+    fname = field.get("name", "")
+    if fname.lower() in RESERVED_FIELD_NAMES and fname not in ("id", "org_id", "version"):
+        field["_pg_quoted"] = True
+        # Ensure the db_type doesn't already reference the column by quoted name
+        db_type = field.get("db_type", "")
+        if db_type and not db_type.startswith('"'):
+            # The builder should handle quoting, but log a warning
+            logger.debug(
+                "Field '%s' is a reserved word — marked for quoting", fname
+            )
+
+
+def _fix_generic_app_name(spec: dict) -> None:
+    """
+    If the app_name is generic ('My App', 'Untitled', etc.),
+    generate a meaningful name from entity names.
+    """
+    app_name = spec.get("app_name", "").strip()
+    if not app_name or app_name.lower() in GENERIC_APP_NAMES:
+        entities = spec.get("entities", [])
+        entity_names = [
+            e.get("name", "")
+            for e in entities
+            if isinstance(e, dict) and e.get("name")
+        ]
+        if entity_names:
+            # Take up to 3 entity names and join them
+            if len(entity_names) <= 3:
+                spec["app_name"] = " & ".join(entity_names) + " Manager"
+            else:
+                spec["app_name"] = f"{entity_names[0]} {entity_names[1]} Hub"
+        else:
+            spec["app_name"] = "My App"
+        logger.info(
+            "Generic app_name '%s' replaced with '%s'",
+            app_name, spec["app_name"],
+        )

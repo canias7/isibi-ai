@@ -55,6 +55,7 @@ import { VisualEditor } from "@/components/VisualEditor";
 import { CloudIDE } from "@/components/CloudIDE";
 import { ERDViewer } from "@/components/ERDViewer";
 import { SpecEditor } from "@/components/SpecEditor";
+import { ProjectSettingsPage } from "./ProjectSettingsPage";
 
 // Memoized preview so it doesn't re-render while user types in the chat
 const MemoizedPreview = memo(function MemoizedPreview({
@@ -257,7 +258,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // Preview state
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [previewTab, setPreviewTab] = useState<"preview" | "code" | "cloud" | "history" | "erd" | "editor">("preview");
+  const [previewTab, setPreviewTab] = useState<"preview" | "code" | "cloud" | "history" | "erd" | "editor" | "settings">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatPanelOpen, setChatPanelOpen] = useState(true);
   const [builtSpec, _setBuiltSpec] = useState<any>(null);
@@ -391,7 +392,11 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               createdAt: p.created_at,
               spec: p.spec || null,
               projectId: p.id,
-              deployUrl: p.status === "deployed" ? `/live/${p.id}` : null,
+              deployUrl: p.status === "deployed" ? (() => {
+                const apiUrl = import.meta.env.VITE_API_URL || "https://api.isibi.ai/api";
+                const base = apiUrl.replace(/\/api\/?$/, "");
+                return `${base}/live/${p.id}`;
+              })() : null,
             }));
           if (newSessions.length > 0) {
             setChatSessions((prev) => {
@@ -922,8 +927,22 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   // Resolve live URL to the correct backend domain
   const resolveAppUrl = (url: string) => {
     if (url.startsWith("http")) return url;
-    return `https://api.isibi.ai${url}`;
+    // Build from VITE_API_URL (e.g. "https://api.isibi.ai/api") or fall back
+    const apiUrl = import.meta.env.VITE_API_URL || "https://api.isibi.ai/api";
+    // Strip trailing /api to get the host root (e.g. "https://api.isibi.ai")
+    const base = apiUrl.replace(/\/api\/?$/, "");
+    return `${base}${url}`;
   };
+
+  // Marketplace listing modal state
+  const [marketplaceModalOpen, setMarketplaceModalOpen] = useState(false);
+  const [mpTitle, setMpTitle] = useState("");
+  const [mpDescription, setMpDescription] = useState("");
+  const [mpCategory, setMpCategory] = useState("");
+  const [mpPrice, setMpPrice] = useState("0");
+  const [mpLoading, setMpLoading] = useState(false);
+  const [mpSuccess, setMpSuccess] = useState<string | null>(null);
+  const [mpError, setMpError] = useState<string | null>(null);
 
   const handleDownloadApp = async () => {
     if (!builtSpec) {
@@ -935,9 +954,18 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       return;
     }
 
+    // If already deployed, just open the URL
+    if (deployUrl) {
+      const w = window.open(deployUrl, "_blank");
+      if (!w) {
+        alert(`Your app is live at: ${deployUrl}\n\nOpen it in Chrome and click "Install" in the address bar to add it as an app.`);
+      }
+      return;
+    }
+
+    // Not deployed yet — deploy first, then open
     setDeploying(true);
     try {
-      // Always deploy/redeploy to get the latest
       const res = await post<{ url: string; status: string }>(
         `/projects/${builtProjectId}/deploy`,
         {}
@@ -945,10 +973,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       if (res?.url) {
         const fullUrl = resolveAppUrl(res.url);
         setDeployUrl(fullUrl);
+        // Update the chat session
+        const cid = activeChatId;
+        if (cid) {
+          setChatSessions((prev) =>
+            prev.map((s) => (s.id === cid ? { ...s, deployUrl: fullUrl } : s))
+          );
+        }
         // Open in new tab
         const w = window.open(fullUrl, "_blank");
         if (!w) {
-          // Popup blocked — show link instead
           alert(`Your app is live at: ${fullUrl}\n\nOpen it in Chrome and click "Install" in the address bar to add it as an app.`);
         }
       } else {
@@ -962,22 +996,63 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     }
   };
 
-  const handleDeploy = async () => {
+  const handleListOnMarketplace = async () => {
     if (!builtProjectId || deploying) return;
-    setDeploying(true);
-    setDeployUrl(null);
-    try {
-      const res = await post<{ url: string; status: string }>(
-        `/projects/${builtProjectId}/deploy`,
-        {}
-      );
-      if (res?.url) {
-        setDeployUrl(resolveAppUrl(res.url));
+
+    // Deploy first if not already deployed
+    if (!deployUrl) {
+      setDeploying(true);
+      try {
+        const res = await post<{ url: string; status: string }>(
+          `/projects/${builtProjectId}/deploy`,
+          {}
+        );
+        if (res?.url) {
+          const fullUrl = resolveAppUrl(res.url);
+          setDeployUrl(fullUrl);
+          const cid = activeChatId;
+          if (cid) {
+            setChatSessions((prev) =>
+              prev.map((s) => (s.id === cid ? { ...s, deployUrl: fullUrl } : s))
+            );
+          }
+        }
+      } catch (err: any) {
+        setError(err?.detail || "Deploy failed. Please try again.");
+        setDeploying(false);
+        return;
+      } finally {
+        setDeploying(false);
       }
+    }
+
+    // Now show the marketplace listing modal
+    setMpTitle(builtSpec?.app_name || builtSpec?.name || "");
+    setMpDescription("");
+    setMpCategory("");
+    setMpPrice("0");
+    setMpSuccess(null);
+    setMpError(null);
+    setMarketplaceModalOpen(true);
+  };
+
+  const handlePublishToMarketplace = async () => {
+    if (!builtProjectId || mpLoading) return;
+    setMpLoading(true);
+    setMpError(null);
+    try {
+      const res = await post<{ id: string; title: string }>("/template-marketplace/publish", {
+        project_id: builtProjectId,
+        title: mpTitle.trim() || "Untitled App",
+        description: mpDescription.trim() || undefined,
+        category: mpCategory.trim() || undefined,
+        price: parseFloat(mpPrice) || 0,
+      });
+      setMpSuccess(res?.id || "published");
     } catch (err: any) {
-      setError(err?.detail || "Deploy failed. Please try again.");
+      setMpError(err?.detail || err?.message || "Failed to publish. Please try again.");
     } finally {
-      setDeploying(false);
+      setMpLoading(false);
     }
   };
 
@@ -1061,6 +1136,19 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </span>
             </button>
           )}
+          {builtSpec && builtProjectId && isDev && (
+            <button
+              onClick={() => setPreviewTab("settings")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                previewTab === "settings" ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200" : "text-gray-500 hover:text-black"
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <Settings className="h-3 w-3" />
+                Settings
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -1140,7 +1228,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           {builtSpec && builtProjectId && isDev && (
             <>
               <button
-                onClick={handleDeploy}
+                onClick={handleListOnMarketplace}
                 disabled={deploying}
                 className="flex items-center gap-1.5 rounded-lg bg-pink-500 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="List on isibi marketplace"
@@ -1150,7 +1238,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 ) : (
                   <Store className="h-3.5 w-3.5" />
                 )}
-                {deploying ? "Listing..." : "List on Marketplace"}
+                {deploying ? "Deploying..." : "List on Marketplace"}
               </button>
               {deployUrl && (
                 <a
@@ -1158,10 +1246,10 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 rounded-lg bg-green-50 border border-green-200 px-2.5 py-1.5 text-[11px] font-medium text-green-700 transition hover:bg-green-100"
-                  title="View listing"
+                  title="View deployed app"
                 >
                   <ExternalLink className="h-3 w-3" />
-                  Listed
+                  Live
                 </a>
               )}
             </>
@@ -1230,7 +1318,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   spec={builtSpec}
                   device={previewDevice}
                   editMode={editMode}
-                  onSpecUpdate={(updatedSpec) => setBuiltSpec(updatedSpec)}
+                  onSpecUpdate={setBuiltSpec}
                   projectId={builtProjectId}
                 />
               ) : (
@@ -1389,10 +1477,24 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         ) : previewTab === "editor" ? (
           <div className="h-full w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             {builtSpec ? (
-              <SpecEditor spec={builtSpec} onSpecUpdate={(updatedSpec) => setBuiltSpec(updatedSpec)} />
+              <SpecEditor spec={builtSpec} onSpecUpdate={setBuiltSpec} />
             ) : (
               <div className="flex h-full items-center justify-center">
                 <p className="text-sm text-gray-400">Build a spec first to use the editor</p>
+              </div>
+            )}
+          </div>
+        ) : previewTab === "settings" ? (
+          <div className="h-full w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {builtSpec && builtProjectId ? (
+              <ProjectSettingsPage
+                projectId={builtProjectId}
+                spec={builtSpec}
+                onSpecUpdate={(updatedSpec) => setBuiltSpec(updatedSpec)}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-sm text-gray-400">Build a project first to configure settings</p>
               </div>
             )}
           </div>
@@ -1453,6 +1555,120 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     <Upload className="h-4 w-4" />
                   )}
                   {exportLoading ? "Exporting..." : "Export & Download"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Marketplace Listing Modal */}
+      {marketplaceModalOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-[400px] rounded-xl border border-gray-200 bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-black">List on Marketplace</h3>
+              <button
+                onClick={() => {
+                  setMarketplaceModalOpen(false);
+                  setMpSuccess(null);
+                  setMpError(null);
+                }}
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-black"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {mpSuccess ? (
+              <div className="rounded-lg bg-green-50 p-4 text-center">
+                <Check className="mx-auto mb-2 h-6 w-6 text-green-500" />
+                <p className="text-sm font-medium text-green-700">Listed on Marketplace!</p>
+                <p className="mt-1 text-xs text-green-600">
+                  Your app is now available for others to discover and use.
+                </p>
+                <button
+                  onClick={() => {
+                    setMarketplaceModalOpen(false);
+                    setMpSuccess(null);
+                    setActiveView("marketplace");
+                  }}
+                  className="mt-3 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-green-700"
+                >
+                  View Marketplace
+                </button>
+              </div>
+            ) : (
+              <>
+                {mpError && (
+                  <div className="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                    {mpError}
+                  </div>
+                )}
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Title</label>
+                    <input
+                      type="text"
+                      value={mpTitle}
+                      onChange={(e) => setMpTitle(e.target.value)}
+                      placeholder="My Amazing App"
+                      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-600">Description</label>
+                    <textarea
+                      value={mpDescription}
+                      onChange={(e) => setMpDescription(e.target.value)}
+                      placeholder="What does your app do?"
+                      rows={3}
+                      className="w-full resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <label className="mb-1 block text-xs font-medium text-gray-600">Category</label>
+                      <select
+                        value={mpCategory}
+                        onChange={(e) => setMpCategory(e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                      >
+                        <option value="">Select...</option>
+                        <option value="business">Business</option>
+                        <option value="education">Education</option>
+                        <option value="healthcare">Healthcare</option>
+                        <option value="ecommerce">E-Commerce</option>
+                        <option value="social">Social</option>
+                        <option value="productivity">Productivity</option>
+                        <option value="finance">Finance</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div className="w-24">
+                      <label className="mb-1 block text-xs font-medium text-gray-600">Price ($)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={mpPrice}
+                        onChange={(e) => setMpPrice(e.target.value)}
+                        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                      />
+                      <p className="mt-0.5 text-[10px] text-gray-400">0 = free</p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={handlePublishToMarketplace}
+                  disabled={!mpTitle.trim() || mpLoading}
+                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-lg bg-pink-500 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {mpLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Store className="h-4 w-4" />
+                  )}
+                  {mpLoading ? "Publishing..." : "Publish to Marketplace"}
                 </button>
               </>
             )}

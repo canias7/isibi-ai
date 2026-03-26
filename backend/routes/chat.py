@@ -51,8 +51,10 @@ PERSONAS = {
 
 ## CRITICAL RULE: Build fast, don't over-ask.
 - If the user gives a CLEAR request, ask AT MOST 1 quick question, then BUILD.
-- If they say "yes", "all of it", "just build it", "sure" — IMMEDIATELY [READY_TO_BUILD]. No more questions.
+- If they say "yes", "all of it", "just build it", "sure", "ok", "sounds good", "go ahead", "do it" — IMMEDIATELY [READY_TO_BUILD]. No more questions.
 - After the FIRST round of questions, you MUST build. No second or third rounds.
+- CRITICAL: After receiving ANY response from the user, you MUST output [READY_TO_BUILD]. Do NOT ask follow-up questions. If the response is ambiguous, make reasonable assumptions and build.
+- Ask AT MOST 1-2 clarifying questions total. Never more.
 
 ## QUESTION FORMAT — ALWAYS use clickable options:
 When you ask a question, format it with [OPTIONS] tags so the UI renders clickable buttons:
@@ -95,7 +97,8 @@ Rules for options:
 
 ## CRITICAL RULE: Build fast.
 - Ask AT MOST 1 quick question with clickable options, then build.
-- "yes", "sure", "all of it" → IMMEDIATELY [READY_TO_BUILD].
+- "yes", "sure", "all of it", "ok", "sounds good", "go ahead", "do it" → IMMEDIATELY [READY_TO_BUILD].
+- CRITICAL: After receiving ANY response from the user, you MUST output [READY_TO_BUILD]. Do NOT ask follow-up questions. Make reasonable assumptions and build.
 
 ## QUESTION FORMAT — use [OPTIONS] tags:
 Example:
@@ -127,7 +130,8 @@ Rules: 3-4 options, emoji + short label + dash + description, always include a "
 
 ## CRITICAL RULE: Build fast.
 - Ask AT MOST 1 quick question with clickable options, then build.
-- "yes", "sure", "all of it" → IMMEDIATELY [READY_TO_BUILD].
+- "yes", "sure", "all of it", "ok", "sounds good", "go ahead", "do it" → IMMEDIATELY [READY_TO_BUILD].
+- CRITICAL: After receiving ANY response from the user, you MUST output [READY_TO_BUILD]. Do NOT ask follow-up questions. Make reasonable assumptions and build.
 
 ## QUESTION FORMAT — use [OPTIONS] tags:
 Example:
@@ -159,7 +163,8 @@ Rules: 3-4 options, emoji + short label + dash + description, always include an 
 
 ## CRITICAL RULE: Build fast.
 - Ask AT MOST 1 quick question with clickable options, then build.
-- "yes", "sure", "all of it" → IMMEDIATELY [READY_TO_BUILD].
+- "yes", "sure", "all of it", "ok", "sounds good", "go ahead", "do it" → IMMEDIATELY [READY_TO_BUILD].
+- CRITICAL: After receiving ANY response from the user, you MUST output [READY_TO_BUILD]. Do NOT ask follow-up questions. Make reasonable assumptions and build.
 
 ## QUESTION FORMAT — use [OPTIONS] tags:
 Example:
@@ -327,7 +332,14 @@ async def api_chat(
 
     persona = PERSONAS.get(body.model)
     if not persona:
-        raise HTTPException(status_code=400, detail=f"Unknown model: {body.model}")
+        # Unknown model — fallback to Anias with a note
+        logger.warning("Unknown model '%s' requested — falling back to anias-1.0", body.model)
+        persona = {**PERSONAS["anias-1.0"]}
+        persona["_fallback"] = True
+        persona["_original_model"] = body.model
+
+    # Log the model being used
+    logger.info("Chat request using model: %s (persona: %s)", body.model, persona["name"])
 
     # Extract preferences from the latest user message and save them
     user_messages = [m["content"] for m in body.messages if m["role"] == "user"]
@@ -348,6 +360,20 @@ async def api_chat(
         logger.warning("Failed to fetch preferences: %s", e)
 
     system_prompt = persona["system"]
+
+    # Add model personality/focus context
+    model_focus = _get_model_focus(body.model, persona)
+    if model_focus:
+        system_prompt = system_prompt + "\n\n" + model_focus
+
+    # Add "coming soon" note for fallback models
+    if persona.get("_fallback"):
+        system_prompt = system_prompt + (
+            f"\n\nNote: The user selected the '{persona.get('_original_model', 'unknown')}' model "
+            "which is coming soon. You are filling in with your capabilities. "
+            "Do your best to match the expected behavior."
+        )
+
     prefs_prompt = _build_preferences_prompt(stored_prefs)
     if prefs_prompt:
         system_prompt = system_prompt + "\n\n" + prefs_prompt
@@ -447,22 +473,126 @@ async def _handle_build(
 
     except Exception as e:
         error_msg = str(e)
-        logger.error("BUILD ERROR: %s\n%s", error_msg, traceback.format_exc())
+        error_type = _categorize_build_error(error_msg)
+        logger.error("BUILD ERROR [%s]: %s\n%s", error_type, error_msg, traceback.format_exc())
 
-        # Provide a helpful, non-technical error message
-        if "JSON" in error_msg or "parse" in error_msg.lower():
-            user_msg = "I had trouble generating the spec structure. Let me try again — please send your request once more."
-        elif "ANTHROPIC" in error_msg or "API" in error_msg:
-            user_msg = "I'm having trouble connecting to the AI service. Please try again in a moment."
-        elif "timeout" in error_msg.lower():
-            user_msg = "The build took too long. Try a simpler request or break it into parts."
-        else:
-            user_msg = f"I hit an issue while building: {error_msg[:200]}\n\nPlease try again — sometimes a slightly different phrasing helps."
+        # On JSON/spec errors, automatically retry ONCE with a simpler prompt
+        if error_type in ("json_parse", "spec_validation"):
+            logger.info("Auto-retrying build with simplified prompt after %s error", error_type)
+            try:
+                simplified_prompt = (
+                    f"SIMPLIFIED REQUEST: {full_prompt}\n\n"
+                    "IMPORTANT: Generate a simpler spec with 3-4 entities maximum. "
+                    "Keep it straightforward. Output ONLY valid JSON."
+                )
+                project = await create_project(
+                    db=db,
+                    user_id=user_id,
+                    org_id=org_id,
+                    prompt=simplified_prompt,
+                    name=None,
+                )
+                entity_count = len(project.spec.get("entities", [])) if project.spec else 0
+                retry_reply = clean_reply
+                if retry_reply:
+                    retry_reply += "\n\n"
+                retry_reply += f"Your {persona['type']} is ready! I created {entity_count} components for you. Loading it now..."
+
+                return ChatResponse(
+                    reply=retry_reply,
+                    ready_to_build=True,
+                    project_id=str(project.id),
+                    project_name=project.name,
+                )
+            except Exception as retry_err:
+                logger.error("Retry also failed: %s", retry_err)
+
+        # Map error types to user-friendly messages (never show raw errors)
+        user_msg = _get_user_error_message(error_type)
 
         return ChatResponse(
             reply=user_msg,
             ready_to_build=False,
         )
+
+
+def _get_model_focus(model_id: str, persona: dict) -> str:
+    """
+    Return additional system prompt context based on the model's personality/focus.
+    Each model has a different area of expertise that shapes the generated app.
+    """
+    focus_map = {
+        "anias-1.0": (
+            "## Your Focus: Software & SaaS\n"
+            "You excel at building business software, SaaS platforms, CRMs, ERPs, and "
+            "internal tools. Prioritize clean data models, proper relationships, and "
+            "workflow automation. Think enterprise-grade but user-friendly."
+        ),
+        "ambar-1.0": (
+            "## Your Focus: Websites & Landing Pages\n"
+            "You excel at building beautiful websites, landing pages, portfolios, and "
+            "content-driven sites. Prioritize visual design, responsive layouts, and "
+            "compelling content structure. Think modern web design."
+        ),
+        "mario-1.0": (
+            "## Your Focus: Full-Stack Apps\n"
+            "You excel at building full-featured applications with complex UIs, "
+            "real-time features, and mobile-first design. Prioritize user experience, "
+            "performance, and interactive features. Think product-quality apps."
+        ),
+        "claw-1.0": (
+            "## Your Focus: AI Agents & Automation\n"
+            "You excel at building AI-powered tools, automation workflows, chatbots, "
+            "and intelligent systems. Prioritize triggers, conditions, actions, and "
+            "integrations. Think smart automation."
+        ),
+    }
+    return focus_map.get(model_id, "")
+
+
+def _categorize_build_error(error_msg: str) -> str:
+    """Categorize a build error into a known type for user-friendly messaging."""
+    msg_lower = error_msg.lower()
+    if "json" in msg_lower or "parse" in msg_lower or "decode" in msg_lower:
+        return "json_parse"
+    if "timeout" in msg_lower or "timed out" in msg_lower or "took too long" in msg_lower:
+        return "api_timeout"
+    if "valid" in msg_lower and ("spec" in msg_lower or "entity" in msg_lower or "field" in msg_lower):
+        return "spec_validation"
+    if "database" in msg_lower or "sqlalchemy" in msg_lower or "postgres" in msg_lower or "schema" in msg_lower:
+        return "database"
+    if "anthropic" in msg_lower or "api" in msg_lower or "rate" in msg_lower:
+        return "api_error"
+    return "unknown"
+
+
+def _get_user_error_message(error_type: str) -> str:
+    """Return a user-friendly error message based on error category."""
+    messages = {
+        "json_parse": (
+            "I had trouble formatting the app specification. Let me try again... "
+            "Please send your request once more."
+        ),
+        "api_timeout": (
+            "The request took too long. Let me try with a simpler design... "
+            "Please describe your app again, or try a simpler version."
+        ),
+        "spec_validation": (
+            "I found some issues with the design. Let me fix them... "
+            "Please try again and I'll get it right this time."
+        ),
+        "database": (
+            "There was a database issue. Please try again."
+        ),
+        "api_error": (
+            "I'm having trouble connecting to the AI service. "
+            "Please try again in a moment."
+        ),
+        "unknown": (
+            "Something went wrong. Please try again or describe your app differently."
+        ),
+    }
+    return messages.get(error_type, messages["unknown"])
 
 
 def _build_full_prompt(messages: list[dict], summary: str) -> str:
@@ -504,7 +634,14 @@ async def api_chat_stream(
 
     persona = PERSONAS.get(body.model)
     if not persona:
-        raise HTTPException(status_code=400, detail=f"Unknown model: {body.model}")
+        # Unknown model — fallback to Anias with a note
+        logger.warning("Unknown model '%s' requested (stream) — falling back to anias-1.0", body.model)
+        persona = {**PERSONAS["anias-1.0"]}
+        persona["_fallback"] = True
+        persona["_original_model"] = body.model
+
+    # Log the model being used
+    logger.info("Stream chat request using model: %s (persona: %s)", body.model, persona["name"])
 
     # Extract and save preferences from latest user message
     user_messages = [m["content"] for m in body.messages if m["role"] == "user"]
@@ -525,6 +662,20 @@ async def api_chat_stream(
         logger.warning("Failed to fetch preferences (stream): %s", e)
 
     system_prompt = persona["system"]
+
+    # Add model personality/focus context
+    model_focus = _get_model_focus(body.model, persona)
+    if model_focus:
+        system_prompt = system_prompt + "\n\n" + model_focus
+
+    # Add "coming soon" note for fallback models
+    if persona.get("_fallback"):
+        system_prompt = system_prompt + (
+            f"\n\nNote: The user selected the '{persona.get('_original_model', 'unknown')}' model "
+            "which is coming soon. You are filling in with your capabilities. "
+            "Do your best to match the expected behavior."
+        )
+
     prefs_prompt = _build_preferences_prompt(stored_prefs)
     if prefs_prompt:
         system_prompt = system_prompt + "\n\n" + prefs_prompt
@@ -599,15 +750,38 @@ async def api_chat_stream(
                 })
             except Exception as e:
                 error_msg = str(e)
-                logger.error("Stream BUILD ERROR: %s\n%s", error_msg, traceback.format_exc())
+                error_type = _categorize_build_error(error_msg)
+                logger.error("Stream BUILD ERROR [%s]: %s\n%s", error_type, error_msg, traceback.format_exc())
 
-                if "JSON" in error_msg or "parse" in error_msg.lower():
-                    user_msg = "I had trouble generating the spec. Please try again."
-                elif "timeout" in error_msg.lower():
-                    user_msg = "Build timed out. Try a simpler request."
-                else:
-                    user_msg = f"Build failed: {error_msg[:200]}"
+                # Auto-retry on JSON/spec errors
+                if error_type in ("json_parse", "spec_validation"):
+                    logger.info("Auto-retrying stream build with simplified prompt")
+                    try:
+                        simplified_prompt = (
+                            f"SIMPLIFIED REQUEST: {full_prompt}\n\n"
+                            "IMPORTANT: Generate a simpler spec with 3-4 entities maximum. "
+                            "Keep it straightforward. Output ONLY valid JSON."
+                        )
+                        project = await create_project(
+                            db=db,
+                            user_id=user_id,
+                            org_id=org_id,
+                            prompt=simplified_prompt,
+                            name=None,
+                        )
+                        entity_count = len(project.spec.get("entities", [])) if project.spec else 0
+                        yield _sse_event({
+                            "type": "building",
+                            "project_id": str(project.id),
+                            "project_name": project.name,
+                            "entity_count": entity_count,
+                        })
+                        yield _sse_event({"type": "done"})
+                        return
+                    except Exception as retry_err:
+                        logger.error("Stream retry also failed: %s", retry_err)
 
+                user_msg = _get_user_error_message(error_type)
                 yield _sse_event({
                     "type": "error",
                     "content": user_msg,

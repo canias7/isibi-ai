@@ -41,6 +41,10 @@ export function patch<T>(path: string, body: unknown) {
   return request<T>(path, { method: "PATCH", body: JSON.stringify(body) });
 }
 
+export function put<T>(path: string, body: unknown) {
+  return request<T>(path, { method: "PUT", body: JSON.stringify(body) });
+}
+
 export function del(path: string) {
   return request<void>(path, { method: "DELETE" });
 }
