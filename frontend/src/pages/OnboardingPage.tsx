@@ -1112,17 +1112,89 @@ npx electron .`;
         return (
           <>
             <div className="flex flex-1 flex-col items-center overflow-y-auto">
-              <div className="w-full max-w-3xl flex-1 px-4">
-                <div className="flex h-full flex-col items-center justify-center pb-32">
+              <div className="w-full max-w-2xl flex-1 px-4 pt-12">
+                {/* Hero */}
+                <div className="mb-10 text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-black">
+                    <span className="text-lg font-bold text-white">i</span>
+                  </div>
                   <h1 className="text-2xl font-semibold text-black">
                     What do you want to build?
                   </h1>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Describe your idea and {selectedModel.label} will bring it to life.
+                  </p>
                 </div>
+
+                {/* Starter prompts */}
+                <div className="mb-8 grid grid-cols-2 gap-2">
+                  {[
+                    { icon: "🏢", text: "A CRM to manage leads and deals", detail: "Sales pipeline, contacts, analytics" },
+                    { icon: "📋", text: "A project management tool", detail: "Tasks, boards, timelines, team view" },
+                    { icon: "🛒", text: "An e-commerce dashboard", detail: "Products, orders, customers, inventory" },
+                    { icon: "📊", text: "A finance tracker for my business", detail: "Invoices, expenses, reports, clients" },
+                  ].map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setPrompt(s.text);
+                        setTimeout(() => textareaRef.current?.focus(), 50);
+                      }}
+                      className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-gray-300 hover:shadow-sm"
+                    >
+                      <span className="mt-0.5 text-lg">{s.icon}</span>
+                      <div>
+                        <p className="text-sm font-medium text-black group-hover:text-black">{s.text}</p>
+                        <p className="mt-0.5 text-[11px] text-gray-400">{s.detail}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Feature highlights */}
+                <div className="mb-6 grid grid-cols-3 gap-3">
+                  {[
+                    { icon: "⚡", title: "Instant Preview", desc: "See your app come to life in real time" },
+                    { icon: "🎨", title: "Visual Editor", desc: "Click any element to customize it" },
+                    { icon: "🚀", title: "One-Click Deploy", desc: "Go live with a single click" },
+                  ].map((f, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-center"
+                    >
+                      <span className="text-lg">{f.icon}</span>
+                      <p className="mt-1.5 text-xs font-medium text-black">{f.title}</p>
+                      <p className="mt-0.5 text-[10px] text-gray-400">{f.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recent projects quick access */}
+                {chatSessions.length > 0 && (
+                  <div className="mb-6">
+                    <p className="mb-2 text-xs font-medium text-gray-400">Continue where you left off</p>
+                    <div className="flex flex-wrap gap-2">
+                      {chatSessions.slice(0, 3).map((s) => (
+                        <button
+                          key={s.id}
+                          onClick={() => loadChat(s)}
+                          className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600 transition hover:border-gray-300 hover:text-black"
+                        >
+                          <MessageSquare className="h-3 w-3" />
+                          <span className="max-w-[150px] truncate">{s.title}</span>
+                          {s.spec && <span className="rounded-full bg-green-50 px-1.5 py-0.5 text-[9px] font-medium text-green-600">Built</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
+
+            {/* Input area */}
             <div className="bg-white px-4 pb-6 pt-2">
-              <div className="mx-auto w-full max-w-3xl">
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+              <div className="mx-auto w-full max-w-2xl">
+                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm transition focus-within:border-gray-300 focus-within:shadow-md">
                   <textarea
                     ref={textareaRef}
                     value={prompt}
@@ -1138,7 +1210,12 @@ npx electron .`;
                       }
                     }}
                   />
-                  <div className="flex items-center justify-end px-3 pb-2">
+                  <div className="flex items-center justify-between px-3 pb-2">
+                    <div className="flex items-center gap-1">
+                      <span className="rounded-md bg-gray-50 px-2 py-1 text-[10px] font-medium text-gray-400">
+                        {selectedModel.label}
+                      </span>
+                    </div>
                     <button
                       onClick={handleSubmit}
                       disabled={!prompt.trim() || loading}
@@ -1182,7 +1259,12 @@ npx electron .`;
       >
         {/* Sidebar header */}
         <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-sm font-semibold text-black">isibi.ai</span>
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-black">
+              <span className="text-xs font-bold text-white">i</span>
+            </div>
+            <span className="text-sm font-semibold text-black">isibi.ai</span>
+          </div>
           <button
             onClick={() => setSidebarOpen(false)}
             className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-gray-200 lg:hidden"
@@ -1196,10 +1278,10 @@ npx electron .`;
           <div className="px-3 pb-2">
             <button
               onClick={startNewChat}
-              className="flex w-full items-center gap-2 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-black transition hover:bg-gray-100"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
             >
               <Plus className="h-4 w-4" />
-              New Chat
+              New Project
             </button>
           </div>
         )}
@@ -1207,21 +1289,23 @@ npx electron .`;
         {/* Chat sessions list */}
         {isDev && chatSessions.length > 0 && (
           <div className="border-b border-gray-200 px-2 pb-2">
-            <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-gray-400">
-              Recent Chats
+            <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+              Projects
             </p>
-            <div className="max-h-48 space-y-0.5 overflow-y-auto">
+            <div className="max-h-56 space-y-0.5 overflow-y-auto">
               {chatSessions.map((session) => (
                 <button
                   key={session.id}
                   onClick={() => loadChat(session)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm transition ${
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition ${
                     activeChatId === session.id
-                      ? "bg-gray-200 font-medium text-black"
+                      ? "bg-white font-medium text-black shadow-sm"
                       : "text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                  <div className={`h-2 w-2 shrink-0 rounded-full ${
+                    session.deployUrl ? "bg-green-500" : session.spec ? "bg-blue-500" : "bg-amber-400"
+                  }`} />
                   <span className="truncate">{session.title}</span>
                 </button>
               ))}
