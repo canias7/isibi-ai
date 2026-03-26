@@ -51,10 +51,10 @@ export function SpecPreview({ spec, device }: SpecPreviewProps) {
     ? entities.find((e: any) => e.name === currentModule.entity)
     : null;
 
-  // Generate or retrieve mock data for current entity
+  // Start with empty data — user adds rows via the Add button
   const entityKey = currentEntity?.name || "";
   if (currentEntity && !mockDataMap[entityKey]) {
-    mockDataMap[entityKey] = generateMockRows(currentEntity, 8);
+    mockDataMap[entityKey] = [];
   }
   const allRows = mockDataMap[entityKey] || [];
 
@@ -337,25 +337,16 @@ function DashboardPreview({ spec, primaryColor, onCardClick }: { spec: any; prim
             <p className="text-[10px] text-gray-500">
               {item.label || `Total ${item.name}`}
             </p>
-            <p className="mt-1 text-lg font-bold text-black">
-              {Math.floor(Math.random() * 500 + 50)}
-            </p>
-            <p className="mt-0.5 text-[9px] text-green-600">
-              +{Math.floor(Math.random() * 20 + 5)}% this month
-            </p>
+            <p className="mt-1 text-lg font-bold text-black">0</p>
+            <p className="mt-0.5 text-[9px] text-gray-400">No data yet</p>
           </div>
         ))}
       </div>
       <div className="rounded-lg border border-gray-100 bg-white p-3">
         <p className="text-[10px] font-medium text-black">Recent Activity</p>
-        <div className="mt-2 space-y-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex items-center gap-2 py-1">
-              <div className="h-2 w-2 rounded-full" style={{ backgroundColor: primaryColor }} />
-              <div className="h-2 flex-1 rounded bg-gray-100" />
-              <div className="h-2 w-16 rounded bg-gray-50" />
-            </div>
-          ))}
+        <div className="mt-4 flex flex-col items-center justify-center py-4 text-center">
+          <p className="text-[10px] text-gray-400">No activity yet</p>
+          <p className="mt-0.5 text-[9px] text-gray-300">Activity will appear here as you add data</p>
         </div>
       </div>
     </div>
@@ -457,8 +448,12 @@ function TablePreview({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={visibleCols.length + 1} className="py-8 text-center text-[10px] text-gray-400">
-                  No results found
+                <td colSpan={visibleCols.length + 1} className="py-10 text-center">
+                  <div className="flex flex-col items-center">
+                    <Box className="mb-2 h-6 w-6 text-gray-200" />
+                    <p className="text-[10px] font-medium text-gray-400">No {entity.name}s yet</p>
+                    <p className="mt-0.5 text-[9px] text-gray-300">Click "Add {entity.name}" to create one</p>
+                  </div>
                 </td>
               </tr>
             ) : rows.map((row, ri) => (
