@@ -157,15 +157,76 @@ def build_rag_context(user_prompt: str, max_specs: int = 3) -> str:
     return "\n".join(context_parts)
 
 
+FALLBACK_TEMPLATE = {
+    "_meta": {
+        "app_name": "My App",
+        "description": "Generated application"
+    },
+    "entities": [
+        {
+            "name": "Item",
+            "table": "items",
+            "description": "Example entity",
+            "fields": [
+                {"name": "id", "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "text"},
+                {"name": "org_id", "db_type": "UUID NOT NULL", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "text"},
+                {"name": "name", "db_type": "VARCHAR(255) NOT NULL", "ts_type": "string", "nullable": False, "editable": True, "show_in_table": True, "show_in_form": True, "input_component": "text_input", "display_component": "text", "sortable": True, "filterable": True, "validation": {"min_length": 1, "max_length": 255}},
+                {"name": "status", "db_type": "VARCHAR(50) NOT NULL DEFAULT 'active'", "ts_type": "string", "nullable": False, "editable": True, "show_in_table": True, "show_in_form": True, "input_component": "select", "display_component": "status_badge", "enum_values": ["active", "inactive", "archived"], "badge_colors": {"active": "green", "inactive": "slate", "archived": "red"}},
+                {"name": "created_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": True, "show_in_form": False, "input_component": "none", "display_component": "datetime"},
+                {"name": "updated_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "datetime"},
+                {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": True, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "datetime"},
+                {"name": "version", "db_type": "INTEGER NOT NULL DEFAULT 1", "ts_type": "number", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "text"}
+            ],
+            "ui_config": {
+                "list_view": {
+                    "layout": "table",
+                    "columns": ["name", "status", "created_at"],
+                    "filters": ["status"],
+                    "empty_state": {"icon": "Box", "heading": "No items yet", "subtext": "Create your first item", "action_label": "Add Item"}
+                },
+                "create_form": {"type": "SlideOverForm", "field_order": ["name", "status"], "required_fields": ["name"]},
+                "edit_form": {"type": "SlideOverForm", "field_order": ["name", "status"], "required_fields": ["name"], "prefilled": True},
+                "detail_view": {
+                    "route": "/items/:id",
+                    "layout": "tabbed",
+                    "header": {"title_fields": ["name"], "badge_fields": ["status"]},
+                    "primary_fields": ["name", "status"],
+                    "tabs": [{"name": "Overview", "fields": ["name", "status", "created_at", "updated_at"]}]
+                }
+            }
+        }
+    ],
+    "modules": [
+        {"name": "Dashboard", "route": "/dashboard", "component": "DashboardPage", "layout": "app", "sidebar_order": 1, "sidebar_icon": "LayoutDashboard"},
+        {"name": "Items", "route": "/items", "component": "EntityListPage", "layout": "app", "sidebar_order": 2, "sidebar_icon": "Box", "entity": "Item"}
+    ],
+    "dashboard": {
+        "stat_cards": [
+            {"label": "Total Items", "entity": "Item", "method": "count", "icon": "Box", "color": "blue"}
+        ]
+    },
+    "design_system": {
+        "theme": "light",
+        "colors": {"primary": "#2563eb", "secondary": "#64748b", "background": "#ffffff", "surface": "#f8fafc", "text": "#0f172a", "muted": "#94a3b8"},
+        "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+        "buttons": {"primary": {"bg": "bg-blue-600", "text": "text-white", "hover": "hover:bg-blue-700"}},
+        "table": {"header_bg": "bg-gray-50", "row_hover": "hover:bg-gray-50", "border": "border-gray-200"},
+        "typography": {"heading": "text-gray-900 font-semibold", "body": "text-gray-700", "muted": "text-gray-400"}
+    },
+    "pagination": {"type": "cursor", "default_page_size": 25, "max_page_size": 100}
+}
+
+
 def get_full_spec_as_schema_reference(spec_path: Path | None = None) -> str:
     """
     Return ONE full spec as a JSON schema reference.
     The AI needs to see at least one complete spec to know the exact format.
+    Falls back to an embedded template if no spec files exist on disk.
     """
     if spec_path is None:
         files = discover_spec_files()
         if not files:
-            return "{}"
+            return json.dumps(FALLBACK_TEMPLATE, indent=2)
         spec_path = files[0]
 
     spec = load_spec(spec_path)
