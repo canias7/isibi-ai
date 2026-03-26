@@ -929,17 +929,105 @@ npx electron .`;
         return <DevMarketplacePage />;
       case "projects":
         return (
-          <div className="flex flex-1 items-center justify-center">
-            <div className="text-center">
-              <FolderOpen className="mx-auto h-10 w-10 text-gray-300" />
-              <p className="mt-3 text-sm font-medium text-black">No projects yet</p>
-              <p className="mt-1 text-xs text-gray-400">Start a conversation to build your first project.</p>
-              <button
-                onClick={() => handleSidebarClick("chat")}
-                className="mt-4 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-              >
-                New Chat
-              </button>
+          <div className="flex flex-1 flex-col overflow-y-auto p-6">
+            <div className="mx-auto w-full max-w-3xl">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-black">My Projects</h2>
+                  <p className="mt-0.5 text-xs text-gray-400">
+                    All your chats and builds in one place.
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleSidebarClick("chat")}
+                  className="flex items-center gap-1.5 rounded-lg bg-black px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </button>
+              </div>
+
+              {chatSessions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <FolderOpen className="mb-3 h-10 w-10 text-gray-300" />
+                  <p className="text-sm font-medium text-black">No projects yet</p>
+                  <p className="mt-1 text-xs text-gray-400">
+                    Start a conversation to build your first project.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {chatSessions.map((session) => {
+                    const isBuilt = !!session.spec;
+                    const isDeployed = !!session.deployUrl;
+                    const modelInfo = MODELS.find((m) => m.id === session.model);
+                    const date = new Date(session.createdAt);
+                    const timeAgo = getTimeAgo(date);
+
+                    return (
+                      <button
+                        key={session.id}
+                        onClick={() => loadChat(session)}
+                        className={`flex w-full items-start gap-4 rounded-xl border bg-white px-4 py-3.5 text-left transition hover:shadow-sm ${
+                          activeChatId === session.id
+                            ? "border-black shadow-sm"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        {/* Icon */}
+                        <div
+                          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                            isBuilt ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
+                          }`}
+                        >
+                          {isBuilt ? (
+                            <Check className="h-4 w-4" />
+                          ) : (
+                            <MessageSquare className="h-4 w-4" />
+                          )}
+                        </div>
+
+                        {/* Info */}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-black">
+                            {session.title}
+                          </p>
+                          <div className="mt-1 flex items-center gap-2">
+                            <span className="text-[11px] text-gray-400">
+                              {modelInfo?.label || session.model}
+                            </span>
+                            <span className="text-[11px] text-gray-300">·</span>
+                            <span className="text-[11px] text-gray-400">{timeAgo}</span>
+                            <span className="text-[11px] text-gray-300">·</span>
+                            <span className="text-[11px] text-gray-400">
+                              {session.messages.length} messages
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Status badges */}
+                        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+                          {isDeployed && (
+                            <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">
+                              Live
+                            </span>
+                          )}
+                          {isBuilt && !isDeployed && (
+                            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                              Built
+                            </span>
+                          )}
+                          {!isBuilt && (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                              In Progress
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         );
@@ -1366,4 +1454,17 @@ if(first){first.style.display="block";document.querySelector(".sidebar-item")?.c
 </script>
 </body>
 </html>`;
+}
+
+function getTimeAgo(date: Date): string {
+  const now = Date.now();
+  const diff = now - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString();
 }
