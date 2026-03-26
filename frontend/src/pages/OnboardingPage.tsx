@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import {
   ArrowUp,
   Loader2,
@@ -47,6 +47,24 @@ import { MyAppsPage } from "./MyAppsPage";
 import { DevMarketplacePage } from "./DevMarketplacePage";
 import { SpecPreview } from "@/components/SpecPreview";
 import { VisualEditor } from "@/components/VisualEditor";
+
+// Memoized preview so it doesn't re-render while user types in the chat
+const MemoizedPreview = memo(function MemoizedPreview({
+  spec,
+  device,
+  editMode,
+  onSpecUpdate,
+}: {
+  spec: any;
+  device: "desktop" | "tablet" | "mobile";
+  editMode: boolean;
+  onSpecUpdate: (s: any) => void;
+}) {
+  if (editMode) {
+    return <VisualEditor spec={spec} device={device} onSpecUpdate={onSpecUpdate} />;
+  }
+  return <SpecPreview spec={spec} device={device} />;
+});
 
 interface Props {
   onSpecCreated: () => void;
@@ -856,14 +874,14 @@ npx electron .`;
                 onClick={handleDeploy}
                 disabled={deploying}
                 className="flex items-center gap-1.5 rounded-lg bg-pink-500 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Deploy to live URL"
+                title="List on isibi marketplace"
               >
                 {deploying ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <Rocket className="h-3.5 w-3.5" />
+                  <Store className="h-3.5 w-3.5" />
                 )}
-                {deploying ? "Deploying..." : "Deploy"}
+                {deploying ? "Listing..." : "List on Marketplace"}
               </button>
               {deployUrl && (
                 <a
@@ -871,10 +889,10 @@ npx electron .`;
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 rounded-lg bg-green-50 border border-green-200 px-2.5 py-1.5 text-[11px] font-medium text-green-700 transition hover:bg-green-100"
-                  title="Open deployed app"
+                  title="View listing"
                 >
                   <ExternalLink className="h-3 w-3" />
-                  Live
+                  Listed
                 </a>
               )}
             </>
@@ -923,14 +941,13 @@ npx electron .`;
 
             {/* Preview area */}
             <div className="flex-1 overflow-hidden">
-              {builtSpec && editMode ? (
-                <VisualEditor
+              {builtSpec ? (
+                <MemoizedPreview
                   spec={builtSpec}
                   device={previewDevice}
+                  editMode={editMode}
                   onSpecUpdate={(updatedSpec) => setBuiltSpec(updatedSpec)}
                 />
-              ) : builtSpec ? (
-                <SpecPreview spec={builtSpec} device={previewDevice} />
               ) : (
                 <div className="flex h-full items-center justify-center p-8">
                   <div className="text-center">
