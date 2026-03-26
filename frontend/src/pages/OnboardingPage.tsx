@@ -474,7 +474,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   <button
                     onClick={() => {
                       clearAuth();
-                      window.location.href = "/login";
+                      window.location.href = "/";
                     }}
                     className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-500 transition hover:bg-gray-50"
                   >
