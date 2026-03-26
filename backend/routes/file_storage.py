@@ -11,6 +11,7 @@ Static serving of /uploads/{project_id}/{filename} is handled via
 StaticFiles mount in main.py.
 """
 
+import base64
 import os
 import uuid
 import logging
@@ -60,25 +61,14 @@ async def upload_file(
             detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)} MB",
         )
 
-    # Build storage path: uploads/{project_id}/{uuid}_{filename}
+    # Store file as base64 in the database (cloud-safe, no disk writes)
     file_uuid = uuid.uuid4()
     safe_filename = file.filename.replace("/", "_").replace("\\", "_")
-    stored_name = f"{file_uuid}_{safe_filename}"
-    project_dir = UPLOADS_DIR / str(project_id)
-    file_path = project_dir / stored_name
+    file_data_b64 = base64.b64encode(content).decode("ascii")
+    file_key = f"uploads/{project_id}/{file_uuid}_{safe_filename}"
+    file_url = f"/api/files/{file_uuid}"
 
-    # Ensure directory exists
-    project_dir.mkdir(parents=True, exist_ok=True)
-
-    # Write file to disk asynchronously
-    async with aiofiles.open(file_path, "wb") as f:
-        await f.write(content)
-
-    # Build the public URL
-    file_key = f"uploads/{project_id}/{stored_name}"
-    file_url = f"/{file_key}"
-
-    # Save metadata to database
+    # Save metadata + data to database
     record = FileUpload(
         id=file_uuid,
         project_id=project_id,
@@ -88,6 +78,7 @@ async def upload_file(
         file_url=file_url,
         file_type=file.content_type,
         file_size=file_size,
+        file_data=file_data_b64,
     )
     db.add(record)
     await db.commit()
@@ -154,11 +145,6 @@ async def delete_file(
 
     if not record:
         raise HTTPException(status_code=404, detail="File not found")
-
-    # Delete from disk
-    file_path = UPLOADS_DIR / str(project_id) / os.path.basename(record.file_key)
-    if file_path.exists():
-        file_path.unlink()
 
     # Delete from database
     await db.execute(

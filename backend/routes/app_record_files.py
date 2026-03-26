@@ -8,6 +8,7 @@ Routes:
   DELETE /api/apps/{project_id}/files/{table}/{record_id}/{file_id}  — delete file
 """
 
+import base64
 import os
 import uuid
 import logging
@@ -58,22 +59,11 @@ async def upload_file(
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
-    # Create directory structure: uploads/{project_id}/{record_id}/
-    file_dir = UPLOADS_DIR / str(project_id) / record_id
-    file_dir.mkdir(parents=True, exist_ok=True)
-
-    # Generate unique file key to prevent collisions
+    # Store file as base64 in the database (cloud-safe, no disk writes)
     file_id = uuid.uuid4()
-    ext = Path(file.filename).suffix
-    safe_name = f"{file_id}{ext}"
-    file_path = file_dir / safe_name
-
-    # Write file
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    file_key = f"{project_id}/{record_id}/{safe_name}"
-    file_url = f"/uploads/{file_key}"
+    file_data_b64 = base64.b64encode(content).decode("ascii")
+    file_key = f"{project_id}/{record_id}/{file_id}"
+    file_url = f"/api/files/{file_id}"
 
     record = AppRecordFile(
         id=file_id,
@@ -86,6 +76,7 @@ async def upload_file(
         file_type=file.content_type or "application/octet-stream",
         file_size=file_size,
         uploaded_by=uploaded_by,
+        file_data=file_data_b64,
     )
     db.add(record)
     await db.commit()
@@ -161,11 +152,6 @@ async def delete_file(
     record = result.scalar_one_or_none()
     if not record:
         raise HTTPException(status_code=404, detail="File not found")
-
-    # Delete physical file
-    file_path = UPLOADS_DIR / record.file_key
-    if file_path.exists():
-        file_path.unlink()
 
     # Delete DB record
     await db.execute(

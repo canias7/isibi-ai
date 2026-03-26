@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import Column, String, DateTime, BigInteger, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, BigInteger, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as pgUUID
 from sqlalchemy.orm import Mapped
 
@@ -23,5 +23,7 @@ class FileUpload(Base):
     file_url = Column(String(1000), nullable=False)
     file_type: Mapped[Optional[str]] = Column(String(200), nullable=True)
     file_size = Column(BigInteger, nullable=False, default=0)
+
+    file_data = Column(Text, nullable=True)  # base64-encoded file content for cloud storage
 
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)

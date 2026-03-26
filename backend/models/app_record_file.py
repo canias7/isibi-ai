@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import String, Integer, DateTime, ForeignKey, text
+from sqlalchemy import String, Text, Integer, DateTime, ForeignKey, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,4 +24,5 @@ class AppRecordFile(Base):
     file_type: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     file_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     uploaded_by: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    file_data: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # base64-encoded file content
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("NOW()"))

@@ -8,6 +8,7 @@ Routes:
   DELETE /api/apps/{project_id}/field-files/{table}/{record_id}/{field_name}  — remove
 """
 
+import base64
 import os
 import uuid
 import logging
@@ -64,26 +65,14 @@ async def upload_field_file(
     )
     old = existing.scalar_one_or_none()
     if old:
-        old_path = UPLOADS_DIR / str(project_id) / "field-files" / old.file_url.lstrip("/uploads/")
-        if old_path.exists():
-            old_path.unlink(missing_ok=True)
         await db.execute(
             sa_delete(AppFieldFile).where(AppFieldFile.id == old.id)
         )
 
-    # Save new file
+    # Store file as base64 in the database (cloud-safe, no disk writes)
     file_id = uuid.uuid4()
-    ext = Path(file.filename).suffix
-    safe_name = f"{file_id}{ext}"
-    file_dir = UPLOADS_DIR / str(project_id) / "field-files" / table / record_id
-    file_dir.mkdir(parents=True, exist_ok=True)
-
-    file_path = file_dir / safe_name
-    with open(file_path, "wb") as f:
-        f.write(content)
-
-    file_key = f"{project_id}/field-files/{table}/{record_id}/{safe_name}"
-    file_url = f"/uploads/{file_key}"
+    file_data_b64 = base64.b64encode(content).decode("ascii")
+    file_url = f"/api/files/{file_id}"
 
     record = AppFieldFile(
         id=file_id,
@@ -95,6 +84,7 @@ async def upload_field_file(
         file_name=file.filename,
         file_type=file.content_type or "application/octet-stream",
         file_size=file_size,
+        file_data=file_data_b64,
     )
     db.add(record)
     await db.commit()
@@ -170,11 +160,6 @@ async def delete_field_file(
     record = result.scalar_one_or_none()
     if not record:
         raise HTTPException(status_code=404, detail="No file found for this field")
-
-    # Delete physical file
-    file_path = UPLOADS_DIR / record.file_url.lstrip("/uploads/")
-    if file_path.exists():
-        file_path.unlink(missing_ok=True)
 
     await db.execute(
         sa_delete(AppFieldFile).where(AppFieldFile.id == record.id)

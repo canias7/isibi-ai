@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
+import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -153,6 +154,7 @@ from routes.app_view_configs import router as app_view_configs_router
 from routes.app_workflows import router as app_workflows_router
 from routes.app_collaboration import router as app_collaboration_router
 from routes.app_integrations import router as app_integrations_router
+from routes.file_serve import router as file_serve_router
 
 # Import collaborative editing & enterprise feature routers
 from routes.collab_editing import router as collab_editing_router, ws_router as collab_ws_router
@@ -181,12 +183,27 @@ async def lifespan(app: FastAPI):
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_2fa_enabled BOOLEAN NOT NULL DEFAULT false"))
             # Add subdomain column to projects table
             await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS subdomain VARCHAR(63) UNIQUE"))
+            # Add file_data column for cloud file storage (replaces disk storage)
+            await conn.execute(text("ALTER TABLE file_uploads ADD COLUMN IF NOT EXISTS file_data TEXT"))
+            await conn.execute(text("ALTER TABLE app_field_files ADD COLUMN IF NOT EXISTS file_data TEXT"))
+            await conn.execute(text("ALTER TABLE app_record_files ADD COLUMN IF NOT EXISTS file_data TEXT"))
             print("ALL COLUMNS MIGRATED")
         except Exception as e:
             print(f"MIGRATION NOTE: {e}")
         await conn.run_sync(Base.metadata.create_all)
     print("ALL TABLES CREATED")
+
+    # Start background scheduler
+    from worker.scheduler import run_scheduler
+    scheduler_task = asyncio.create_task(run_scheduler())
+
     yield
+
+    scheduler_task.cancel()
+    try:
+        await scheduler_task
+    except asyncio.CancelledError:
+        pass
     await engine.dispose()
 
 
@@ -298,6 +315,9 @@ app.include_router(app_view_configs_router, prefix="/api")
 app.include_router(app_workflows_router, prefix="/api")
 app.include_router(app_collaboration_router, prefix="/api")
 app.include_router(app_integrations_router, prefix="/api")
+
+# Register file serve router (serves files from DB)
+app.include_router(file_serve_router, prefix="/api")
 
 # Register collaborative editing & enterprise feature routers
 app.include_router(collab_editing_router, prefix="/api")
