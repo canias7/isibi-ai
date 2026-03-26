@@ -1,22 +1,93 @@
 from __future__ import annotations
 """
-RAG layer — loads existing spec files and finds the BEST matches for a user prompt
-using TF-IDF-style keyword scoring.
+RAG layer v2 — Category-aware, composite-matching spec retrieval.
 
-The specs are JSON files on disk (1000+ of them). Instead of dumping summaries,
-we find the top 3 most relevant specs and return their structural data
-(entities[], modules[], design_system) so the AI can copy exact patterns.
+Finds the BEST spec files for a user prompt using a category taxonomy
+with synonym matching, composite multi-concept merging, and universal
+pattern injection. Returns structural data (entities[], modules[],
+design_system) so the AI can copy exact patterns.
 """
 
 import json
-import math
 import os
 import re
 import logging
-from collections import Counter
 from pathlib import Path
+from typing import Optional
 
 logger = logging.getLogger(__name__)
+
+# ── Category Taxonomy with Synonyms ─────────────────────────────────
+
+CATEGORIES = {
+    "crm": ["crm", "customer", "lead", "sales", "pipeline", "deal", "contact", "prospect", "opportunity"],
+    "restaurant": ["restaurant", "food", "menu", "order", "table", "reservation", "kitchen", "dining", "cafe", "bistro", "bar", "pub", "eatery"],
+    "healthcare": ["clinic", "hospital", "patient", "doctor", "medical", "health", "appointment", "prescription", "therapy", "dental", "vet", "veterinary", "pharmacy"],
+    "fitness": ["gym", "fitness", "workout", "exercise", "member", "class", "trainer", "yoga", "pilates", "crossfit", "boxing", "martial arts", "swimming", "sport"],
+    "education": ["school", "student", "teacher", "course", "class", "grade", "tutoring", "academy", "bootcamp", "training", "lesson", "learning"],
+    "real_estate": ["real estate", "property", "listing", "agent", "showing", "rental", "tenant", "landlord", "lease", "mortgage", "house", "apartment", "condo"],
+    "ecommerce": ["ecommerce", "store", "shop", "product", "cart", "order", "payment", "inventory", "catalog", "retail", "boutique", "marketplace"],
+    "hospitality": ["hotel", "hostel", "inn", "motel", "resort", "booking", "room", "guest", "check-in", "check-out", "reservation", "accommodation"],
+    "beauty": ["salon", "spa", "beauty", "hair", "nail", "facial", "massage", "grooming", "stylist", "barber", "cosmetic", "skincare"],
+    "automotive": ["car", "auto", "vehicle", "mechanic", "repair", "tire", "oil change", "dealership", "motorcycle", "fleet", "rental car"],
+    "construction": ["construction", "builder", "contractor", "roofing", "plumbing", "hvac", "electrical", "painting", "remodel", "renovation"],
+    "legal": ["law", "legal", "attorney", "lawyer", "case", "court", "firm", "contract", "litigation", "compliance"],
+    "finance": ["accounting", "bookkeeping", "invoice", "payment", "billing", "tax", "payroll", "expense", "budget", "loan", "insurance", "bank"],
+    "logistics": ["shipping", "delivery", "warehouse", "inventory", "fleet", "courier", "freight", "supply chain", "tracking", "dispatch"],
+    "events": ["event", "wedding", "party", "conference", "venue", "ticket", "booking", "catering", "entertainment", "festival"],
+    "nonprofit": ["nonprofit", "charity", "donation", "volunteer", "fundraising", "grant", "church", "community", "shelter"],
+    "pet": ["pet", "dog", "cat", "animal", "grooming", "boarding", "walking", "vet", "kennel", "daycare"],
+    "tech": ["saas", "api", "bug", "feature", "project", "sprint", "deploy", "monitor", "server", "database", "devops", "ci/cd"],
+    "creative": ["design", "photography", "video", "music", "studio", "art", "gallery", "animation", "production"],
+    "cleaning": ["cleaning", "maid", "janitorial", "laundry", "carpet", "window", "pressure wash"],
+    "food_production": ["bakery", "brewery", "distillery", "catering", "food truck", "juice", "coffee", "ice cream", "chocolate"],
+    "agriculture": ["farm", "agriculture", "crop", "livestock", "garden", "nursery", "greenhouse"],
+    "government": ["permit", "inspection", "code enforcement", "parks", "library", "municipal"],
+    "staffing": ["staffing", "recruiting", "hiring", "temp", "placement", "candidate", "job", "career"],
+    "security": ["security", "guard", "surveillance", "alarm", "patrol", "access control"],
+    "repair": ["repair", "fix", "service", "maintenance", "troubleshoot"],
+    "recreation": ["bowling", "golf", "arcade", "escape room", "trampoline", "laser tag", "mini golf", "skating"],
+    "wellness": ["meditation", "wellness", "retreat", "holistic", "acupuncture", "chiropractic", "therapy"],
+    "manufacturing": ["machine shop", "welding", "cnc", "3d printing", "laser cutting", "fabrication"],
+}
+
+# Build a reverse lookup: synonym -> set of category names
+_SYNONYM_TO_CATEGORIES: dict[str, set[str]] = {}
+for _cat, _syns in CATEGORIES.items():
+    for _syn in _syns:
+        _SYNONYM_TO_CATEGORIES.setdefault(_syn, set()).add(_cat)
+
+# ── Universal Patterns ──────────────────────────────────────────────
+
+UNIVERSAL_PATTERNS = """
+## Standard field patterns every entity needs:
+- id: UUID DEFAULT gen_random_uuid() PRIMARY KEY
+- org_id: UUID NOT NULL
+- created_at: TIMESTAMPTZ NOT NULL DEFAULT NOW()
+- updated_at: TIMESTAMPTZ NOT NULL DEFAULT NOW()
+- deleted_at: TIMESTAMPTZ (for soft delete)
+- version: INTEGER NOT NULL DEFAULT 1
+
+## Common field types:
+- Name: VARCHAR(255) NOT NULL, input_component: text_input
+- Email: VARCHAR(255), input_component: text_input
+- Phone: VARCHAR(20), input_component: text_input
+- Price/Amount: NUMERIC(10,2), input_component: number_input
+- Date: DATE, input_component: date_input, display_component: date
+- Status: VARCHAR(50), input_component: select, display_component: status_badge (needs enum_values + badge_colors)
+- Description: TEXT, input_component: textarea
+- Boolean: BOOLEAN NOT NULL DEFAULT false, input_component: checkbox, display_component: boolean_badge
+- Count: INTEGER NOT NULL DEFAULT 0, input_component: number_input
+
+## Badge color conventions:
+- Active/Success/Completed: "green"
+- Pending/Warning/In Progress: "amber"
+- New/Info/Scheduled: "blue"
+- Error/Failed/Cancelled: "red"
+- Premium/Special: "pink"
+- Advanced/VIP: "purple"
+- Default/Inactive: "slate"
+""".strip()
 
 # ── Spec discovery ──────────────────────────────────────────────────
 
@@ -30,15 +101,13 @@ DEFAULT_SPEC_DIRS = [
 ]
 
 _spec_cache: dict[str, dict] = {}
-_index_cache: dict[str, list[str]] | None = None  # filename -> keywords
-_idf_cache: dict[str, float] | None = None
+_spec_index: Optional[list[dict]] = None  # cached list of {path, spec, filename, keywords, categories, entity_count}
 
 
 def discover_spec_files(extra_dirs: list[str] | None = None) -> list[Path]:
     """Find all *_spec.json files in known directories."""
     dirs = DEFAULT_SPEC_DIRS + (extra_dirs or [])
     found: list[Path] = []
-
     for d in dirs:
         p = Path(d)
         if not p.is_dir():
@@ -55,11 +124,10 @@ def discover_spec_files(extra_dirs: list[str] | None = None) -> list[Path]:
         if resolved not in seen:
             seen.add(resolved)
             unique.append(f)
-
     return unique
 
 
-def load_spec(path: Path) -> dict:
+def _load_spec(path: Path) -> dict:
     """Load and cache a single spec file."""
     key = str(path.resolve())
     if key not in _spec_cache:
@@ -91,49 +159,99 @@ def _tokenize(text: str) -> list[str]:
     return [w for w in words if w not in _STOP_WORDS and len(w) > 1]
 
 
-# ── Index building ──────────────────────────────────────────────────
+# ── Category detection ──────────────────────────────────────────────
 
-def _extract_keywords_from_spec(spec: dict, filename: str) -> list[str]:
+def _detect_categories(prompt: str) -> set[str]:
+    """Detect which categories match the user prompt via synonym lookup.
+
+    Checks both single-word and multi-word synonyms (e.g. "real estate",
+    "oil change") against the lowercased prompt text.
     """
-    Extract searchable keywords from a spec: file name parts, app name,
-    entity names, entity descriptions, and field names with enum values.
+    prompt_lower = prompt.lower()
+    matched: set[str] = set()
+
+    for synonym, cats in _SYNONYM_TO_CATEGORIES.items():
+        if " " in synonym:
+            # Multi-word synonym: check substring
+            if synonym in prompt_lower:
+                matched.update(cats)
+        else:
+            # Single-word: check word boundary
+            if re.search(r'\b' + re.escape(synonym) + r'\b', prompt_lower):
+                matched.update(cats)
+
+    return matched
+
+
+def _spec_categories(filename: str, spec: dict) -> set[str]:
+    """Determine which categories a spec file belongs to.
+
+    Checks the filename and entity/field names against category synonyms.
     """
-    tokens: list[str] = []
+    text_parts = [filename.replace("_spec.json", "").replace("_", " ").replace("-", " ")]
 
-    # File name (e.g. "real_estate_crm_spec.json" -> ["real", "estate", "crm"])
-    stem = filename.replace("_spec.json", "").replace("_spec", "")
-    tokens.extend(_tokenize(stem.replace("_", " ").replace("-", " ")))
-
-    # App name from _meta
     meta = spec.get("_meta", {})
     if isinstance(meta, dict):
         app_name = meta.get("app_name", "") or meta.get("title", "")
         if isinstance(app_name, str):
-            tokens.extend(_tokenize(app_name))
-        desc = meta.get("description", "")
-        if isinstance(desc, str):
-            tokens.extend(_tokenize(desc))
+            text_parts.append(app_name.lower())
 
-    # Top-level app_name
+    entities = spec.get("entities", [])
+    if isinstance(entities, list):
+        for ent in entities:
+            if isinstance(ent, dict):
+                name = ent.get("name", "")
+                if isinstance(name, str):
+                    text_parts.append(name.lower())
+
+    combined = " ".join(text_parts)
+    cats: set[str] = set()
+    for synonym, category_set in _SYNONYM_TO_CATEGORIES.items():
+        if " " in synonym:
+            if synonym in combined:
+                cats.update(category_set)
+        else:
+            if re.search(r'\b' + re.escape(synonym) + r'\b', combined):
+                cats.update(category_set)
+    return cats
+
+
+# ── Index building ──────────────────────────────────────────────────
+
+def _extract_keywords(spec: dict, filename: str) -> set[str]:
+    """Extract searchable keyword set from a spec file."""
+    tokens: list[str] = []
+
+    # Filename tokens
+    stem = filename.replace("_spec.json", "").replace("_spec", "")
+    tokens.extend(_tokenize(stem.replace("_", " ").replace("-", " ")))
+
+    # App name / meta
+    meta = spec.get("_meta", {})
+    if isinstance(meta, dict):
+        for key in ("app_name", "title", "description"):
+            val = meta.get(key, "")
+            if isinstance(val, str):
+                tokens.extend(_tokenize(val))
+
     if isinstance(spec.get("app_name"), str):
         tokens.extend(_tokenize(spec["app_name"]))
 
-    # Entity names and descriptions
+    # Entity names, descriptions, field names
     entities = spec.get("entities", [])
     if isinstance(entities, list):
         for ent in entities:
             if not isinstance(ent, dict):
                 continue
-            name = ent.get("name", "")
-            if isinstance(name, str):
-                tokens.extend(_tokenize(name))
-                # Also add the plural form hint from table name
-                table = ent.get("table", "")
-                if isinstance(table, str):
-                    tokens.extend(_tokenize(table.replace("_", " ")))
-            desc = ent.get("description", "")
-            if isinstance(desc, str):
-                tokens.extend(_tokenize(desc))
+            for key in ("name", "table", "description"):
+                val = ent.get(key, "")
+                if isinstance(val, str):
+                    tokens.extend(_tokenize(val))
+            fields = ent.get("fields", [])
+            if isinstance(fields, list):
+                for f in fields:
+                    if isinstance(f, dict) and isinstance(f.get("name"), str):
+                        tokens.extend(_tokenize(f["name"]))
 
     # Module names
     modules = spec.get("modules", [])
@@ -142,126 +260,275 @@ def _extract_keywords_from_spec(spec: dict, filename: str) -> list[str]:
             if isinstance(mod, dict) and isinstance(mod.get("name"), str):
                 tokens.extend(_tokenize(mod["name"]))
 
-    return tokens
+    return set(tokens)
 
 
-def _build_index(spec_files: list[Path]) -> tuple[dict[str, list[str]], dict[str, float]]:
-    """
-    Build a TF-IDF-style index over all spec files.
-    Returns (doc_tokens, idf_scores).
-    """
-    doc_tokens: dict[str, list[str]] = {}
-    doc_freq: Counter = Counter()
+def _build_spec_index() -> list[dict]:
+    """Build the full spec index with keywords and categories. Cached."""
+    global _spec_index
+    if _spec_index is not None:
+        return _spec_index
 
+    spec_files = discover_spec_files()
+    index = []
     for path in spec_files:
-        spec = load_spec(path)
-        tokens = _extract_keywords_from_spec(spec, path.name)
-        doc_tokens[str(path)] = tokens
-        # Count unique terms per document for IDF
-        unique_terms = set(tokens)
-        for term in unique_terms:
-            doc_freq[term] += 1
+        spec = _load_spec(path)
+        if not spec:
+            continue
+        filename = path.name
+        keywords = _extract_keywords(spec, filename)
+        cats = _spec_categories(filename, spec)
+        entity_count = 0
+        entities = spec.get("entities", [])
+        if isinstance(entities, list):
+            entity_count = len([e for e in entities if isinstance(e, dict)])
 
-    n_docs = len(spec_files) or 1
-    idf: dict[str, float] = {}
-    for term, freq in doc_freq.items():
-        idf[term] = math.log(n_docs / (1 + freq)) + 1.0
+        index.append({
+            "path": path,
+            "spec": spec,
+            "filename": filename,
+            "keywords": keywords,
+            "categories": cats,
+            "entity_count": entity_count,
+        })
 
-    return doc_tokens, idf
-
-
-def _get_index(spec_files: list[Path]) -> tuple[dict[str, list[str]], dict[str, float]]:
-    """Get or build the cached index."""
-    global _index_cache, _idf_cache
-    if _index_cache is None or _idf_cache is None:
-        _index_cache, _idf_cache = _build_index(spec_files)
-    return _index_cache, _idf_cache
+    _spec_index = index
+    logger.info("Built spec index: %d specs indexed", len(index))
+    return index
 
 
-# ── Scoring & ranking ──────────────────────────────────────────────
+# ── Scoring ─────────────────────────────────────────────────────────
 
 def _score_spec(
-    query_tokens: list[str],
-    doc_tokens: list[str],
-    idf: dict[str, float],
+    entry: dict,
+    prompt_tokens: set[str],
+    matched_categories: set[str],
 ) -> float:
-    """
-    TF-IDF score: for each query token that appears in the document,
-    add TF(doc) * IDF(term). Also boost exact multi-word matches.
-    """
-    if not doc_tokens or not query_tokens:
-        return 0.0
+    """Score a single spec entry against the prompt.
 
-    doc_counter = Counter(doc_tokens)
-    doc_len = len(doc_tokens) or 1
+    Scoring:
+    - Category match bonus: +10 if spec is in a matched category
+    - Keyword overlap: +1 for each word match between prompt and spec keywords
+    - Quality bonus: +0.5 per entity in the spec
+    - Exact filename match: +20 if a prompt word appears in the filename stem
+    """
     score = 0.0
 
-    for qt in query_tokens:
-        tf = doc_counter.get(qt, 0) / doc_len
-        term_idf = idf.get(qt, 1.0)
-        score += tf * term_idf
+    # Category match bonus
+    if matched_categories & entry["categories"]:
+        score += 10.0
 
-    # Boost: if multiple consecutive query tokens appear together in doc
-    doc_text = " ".join(doc_tokens)
-    query_text = " ".join(query_tokens)
-    if len(query_tokens) > 1 and query_text in doc_text:
-        score *= 2.0
+    # Keyword overlap
+    overlap = prompt_tokens & entry["keywords"]
+    score += len(overlap) * 1.0
+
+    # Quality bonus
+    score += entry["entity_count"] * 0.5
+
+    # Exact filename match
+    stem_tokens = set(_tokenize(
+        entry["filename"].replace("_spec.json", "").replace("_", " ").replace("-", " ")
+    ))
+    if prompt_tokens & stem_tokens:
+        score += 20.0
 
     return score
 
 
-def find_best_specs(user_prompt: str, max_results: int = 3) -> list[tuple[Path, dict, float]]:
-    """
-    Find the best matching spec files for a user prompt using TF-IDF scoring.
+# ── Core matching functions ─────────────────────────────────────────
 
+def find_best_specs(user_prompt: str, max_results: int = 3) -> list[tuple[Path, dict, float]]:
+    """Find the best matching spec files for a user prompt.
+
+    Uses category taxonomy + keyword overlap + quality scoring.
     Returns list of (path, spec_dict, score) tuples, sorted by score descending.
     """
-    spec_files = discover_spec_files()
-    if not spec_files:
+    index = _build_spec_index()
+    if not index:
         return []
 
-    doc_tokens, idf = _get_index(spec_files)
-    query_tokens = _tokenize(user_prompt)
+    prompt_tokens = set(_tokenize(user_prompt))
+    matched_categories = _detect_categories(user_prompt)
 
-    if not query_tokens:
-        # No meaningful tokens — return first 3 specs as fallback
-        results = []
-        for path in spec_files[:max_results]:
-            results.append((path, load_spec(path), 0.0))
-        return results
+    if not prompt_tokens and not matched_categories:
+        # No meaningful signal — return first N specs as fallback
+        return [(e["path"], e["spec"], 0.0) for e in index[:max_results]]
 
-    scored: list[tuple[Path, float]] = []
-    for path in spec_files:
-        tokens = doc_tokens.get(str(path), [])
-        score = _score_spec(query_tokens, tokens, idf)
-        if score > 0:
-            scored.append((path, score))
+    scored: list[tuple[dict, float]] = []
+    for entry in index:
+        s = _score_spec(entry, prompt_tokens, matched_categories)
+        if s > 0:
+            scored.append((entry, s))
 
-    # Sort by score descending
     scored.sort(key=lambda x: x[1], reverse=True)
 
     results = []
-    for path, score in scored[:max_results]:
-        results.append((path, load_spec(path), score))
+    for entry, s in scored[:max_results]:
+        logger.info("Matched spec: %s (score=%.1f)", entry["filename"], s)
+        results.append((entry["path"], entry["spec"], s))
 
-    # If we got fewer than max_results, pad with random specs
+    # Pad with unmatched specs if needed
     if len(results) < max_results:
-        used_paths = {str(r[0]) for r in results}
-        for path in spec_files:
-            if str(path) not in used_paths:
-                results.append((path, load_spec(path), 0.0))
+        used = {str(r[0]) for r in results}
+        for entry in index:
+            if str(entry["path"]) not in used:
+                results.append((entry["path"], entry["spec"], 0.0))
                 if len(results) >= max_results:
                     break
 
     return results
 
 
+def _find_composite_specs(user_prompt: str) -> list[tuple[Path, dict, float]]:
+    """Composite matching: find the best spec for EACH concept in the prompt.
+
+    If the user says "CRM with invoicing and project tracking", we find:
+    - best spec for "CRM"
+    - best spec for "invoicing"
+    - best spec for "project tracking"
+
+    Then return all unique specs (deduplicated), up to 5 total.
+    """
+    index = _build_spec_index()
+    if not index:
+        return []
+
+    # Split prompt into concept fragments at "with", "and", "plus", commas
+    prompt_lower = user_prompt.lower()
+    # First, split on connectors
+    fragments = re.split(r'\b(?:with|and|plus|also|including|that has|that does|as well as)\b|[,;]', prompt_lower)
+    fragments = [f.strip() for f in fragments if f.strip()]
+
+    if len(fragments) <= 1:
+        # No composite structure detected, use standard matching
+        return find_best_specs(user_prompt, max_results=3)
+
+    logger.info("Composite matching: %d concepts detected: %s", len(fragments), fragments)
+
+    seen_paths: set[str] = set()
+    results: list[tuple[Path, dict, float]] = []
+
+    for fragment in fragments:
+        frag_tokens = set(_tokenize(fragment))
+        frag_categories = _detect_categories(fragment)
+
+        if not frag_tokens and not frag_categories:
+            continue
+
+        best_entry = None
+        best_score = 0.0
+        for entry in index:
+            s = _score_spec(entry, frag_tokens, frag_categories)
+            if s > best_score:
+                best_score = s
+                best_entry = entry
+
+        if best_entry and str(best_entry["path"]) not in seen_paths:
+            seen_paths.add(str(best_entry["path"]))
+            results.append((best_entry["path"], best_entry["spec"], best_score))
+            logger.info(
+                "Composite match: '%s' -> %s (score=%.1f)",
+                fragment.strip(), best_entry["filename"], best_score,
+            )
+
+    # If composite found fewer than 2, fall back to standard
+    if len(results) < 2:
+        return find_best_specs(user_prompt, max_results=3)
+
+    # Cap at 5 composite specs
+    return results[:5]
+
+
+# ── Field Pattern Library ───────────────────────────────────────────
+
+_field_library_cache: Optional[str] = None
+
+
+def build_field_library() -> str:
+    """Extract best field examples from all specs.
+
+    Scans all loaded specs to find the best examples of common field patterns:
+    - Status field (most enum values, has badge_colors)
+    - Price/amount field
+    - Date field
+    - Foreign key field
+    - Boolean field
+    Returns a compact string with these examples.
+    """
+    global _field_library_cache
+    if _field_library_cache is not None:
+        return _field_library_cache
+
+    index = _build_spec_index()
+
+    best_status: dict | None = None
+    best_status_score = 0
+    best_price: dict | None = None
+    best_fk: dict | None = None
+    best_boolean: dict | None = None
+
+    for entry in index:
+        entities = entry["spec"].get("entities", [])
+        if not isinstance(entities, list):
+            continue
+        for ent in entities:
+            if not isinstance(ent, dict):
+                continue
+            fields = ent.get("fields", [])
+            if not isinstance(fields, list):
+                continue
+            for f in fields:
+                if not isinstance(f, dict):
+                    continue
+                name = (f.get("name") or "").lower()
+                db_type = (f.get("db_type") or "").upper()
+
+                # Best status field
+                if "status" in name and f.get("enum_values") and f.get("badge_colors"):
+                    enum_count = len(f["enum_values"]) if isinstance(f["enum_values"], list) else 0
+                    if enum_count > best_status_score:
+                        best_status_score = enum_count
+                        best_status = f
+
+                # Best price field
+                if best_price is None and ("NUMERIC" in db_type or "DECIMAL" in db_type):
+                    if any(kw in name for kw in ("price", "amount", "cost", "total", "rate", "fee")):
+                        best_price = f
+
+                # Best FK field
+                if best_fk is None and f.get("fk_entity"):
+                    best_fk = f
+
+                # Best boolean field
+                if best_boolean is None and "BOOLEAN" in db_type:
+                    best_boolean = f
+
+    parts = ["## Field Pattern Examples (extracted from real specs):"]
+
+    def _fmt(field: dict | None, label: str) -> str:
+        if not field:
+            return ""
+        clean = {k: v for k, v in field.items() if k in (
+            "name", "db_type", "ts_type", "nullable", "editable",
+            "show_in_table", "show_in_form", "input_component",
+            "display_component", "enum_values", "badge_colors",
+            "fk_entity", "validation",
+        )}
+        return f"\n### {label}:\n```json\n{json.dumps(clean, indent=2)}\n```"
+
+    parts.append(_fmt(best_status, "Status field (best example)"))
+    parts.append(_fmt(best_price, "Price/Amount field"))
+    parts.append(_fmt(best_fk, "Foreign key field"))
+    parts.append(_fmt(best_boolean, "Boolean field"))
+
+    _field_library_cache = "\n".join(p for p in parts if p)
+    return _field_library_cache
+
+
 # ── Context extraction ──────────────────────────────────────────────
 
 def _extract_structural_context(spec: dict, max_entities: int = 4) -> dict:
-    """
-    Extract only the structural data we need from a spec:
-    entities[] (with full field definitions), modules[], and design_system.
+    """Extract structural data from a spec: entities[], modules[], design_system.
 
     Keeps total size manageable by limiting entity count and trimming verbose keys.
     """
@@ -276,7 +543,7 @@ def _extract_structural_context(spec: dict, max_entities: int = 4) -> dict:
     else:
         result["app_name"] = "Unknown"
 
-    # Entities — full field definitions so AI can copy the exact pattern
+    # Entities with full field definitions
     entities = spec.get("entities", [])
     if isinstance(entities, list):
         clean_entities = []
@@ -288,15 +555,12 @@ def _extract_structural_context(spec: dict, max_entities: int = 4) -> dict:
                 "table": ent.get("table", ""),
                 "description": ent.get("description", ""),
             }
-
-            # Include full field definitions
             fields = ent.get("fields", [])
             if isinstance(fields, list):
                 clean_fields = []
                 for f in fields:
                     if not isinstance(f, dict):
                         continue
-                    # Include the essential field attributes
                     clean_field = {}
                     for key in (
                         "name", "db_type", "ts_type", "nullable", "editable",
@@ -310,11 +574,9 @@ def _extract_structural_context(spec: dict, max_entities: int = 4) -> dict:
                         clean_fields.append(clean_field)
                 clean_ent["fields"] = clean_fields
 
-            # Include ui_config
             ui = ent.get("ui_config", {})
             if isinstance(ui, dict):
                 clean_ent["ui_config"] = ui
-
             clean_entities.append(clean_ent)
         result["entities"] = clean_entities
 
@@ -350,52 +612,74 @@ def _extract_structural_context(spec: dict, max_entities: int = 4) -> dict:
     return result
 
 
+# ── Main public function ────────────────────────────────────────────
+
 def build_rag_context(user_prompt: str, max_specs: int = 3) -> str:
+    """Build optimized RAG context from user prompt.
+
+    Returns a string under 5000 tokens (~15000 chars) containing:
+    1. Universal patterns (always included)
+    2. Best matching spec structures (top 3, or composite multi-concept)
+    3. Field pattern examples
     """
-    Build RAG context string from the most relevant spec files.
+    MAX_CHARS = 15000  # ~5000 tokens at 3 chars/token
 
-    Uses TF-IDF scoring to find the best matches, then extracts
-    structural data (entities, modules, design_system) from each.
-    Keeps total context under ~4000 tokens.
-    """
-    matches = find_best_specs(user_prompt, max_results=max_specs)
+    # 1. Universal patterns — always included
+    context_parts: list[str] = [
+        "=== UNIVERSAL PATTERNS ===",
+        UNIVERSAL_PATTERNS,
+        "",
+    ]
+    total_chars = len(UNIVERSAL_PATTERNS) + 50
 
-    if not matches:
-        return "(No existing spec files found for reference.)"
+    # 2. Find matching specs (composite or standard)
+    matches = _find_composite_specs(user_prompt)
 
-    context_parts: list[str] = []
-    context_parts.append(
-        "=== REFERENCE SPECS (use as STRUCTURAL TEMPLATES) ===\n"
-        "These are real app specs similar to what the user wants. "
-        "Copy the EXACT field format, ui_config structure, and module layout. "
-        "Adapt entity names and business fields to match the user's request.\n"
-    )
+    if matches:
+        context_parts.append("=== REFERENCE SPECS (use as STRUCTURAL TEMPLATES) ===")
+        context_parts.append(
+            "These are real app specs similar to what the user wants. "
+            "Copy the EXACT field format, ui_config structure, and module layout. "
+            "Adapt entity names and business fields to match the user's request."
+        )
+        context_parts.append("")
 
-    total_chars = 0
-    MAX_CHARS = 12000  # ~4000 tokens at 3 chars/token
-
-    for path, spec, score in matches:
-        structural = _extract_structural_context(spec, max_entities=3)
-        spec_json = json.dumps(structural, indent=2)
-
-        # Check if adding this would exceed our budget
-        if total_chars + len(spec_json) > MAX_CHARS:
-            # Reduce to fewer entities
-            structural = _extract_structural_context(spec, max_entities=1)
-            spec_json = json.dumps(structural, indent=2)
-            if total_chars + len(spec_json) > MAX_CHARS:
+        for path, spec, score in matches:
+            # Dynamically choose entity limit based on remaining budget
+            remaining = MAX_CHARS - total_chars
+            if remaining < 1500:
                 break
 
-        score_label = f" (relevance: {score:.2f})" if score > 0 else ""
-        context_parts.append(f"--- {path.name}{score_label} ---")
-        context_parts.append(spec_json)
-        context_parts.append("")
-        total_chars += len(spec_json)
+            max_ent = 3 if remaining > 6000 else (2 if remaining > 3000 else 1)
+            structural = _extract_structural_context(spec, max_entities=max_ent)
+            spec_json = json.dumps(structural, indent=2)
+
+            if total_chars + len(spec_json) > MAX_CHARS:
+                # Try with fewer entities
+                structural = _extract_structural_context(spec, max_entities=1)
+                spec_json = json.dumps(structural, indent=2)
+                if total_chars + len(spec_json) > MAX_CHARS:
+                    break
+
+            score_label = f" (relevance: {score:.1f})" if score > 0 else ""
+            context_parts.append(f"--- {path.name}{score_label} ---")
+            context_parts.append(spec_json)
+            context_parts.append("")
+            total_chars += len(spec_json) + len(path.name) + 30
+    else:
+        context_parts.append("(No existing spec files found for reference.)")
+
+    # 3. Field pattern library — append if there's budget left
+    remaining = MAX_CHARS - total_chars
+    if remaining > 800:
+        field_lib = build_field_library()
+        if len(field_lib) <= remaining:
+            context_parts.append(field_lib)
 
     return "\n".join(context_parts)
 
 
-# ── Fallback template ──────────────────────────────────────────────
+# ── Legacy / compatibility ──────────────────────────────────────────
 
 FALLBACK_TEMPLATE = {
     "app_name": "My App",
@@ -454,8 +738,8 @@ FALLBACK_TEMPLATE = {
 
 
 def get_full_spec_as_schema_reference(spec_path: Path | None = None) -> str:
-    """
-    Return ONE full spec as a JSON schema reference.
+    """Return ONE full spec as a JSON schema reference.
+
     Falls back to the embedded FALLBACK_TEMPLATE if no spec files exist.
     """
     if spec_path is None:
@@ -464,6 +748,6 @@ def get_full_spec_as_schema_reference(spec_path: Path | None = None) -> str:
             return json.dumps(FALLBACK_TEMPLATE, indent=2)
         spec_path = files[0]
 
-    spec = load_spec(spec_path)
+    spec = _load_spec(spec_path)
     structural = _extract_structural_context(spec, max_entities=2)
     return json.dumps(structural, indent=2)
