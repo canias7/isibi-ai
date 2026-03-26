@@ -562,48 +562,89 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     }
 
     try {
-      const res = await post<{
-        reply: string;
-        ready_to_build: boolean;
-        project_id?: string;
-        project_name?: string;
-      }>("/chat", {
-        model: selectedModel.id,
-        messages: newMessages,
-      });
+      // If a spec is already built, refine it instead of starting from scratch
+      if (builtSpec && builtProjectId) {
+        // Show "Updating your app..." while refining
+        const refiningMessages: Message[] = [
+          ...newMessages,
+          { role: "assistant", content: "Updating your app..." },
+        ];
+        setMessages(refiningMessages);
 
-      const updatedMessages: Message[] = [
-        ...newMessages,
-        { role: "assistant", content: res.reply },
-      ];
-      setMessages(updatedMessages);
+        const res = await post<{ spec: any; reply?: string }>(
+          `/projects/${builtProjectId}/refine`,
+          { feedback: userMsg }
+        );
 
-      const cid = currentChatId;
-      setChatSessions((prev) =>
-        prev.map((s) => (s.id === cid ? { ...s, messages: updatedMessages } : s))
-      );
+        const replyText = res.reply || "Your app has been updated!";
+        const updatedMessages: Message[] = [
+          ...newMessages,
+          { role: "assistant", content: replyText },
+        ];
+        setMessages(updatedMessages);
 
-      if (res.ready_to_build && res.project_id) {
-        setBuiltProjectId(res.project_id);
-        // Switch to cloud IDE to show files being generated
-        setIsGenerating(true);
-        setPreviewTab("cloud");
-        // Fetch the generated spec to show in preview
-        try {
-          const project = await get<{ spec: any }>(`/projects/${res.project_id}`);
-          if (project?.spec) {
-            setBuiltSpec(project.spec);
-            // Save spec + projectId to the chat session
-            const pid = res.project_id;
-            const sp = project.spec;
-            setChatSessions((prev) =>
-              prev.map((s) =>
-                s.id === cid ? { ...s, spec: sp, projectId: pid } : s
-              )
-            );
+        if (res.spec) {
+          setBuiltSpec(res.spec);
+          const cid2 = currentChatId;
+          setChatSessions((prev) =>
+            prev.map((s) =>
+              s.id === cid2
+                ? { ...s, messages: updatedMessages, spec: res.spec }
+                : s
+            )
+          );
+        } else {
+          const cid2 = currentChatId;
+          setChatSessions((prev) =>
+            prev.map((s) =>
+              s.id === cid2 ? { ...s, messages: updatedMessages } : s
+            )
+          );
+        }
+      } else {
+        const res = await post<{
+          reply: string;
+          ready_to_build: boolean;
+          project_id?: string;
+          project_name?: string;
+        }>("/chat", {
+          model: selectedModel.id,
+          messages: newMessages,
+        });
+
+        const updatedMessages: Message[] = [
+          ...newMessages,
+          { role: "assistant", content: res.reply },
+        ];
+        setMessages(updatedMessages);
+
+        const cid = currentChatId;
+        setChatSessions((prev) =>
+          prev.map((s) => (s.id === cid ? { ...s, messages: updatedMessages } : s))
+        );
+
+        if (res.ready_to_build && res.project_id) {
+          setBuiltProjectId(res.project_id);
+          // Switch to cloud IDE to show files being generated
+          setIsGenerating(true);
+          setPreviewTab("cloud");
+          // Fetch the generated spec to show in preview
+          try {
+            const project = await get<{ spec: any }>(`/projects/${res.project_id}`);
+            if (project?.spec) {
+              setBuiltSpec(project.spec);
+              // Save spec + projectId to the chat session
+              const pid = res.project_id;
+              const sp = project.spec;
+              setChatSessions((prev) =>
+                prev.map((s) =>
+                  s.id === cid ? { ...s, spec: sp, projectId: pid } : s
+                )
+              );
+            }
+          } catch {
+            // Preview will show placeholder if fetch fails
           }
-        } catch {
-          // Preview will show placeholder if fetch fails
         }
       }
     } catch (err: any) {
@@ -1468,25 +1509,29 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   </p>
                 </div>
 
-                {/* Starter prompts */}
-                <div className="mb-8 grid grid-cols-2 gap-2">
+                {/* Template quick-start cards */}
+                <div className="mb-8 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {[
-                    { icon: "🏢", text: "A CRM to manage leads and deals", detail: "Sales pipeline, contacts, analytics" },
-                    { icon: "📋", text: "A project management tool", detail: "Tasks, boards, timelines, team view" },
-                    { icon: "🛒", text: "An e-commerce dashboard", detail: "Products, orders, customers, inventory" },
-                    { icon: "📊", text: "A finance tracker for my business", detail: "Invoices, expenses, reports, clients" },
+                    { icon: "🏢", title: "CRM", detail: "Leads, deals, contacts & tracking", prompt: "Build me a CRM with leads, deals pipeline, contacts, and activity tracking" },
+                    { icon: "🍕", title: "Restaurant", detail: "Menu, orders, tables & reservations", prompt: "Build me a restaurant management system with menu items, orders, tables, and reservations" },
+                    { icon: "💪", title: "Gym", detail: "Members, classes, trainers & plans", prompt: "Build me a gym management system with members, classes, trainers, and memberships" },
+                    { icon: "🛒", title: "E-commerce", detail: "Products, orders, customers & reviews", prompt: "Build me an e-commerce store with products, orders, customers, and reviews" },
+                    { icon: "🏠", title: "Real Estate", detail: "Properties, leads, showings & agents", prompt: "Build me a real estate app with properties, leads, showings, and agents" },
+                    { icon: "📋", title: "Project Manager", detail: "Projects, tasks, milestones & teams", prompt: "Build me a project management tool with projects, tasks, milestones, and team members" },
+                    { icon: "🏥", title: "Healthcare", detail: "Patients, appointments & prescriptions", prompt: "Build me a clinic management system with patients, appointments, doctors, and prescriptions" },
+                    { icon: "📚", title: "School", detail: "Students, teachers, courses & grades", prompt: "Build me a school management system with students, teachers, courses, and grades" },
                   ].map((s, i) => (
                     <button
                       key={i}
                       onClick={() => {
-                        setPrompt(s.text);
-                        setTimeout(() => textareaRef.current?.focus(), 50);
+                        setPrompt(s.prompt);
+                        submitMessage(s.prompt);
                       }}
-                      className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-gray-300 hover:shadow-sm"
+                      className="group flex items-start gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 text-left transition hover:border-gray-300 hover:shadow-md"
                     >
                       <span className="mt-0.5 text-lg">{s.icon}</span>
                       <div>
-                        <p className="text-sm font-medium text-black group-hover:text-black">{s.text}</p>
+                        <p className="text-sm font-medium text-black">{s.title}</p>
                         <p className="mt-0.5 text-[11px] text-gray-400">{s.detail}</p>
                       </div>
                     </button>

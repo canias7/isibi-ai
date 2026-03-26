@@ -43,6 +43,9 @@ class Project(Base):
     # GitHub repo URL (set after export)
     github_repo: Mapped[Optional[str]] = Column(String(500), nullable=True)
 
+    # Custom subdomain (e.g. "mycrm" → mycrm.isibi.ai)
+    subdomain: Mapped[Optional[str]] = Column(String(63), nullable=True, unique=True, index=True)
+
     # Conversation history for multi-turn refinement
     conversation_history = Column(JSONB, nullable=True, default=list)
 

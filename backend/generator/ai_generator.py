@@ -14,50 +14,93 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 MODEL = os.getenv("AI_MODEL", "claude-sonnet-4-20250514")
 
 
-SYSTEM_PROMPT = """You are an expert software architect that generates complete application specifications in JSON format.
+SYSTEM_PROMPT = """You generate application specs as a single JSON object. Output ONLY valid JSON — no markdown, no code fences, no explanation.
 
-You will receive:
-1. A user's request describing what application they want
-2. Reference specs from existing apps (for format/pattern reference)
-3. One full spec as a JSON schema template
+## Spec Structure
 
-Your job: Generate a COMPLETE, VALID JSON spec for the requested application.
+{
+  "app_name": "My App",
+  "entities": [...],
+  "modules": [...],
+  "dashboard": { "stat_cards": [...] },
+  "design_system": { "colors": {...}, "spacing": {...}, "buttons": {...}, "table": {...}, "typography": {...} },
+  "pagination": { "default_page_size": 25 }
+}
+
+## Entity Format
+
+Each entity has: name, table, description, fields[], ui_config.
+
+Every entity MUST include these system fields (don't skip them):
+- id: UUID primary key
+- org_id: UUID (multi-tenant)
+- created_at, updated_at, deleted_at: TIMESTAMPTZ
+- version: INTEGER (optimistic locking)
+
+Field format:
+{ "name": "status", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "show_in_table": true, "show_in_form": true, "editable": true, "input_component": "Select", "display_component": "Badge", "enum_values": ["active","inactive"], "badge_colors": {"active":"green","inactive":"slate"} }
+
+Input components: TextInput, TextArea, Select, DatePicker, NumberInput, Toggle, EmailInput, PhoneInput, CurrencyInput, FileUpload
+Display components: Text, Badge, Date, Currency, Email, Phone, Link, Avatar, Progress
+
+## ui_config Format
+
+{
+  "list_view": { "columns": ["name","status"], "empty_state": {"icon":"Users","heading":"No records","subtext":"Get started","action_label":"Add"} },
+  "detail_view": { "header": {"title_fields":["name"],"badge_fields":["status"],"meta_fields":["created_at"]}, "primary_fields": ["name","email","status"] },
+  "create_form": { "type": "SlideOverForm", "field_order": ["name","email","status"], "required_fields": ["name"] },
+  "edit_form": { "type": "SlideOverForm", "field_order": ["name","email","status"], "required_fields": ["name"], "prefilled": true }
+}
+
+## Module Format
+
+{ "name": "Contacts", "route": "/contacts", "component": "ResourcePage", "layout": "sidebar", "sidebar_order": 2, "sidebar_icon": "Users", "entity": "Contact" }
+
+sidebar_icon must be a valid Lucide React icon name (PascalCase): Users, ShoppingCart, CalendarDays, Building2, Briefcase, Package, CreditCard, FileText, Settings, BarChart3, etc.
+
+Always include a Dashboard module at sidebar_order: 1 with stat_cards counting key entities.
+
+## Example (minimal)
+
+{
+  "app_name": "Contact Manager",
+  "entities": [
+    {
+      "name": "Contact", "table": "contacts", "description": "People you work with",
+      "fields": [
+        {"name":"id","db_type":"UUID","ts_type":"string","nullable":false,"show_in_table":false,"show_in_form":false,"editable":false,"input_component":"TextInput","display_component":"Text"},
+        {"name":"org_id","db_type":"UUID","ts_type":"string","nullable":false,"show_in_table":false,"show_in_form":false,"editable":false,"input_component":"TextInput","display_component":"Text"},
+        {"name":"name","db_type":"VARCHAR(255)","ts_type":"string","nullable":false,"show_in_table":true,"show_in_form":true,"editable":true,"input_component":"TextInput","display_component":"Text"},
+        {"name":"email","db_type":"VARCHAR(255)","ts_type":"string","nullable":true,"show_in_table":true,"show_in_form":true,"editable":true,"input_component":"EmailInput","display_component":"Email"},
+        {"name":"status","db_type":"VARCHAR(50)","ts_type":"string","nullable":false,"show_in_table":true,"show_in_form":true,"editable":true,"input_component":"Select","display_component":"Badge","enum_values":["active","inactive"],"badge_colors":{"active":"green","inactive":"slate"}},
+        {"name":"created_at","db_type":"TIMESTAMPTZ","ts_type":"string","nullable":false,"show_in_table":true,"show_in_form":false,"editable":false,"input_component":"DatePicker","display_component":"Date"},
+        {"name":"updated_at","db_type":"TIMESTAMPTZ","ts_type":"string","nullable":false,"show_in_table":false,"show_in_form":false,"editable":false,"input_component":"DatePicker","display_component":"Date"},
+        {"name":"deleted_at","db_type":"TIMESTAMPTZ","ts_type":"string","nullable":true,"show_in_table":false,"show_in_form":false,"editable":false,"input_component":"DatePicker","display_component":"Date"},
+        {"name":"version","db_type":"INTEGER","ts_type":"number","nullable":false,"show_in_table":false,"show_in_form":false,"editable":false,"input_component":"NumberInput","display_component":"Text"}
+      ],
+      "ui_config": {
+        "list_view": {"columns":["name","email","status","created_at"],"empty_state":{"icon":"Users","heading":"No contacts yet","subtext":"Add your first contact","action_label":"Add Contact"}},
+        "detail_view": {"header":{"title_fields":["name"],"badge_fields":["status"],"meta_fields":["created_at"]},"primary_fields":["name","email","status"]},
+        "create_form": {"type":"SlideOverForm","field_order":["name","email","status"],"required_fields":["name"]},
+        "edit_form": {"type":"SlideOverForm","field_order":["name","email","status"],"required_fields":["name"],"prefilled":true}
+      }
+    }
+  ],
+  "modules": [
+    {"name":"Dashboard","route":"/","component":"DashboardPage","layout":"sidebar","sidebar_order":1,"sidebar_icon":"BarChart3","entity":null},
+    {"name":"Contacts","route":"/contacts","component":"ResourcePage","layout":"sidebar","sidebar_order":2,"sidebar_icon":"Users","entity":"Contact"}
+  ],
+  "dashboard": {"stat_cards":[{"label":"Total Contacts","entity":"Contact","aggregate":"count","icon":"Users"}]},
+  "design_system": {"colors":{"primary":"blue","sidebar_bg":"#0f172a","sidebar_text":"#e2e8f0"},"spacing":{"page_padding":"24px"},"buttons":{"primary_bg":"blue-600"},"table":{"striped":false,"hover":true},"typography":{"font":"Inter"}},
+  "pagination": {"default_page_size":25}
+}
 
 ## Rules
-
-1. **Output ONLY valid JSON** — no markdown, no explanation, no code fences.
-2. **Follow the exact schema** from the reference spec template.
-3. **Generate entities** that match what the user described — NOT copies of reference entities.
-4. **Every entity must include:**
-   - name, table, description
-   - fields[] with: name, db_type, ts_type, nullable, input_component, display_component, editable, sortable, filterable, show_in_table, show_in_form, badge_colors (for enums), validation
-   - ui_config with: list_view, detail_view, create_form, edit_form
-5. **Every module must include:**
-   - name, route, component, layout, sidebar_order, sidebar_icon (valid Lucide icon name), entity (explicit entity name)
-6. **Always include these standard fields on every entity:**
-   - id (UUID, primary key)
-   - org_id (UUID, multi-tenant)
-   - created_at, updated_at, deleted_at (TIMESTAMPTZ)
-   - version (INTEGER, optimistic locking)
-7. **Generate realistic enum values** with badge_colors for each value.
-8. **UI config must be complete:**
-   - list_view: columns, filters, quick_filter_tabs, empty_state (with icon, heading, subtext, action_label), row_actions
-   - detail_view: route, tabs, header (title_fields, badge_fields, meta_fields), primary_fields, secondary_fields
-   - create_form: type=SlideOverForm, field_order, required_fields
-   - edit_form: same as create but with prefilled=true
-9. **Always include a Dashboard module** (sidebar_order: 1) with dashboard config.
-10. **Include design_system** with dark theme colors, spacing, buttons, table, typography.
-11. **sidebar_icon values** must be valid Lucide React icon names (PascalCase): e.g. Users, ShoppingCart, CalendarDays, Building2, UtensilsCrossed, Briefcase, etc.
-12. **Generate 3-6 entities** depending on complexity — keep it focused, don't over-generate.
-13. **Include a dashboard section** with stat_cards relevant to the domain.
-14. **Keep field definitions compact** — only include essential attributes (name, db_type, ts_type, nullable, show_in_table, show_in_form, editable, input_component, display_component). Skip validation unless needed.
-15. **Keep UI configs minimal** — list_view needs columns + empty_state. Forms need field_order + required_fields. Detail view needs header + primary_fields.
-
-## Important
-- Be thorough. A real frontend renderer will read this spec to build the entire UI.
-- Every field needs proper input_component and display_component.
-- Every enum needs badge_colors mapping each value to a Tailwind color name (blue, green, red, amber, purple, indigo, orange, slate).
-- Relationships between entities should use fk_entity references.
+1. Output ONLY the JSON object. No text before or after.
+2. Generate 3-6 entities based on complexity. Fill in smart defaults for anything unspecified.
+3. Every enum/status field needs enum_values[] and badge_colors{} mapping values to Tailwind colors (blue, green, red, amber, purple, indigo, orange, slate).
+4. Use fk_entity on fields that reference other entities.
+5. Keep it compact. Do not add unnecessary fields or overly detailed configs.
 """
 
 

@@ -55,6 +55,10 @@ from routes.app_analytics import router as app_analytics_router
 from routes.db_gui import router as db_gui_router
 from routes.push_notifications import router as push_notifications_router
 from routes.serverless import router as serverless_router
+from routes.billing_check import router as billing_check_router
+from routes.app_subdomain import router as app_subdomain_router
+from routes.app_ai_chat import router as app_ai_chat_router
+from routes.app_dashboard import router as app_dashboard_router
 
 
 @asynccontextmanager
@@ -74,6 +78,8 @@ async def lifespan(app: FastAPI):
             # Add missing columns to users table for 2FA
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(255)"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_2fa_enabled BOOLEAN NOT NULL DEFAULT false"))
+            # Add subdomain column to projects table
+            await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS subdomain VARCHAR(63) UNIQUE"))
             print("ALL COLUMNS MIGRATED")
         except Exception as e:
             print(f"MIGRATION NOTE: {e}")
@@ -122,6 +128,10 @@ app.include_router(app_analytics_router)  # Uses raw /api paths internally
 app.include_router(db_gui_router, prefix="/api")
 app.include_router(push_notifications_router)  # Uses raw /api paths internally
 app.include_router(serverless_router, prefix="/api")
+app.include_router(billing_check_router, prefix="/api")
+app.include_router(app_subdomain_router, prefix="/api")
+app.include_router(app_ai_chat_router, prefix="/api")
+app.include_router(app_dashboard_router, prefix="/api")
 
 # ── Serve uploaded files ──
 _uploads_dir = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(__file__), "uploads")))
@@ -168,6 +178,43 @@ async def _get_build_data(project_id: str) -> dict | None:
             return _json.loads(row)
     except Exception:
         return None
+
+
+async def _resolve_subdomain_to_project_id(subdomain: str) -> str | None:
+    """Look up a project ID by its custom subdomain."""
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                sa_select(ProjectModel.id).where(
+                    ProjectModel.subdomain == subdomain.lower(),
+                    ProjectModel.status == "deployed",
+                    ProjectModel.deleted_at.is_(None),
+                )
+            )
+            pid = result.scalar_one_or_none()
+            return str(pid) if pid else None
+    except Exception:
+        return None
+
+
+@app.get("/live/s/{subdomain}", response_class=HTMLResponse)
+async def serve_live_app_by_subdomain(subdomain: str):
+    """Serve a deployed app by its custom subdomain slug."""
+    project_id = await _resolve_subdomain_to_project_id(subdomain)
+    if not project_id:
+        return HTMLResponse(
+            content="<html><body style='font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'>"
+            "<div style='text-align:center'><h2>App not found</h2><p style='color:#888'>No app is linked to this subdomain.</p></div></body></html>",
+            status_code=404,
+        )
+    data = await _get_build_data(project_id)
+    if not data or "index_html" not in data:
+        return HTMLResponse(
+            content="<html><body style='font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'>"
+            "<div style='text-align:center'><h2>App not found</h2><p style='color:#888'>This app has not been deployed yet.</p></div></body></html>",
+            status_code=404,
+        )
+    return HTMLResponse(content=data["index_html"])
 
 
 @app.get("/live/{project_id}", response_class=HTMLResponse)

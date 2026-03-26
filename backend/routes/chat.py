@@ -7,11 +7,14 @@ The AI asks clarifying questions, then when it has enough info,
 generates the spec and creates the project.
 """
 
+import asyncio
 import json
 import os
+import traceback
 import anthropic
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -19,6 +22,7 @@ from db import get_db
 from auth import get_current_org_id, get_current_user_id
 from generator.rag import build_rag_context, get_full_spec_as_schema_reference
 from generator.orchestrator import create_project
+from routes.billing_check import can_build
 
 router = APIRouter(tags=["Chat"])
 
@@ -221,6 +225,15 @@ async def api_chat(
         # Build the full prompt from conversation history
         full_prompt = _build_full_prompt(body.messages, summary)
 
+        # ── Billing paywall check ──
+        billing = await can_build(org_id, db)
+        if not billing["can_build"]:
+            limit = billing["builds_limit"]
+            return ChatResponse(
+                reply=f"You've used all {limit} free builds. Upgrade to Pro for unlimited builds.",
+                ready_to_build=False,
+            )
+
         # Generate the spec and create the project
         try:
             project = await create_project(
@@ -271,3 +284,105 @@ def _build_full_prompt(messages: list[dict], summary: str) -> str:
         )
 
     return "\n\n".join(user_messages)
+
+
+# ── Streaming chat endpoint (SSE) ────────────────────────────────
+
+def _sse_event(data: dict) -> str:
+    """Format a dict as an SSE data line."""
+    return f"data: {json.dumps(data)}\n\n"
+
+
+@router.post("/chat/stream")
+async def api_chat_stream(
+    body: ChatRequest,
+    db: AsyncSession = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id),
+    user_id: UUID = Depends(get_current_user_id),
+):
+    """
+    Streaming conversational chat via Server-Sent Events.
+
+    Each event is a JSON object with a "type" field:
+      - {"type":"text","content":"word "}   — a chunk of the AI reply
+      - {"type":"building","project_id":"..."} — build started
+      - {"type":"done"}                     — stream complete
+    """
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=500, detail="AI service not configured")
+
+    persona = PERSONAS.get(body.model)
+    if not persona:
+        raise HTTPException(status_code=400, detail=f"Unknown model: {body.model}")
+
+    async def event_generator():
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        full_reply = ""
+
+        try:
+            with client.messages.stream(
+                model=MODEL,
+                max_tokens=1024,
+                system=persona["system"],
+                messages=body.messages,
+            ) as stream:
+                for text_chunk in stream.text_stream:
+                    full_reply += text_chunk
+                    yield _sse_event({"type": "text", "content": text_chunk})
+
+        except Exception as e:
+            yield _sse_event({"type": "error", "content": str(e)})
+            yield _sse_event({"type": "done"})
+            return
+
+        # After streaming completes, check if AI wants to build
+        if "[READY_TO_BUILD]" in full_reply:
+            # ── Billing paywall check ──
+            billing = await can_build(org_id, db)
+            if not billing["can_build"]:
+                limit = billing["builds_limit"]
+                yield _sse_event({
+                    "type": "error",
+                    "content": f"You've used all {limit} free builds. Upgrade to Pro for unlimited builds.",
+                })
+                yield _sse_event({"type": "done"})
+                return
+
+            parts = full_reply.split("[READY_TO_BUILD]", 1)
+            summary = parts[1].strip() if len(parts) > 1 else ""
+            full_prompt = _build_full_prompt(body.messages, summary)
+
+            try:
+                project = await create_project(
+                    db=db,
+                    user_id=user_id,
+                    org_id=org_id,
+                    prompt=full_prompt,
+                    name=None,
+                )
+                entity_count = len(project.spec.get("entities", [])) if project.spec else 0
+                yield _sse_event({
+                    "type": "building",
+                    "project_id": str(project.id),
+                    "project_name": project.name,
+                    "entity_count": entity_count,
+                })
+            except Exception as e:
+                tb = traceback.format_exc()
+                print(f"BUILD ERROR: {e}\n{tb}", flush=True)
+                yield _sse_event({
+                    "type": "error",
+                    "content": f"Build failed: {str(e)}",
+                })
+
+        yield _sse_event({"type": "done"})
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
