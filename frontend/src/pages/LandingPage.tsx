@@ -108,12 +108,12 @@ export function LandingPage() {
             >
               Start Building — Free
             </Link>
-            <a
-              href="#how-it-works"
+            <button
+              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               className="rounded-xl border-2 border-black px-8 py-4 text-sm font-semibold text-black transition hover:bg-black hover:text-white"
             >
               Watch Demo
-            </a>
+            </button>
           </div>
 
           {/* Animated mockup */}
@@ -443,9 +443,23 @@ export function LandingPage() {
             <div>
               <h4 className="text-sm font-bold mb-4">Product</h4>
               <ul className="space-y-2">
-                {["Features", "Pricing", "Marketplace", "Templates"].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-sm text-gray-500 transition hover:text-black">{item}</a>
+                {[
+                  { label: "Features", href: "#features" },
+                  { label: "Pricing", href: "#pricing" },
+                  { label: "Marketplace", href: "/marketplace" },
+                  { label: "Templates", href: "/templates" },
+                ].map((item) => (
+                  <li key={item.label}>
+                    {item.href.startsWith("#") ? (
+                      <button
+                        onClick={() => document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: "smooth" })}
+                        className="text-sm text-gray-500 transition hover:text-black"
+                      >
+                        {item.label}
+                      </button>
+                    ) : (
+                      <Link to={item.href} className="text-sm text-gray-500 transition hover:text-black">{item.label}</Link>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -453,9 +467,14 @@ export function LandingPage() {
             <div>
               <h4 className="text-sm font-bold mb-4">Company</h4>
               <ul className="space-y-2">
-                {["About", "Blog", "Careers", "Contact"].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-sm text-gray-500 transition hover:text-black">{item}</a>
+                {[
+                  { label: "About", href: "/about" },
+                  { label: "Blog", href: "/blog" },
+                  { label: "Careers", href: "/careers" },
+                  { label: "Contact", href: "/contact" },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <Link to={item.href} className="text-sm text-gray-500 transition hover:text-black">{item.label}</Link>
                   </li>
                 ))}
               </ul>
@@ -463,9 +482,13 @@ export function LandingPage() {
             <div>
               <h4 className="text-sm font-bold mb-4">Legal</h4>
               <ul className="space-y-2">
-                {["Terms", "Privacy", "Security"].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-sm text-gray-500 transition hover:text-black">{item}</a>
+                {[
+                  { label: "Terms", href: "/terms" },
+                  { label: "Privacy", href: "/privacy" },
+                  { label: "Security", href: "/security" },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <Link to={item.href} className="text-sm text-gray-500 transition hover:text-black">{item.label}</Link>
                   </li>
                 ))}
               </ul>
@@ -473,9 +496,14 @@ export function LandingPage() {
             <div>
               <h4 className="text-sm font-bold mb-4">Connect</h4>
               <ul className="space-y-2">
-                {["Twitter", "GitHub", "Discord", "Email"].map((item) => (
-                  <li key={item}>
-                    <a href="#" className="text-sm text-gray-500 transition hover:text-black">{item}</a>
+                {[
+                  { label: "Twitter", href: "https://twitter.com/isibi_ai" },
+                  { label: "GitHub", href: "https://github.com/isibi-ai" },
+                  { label: "Discord", href: "https://discord.gg/isibi" },
+                  { label: "Email", href: "mailto:hello@isibi.ai" },
+                ].map((item) => (
+                  <li key={item.label}>
+                    <a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined} className="text-sm text-gray-500 transition hover:text-black">{item.label}</a>
                   </li>
                 ))}
               </ul>

@@ -299,10 +299,23 @@ def _build_spec_index() -> list[dict]:
 
 # ── Scoring ─────────────────────────────────────────────────────────
 
+def _extract_phrases(text: str, max_words: int = 3) -> list[str]:
+    """Extract 2-word and 3-word phrases from text (lowercased)."""
+    words = re.findall(r"[a-z0-9]+", text.lower())
+    # Filter out stop words for phrase building
+    filtered = [w for w in words if w not in _STOP_WORDS and len(w) > 1]
+    phrases = []
+    for n in range(2, min(max_words + 1, len(filtered) + 1)):
+        for i in range(len(filtered) - n + 1):
+            phrases.append(" ".join(filtered[i:i + n]))
+    return phrases
+
+
 def _score_spec(
     entry: dict,
     prompt_tokens: set[str],
     matched_categories: set[str],
+    prompt_phrases: list[str] | None = None,
 ) -> float:
     """Score a single spec entry against the prompt.
 
@@ -310,7 +323,9 @@ def _score_spec(
     - Category match bonus: +10 if spec is in a matched category
     - Keyword overlap: +1 for each word match between prompt and spec keywords
     - Quality bonus: +0.5 per entity in the spec
-    - Exact filename match: +20 if a prompt word appears in the filename stem
+    - Exact filename match: +50 if the filename stem matches prompt tokens closely
+    - Partial filename match: +20 if any prompt word appears in the filename stem
+    - Phrase match bonus: +15 for each multi-word phrase found in spec keywords
     """
     score = 0.0
 
@@ -325,12 +340,28 @@ def _score_spec(
     # Quality bonus
     score += entry["entity_count"] * 0.5
 
-    # Exact filename match
-    stem_tokens = set(_tokenize(
-        entry["filename"].replace("_spec.json", "").replace("_", " ").replace("-", " ")
-    ))
-    if prompt_tokens & stem_tokens:
-        score += 20.0
+    # Filename matching
+    stem = entry["filename"].replace("_spec.json", "").replace("_", " ").replace("-", " ")
+    stem_tokens = set(_tokenize(stem))
+
+    if stem_tokens and prompt_tokens:
+        overlap_ratio = len(prompt_tokens & stem_tokens) / len(stem_tokens)
+        if overlap_ratio >= 0.8:
+            # Near-exact filename match (e.g., "restaurant management" matches
+            # "restaurant_management_spec.json") — strong boost
+            score += 50.0
+        elif prompt_tokens & stem_tokens:
+            # Partial filename match
+            score += 20.0
+
+    # Multi-word phrase matching
+    if prompt_phrases:
+        stem_lower = stem.lower()
+        # Also build a searchable text from spec keywords
+        keywords_text = " ".join(sorted(entry["keywords"]))
+        for phrase in prompt_phrases:
+            if phrase in stem_lower or phrase in keywords_text:
+                score += 15.0
 
     return score
 
@@ -349,6 +380,7 @@ def find_best_specs(user_prompt: str, max_results: int = 3) -> list[tuple[Path, 
 
     prompt_tokens = set(_tokenize(user_prompt))
     matched_categories = _detect_categories(user_prompt)
+    prompt_phrases = _extract_phrases(user_prompt)
 
     if not prompt_tokens and not matched_categories:
         # No meaningful signal — return first N specs as fallback
@@ -356,7 +388,7 @@ def find_best_specs(user_prompt: str, max_results: int = 3) -> list[tuple[Path, 
 
     scored: list[tuple[dict, float]] = []
     for entry in index:
-        s = _score_spec(entry, prompt_tokens, matched_categories)
+        s = _score_spec(entry, prompt_tokens, matched_categories, prompt_phrases)
         if s > 0:
             scored.append((entry, s))
 
@@ -411,6 +443,7 @@ def _find_composite_specs(user_prompt: str) -> list[tuple[Path, dict, float]]:
     for fragment in fragments:
         frag_tokens = set(_tokenize(fragment))
         frag_categories = _detect_categories(fragment)
+        frag_phrases = _extract_phrases(fragment)
 
         if not frag_tokens and not frag_categories:
             continue
@@ -418,7 +451,7 @@ def _find_composite_specs(user_prompt: str) -> list[tuple[Path, dict, float]]:
         best_entry = None
         best_score = 0.0
         for entry in index:
-            s = _score_spec(entry, frag_tokens, frag_categories)
+            s = _score_spec(entry, frag_tokens, frag_categories, frag_phrases)
             if s > best_score:
                 best_score = s
                 best_entry = entry

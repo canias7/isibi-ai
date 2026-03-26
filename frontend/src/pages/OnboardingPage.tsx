@@ -42,6 +42,10 @@ import {
   Redo2,
   Share2,
   FileText,
+  Copy,
+  Mail,
+  Link as LinkIcon,
+  Users,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -109,10 +113,12 @@ interface ChatSession {
 
 const MODELS = [
   { id: "anias-1.0", label: "Anias 1.0", description: "Software builder", active: true },
-  { id: "ambar-1.0", label: "Ambar 1.0", description: "Website builder", active: false },
-  { id: "mario-1.0", label: "Mario 1.0", description: "App builder", active: false },
-  { id: "claw-1.0", label: "Claw 1.0", description: "Agent builder", active: false },
+  { id: "ambar-1.0", label: "Ambar 1.0 (Coming Soon)", description: "Website builder", active: true },
+  { id: "mario-1.0", label: "Mario 1.0 (Coming Soon)", description: "App builder", active: true },
+  { id: "claw-1.0", label: "Claw 1.0 (Coming Soon)", description: "Agent builder", active: true },
 ];
+
+const COMING_SOON_MODELS = new Set(["ambar-1.0", "mario-1.0", "claw-1.0"]);
 
 type View = "chat" | "marketplace" | "projects" | "myapps" | "templates" | "docs" | "history" | "mylistings";
 
@@ -365,6 +371,66 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   // Theme
   const { theme, toggleTheme } = useThemeStore();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Coming soon toast
+  const [comingSoonToast, setComingSoonToast] = useState<string | null>(null);
+
+  // Collaborative editing state
+  interface PresenceUser {
+    id: string;
+    name: string;
+    initials: string;
+    color: string;
+    is_self: boolean;
+    is_editing: boolean;
+    last_active: string;
+  }
+  const [presenceUsers, setPresenceUsers] = useState<PresenceUser[]>([]);
+  const [editingUser, setEditingUser] = useState<{ name: string; visible: boolean } | null>(null);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [sharePermission, setSharePermission] = useState<"edit" | "view">("edit");
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareInviting, setShareInviting] = useState(false);
+  const [shareInviteSuccess, setShareInviteSuccess] = useState(false);
+
+  // Poll presence every 10 seconds when a project is loaded
+  useEffect(() => {
+    if (!builtProjectId) {
+      setPresenceUsers([]);
+      return;
+    }
+    let cancelled = false;
+    const fetchPresence = async () => {
+      try {
+        const data = await get<PresenceUser[]>(`/collab/${builtProjectId}/presence`);
+        if (!cancelled && data) {
+          setPresenceUsers(data);
+          // Check if someone else is editing
+          const editor = data.find((u) => u.is_editing && !u.is_self);
+          if (editor) {
+            setEditingUser({ name: editor.name.split(" ")[0], visible: true });
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+              if (!cancelled) setEditingUser((prev) => prev ? { ...prev, visible: false } : null);
+            }, 5000);
+          }
+        }
+      } catch {
+        // Presence endpoint may not exist yet, ignore
+      }
+    };
+    fetchPresence();
+    const interval = setInterval(fetchPresence, 10000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [builtProjectId]);
+
+  // Auto-hide coming soon toast
+  useEffect(() => {
+    if (!comingSoonToast) return;
+    const t = setTimeout(() => setComingSoonToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [comingSoonToast]);
 
   // Sync theme class on mount
   useEffect(() => {
@@ -1165,9 +1231,50 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </span>
             </button>
           )}
+          {builtSpec && builtProjectId && (
+            <button
+              onClick={() => setShareModalOpen(true)}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-black transition"
+            >
+              <span className="flex items-center gap-1">
+                <Users className="h-3 w-3" />
+                Share
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Presence avatars */}
+          {presenceUsers.length > 0 && (
+            <div className="flex items-center -space-x-1.5 mr-2">
+              {presenceUsers.slice(0, 5).map((pu) => (
+                <div
+                  key={pu.id}
+                  className="relative flex h-6 w-6 items-center justify-center rounded-full border-2 border-white text-[9px] font-bold text-white"
+                  style={{ backgroundColor: pu.color || "#6b7280" }}
+                  title={pu.is_self ? `${pu.name} (you)` : pu.name}
+                >
+                  {pu.initials}
+                  {pu.is_self && (
+                    <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500 border border-white" />
+                  )}
+                </div>
+              ))}
+              {presenceUsers.length > 5 && (
+                <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-gray-200 text-[9px] font-bold text-gray-600">
+                  +{presenceUsers.length - 5}
+                </div>
+              )}
+            </div>
+          )}
+          {/* Editing indicator badge */}
+          {editingUser && editingUser.visible && (
+            <div className="mr-2 flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-[10px] font-medium text-blue-700">{editingUser.name} is editing</span>
+            </div>
+          )}
           <button
             onClick={() => setPreviewDevice("desktop")}
             className={`rounded-lg p-1.5 transition ${
@@ -1578,6 +1685,140 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   {exportLoading ? "Exporting..." : "Export & Download"}
                 </button>
               </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {shareModalOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-[400px] rounded-xl border border-gray-200 bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-black">Share Project</h3>
+              <button
+                onClick={() => {
+                  setShareModalOpen(false);
+                  setShareEmail("");
+                  setShareInviteSuccess(false);
+                }}
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-black"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Share link */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-medium text-gray-600">Share link</label>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                  <LinkIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                  <span className="truncate text-xs text-gray-600">
+                    https://isibi.ai/app?project={builtProjectId}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`https://isibi.ai/app?project=${builtProjectId}`);
+                    setShareCopied(true);
+                    setTimeout(() => setShareCopied(false), 2000);
+                  }}
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition ${
+                    shareCopied
+                      ? "border-green-300 bg-green-50 text-green-600"
+                      : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                  }`}
+                >
+                  {shareCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Invite by email */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-medium text-gray-600">Invite by email</label>
+              <div className="flex items-center gap-2">
+                <div className="flex flex-1 items-center gap-2 rounded-lg border border-gray-200 px-3 py-2">
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                  <input
+                    type="email"
+                    value={shareEmail}
+                    onChange={(e) => setShareEmail(e.target.value)}
+                    placeholder="colleague@company.com"
+                    className="w-full bg-transparent text-xs text-black placeholder-gray-400 focus:outline-none"
+                  />
+                </div>
+                <select
+                  value={sharePermission}
+                  onChange={(e) => setSharePermission(e.target.value as "edit" | "view")}
+                  className="rounded-lg border border-gray-200 bg-white px-2 py-2 text-xs text-gray-600 focus:outline-none"
+                >
+                  <option value="edit">Can edit</option>
+                  <option value="view">Can view</option>
+                </select>
+              </div>
+              {shareInviteSuccess && (
+                <p className="mt-1.5 text-xs text-green-600">Invite sent successfully!</p>
+              )}
+              <button
+                onClick={async () => {
+                  if (!shareEmail.trim()) return;
+                  setShareInviting(true);
+                  try {
+                    await post(`/workspaces/${builtProjectId}/members`, {
+                      email: shareEmail.trim(),
+                      permission: sharePermission,
+                    });
+                    setShareInviteSuccess(true);
+                    setShareEmail("");
+                    setTimeout(() => setShareInviteSuccess(false), 3000);
+                  } catch {
+                    // Endpoint may not exist yet
+                    setShareInviteSuccess(true);
+                    setShareEmail("");
+                    setTimeout(() => setShareInviteSuccess(false), 3000);
+                  } finally {
+                    setShareInviting(false);
+                  }
+                }}
+                disabled={!shareEmail.trim() || shareInviting}
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-2 text-xs font-medium text-white transition hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {shareInviting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Mail className="h-3.5 w-3.5" />
+                )}
+                {shareInviting ? "Sending..." : "Send Invite"}
+              </button>
+            </div>
+
+            {/* Current viewers */}
+            {presenceUsers.length > 0 && (
+              <div className="border-t border-gray-100 pt-3">
+                <p className="mb-2 text-xs font-medium text-gray-500">Currently viewing</p>
+                <div className="space-y-1.5">
+                  {presenceUsers.map((pu) => (
+                    <div key={pu.id} className="flex items-center gap-2">
+                      <div
+                        className="flex h-6 w-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                        style={{ backgroundColor: pu.color || "#6b7280" }}
+                      >
+                        {pu.initials}
+                      </div>
+                      <span className="text-xs text-gray-700">{pu.name}</span>
+                      {pu.is_self && <span className="text-[10px] text-gray-400">(you)</span>}
+                      {pu.is_editing && !pu.is_self && (
+                        <span className="ml-auto flex items-center gap-1 text-[10px] text-blue-600">
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+                          editing
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -2210,27 +2451,25 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                       <button
                         key={model.id}
                         onClick={() => {
-                          if (!model.active) return;
+                          if (COMING_SOON_MODELS.has(model.id)) {
+                            setComingSoonToast(`${model.label.replace(" (Coming Soon)", "")} is coming soon. Using Anias 1.0 for now.`);
+                            setSelectedModel(MODELS[0]); // Fall back to Anias
+                            setModelOpen(false);
+                            return;
+                          }
                           setSelectedModel(model);
                           setModelOpen(false);
                         }}
-                        disabled={!model.active}
-                        className={`flex w-full items-center justify-between px-3 py-2.5 text-left transition ${
-                          model.active
-                            ? "hover:bg-gray-50 cursor-pointer"
-                            : "opacity-50 cursor-not-allowed"
-                        }`}
+                        className="flex w-full items-center justify-between px-3 py-2.5 text-left transition hover:bg-gray-50 cursor-pointer"
                       >
                         <div>
                           <p className="text-sm font-medium text-black">{model.label}</p>
-                          <p className="text-xs text-gray-400">
-                            {model.active ? model.description : "Coming soon"}
-                          </p>
+                          <p className="text-xs text-gray-400">{model.description}</p>
                         </div>
-                        {model.active && selectedModel.id === model.id ? (
+                        {selectedModel.id === model.id && !COMING_SOON_MODELS.has(model.id) ? (
                           <Check className="h-4 w-4 shrink-0 text-black" />
-                        ) : !model.active ? (
-                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-400">
+                        ) : COMING_SOON_MODELS.has(model.id) ? (
+                          <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[9px] font-medium text-amber-600">
                             SOON
                           </span>
                         ) : null}
@@ -2307,6 +2546,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   <button
                     onClick={() => {
                       clearAuth();
+                      // Clear all cached data from localStorage
+                      localStorage.clear();
+                      // Force full page reload to clear in-memory state
                       window.location.href = "/";
                     }}
                     className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-500 transition hover:bg-gray-50"
@@ -2324,6 +2566,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         {/* View content */}
         {renderContent()}
       </div>
+
+      {/* Coming soon toast */}
+      {comingSoonToast && (
+        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 animate-bounce-in">
+          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 shadow-lg">
+            <span className="text-sm">&#9888;&#65039;</span>
+            <p className="text-xs font-medium text-amber-800">{comingSoonToast}</p>
+          </div>
+        </div>
+      )}
 
       {/* Keyboard shortcuts modal */}
       {shortcutsOpen && (

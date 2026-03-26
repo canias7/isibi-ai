@@ -355,7 +355,22 @@ Use validation on fields where it makes sense (emails, prices, phones, dates).
 
 CRITICAL: After receiving ANY response from the user, you MUST output the JSON spec. Do NOT ask follow-up questions. If the user's response is ambiguous, make reasonable assumptions and build.
 
-If the user says "yes", "all of it", "sure", "ok", "sounds good", "go ahead", "build it", "do it", or similar short confirmations, immediately generate the JSON spec with all suggested features.
+EXAMPLES OF IMMEDIATE BUILD TRIGGERS:
+- User: "yes" → Generate JSON immediately
+- User: "all of it" → Generate JSON with all suggested features
+- User: "sounds good" → Generate JSON as described
+- User: "ok" → Generate JSON immediately
+- User: "build it" → Generate JSON immediately
+- User: "go ahead" → Generate JSON immediately
+- User: "sure" → Generate JSON immediately
+- User: "do it" → Generate JSON immediately
+- User: "everything" → Generate JSON with all features
+- User: "all of the above" → Generate JSON with all options
+- User: "1" or "2" or "3" (choosing an option) → Generate JSON with that choice
+
+If the user's request is clear enough to build (e.g., "build me a CRM", "restaurant management system", "gym tracker", "inventory app", "project management tool"), generate the JSON immediately without asking questions. Use your knowledge of that domain to pick the best entities, fields, and features.
+
+When the user responds with a number ("1", "2", "3") or picks from options you presented, map the number to the corresponding option and immediately build with that choice. Do NOT ask what they mean.
 
 Ask AT MOST 1-2 clarifying questions total. After the first question, you MUST generate the spec regardless of the answer."""
 
@@ -443,6 +458,10 @@ Now generate the COMPLETE JSON spec for what the user requested.
 
             # If output was truncated, try to repair after stripping fences
             truncated = response.stop_reason == "max_tokens"
+
+            # Handle truncation: if response was cut off mid-JSON, ask for continuation
+            if truncated:
+                raw_text = _handle_truncated_response(client, messages, raw_text)
 
             # Use robust JSON parsing with all recovery steps
             spec = _robust_json_parse(raw_text, truncated=truncated)
@@ -560,6 +579,10 @@ async def refine_spec(
             raw_text = response.content[0].text.strip()
             truncated = response.stop_reason == "max_tokens"
 
+            # Handle truncation with continuation calls
+            if truncated:
+                raw_text = _handle_truncated_response(client, messages, raw_text)
+
             spec = _robust_json_parse(raw_text, truncated=truncated)
             if not isinstance(spec, dict):
                 raise ValueError(f"Expected dict, got {type(spec).__name__}")
@@ -600,6 +623,78 @@ async def refine_spec(
 
 
 # ── Helpers ─────────────────────────────────────────────────────────
+
+def _handle_truncated_response(
+    client: "anthropic.Anthropic",
+    messages: list[dict],
+    raw_text: str,
+    max_continuations: int = 2,
+) -> str:
+    """
+    Handle truncated API responses by making follow-up calls to continue generation.
+
+    If the response was cut off mid-JSON, asks Claude to continue from where it
+    left off. Concatenates the continuation to the original text and returns the
+    combined result. Tries up to max_continuations follow-up calls.
+    """
+    combined = raw_text
+
+    for i in range(max_continuations):
+        # Check if it looks like complete JSON already
+        stripped = _strip_code_fences(combined)
+        first_brace = stripped.find("{")
+        if first_brace >= 0:
+            # Count open/close braces outside strings
+            try:
+                json.loads(stripped[first_brace:])
+                # If it parses, no continuation needed
+                return combined
+            except (json.JSONDecodeError, ValueError):
+                pass
+
+        # Get the last 500 chars as context for continuation
+        tail_context = combined[-500:]
+        logger.info(
+            "Response truncated (continuation %d/%d) — requesting continuation",
+            i + 1, max_continuations,
+        )
+
+        try:
+            continuation_messages = messages + [
+                {"role": "assistant", "content": combined},
+                {
+                    "role": "user",
+                    "content": (
+                        "Your JSON output was truncated. Continue EXACTLY from where "
+                        "you left off. Do NOT repeat any previous content. Do NOT add "
+                        "any explanation. Just continue the JSON output.\n\n"
+                        f"Last 500 characters of your output:\n{tail_context}"
+                    ),
+                },
+            ]
+            cont_response = client.messages.create(
+                model=MODEL,
+                max_tokens=64000,
+                system="You are continuing a truncated JSON output. Output ONLY the continuation of the JSON, nothing else. Do NOT repeat content that was already generated.",
+                messages=continuation_messages,
+            )
+            cont_text = cont_response.content[0].text.strip()
+            if not cont_text:
+                break
+
+            combined += cont_text
+            logger.info("Continuation %d added %d chars", i + 1, len(cont_text))
+
+            # If this continuation wasn't truncated, we're done
+            if cont_response.stop_reason != "max_tokens":
+                break
+
+        except Exception as e:
+            logger.warning("Continuation call %d failed: %s", i + 1, e)
+            break
+
+    return combined
+
 
 def _robust_json_parse(text: str, truncated: bool = False) -> dict:
     """

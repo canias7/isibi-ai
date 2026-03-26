@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Search, Download, Eye, X, Star, Check, ChevronDown } from "lucide-react";
+import { Search, Download, Eye, X, Star, Check, ChevronDown, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import JSZip from "jszip";
 import { useAppStore } from "@/stores/appStore";
+import { useAuthStore } from "@/stores/authStore";
 
 type Category =
   | "all"
@@ -371,7 +373,12 @@ export function MarketplacePage() {
   const [previewItem, setPreviewItem] = useState<MarketplaceItem | null>(null);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const [initialLoading, setInitialLoading] = useState(true);
+  const [authToast, setAuthToast] = useState(false);
   const { addApp, apps } = useAppStore();
+  const { isAuthenticated, user } = useAuthStore();
+  const navigate = useNavigate();
+  const isDev = user?.account_type === "developer";
+  const cameFromDashboard = isAuthenticated && isDev;
 
   // Simulate initial load
   useEffect(() => {
@@ -405,7 +412,19 @@ export function MarketplacePage() {
 
   const featuredItems = MOCK_ITEMS.filter((item) => item.featured);
 
+  // Auto-hide auth toast
+  useEffect(() => {
+    if (!authToast) return;
+    const t = setTimeout(() => setAuthToast(false), 3000);
+    return () => clearTimeout(t);
+  }, [authToast]);
+
   const handleDownload = async (item: MarketplaceItem) => {
+    if (!isAuthenticated) {
+      setAuthToast(true);
+      setTimeout(() => navigate("/signup"), 1500);
+      return;
+    }
     if (!item.downloadable) return;
 
     const alreadyInApps = apps.some(
@@ -541,6 +560,28 @@ npx electron .
 
   return (
     <div className="flex-1 overflow-y-auto bg-white">
+      {/* Back to Dashboard link */}
+      {cameFromDashboard && (
+        <div className="border-b border-gray-100 bg-gray-50 px-6 py-2">
+          <button
+            onClick={() => navigate("/app")}
+            className="flex items-center gap-1.5 text-xs font-medium text-gray-500 transition hover:text-black"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to Dashboard
+          </button>
+        </div>
+      )}
+
+      {/* Auth toast */}
+      {authToast && (
+        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2">
+          <div className="flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-4 py-2.5 shadow-lg">
+            <p className="text-xs font-medium text-pink-800">Please sign up to get this app. Redirecting...</p>
+          </div>
+        </div>
+      )}
+
       {/* Hero Banner */}
       <div
         className="relative overflow-hidden px-6 py-16 sm:py-20"
@@ -863,6 +904,12 @@ npx electron .
                 </span>
                 <button
                   onClick={() => {
+                    if (!isAuthenticated) {
+                      setAuthToast(true);
+                      setPreviewItem(null);
+                      setTimeout(() => navigate("/signup"), 1500);
+                      return;
+                    }
                     handleDownload(previewItem);
                     setPreviewItem(null);
                   }}

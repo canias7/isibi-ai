@@ -247,32 +247,48 @@ FALLBACK_BADGE_COLORS = [
     "rose", "cyan", "orange", "violet", "slate",
 ]
 
-# Icon map for module generation
+# Icon map for module generation — smart icon selection based on entity name
 ICON_MAP: dict[str, str] = {
     "user": "Users", "contact": "Users", "customer": "Users",
     "person": "Users", "people": "Users", "client": "Users",
-    "employee": "Users", "staff": "Users", "member": "Users",
-    "deal": "Briefcase", "opportunity": "Briefcase",
+    "employee": "Briefcase", "staff": "Users", "member": "UserCheck",
+    "deal": "DollarSign", "opportunity": "DollarSign",
     "order": "ShoppingCart", "purchase": "ShoppingCart",
     "product": "Package", "item": "Package", "inventory": "Package",
-    "task": "CheckCircle", "todo": "CheckCircle",
-    "project": "Layers", "workspace": "Layers",
+    "task": "CheckSquare", "todo": "CheckSquare",
+    "project": "FolderOpen", "workspace": "Layers",
     "invoice": "FileText", "bill": "FileText", "receipt": "FileText",
     "payment": "CreditCard", "transaction": "CreditCard",
     "message": "MessageSquare", "chat": "MessageSquare",
     "conversation": "MessageSquare", "comment": "MessageSquare",
     "notification": "Bell", "alert": "Bell",
     "setting": "Settings", "config": "Settings",
-    "lead": "Target",
-    "ticket": "ClipboardList", "issue": "ClipboardList",
-    "event": "CalendarDays", "appointment": "CalendarDays",
+    "lead": "UserPlus",
+    "ticket": "Ticket", "issue": "ClipboardList",
+    "event": "Calendar", "appointment": "CalendarDays",
     "meeting": "CalendarDays", "schedule": "CalendarDays",
     "report": "BarChart3", "analytics": "BarChart3",
     "document": "FileText", "file": "FileText",
     "category": "Tag", "tag": "Tag", "label": "Tag",
     "campaign": "Zap", "email": "Mail",
     "property": "Building2", "listing": "Building2",
-    "vehicle": "Truck", "shipment": "Truck", "delivery": "Truck",
+    "vehicle": "Car", "shipment": "Truck", "delivery": "Truck",
+    "class": "BookOpen", "course": "BookOpen", "lesson": "BookOpen",
+    "room": "DoorOpen", "space": "DoorOpen",
+    "goal": "Target", "target": "Target",
+    "workflow": "GitBranch", "automation": "Zap",
+    "expense": "Receipt", "budget": "Wallet",
+    "supplier": "Factory", "vendor": "Factory",
+    "contract": "FileSignature", "agreement": "FileSignature",
+    "feedback": "MessageCircle", "review": "Star",
+    "asset": "HardDrive", "resource": "Database",
+    "location": "MapPin", "address": "MapPin", "branch": "MapPin",
+    "department": "Building", "team": "Users",
+    "subscription": "Repeat", "plan": "CreditCard",
+    "menu": "UtensilsCrossed", "recipe": "ChefHat",
+    "patient": "HeartPulse", "doctor": "Stethoscope",
+    "student": "GraduationCap", "teacher": "BookOpen",
+    "reservation": "CalendarCheck", "booking": "CalendarCheck",
 }
 
 DEFAULT_DESIGN_SYSTEM: dict[str, Any] = {
@@ -571,9 +587,10 @@ def validate_and_repair(spec: dict) -> dict:
                 "entity": None,
             })
 
-    # 11. Dashboard stat cards
+    # 11. Dashboard stat cards — regenerate if empty or only 1 card
     dashboard = spec["dashboard"]
-    if not dashboard.get("stat_cards"):
+    existing_cards = dashboard.get("stat_cards")
+    if not existing_cards or (isinstance(existing_cards, list) and len(existing_cards) <= 1):
         dashboard["stat_cards"] = _generate_stat_cards(spec["entities"])
 
     # 13. Design system defaults
@@ -989,20 +1006,101 @@ def _generate_modules(entities: list) -> list[dict]:
 
 
 def _generate_stat_cards(entities: list) -> list[dict]:
-    """Generate one stat card per entity."""
-    cards = []
-    for i, ent in enumerate(entities):
+    """Generate smart stat cards from entities.
+
+    Produces at least 4 cards when possible:
+    - Total {Entity1}s (count) and Total {Entity2}s (count) for the first two entities
+    - If there's a price/amount/revenue field: "Total Revenue" (sum)
+    - If there's a status field: "Active {Entity}s" (count where status in active statuses)
+    Falls back to simple count cards per entity if nothing special is found.
+    """
+    cards: list[dict] = []
+    color_idx = 0
+
+    # Track whether we've added a revenue card and an active-filter card
+    has_revenue_card = False
+    has_active_card = False
+
+    # Active-like status values
+    active_statuses = {
+        "active", "enabled", "open", "in_progress", "processing",
+        "new", "approved", "verified", "published",
+    }
+
+    for ent in entities:
         if not isinstance(ent, dict):
             continue
         name = ent.get("name", "Item")
         label = f"Total {name}s" if not name.endswith("s") else f"Total {name}"
+
+        # Always add a count card for this entity
         cards.append({
             "label": label,
             "entity": name,
             "aggregate": "count",
             "icon": ICON_MAP.get(name.lower(), "Box"),
-            "color": STAT_CARD_COLORS[i % len(STAT_CARD_COLORS)],
+            "color": STAT_CARD_COLORS[color_idx % len(STAT_CARD_COLORS)],
         })
+        color_idx += 1
+
+        fields = ent.get("fields", [])
+        if not isinstance(fields, list):
+            continue
+
+        # Look for a price/amount field to generate a revenue/sum card
+        if not has_revenue_card:
+            for f in fields:
+                if not isinstance(f, dict):
+                    continue
+                fname = (f.get("name") or "").lower()
+                db_upper = (f.get("db_type") or "").upper()
+                if ("NUMERIC" in db_upper or "DECIMAL" in db_upper) and any(
+                    kw in fname for kw in ("price", "amount", "cost", "total", "revenue", "value", "fee", "salary")
+                ):
+                    # Determine a good label
+                    if "revenue" in fname or "value" in fname:
+                        rev_label = "Total Revenue"
+                    elif "salary" in fname:
+                        rev_label = "Total Salaries"
+                    else:
+                        rev_label = f"Total {fname.replace('_', ' ').title()}"
+                    cards.append({
+                        "label": rev_label,
+                        "entity": name,
+                        "aggregate": "sum",
+                        "field": f.get("name"),
+                        "icon": "DollarSign",
+                        "color": STAT_CARD_COLORS[color_idx % len(STAT_CARD_COLORS)],
+                    })
+                    color_idx += 1
+                    has_revenue_card = True
+                    break
+
+        # Look for a status field to generate an "Active {Entity}s" card
+        if not has_active_card:
+            for f in fields:
+                if not isinstance(f, dict):
+                    continue
+                fname = (f.get("name") or "").lower()
+                if "status" in fname and f.get("enum_values") and isinstance(f["enum_values"], list):
+                    # Find which enum values are "active"-like
+                    matching = [v for v in f["enum_values"] if v.lower() in active_statuses]
+                    if matching:
+                        active_label = f"Active {name}s" if not name.endswith("s") else f"Active {name}"
+                        cards.append({
+                            "label": active_label,
+                            "entity": name,
+                            "aggregate": "count",
+                            "filter": {f.get("name"): matching},
+                            "icon": ICON_MAP.get(name.lower(), "CheckCircle"),
+                            "color": STAT_CARD_COLORS[color_idx % len(STAT_CARD_COLORS)],
+                        })
+                        color_idx += 1
+                        has_active_card = True
+                        break
+
+    # Ensure at least 4 cards if we have enough entities
+    # (the revenue + active cards should help, but if not, the per-entity counts fill it)
     return cards[:6]
 
 
