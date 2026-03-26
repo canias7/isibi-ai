@@ -17,11 +17,14 @@ import {
   BookOpen,
   Clock,
   X,
+  AppWindow,
+  BarChart3,
 } from "lucide-react";
 import { post } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
 import { MarketplacePage } from "./MarketplacePage";
 import { MyAppsPage } from "./MyAppsPage";
+import { DevMarketplacePage } from "./DevMarketplacePage";
 
 interface Props {
   onSpecCreated: () => void;
@@ -39,20 +42,40 @@ const MODELS = [
   { id: "claw-1.0", label: "Claw 1.0", description: "Agent builder" },
 ];
 
-type View = "chat" | "marketplace" | "projects" | "myapps" | "templates" | "docs" | "history";
+type View = "chat" | "marketplace" | "projects" | "myapps" | "templates" | "docs" | "history" | "mylistings";
 
-const SIDEBAR_ITEMS: { id: View; label: string; icon: typeof Plus }[] = [
+interface SidebarItem {
+  id: View;
+  label: string;
+  icon: typeof Plus;
+  badge?: string;
+}
+
+// Developer sidebar: build tools + marketplace management, no My Apps
+const DEV_SIDEBAR: SidebarItem[] = [
   { id: "chat", label: "New Chat", icon: Plus },
   { id: "projects", label: "My Projects", icon: FolderOpen },
-  { id: "myapps", label: "My Apps", icon: LayoutTemplate },
-  { id: "marketplace", label: "isibi marketplace", icon: Store },
+  { id: "mylistings", label: "My Listings", icon: BarChart3 },
+  { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
   { id: "templates", label: "Templates", icon: LayoutTemplate },
+  { id: "docs", label: "Docs", icon: BookOpen },
+  { id: "history", label: "History", icon: Clock },
+];
+
+// User sidebar: My Apps + marketplace browsing, no build tools
+const USER_SIDEBAR: SidebarItem[] = [
+  { id: "myapps", label: "My Apps", icon: AppWindow },
+  { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
   { id: "docs", label: "Docs", icon: BookOpen },
   { id: "history", label: "History", icon: Clock },
 ];
 
 export function OnboardingPage({ onSpecCreated }: Props) {
   const { user, clearAuth } = useAuthStore();
+  const isDev = user?.account_type === "developer";
+  const sidebarItems = isDev ? DEV_SIDEBAR : USER_SIDEBAR;
+  const defaultView: View = isDev ? "chat" : "myapps";
+
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
@@ -65,7 +88,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeView, setActiveView] = useState<View>("chat");
+  const [activeView, setActiveView] = useState<View>(defaultView);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -128,164 +151,17 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   const isEmpty = messages.length === 0;
 
-  return (
-    <div className="flex h-screen bg-white">
-      {/* Sidebar overlay (mobile) */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-30 bg-black/20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:static lg:z-auto ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-0"
-        }`}
-      >
-        {/* Sidebar header */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-sm font-semibold text-black">isibi.ai</span>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-gray-200 lg:hidden"
-          >
-            <X className="h-4 w-4 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Sidebar items */}
-        <nav className="flex-1 space-y-0.5 px-2 py-2">
-          {SIDEBAR_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeView === item.id;
-            const isMarketplace = item.id === "marketplace";
-            return (
-              <button
-                key={item.id}
-                onClick={() => handleSidebarClick(item.id)}
-                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                  isActive
-                    ? "bg-gray-200 font-medium text-black"
-                    : isMarketplace
-                    ? "font-medium text-black hover:bg-gray-100"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-black"
-                }`}
-              >
-                <Icon className="h-4 w-4 shrink-0" />
-                {item.label}
-                {isMarketplace && (
-                  <span className="ml-auto rounded-full bg-black px-1.5 py-0.5 text-[9px] font-bold text-white">
-                    NEW
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
-      </div>
-
-      {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            {/* Sidebar toggle */}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
-            >
-              <Menu className="h-4 w-4 text-gray-600" />
-            </button>
-
-            {/* Model selector */}
-            <div className="relative" ref={dropdownRef}>
-              <button
-                onClick={() => setModelOpen(!modelOpen)}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-black transition hover:bg-gray-100"
-              >
-                {selectedModel.label}
-                <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
-              </button>
-              {modelOpen && (
-                <div className="absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                  {MODELS.map((model) => (
-                    <button
-                      key={model.id}
-                      onClick={() => {
-                        setSelectedModel(model);
-                        setModelOpen(false);
-                      }}
-                      className="flex w-full items-center justify-between px-3 py-2.5 text-left transition hover:bg-gray-50"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-black">{model.label}</p>
-                        <p className="text-xs text-gray-400">{model.description}</p>
-                      </div>
-                      {selectedModel.id === model.id && (
-                        <Check className="h-4 w-4 shrink-0 text-black" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Profile menu */}
-          <div className="relative" ref={profileRef}>
-            <button
-              onClick={() => setProfileOpen(!profileOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
-            >
-              <User className="h-4 w-4 text-gray-600" />
-            </button>
-            {profileOpen && (
-              <div className="absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
-                <div className="border-b border-gray-100 px-3 py-2">
-                  <p className="text-sm font-medium text-black">
-                    {user ? `${user.first_name} ${user.last_name}` : "My Account"}
-                  </p>
-                  <p className="text-xs text-gray-400">{user?.email || ""}</p>
-                  {user?.account_type && (
-                    <span className="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
-                      {user.account_type === "developer" ? "Developer" : "User"}
-                    </span>
-                  )}
-                </div>
-                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
-                  <Settings className="h-4 w-4" />
-                  Settings
-                </button>
-                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
-                  <CreditCard className="h-4 w-4" />
-                  Billing
-                </button>
-                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
-                  <HelpCircle className="h-4 w-4" />
-                  Help & FAQ
-                </button>
-                <div className="mt-1 border-t border-gray-100 pt-1">
-                  <button
-                    onClick={() => { clearAuth(); window.location.href = "/login"; }}
-                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-500 transition hover:bg-gray-50"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Log out
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* View content */}
-        {activeView === "myapps" ? (
-          <MyAppsPage />
-        ) : activeView === "marketplace" ? (
-          <MarketplacePage />
-        ) : activeView === "projects" ? (
+  // Render the active view content
+  const renderContent = () => {
+    switch (activeView) {
+      case "myapps":
+        return <MyAppsPage />;
+      case "marketplace":
+        return <MarketplacePage />;
+      case "mylistings":
+        return <DevMarketplacePage />;
+      case "projects":
+        return (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <FolderOpen className="mx-auto h-10 w-10 text-gray-300" />
@@ -301,7 +177,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </button>
             </div>
           </div>
-        ) : activeView === "templates" ? (
+        );
+      case "templates":
+        return (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <LayoutTemplate className="mx-auto h-10 w-10 text-gray-300" />
@@ -309,7 +187,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <p className="mt-1 text-xs text-gray-400">Coming soon.</p>
             </div>
           </div>
-        ) : activeView === "docs" ? (
+        );
+      case "docs":
+        return (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <BookOpen className="mx-auto h-10 w-10 text-gray-300" />
@@ -317,16 +197,22 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <p className="mt-1 text-xs text-gray-400">Coming soon.</p>
             </div>
           </div>
-        ) : activeView === "history" ? (
+        );
+      case "history":
+        return (
           <div className="flex flex-1 items-center justify-center">
             <div className="text-center">
               <Clock className="mx-auto h-10 w-10 text-gray-300" />
               <p className="mt-3 text-sm font-medium text-black">Chat History</p>
-              <p className="mt-1 text-xs text-gray-400">Your past conversations will appear here.</p>
+              <p className="mt-1 text-xs text-gray-400">
+                Your past conversations will appear here.
+              </p>
             </div>
           </div>
-        ) : (
-          /* Chat view */
+        );
+      case "chat":
+      default:
+        return (
           <>
             <div className="flex flex-1 flex-col items-center overflow-y-auto">
               <div className="w-full max-w-3xl flex-1 px-4">
@@ -351,7 +237,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                         </div>
                         <div className="min-w-0 pt-1">
                           <p className="text-sm font-medium text-black">
-                            {msg.role === "user" ? "You" : "Anias"}
+                            {msg.role === "user" ? "You" : selectedModel.label}
                           </p>
                           <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
                             {msg.content}
@@ -365,7 +251,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                           A
                         </div>
                         <div className="pt-1">
-                          <p className="text-sm font-medium text-black">Anias</p>
+                          <p className="text-sm font-medium text-black">
+                            {selectedModel.label}
+                          </p>
                           <div className="mt-2 flex items-center gap-1">
                             <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
                             <span className="h-2 w-2 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
@@ -414,12 +302,193 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   </div>
                 </div>
                 <p className="mt-2 text-center text-xs text-gray-400">
-                  Anias can make mistakes. Review generated apps before use.
+                  {selectedModel.label} can make mistakes. Review generated apps before use.
                 </p>
               </div>
             </div>
           </>
-        )}
+        );
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-white">
+      {/* Sidebar overlay (mobile) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <div
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:static lg:z-auto ${
+          sidebarOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-0"
+        }`}
+      >
+        {/* Sidebar header */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <span className="text-sm font-semibold text-black">isibi.ai</span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-gray-200 lg:hidden"
+          >
+            <X className="h-4 w-4 text-gray-500" />
+          </button>
+        </div>
+
+        {/* Account type indicator */}
+        <div className="mx-3 mb-2 rounded-lg bg-gray-100 px-3 py-2">
+          <p className="text-[11px] font-medium text-gray-500">
+            {isDev ? "Developer Account" : "User Account"}
+          </p>
+          <p className="text-xs font-medium text-black">
+            {user ? `${user.first_name} ${user.last_name}` : ""}
+          </p>
+        </div>
+
+        {/* Sidebar items */}
+        <nav className="flex-1 space-y-0.5 px-2 py-2">
+          {sidebarItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeView === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleSidebarClick(item.id)}
+                className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                  isActive
+                    ? "bg-gray-200 font-medium text-black"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-black"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+                {item.badge && (
+                  <span className="ml-auto rounded-full bg-black px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Main content */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Top bar */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-2">
+            {/* Sidebar toggle */}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
+            >
+              <Menu className="h-4 w-4 text-gray-600" />
+            </button>
+
+            {/* Model selector — only for developers */}
+            {isDev && (
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setModelOpen(!modelOpen)}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-black transition hover:bg-gray-100"
+                >
+                  {selectedModel.label}
+                  <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                </button>
+                {modelOpen && (
+                  <div className="absolute left-0 top-full z-50 mt-1 min-w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                    {MODELS.map((model) => (
+                      <button
+                        key={model.id}
+                        onClick={() => {
+                          setSelectedModel(model);
+                          setModelOpen(false);
+                        }}
+                        className="flex w-full items-center justify-between px-3 py-2.5 text-left transition hover:bg-gray-50"
+                      >
+                        <div>
+                          <p className="text-sm font-medium text-black">
+                            {model.label}
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            {model.description}
+                          </p>
+                        </div>
+                        {selectedModel.id === model.id && (
+                          <Check className="h-4 w-4 shrink-0 text-black" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Profile menu */}
+          <div className="relative" ref={profileRef}>
+            <button
+              onClick={() => setProfileOpen(!profileOpen)}
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+            >
+              <User className="h-4 w-4 text-gray-600" />
+            </button>
+            {profileOpen && (
+              <div className="absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                <div className="border-b border-gray-100 px-3 py-2">
+                  <p className="text-sm font-medium text-black">
+                    {user ? `${user.first_name} ${user.last_name}` : "My Account"}
+                  </p>
+                  <p className="text-xs text-gray-400">{user?.email || ""}</p>
+                  {user?.account_type && (
+                    <span
+                      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        isDev
+                          ? "bg-purple-100 text-purple-700"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {isDev ? "Developer" : "User"}
+                    </span>
+                  )}
+                </div>
+                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
+                  <Settings className="h-4 w-4" />
+                  Settings
+                </button>
+                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
+                  <CreditCard className="h-4 w-4" />
+                  Billing
+                </button>
+                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
+                  <HelpCircle className="h-4 w-4" />
+                  Help & FAQ
+                </button>
+                <div className="mt-1 border-t border-gray-100 pt-1">
+                  <button
+                    onClick={() => {
+                      clearAuth();
+                      window.location.href = "/login";
+                    }}
+                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-red-500 transition hover:bg-gray-50"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Log out
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* View content */}
+        {renderContent()}
       </div>
     </div>
   );
