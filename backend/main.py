@@ -148,21 +148,26 @@ from models.project import Project as ProjectModel
 
 async def _get_build_data(project_id: str) -> dict | None:
     """Get build data from DB (stored in build_path as JSON)."""
-    async with async_session() as session:
-        result = await session.execute(
-            sa_select(ProjectModel.build_path).where(
-                ProjectModel.id == project_id,
-                ProjectModel.status == "deployed",
-                ProjectModel.deleted_at.is_(None),
+    import uuid as _uuid
+    try:
+        pid = _uuid.UUID(str(project_id))
+    except (ValueError, AttributeError):
+        return None
+    try:
+        async with async_session() as session:
+            result = await session.execute(
+                sa_select(ProjectModel.build_path).where(
+                    ProjectModel.id == pid,
+                    ProjectModel.status == "deployed",
+                    ProjectModel.deleted_at.is_(None),
+                )
             )
-        )
-        row = result.scalar_one_or_none()
-        if not row:
-            return None
-        try:
+            row = result.scalar_one_or_none()
+            if not row:
+                return None
             return _json.loads(row)
-        except (TypeError, _json.JSONDecodeError):
-            return None
+    except Exception:
+        return None
 
 
 @app.get("/live/{project_id}", response_class=HTMLResponse)
