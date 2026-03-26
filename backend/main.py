@@ -68,7 +68,13 @@ async def lifespan(app: FastAPI):
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code VARCHAR(6)"))
             await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_expires_at TIMESTAMPTZ"))
-            print("AUTH COLUMNS MIGRATED")
+            # Add missing columns to projects table
+            await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS github_repo VARCHAR(500)"))
+            await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT"))
+            # Add missing columns to users table for 2FA
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(255)"))
+            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_2fa_enabled BOOLEAN NOT NULL DEFAULT false"))
+            print("ALL COLUMNS MIGRATED")
         except Exception as e:
             print(f"MIGRATION NOTE: {e}")
         await conn.run_sync(Base.metadata.create_all)
