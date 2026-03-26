@@ -143,11 +143,17 @@ async def create_app_schema(
 
         # Create tables
         for entity in entities:
+            if not isinstance(entity, dict):
+                continue
             table_name = _sanitize_identifier(entity.get("name", "unknown"))
             fields = entity.get("fields", [])
+            if not isinstance(fields, list):
+                fields = []
 
             columns = []
             for field in fields:
+                if not isinstance(field, dict):
+                    continue
                 col_name = _sanitize_identifier(field.get("name", "col"))
                 col_type = map_spec_type_to_sql(field.get("db_type", "TEXT"))
                 columns.append(f'    "{col_name}" {col_type}')

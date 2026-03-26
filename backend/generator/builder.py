@@ -582,6 +582,31 @@ def build_backend(spec: dict, output_dir: str) -> dict[str, str]:
         Dict mapping relative file paths to their content
     """
     entities = spec.get("entities", [])
+    # Sanitize: skip any entity that isn't a dict, fix fields that aren't dicts
+    clean_entities = []
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        if "fields" in ent:
+            ent["fields"] = [f for f in ent["fields"] if isinstance(f, dict)]
+            for f in ent["fields"]:
+                # Fix validation if it's a string
+                if "validation" in f and not isinstance(f["validation"], dict):
+                    f["validation"] = {}
+                # Fix badge_colors if it's a string
+                if "badge_colors" in f and not isinstance(f["badge_colors"], dict):
+                    f["badge_colors"] = {}
+                # Fix enum_values if it's a string
+                if "enum_values" in f and not isinstance(f["enum_values"], list):
+                    if isinstance(f["enum_values"], str):
+                        f["enum_values"] = [v.strip() for v in f["enum_values"].split(",")]
+                    else:
+                        f["enum_values"] = []
+        if "name" not in ent or "table" not in ent:
+            continue
+        clean_entities.append(ent)
+    entities = clean_entities
+
     generated: dict[str, str] = {}
 
     # Ensure directories
