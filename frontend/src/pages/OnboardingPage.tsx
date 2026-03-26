@@ -800,6 +800,14 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   );
 
   // ─── Preview panel (right side when chat is active) ───
+  // Resolve live URL to the correct backend domain
+  const resolveAppUrl = (url: string) => {
+    if (url.startsWith("http")) return url;
+    // API base from env or default
+    const apiBase = (import.meta as any).env?.VITE_API_URL?.replace("/api", "") || "https://api.isibi.ai";
+    return `${apiBase}${url}`;
+  };
+
   const handleDownloadApp = async () => {
     if (!builtSpec || !builtProjectId) return;
 
@@ -813,9 +821,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           {}
         );
         if (res?.url) {
-          liveUrl = res.url.startsWith("http")
-            ? res.url
-            : `${window.location.origin}${res.url}`;
+          liveUrl = resolveAppUrl(res.url);
           setDeployUrl(liveUrl);
         }
       } catch {
@@ -828,8 +834,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     }
 
     if (liveUrl) {
-      // Open the deployed PWA URL — browser will prompt "Install App"
-      window.open(liveUrl, "_blank");
+      window.open(resolveAppUrl(liveUrl), "_blank");
     }
   };
 
@@ -843,10 +848,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         {}
       );
       if (res?.url) {
-        const fullUrl = res.url.startsWith("http")
-          ? res.url
-          : `${window.location.origin}${res.url}`;
-        setDeployUrl(fullUrl);
+        setDeployUrl(resolveAppUrl(res.url));
       }
     } catch (err: any) {
       setError(err?.detail || "Deploy failed. Please try again.");
