@@ -21,8 +21,9 @@ import {
   ExternalLink,
   Copy,
   RefreshCw,
+  Play,
 } from "lucide-react";
-import { get, post, put, del } from "@/api/client";
+import { get, post, put, patch, del } from "@/api/client";
 
 // ─── Types ───
 interface Props {
@@ -64,6 +65,19 @@ const CATEGORIES: { id: Category; label: string; icon: typeof Settings }[] = [
   { id: "advanced", label: "Advanced", icon: Wrench },
 ];
 
+/** Helper: gracefully handle 403/404 by returning a fallback */
+async function safeFetch<T>(fn: () => Promise<T>, fallback: T): Promise<{ data: T; unavailable: boolean }> {
+  try {
+    const data = await fn();
+    return { data, unavailable: false };
+  } catch (err: any) {
+    if (err?.status === 403 || err?.status === 404) {
+      return { data: fallback, unavailable: true };
+    }
+    return { data: fallback, unavailable: false };
+  }
+}
+
 // ─── Reusable components ───
 
 function SectionCard({
@@ -71,17 +85,24 @@ function SectionCard({
   children,
   saving,
   onSave,
+  unavailable,
 }: {
   title: string;
   children: React.ReactNode;
   saving?: boolean;
   onSave?: () => void;
+  unavailable?: boolean;
 }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <h3 className="mb-4 text-sm font-semibold text-black">{title}</h3>
+      {unavailable && (
+        <div className="mb-4 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+          Not available on free plan. Upgrade to access this feature.
+        </div>
+      )}
       {children}
-      {onSave && (
+      {onSave && !unavailable && (
         <div className="mt-5 flex justify-end">
           <button
             onClick={onSave}
@@ -269,7 +290,8 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3000);
   }, []);
 
-  const apiBase = `/apps/${projectId}`;
+  const projectBase = `/projects/${projectId}`;
+  const appBase = `/apps/${projectId}`;
 
   return (
     <div className="flex h-full overflow-hidden bg-gray-50">
@@ -314,6 +336,7 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               spec={spec}
               onSpecUpdate={onSpecUpdate}
               showToast={showToast}
+              projectBase={projectBase}
             />
           )}
           {activeCategory === "branding" && (
@@ -322,7 +345,7 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               spec={spec}
               onSpecUpdate={onSpecUpdate}
               showToast={showToast}
-              apiBase={apiBase}
+              projectBase={projectBase}
             />
           )}
           {activeCategory === "roles" && (
@@ -330,7 +353,7 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               projectId={projectId}
               spec={spec}
               showToast={showToast}
-              apiBase={apiBase}
+              appBase={appBase}
             />
           )}
           {activeCategory === "automations" && (
@@ -338,14 +361,15 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               projectId={projectId}
               spec={spec}
               showToast={showToast}
-              apiBase={apiBase}
+              projectBase={projectBase}
+              appBase={appBase}
             />
           )}
           {activeCategory === "integrations" && (
             <IntegrationsSettings
               projectId={projectId}
               showToast={showToast}
-              apiBase={apiBase}
+              projectBase={projectBase}
             />
           )}
           {activeCategory === "data" && (
@@ -353,14 +377,15 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               projectId={projectId}
               spec={spec}
               showToast={showToast}
-              apiBase={apiBase}
+              appBase={appBase}
             />
           )}
           {activeCategory === "security" && (
             <SecuritySettings
               projectId={projectId}
               showToast={showToast}
-              apiBase={apiBase}
+              projectBase={projectBase}
+              appBase={appBase}
             />
           )}
           {activeCategory === "views" && (
@@ -368,7 +393,7 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               projectId={projectId}
               spec={spec}
               showToast={showToast}
-              apiBase={apiBase}
+              projectBase={projectBase}
             />
           )}
           {activeCategory === "advanced" && (
@@ -376,7 +401,8 @@ export function ProjectSettingsPage({ projectId, spec, onSpecUpdate }: Props) {
               projectId={projectId}
               spec={spec}
               showToast={showToast}
-              apiBase={apiBase}
+              projectBase={projectBase}
+              appBase={appBase}
             />
           )}
             </>
@@ -412,25 +438,43 @@ function GeneralSettings({
   spec,
   onSpecUpdate,
   showToast,
+  projectBase,
 }: {
   projectId: string;
   spec: any;
   onSpecUpdate: (s: any) => void;
   showToast: (type: "success" | "error", msg: string) => void;
+  projectBase: string;
 }) {
-  const [appName, setAppName] = useState(spec?.app_name || "");
-  const [description, setDescription] = useState(spec?.description || "");
-  const [primaryColor, setPrimaryColor] = useState(spec?.primary_color || "#ec4899");
-  const [favicon, setFavicon] = useState(spec?.favicon || "");
+  const [appName, setAppName] = useState("");
+  const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const EMOJIS = ["📱", "🚀", "💼", "🏢", "🛒", "📊", "🎯", "💡", "⚡", "🔧", "📋", "🏠", "🎨", "📚", "🏥", "💪"];
+  // Load project data from API on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await get<any>(`${projectBase}`);
+        if (data) {
+          setAppName(data.name || data.app_name || spec?.app_name || "");
+          setDescription(data.description || spec?.description || "");
+        }
+      } catch {
+        // Fallback to spec
+        setAppName(spec?.app_name || "");
+        setDescription(spec?.description || "");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [projectBase]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const updated = { ...spec, app_name: appName, description, primary_color: primaryColor, favicon };
-      await post(`/projects/${projectId}/refine`, { feedback: `Update app name to "${appName}", description to "${description}", primary color to "${primaryColor}"` });
+      await patch(`${projectBase}`, { name: appName, description });
+      const updated = { ...spec, app_name: appName, description };
       onSpecUpdate(updated);
       showToast("success", "General settings saved");
     } catch {
@@ -439,6 +483,14 @@ function GeneralSettings({
       setSaving(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -459,24 +511,6 @@ function GeneralSettings({
             className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
           />
         </FormField>
-        <ColorPicker value={primaryColor} onChange={setPrimaryColor} label="Primary Color" />
-        <FormField label="Favicon Emoji">
-          <div className="flex flex-wrap gap-2">
-            {EMOJIS.map((e) => (
-              <button
-                key={e}
-                onClick={() => setFavicon(e)}
-                className={`flex h-10 w-10 items-center justify-center rounded-lg border text-lg transition ${
-                  favicon === e
-                    ? "border-pink-400 bg-pink-50 ring-1 ring-pink-400"
-                    : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        </FormField>
       </SectionCard>
     </>
   );
@@ -490,13 +524,13 @@ function BrandingSettings({
   spec,
   onSpecUpdate,
   showToast,
-  apiBase,
+  projectBase,
 }: {
   projectId: string;
   spec: any;
   onSpecUpdate: (s: any) => void;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  projectBase: string;
 }) {
   const [logoUrl, setLogoUrl] = useState("");
   const [primaryColor, setPrimaryColor] = useState(spec?.primary_color || "#ec4899");
@@ -505,30 +539,30 @@ function BrandingSettings({
   const [customCss, setCustomCss] = useState("");
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
 
   useEffect(() => {
     (async () => {
-      try {
-        const data = await get<any>(`${apiBase}/branding`);
-        if (data) {
-          setLogoUrl(data.logo_url || "");
-          setPrimaryColor(data.primary_color || spec?.primary_color || "#ec4899");
-          setSecondaryColor(data.secondary_color || "#1f2937");
-          setHidePoweredBy(data.hide_powered_by || false);
-          setCustomCss(data.custom_css || "");
-        }
-      } catch {
-        // Use defaults
-      } finally {
-        setLoaded(true);
+      const { data, unavailable: notAvail } = await safeFetch(
+        () => get<any>(`${projectBase}/branding`),
+        null
+      );
+      setUnavailable(notAvail);
+      if (data) {
+        setLogoUrl(data.logo_url || "");
+        setPrimaryColor(data.primary_color || spec?.primary_color || "#ec4899");
+        setSecondaryColor(data.secondary_color || "#1f2937");
+        setHidePoweredBy(data.hide_powered_by || false);
+        setCustomCss(data.custom_css || "");
       }
+      setLoaded(true);
     })();
-  }, [apiBase]);
+  }, [projectBase]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await put(`${apiBase}/branding`, {
+      await put(`${projectBase}/branding`, {
         logo_url: logoUrl,
         primary_color: primaryColor,
         secondary_color: secondaryColor,
@@ -557,7 +591,7 @@ function BrandingSettings({
         <h2 className="text-lg font-semibold text-black">Branding</h2>
         <p className="text-xs text-gray-400">Customize the look and feel of your app</p>
       </div>
-      <SectionCard title="Brand Identity" saving={saving} onSave={handleSave}>
+      <SectionCard title="Brand Identity" saving={saving} onSave={handleSave} unavailable={unavailable}>
         <FormField label="Logo URL" hint="Direct link to your logo image (PNG, SVG recommended)">
           <TextInput value={logoUrl} onChange={setLogoUrl} placeholder="https://example.com/logo.png" />
           {logoUrl && (
@@ -596,16 +630,18 @@ function RolesSettings({
   projectId,
   spec,
   showToast,
-  apiBase,
+  appBase,
 }: {
   projectId: string;
   spec: any;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  appBase: string;
 }) {
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRoleName, setNewRoleName] = useState("");
+  const [newRoleLabel, setNewRoleLabel] = useState("");
+  const [newRoleScope, setNewRoleScope] = useState("all");
   const [addingRole, setAddingRole] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -614,7 +650,7 @@ function RolesSettings({
 
   const loadRoles = async () => {
     try {
-      const data = await get<any[]>(`${apiBase}/roles`);
+      const data = await get<any[]>(`${appBase}/roles`);
       setRoles(data || []);
     } catch {
       setRoles([]);
@@ -623,7 +659,7 @@ function RolesSettings({
     }
   };
 
-  useEffect(() => { loadRoles(); }, [apiBase]);
+  useEffect(() => { loadRoles(); }, [appBase]);
 
   const addRole = async () => {
     if (!newRoleName.trim()) return;
@@ -631,8 +667,15 @@ function RolesSettings({
     try {
       const perms: Record<string, string[]> = {};
       entities.forEach((e: string) => { perms[e] = ["read"]; });
-      await post(`${apiBase}/roles`, { name: newRoleName.trim(), permissions: perms });
+      await post(`${appBase}/roles`, {
+        name: newRoleName.trim(),
+        label: newRoleLabel.trim() || newRoleName.trim(),
+        scope: newRoleScope,
+        permissions: perms,
+      });
       setNewRoleName("");
+      setNewRoleLabel("");
+      setNewRoleScope("all");
       await loadRoles();
       showToast("success", `Role "${newRoleName.trim()}" created`);
     } catch {
@@ -660,7 +703,7 @@ function RolesSettings({
   const saveRole = async (role: any) => {
     setSavingId(role.id);
     try {
-      await put(`${apiBase}/roles/${role.id}`, { name: role.name, permissions: role.permissions });
+      await put(`${appBase}/roles/${role.id}`, { name: role.name, label: role.label, scope: role.scope, permissions: role.permissions });
       showToast("success", `Role "${role.name}" saved`);
     } catch {
       showToast("error", "Failed to save role");
@@ -672,13 +715,21 @@ function RolesSettings({
   const deleteRole = async (role: any) => {
     if (!confirm(`Delete role "${role.name}"?`)) return;
     try {
-      await del(`${apiBase}/roles/${role.id}`);
+      await del(`${appBase}/roles/${role.id}`);
       await loadRoles();
       showToast("success", `Role "${role.name}" deleted`);
     } catch {
       showToast("error", "Failed to delete role");
     }
   };
+
+  const updateRoleField = (roleIdx: number, field: string, value: string) => {
+    setRoles((prev) =>
+      prev.map((r, i) => (i === roleIdx ? { ...r, [field]: value } : r))
+    );
+  };
+
+  const selectClass = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400";
 
   if (loading) {
     return (
@@ -697,8 +748,23 @@ function RolesSettings({
 
       {/* Add role */}
       <SectionCard title="Add Role">
-        <div className="flex gap-2">
-          <TextInput value={newRoleName} onChange={setNewRoleName} placeholder="e.g. Manager" />
+        <div className="space-y-2">
+          <div className="grid grid-cols-3 gap-2">
+            <FormField label="Name">
+              <TextInput value={newRoleName} onChange={setNewRoleName} placeholder="e.g. manager" />
+            </FormField>
+            <FormField label="Label">
+              <TextInput value={newRoleLabel} onChange={setNewRoleLabel} placeholder="e.g. Manager" />
+            </FormField>
+            <FormField label="Scope">
+              <select value={newRoleScope} onChange={(e) => setNewRoleScope(e.target.value)} className={selectClass}>
+                <option value="all">All records</option>
+                <option value="own">Own records only</option>
+                <option value="team">Team records</option>
+                <option value="none">No access</option>
+              </select>
+            </FormField>
+          </div>
           <button
             onClick={addRole}
             disabled={addingRole || !newRoleName.trim()}
@@ -714,10 +780,28 @@ function RolesSettings({
       {roles.map((role, ri) => (
         <SectionCard
           key={role.id || ri}
-          title={role.name}
+          title={role.label || role.name}
           saving={savingId === role.id}
           onSave={() => saveRole(role)}
         >
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            <FormField label="Name">
+              <TextInput value={role.name || ""} onChange={(v) => updateRoleField(ri, "name", v)} placeholder="name" />
+            </FormField>
+            <FormField label="Label">
+              <TextInput value={role.label || ""} onChange={(v) => updateRoleField(ri, "label", v)} placeholder="Label" />
+            </FormField>
+            <FormField label="Scope">
+              <select value={role.scope || "all"} onChange={(e) => updateRoleField(ri, "scope", e.target.value)} className={selectClass}>
+                <option value="all">All records</option>
+                <option value="own">Own records only</option>
+                <option value="team">Team records</option>
+                <option value="none">No access</option>
+              </select>
+            </FormField>
+          </div>
+
+          <p className="mb-2 text-xs font-medium text-gray-500">Permissions Grid</p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
@@ -780,14 +864,17 @@ function AutomationsSettings({
   projectId,
   spec,
   showToast,
-  apiBase,
+  projectBase,
+  appBase,
 }: {
   projectId: string;
   spec: any;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  projectBase: string;
+  appBase: string;
 }) {
   const entities = spec?.entities?.map((e: any) => e.name) || [];
+  const [loading, setLoading] = useState(true);
 
   // ── Email Triggers ──
   const [emailTriggers, setEmailTriggers] = useState<any[]>([]);
@@ -816,23 +903,29 @@ function AutomationsSettings({
 
   useEffect(() => {
     const load = async () => {
-      try { const d = await get<any[]>(`${apiBase}/email-triggers`); setEmailTriggers(d || []); } catch {}
-      try { const d = await get<any[]>(`${apiBase}/webhooks`); setWebhooks(d || []); } catch {}
-      try { const d = await get<any[]>(`${apiBase}/auto-assign`); setAutoAssigns(d || []); } catch {}
-      try { const d = await get<any[]>(`${apiBase}/status-rules`); setStatusRules(d || []); } catch {}
-      try { const d = await get<any[]>(`${apiBase}/deadline-reminders`); setReminders(d || []); } catch {}
+      try { const d = await get<any[]>(`${projectBase}/email-triggers`); setEmailTriggers(d || []); } catch {}
+      try { const d = await get<any[]>(`${projectBase}/webhook-triggers`); setWebhooks(d || []); } catch {}
+      try { const d = await get<any[]>(`${appBase}/auto-assign/rules`); setAutoAssigns(d || []); } catch {}
+      try { const d = await get<any[]>(`${appBase}/status-rules`); setStatusRules(d || []); } catch {}
+      try { const d = await get<any[]>(`${appBase}/deadline-reminders`); setReminders(d || []); } catch {}
+      setLoading(false);
     };
     load();
-  }, [apiBase]);
+  }, [projectBase, appBase]);
 
   const events = ["created", "updated", "deleted", "status_changed"];
+
+  const reloadEmailTriggers = async () => { const d = await get<any[]>(`${projectBase}/email-triggers`); setEmailTriggers(d || []); };
+  const reloadWebhooks = async () => { const d = await get<any[]>(`${projectBase}/webhook-triggers`); setWebhooks(d || []); };
+  const reloadAutoAssigns = async () => { const d = await get<any[]>(`${appBase}/auto-assign/rules`); setAutoAssigns(d || []); };
+  const reloadStatusRules = async () => { const d = await get<any[]>(`${appBase}/status-rules`); setStatusRules(d || []); };
+  const reloadReminders = async () => { const d = await get<any[]>(`${appBase}/deadline-reminders`); setReminders(d || []); };
 
   const addEmailTrigger = async () => {
     setEmailSaving(true);
     try {
-      await post(`${apiBase}/email-triggers`, emailForm);
-      const d = await get<any[]>(`${apiBase}/email-triggers`);
-      setEmailTriggers(d || []);
+      await post(`${projectBase}/email-triggers`, emailForm);
+      await reloadEmailTriggers();
       setEmailForm({ event: "created", entity: entities[0] || "", to_field: "", subject: "", body_template: "" });
       showToast("success", "Email trigger added");
     } catch { showToast("error", "Failed to add email trigger"); }
@@ -842,9 +935,8 @@ function AutomationsSettings({
   const addWebhook = async () => {
     setWebhookSaving(true);
     try {
-      await post(`${apiBase}/webhooks`, webhookForm);
-      const d = await get<any[]>(`${apiBase}/webhooks`);
-      setWebhooks(d || []);
+      await post(`${projectBase}/webhook-triggers`, webhookForm);
+      await reloadWebhooks();
       setWebhookForm({ event: "created", entity: entities[0] || "", url: "" });
       showToast("success", "Webhook added");
     } catch { showToast("error", "Failed to add webhook"); }
@@ -854,9 +946,8 @@ function AutomationsSettings({
   const addAutoAssign = async () => {
     setAutoSaving(true);
     try {
-      await post(`${apiBase}/auto-assign`, { ...autoForm, members: autoForm.members.split(",").map((m) => m.trim()).filter(Boolean) });
-      const d = await get<any[]>(`${apiBase}/auto-assign`);
-      setAutoAssigns(d || []);
+      await post(`${appBase}/auto-assign/rules`, { ...autoForm, members: autoForm.members.split(",").map((m) => m.trim()).filter(Boolean) });
+      await reloadAutoAssigns();
       setAutoForm({ entity: entities[0] || "", field: "", members: "", strategy: "round_robin" });
       showToast("success", "Auto-assign rule added");
     } catch { showToast("error", "Failed to add auto-assign rule"); }
@@ -866,9 +957,8 @@ function AutomationsSettings({
   const addStatusRule = async () => {
     setStatusSaving(true);
     try {
-      await post(`${apiBase}/status-rules`, { ...statusForm, after_days: parseInt(statusForm.after_days) || 7 });
-      const d = await get<any[]>(`${apiBase}/status-rules`);
-      setStatusRules(d || []);
+      await post(`${appBase}/status-rules`, { ...statusForm, after_days: parseInt(statusForm.after_days) || 7 });
+      await reloadStatusRules();
       setStatusForm({ entity: entities[0] || "", field: "", from_status: "", to_status: "", after_days: "7" });
       showToast("success", "Status rule added");
     } catch { showToast("error", "Failed to add status rule"); }
@@ -878,24 +968,44 @@ function AutomationsSettings({
   const addReminder = async () => {
     setReminderSaving(true);
     try {
-      await post(`${apiBase}/deadline-reminders`, { ...reminderForm, days_before: parseInt(reminderForm.days_before) || 1 });
-      const d = await get<any[]>(`${apiBase}/deadline-reminders`);
-      setReminders(d || []);
+      await post(`${appBase}/deadline-reminders`, { ...reminderForm, days_before: parseInt(reminderForm.days_before) || 1 });
+      await reloadReminders();
       setReminderForm({ entity: entities[0] || "", date_field: "", days_before: "1", notify_field: "" });
       showToast("success", "Deadline reminder added");
     } catch { showToast("error", "Failed to add reminder"); }
     finally { setReminderSaving(false); }
   };
 
-  const deleteItem = async (endpoint: string, id: string, reload: () => Promise<void>) => {
-    try {
-      await del(`${apiBase}/${endpoint}/${id}`);
-      await reload();
-      showToast("success", "Deleted");
-    } catch { showToast("error", "Failed to delete"); }
+  const deleteEmailTrigger = async (id: string) => {
+    try { await del(`${projectBase}/email-triggers/${id}`); await reloadEmailTriggers(); showToast("success", "Deleted"); }
+    catch { showToast("error", "Failed to delete"); }
+  };
+  const deleteWebhook = async (id: string) => {
+    try { await del(`${projectBase}/webhook-triggers/${id}`); await reloadWebhooks(); showToast("success", "Deleted"); }
+    catch { showToast("error", "Failed to delete"); }
+  };
+  const deleteAutoAssign = async (id: string) => {
+    try { await del(`${appBase}/auto-assign/rules/${id}`); await reloadAutoAssigns(); showToast("success", "Deleted"); }
+    catch { showToast("error", "Failed to delete"); }
+  };
+  const deleteStatusRule = async (id: string) => {
+    try { await del(`${appBase}/status-rules/${id}`); await reloadStatusRules(); showToast("success", "Deleted"); }
+    catch { showToast("error", "Failed to delete"); }
+  };
+  const deleteReminder = async (id: string) => {
+    try { await del(`${appBase}/deadline-reminders/${id}`); await reloadReminders(); showToast("success", "Deleted"); }
+    catch { showToast("error", "Failed to delete"); }
   };
 
   const selectClass = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400";
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -910,7 +1020,7 @@ function AutomationsSettings({
           {emailTriggers.map((t, i) => (
             <div key={t.id || i} className="mb-2 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
               <span>On <strong>{t.event}</strong> of <strong>{t.entity}</strong> &rarr; email to {t.to_field}</span>
-              <button onClick={() => deleteItem("email-triggers", t.id, async () => { const d = await get<any[]>(`${apiBase}/email-triggers`); setEmailTriggers(d || []); })} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => deleteEmailTrigger(t.id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
             </div>
           ))}
           <div className="mt-3 space-y-2 rounded-lg border border-gray-100 p-3">
@@ -936,7 +1046,7 @@ function AutomationsSettings({
           {webhooks.map((w, i) => (
             <div key={w.id || i} className="mb-2 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
               <span>On <strong>{w.event}</strong> of <strong>{w.entity}</strong> &rarr; POST {w.url}</span>
-              <button onClick={() => deleteItem("webhooks", w.id, async () => { const d = await get<any[]>(`${apiBase}/webhooks`); setWebhooks(d || []); })} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => deleteWebhook(w.id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
             </div>
           ))}
           <div className="mt-3 space-y-2 rounded-lg border border-gray-100 p-3">
@@ -960,7 +1070,7 @@ function AutomationsSettings({
           {autoAssigns.map((a, i) => (
             <div key={a.id || i} className="mb-2 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
               <span><strong>{a.entity}</strong>.{a.field} &rarr; {a.strategy} ({(a.members || []).length} members)</span>
-              <button onClick={() => deleteItem("auto-assign", a.id, async () => { const d = await get<any[]>(`${apiBase}/auto-assign`); setAutoAssigns(d || []); })} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => deleteAutoAssign(a.id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
             </div>
           ))}
           <div className="mt-3 space-y-2 rounded-lg border border-gray-100 p-3">
@@ -985,7 +1095,7 @@ function AutomationsSettings({
           {statusRules.map((s, i) => (
             <div key={s.id || i} className="mb-2 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
               <span><strong>{s.entity}</strong>.{s.field}: {s.from_status} &rarr; {s.to_status} after {s.after_days}d</span>
-              <button onClick={() => deleteItem("status-rules", s.id, async () => { const d = await get<any[]>(`${apiBase}/status-rules`); setStatusRules(d || []); })} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => deleteStatusRule(s.id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
             </div>
           ))}
           <div className="mt-3 space-y-2 rounded-lg border border-gray-100 p-3">
@@ -1009,7 +1119,7 @@ function AutomationsSettings({
           {reminders.map((r, i) => (
             <div key={r.id || i} className="mb-2 flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
               <span><strong>{r.entity}</strong>.{r.date_field} &rarr; remind {r.days_before}d before via {r.notify_field}</span>
-              <button onClick={() => deleteItem("deadline-reminders", r.id, async () => { const d = await get<any[]>(`${apiBase}/deadline-reminders`); setReminders(d || []); })} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
+              <button onClick={() => deleteReminder(r.id)} className="text-red-400 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
             </div>
           ))}
           <div className="mt-3 space-y-2 rounded-lg border border-gray-100 p-3">
@@ -1035,46 +1145,48 @@ function AutomationsSettings({
 // 5. INTEGRATIONS
 // ═══════════════════════════════════════════════════════════════
 const INTEGRATION_CATALOG = [
-  { key: "slack", name: "Slack", icon: "💬", description: "Send notifications to Slack channels" },
-  { key: "google_calendar", name: "Google Calendar", icon: "📅", description: "Sync events with Google Calendar" },
-  { key: "zoom", name: "Zoom", icon: "📹", description: "Schedule Zoom meetings automatically" },
-  { key: "google_sheets", name: "Google Sheets", icon: "📊", description: "Export and sync data to Sheets" },
-  { key: "stripe", name: "Stripe", icon: "💳", description: "Accept payments via Stripe" },
-  { key: "twilio", name: "Twilio", icon: "📱", description: "Send SMS notifications" },
-  { key: "sendgrid", name: "SendGrid", icon: "📧", description: "Transactional email delivery" },
-  { key: "zapier", name: "Zapier", icon: "⚡", description: "Connect to 5000+ apps via Zapier" },
-  { key: "mailchimp", name: "Mailchimp", icon: "🐒", description: "Email marketing automation" },
-  { key: "hubspot", name: "HubSpot", icon: "🧲", description: "CRM and marketing sync" },
-  { key: "github", name: "GitHub", icon: "🐙", description: "Issue tracking and code sync" },
-  { key: "jira", name: "Jira", icon: "📋", description: "Project management sync" },
+  { key: "slack", name: "Slack", icon: "\u{1F4AC}", description: "Send notifications to Slack channels" },
+  { key: "google_calendar", name: "Google Calendar", icon: "\u{1F4C5}", description: "Sync events with Google Calendar" },
+  { key: "zoom", name: "Zoom", icon: "\u{1F4F9}", description: "Schedule Zoom meetings automatically" },
+  { key: "google_sheets", name: "Google Sheets", icon: "\u{1F4CA}", description: "Export and sync data to Sheets" },
+  { key: "stripe", name: "Stripe", icon: "\u{1F4B3}", description: "Accept payments via Stripe" },
+  { key: "twilio", name: "Twilio", icon: "\u{1F4F1}", description: "Send SMS notifications" },
+  { key: "sendgrid", name: "SendGrid", icon: "\u{1F4E7}", description: "Transactional email delivery" },
+  { key: "zapier", name: "Zapier", icon: "\u26A1", description: "Connect to 5000+ apps via Zapier" },
+  { key: "mailchimp", name: "Mailchimp", icon: "\u{1F412}", description: "Email marketing automation" },
+  { key: "hubspot", name: "HubSpot", icon: "\u{1F9F2}", description: "CRM and marketing sync" },
+  { key: "github", name: "GitHub", icon: "\u{1F419}", description: "Issue tracking and code sync" },
+  { key: "jira", name: "Jira", icon: "\u{1F4CB}", description: "Project management sync" },
 ];
 
 function IntegrationsSettings({
   projectId,
   showToast,
-  apiBase,
+  projectBase,
 }: {
   projectId: string;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  projectBase: string;
 }) {
   const [integrations, setIntegrations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [configuring, setConfiguring] = useState<string | null>(null);
   const [configForm, setConfigForm] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await get<any[]>(`${apiBase}/integrations`);
-        setIntegrations(data || []);
-      } catch {}
-      finally { setLoading(false); }
-    })();
-  }, [apiBase]);
+  const loadIntegrations = async () => {
+    try {
+      const data = await get<any[]>(`${projectBase}/integrations`);
+      setIntegrations(data || []);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadIntegrations(); }, [projectBase]);
 
   const isConnected = (key: string) => integrations.some((i) => i.provider === key && i.enabled);
+  const getIntegration = (key: string) => integrations.find((i) => i.provider === key);
 
   const handleConfigure = (key: string) => {
     const existing = integrations.find((i) => i.provider === key);
@@ -1086,9 +1198,8 @@ function IntegrationsSettings({
     if (!configuring) return;
     setSaving(true);
     try {
-      await post(`${apiBase}/integrations`, { provider: configuring, enabled: true, config: configForm });
-      const data = await get<any[]>(`${apiBase}/integrations`);
-      setIntegrations(data || []);
+      await post(`${projectBase}/integrations`, { provider: configuring, enabled: true, config: configForm });
+      await loadIntegrations();
       setConfiguring(null);
       showToast("success", "Integration configured");
     } catch {
@@ -1100,15 +1211,28 @@ function IntegrationsSettings({
 
   const disconnect = async (key: string) => {
     try {
-      const integration = integrations.find((i) => i.provider === key);
+      const integration = getIntegration(key);
       if (integration) {
-        await del(`${apiBase}/integrations/${integration.id}`);
-        const data = await get<any[]>(`${apiBase}/integrations`);
-        setIntegrations(data || []);
+        await del(`${projectBase}/integrations/${integration.id}`);
+        await loadIntegrations();
         showToast("success", "Integration disconnected");
       }
     } catch {
       showToast("error", "Failed to disconnect");
+    }
+  };
+
+  const testIntegration = async (key: string) => {
+    const integration = getIntegration(key);
+    if (!integration) return;
+    setTesting(key);
+    try {
+      await post(`${projectBase}/integrations/${integration.id}/test`, {});
+      showToast("success", `${INTEGRATION_CATALOG.find((i) => i.key === key)?.name} connection test passed`);
+    } catch {
+      showToast("error", "Connection test failed");
+    } finally {
+      setTesting(null);
     }
   };
 
@@ -1157,12 +1281,22 @@ function IntegrationsSettings({
                   Configure
                 </button>
                 {connected && (
-                  <button
-                    onClick={() => disconnect(integ.key)}
-                    className="rounded-lg px-3 py-1.5 text-xs text-red-500 transition hover:bg-red-50"
-                  >
-                    Disconnect
-                  </button>
+                  <>
+                    <button
+                      onClick={() => testIntegration(integ.key)}
+                      disabled={testing === integ.key}
+                      className="flex items-center gap-1 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-100 disabled:opacity-50"
+                    >
+                      {testing === integ.key ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                      Test
+                    </button>
+                    <button
+                      onClick={() => disconnect(integ.key)}
+                      className="rounded-lg px-3 py-1.5 text-xs text-red-500 transition hover:bg-red-50"
+                    >
+                      Disconnect
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -1211,21 +1345,23 @@ function DataSettings({
   projectId,
   spec,
   showToast,
-  apiBase,
+  appBase,
 }: {
   projectId: string;
   spec: any;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  appBase: string;
 }) {
   const entities = spec?.entities?.map((e: any) => e.name) || [];
   const [importEntity, setImportEntity] = useState(entities[0] || "");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [importPreview, setImportPreview] = useState<any>(null);
   const [exporting, setExporting] = useState<string | null>(null);
   const [snapshots, setSnapshots] = useState<any[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
   const [creatingSnapshot, setCreatingSnapshot] = useState(false);
+  const [restoringSnapshotId, setRestoringSnapshotId] = useState<string | null>(null);
   const [gdprEmail, setGdprEmail] = useState("");
   const [gdprAction, setGdprAction] = useState<"export" | "delete">("export");
   const [gdprLoading, setGdprLoading] = useState(false);
@@ -1233,14 +1369,14 @@ function DataSettings({
   useEffect(() => {
     (async () => {
       try {
-        const data = await get<any[]>(`${apiBase}/snapshots`);
+        const data = await get<any[]>(`${appBase}/snapshots`);
         setSnapshots(data || []);
       } catch {}
       finally { setSnapshotsLoading(false); }
     })();
-  }, [apiBase]);
+  }, [appBase]);
 
-  const handleImport = async () => {
+  const handleImportPreview = async () => {
     if (!importFile || !importEntity) return;
     setImporting(true);
     try {
@@ -1248,12 +1384,38 @@ function DataSettings({
       formData.append("file", importFile);
       formData.append("entity", importEntity);
       const token = localStorage.getItem("token");
-      await fetch(`${import.meta.env.VITE_API_URL || "/api"}${apiBase}/import`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "/api"}${appBase}/import/preview`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
+      if (!res.ok) throw new Error("Preview failed");
+      const preview = await res.json();
+      setImportPreview(preview);
+      showToast("success", `Preview ready: ${preview.row_count || 0} rows detected`);
+    } catch {
+      showToast("error", "Import preview failed");
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleImportExecute = async () => {
+    if (!importPreview) return;
+    setImporting(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "/api"}${appBase}/import/execute`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ entity: importEntity, preview_id: importPreview.id || importPreview.preview_id }),
+      });
+      if (!res.ok) throw new Error("Import failed");
       setImportFile(null);
+      setImportPreview(null);
       showToast("success", `Imported data to ${importEntity}`);
     } catch {
       showToast("error", "Import failed");
@@ -1267,9 +1429,10 @@ function DataSettings({
     try {
       const token = localStorage.getItem("token");
       const endpoint = format === "excel" ? "export/excel" : "export";
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "/api"}${apiBase}/${entity}/${endpoint}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || "/api"}${appBase}/data/${entity}/${endpoint}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
+      if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1288,8 +1451,8 @@ function DataSettings({
   const createSnapshot = async () => {
     setCreatingSnapshot(true);
     try {
-      await post(`${apiBase}/snapshots`, {});
-      const data = await get<any[]>(`${apiBase}/snapshots`);
+      await post(`${appBase}/snapshots`, {});
+      const data = await get<any[]>(`${appBase}/snapshots`);
       setSnapshots(data || []);
       showToast("success", "Snapshot created");
     } catch {
@@ -1299,11 +1462,23 @@ function DataSettings({
     }
   };
 
+  const restoreSnapshot = async (snapshotId: string) => {
+    setRestoringSnapshotId(snapshotId);
+    try {
+      await post(`${appBase}/snapshots/${snapshotId}/restore`, {});
+      showToast("success", "Snapshot restored successfully");
+    } catch {
+      showToast("error", "Failed to restore snapshot");
+    } finally {
+      setRestoringSnapshotId(null);
+    }
+  };
+
   const handleGdpr = async () => {
     if (!gdprEmail.trim()) return;
     setGdprLoading(true);
     try {
-      await post(`${apiBase}/gdpr/${gdprAction}`, { email: gdprEmail.trim() });
+      await post(`${appBase}/gdpr/${gdprAction}`, { email: gdprEmail.trim() });
       showToast("success", `GDPR ${gdprAction} request processed`);
       setGdprEmail("");
     } catch {
@@ -1325,7 +1500,7 @@ function DataSettings({
       {/* Import */}
       <SectionCard title="Import Data">
         <FormField label="Target Entity">
-          <select value={importEntity} onChange={(e) => setImportEntity(e.target.value)} className={selectClass}>
+          <select value={importEntity} onChange={(e) => { setImportEntity(e.target.value); setImportPreview(null); }} className={selectClass}>
             {entities.map((en: string) => <option key={en} value={en}>{en}</option>)}
           </select>
         </FormField>
@@ -1333,18 +1508,39 @@ function DataSettings({
           <input
             type="file"
             accept=".csv"
-            onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+            onChange={(e) => { setImportFile(e.target.files?.[0] || null); setImportPreview(null); }}
             className="w-full text-sm text-gray-500 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-xs file:font-medium file:text-black hover:file:bg-gray-200"
           />
         </FormField>
-        <button
-          onClick={handleImport}
-          disabled={importing || !importFile}
-          className="flex items-center gap-1.5 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
-        >
-          {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-          {importing ? "Importing..." : "Import"}
-        </button>
+        {importPreview && (
+          <div className="mb-3 rounded-lg border border-green-200 bg-green-50 p-3">
+            <p className="text-xs font-medium text-green-700">Preview: {importPreview.row_count || 0} rows, {importPreview.column_count || 0} columns detected</p>
+            {importPreview.columns && (
+              <p className="mt-1 text-[11px] text-green-600">Columns: {importPreview.columns.join(", ")}</p>
+            )}
+          </div>
+        )}
+        <div className="flex gap-2">
+          {!importPreview ? (
+            <button
+              onClick={handleImportPreview}
+              disabled={importing || !importFile}
+              className="flex items-center gap-1.5 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
+            >
+              {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {importing ? "Previewing..." : "Preview Import"}
+            </button>
+          ) : (
+            <button
+              onClick={handleImportExecute}
+              disabled={importing}
+              className="flex items-center gap-1.5 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+            >
+              {importing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {importing ? "Importing..." : "Confirm Import"}
+            </button>
+          )}
+        </div>
       </SectionCard>
 
       {/* Export */}
@@ -1401,7 +1597,14 @@ function DataSettings({
                   <span className="font-medium text-black">{s.name || `Snapshot ${i + 1}`}</span>
                   <span className="ml-2 text-gray-400">{new Date(s.created_at).toLocaleString()}</span>
                 </div>
-                <button className="text-pink-500 hover:text-pink-700 text-xs">Restore</button>
+                <button
+                  onClick={() => restoreSnapshot(s.id)}
+                  disabled={restoringSnapshotId === s.id}
+                  className="flex items-center gap-1 text-pink-500 hover:text-pink-700 text-xs disabled:opacity-50"
+                >
+                  {restoringSnapshotId === s.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                  Restore
+                </button>
               </div>
             ))}
           </div>
@@ -1444,51 +1647,76 @@ function DataSettings({
 function SecuritySettings({
   projectId,
   showToast,
-  apiBase,
+  projectBase,
+  appBase,
 }: {
   projectId: string;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  projectBase: string;
+  appBase: string;
 }) {
   const [ipWhitelistEnabled, setIpWhitelistEnabled] = useState(false);
   const [ipList, setIpList] = useState("");
   const [ipSaving, setIpSaving] = useState(false);
+  const [ipUnavailable, setIpUnavailable] = useState(false);
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [twoFaSaving, setTwoFaSaving] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [encryptionEnabled, setEncryptionEnabled] = useState(false);
+  const [encryptionFields, setEncryptionFields] = useState<any[]>([]);
   const [encryptionEntity, setEncryptionEntity] = useState("");
   const [encryptionField, setEncryptionField] = useState("");
   const [encryptionSaving, setEncryptionSaving] = useState(false);
+  const [encryptionUnavailable, setEncryptionUnavailable] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
-      try {
-        const ip = await get<any>(`${apiBase}/ip-whitelist`);
-        if (ip) {
-          setIpWhitelistEnabled(ip.enabled || false);
-          setIpList((ip.ips || []).join("\n"));
+      // IP Whitelist: GET /projects/{projectId}/ip-whitelist
+      {
+        const { data, unavailable } = await safeFetch(
+          () => get<any>(`${projectBase}/ip-whitelist`),
+          null
+        );
+        setIpUnavailable(unavailable);
+        if (data) {
+          setIpWhitelistEnabled(data.enabled || false);
+          setIpList((data.ips || []).join("\n"));
         }
-      } catch {}
+      }
+      // Encryption: GET /projects/{projectId}/encryption
+      {
+        const { data, unavailable } = await safeFetch(
+          () => get<any>(`${projectBase}/encryption`),
+          null
+        );
+        setEncryptionUnavailable(unavailable);
+        if (data) {
+          setEncryptionEnabled(data.enabled || false);
+          setEncryptionFields(data.fields || []);
+        }
+      }
+      // 2FA
       try {
-        const tfa = await get<any>(`${apiBase}/2fa/status`);
+        const tfa = await get<any>(`${appBase}/2fa/status`);
         setTwoFaEnabled(tfa?.enabled || false);
       } catch {}
+      // Sessions: GET /apps/{projectId}/sessions
       try {
-        const sess = await get<any[]>(`${apiBase}/sessions`);
+        const sess = await get<any[]>(`${appBase}/sessions`);
         setSessions(sess || []);
       } catch {}
       setSessionsLoading(false);
       setLoaded(true);
     })();
-  }, [apiBase]);
+  }, [projectBase, appBase]);
 
   const saveIpWhitelist = async () => {
     setIpSaving(true);
     try {
       const ips = ipList.split("\n").map((ip) => ip.trim()).filter(Boolean);
-      await put(`${apiBase}/ip-whitelist`, { enabled: ipWhitelistEnabled, ips });
+      await put(`${projectBase}/ip-whitelist`, { enabled: ipWhitelistEnabled, ips });
       showToast("success", "IP whitelist saved");
     } catch {
       showToast("error", "Failed to save IP whitelist");
@@ -1497,10 +1725,28 @@ function SecuritySettings({
     }
   };
 
+  const saveEncryption = async () => {
+    setEncryptionSaving(true);
+    try {
+      const fields = encryptionEntity && encryptionField
+        ? [...encryptionFields, { entity: encryptionEntity, field: encryptionField }]
+        : encryptionFields;
+      await put(`${projectBase}/encryption`, { enabled: encryptionEnabled, fields });
+      setEncryptionFields(fields);
+      setEncryptionEntity("");
+      setEncryptionField("");
+      showToast("success", "Encryption settings saved");
+    } catch {
+      showToast("error", "Failed to save encryption settings");
+    } finally {
+      setEncryptionSaving(false);
+    }
+  };
+
   const toggle2fa = async () => {
     setTwoFaSaving(true);
     try {
-      await post(`${apiBase}/2fa/${twoFaEnabled ? "disable" : "enable"}`, {});
+      await post(`${appBase}/2fa/${twoFaEnabled ? "disable" : "enable"}`, {});
       setTwoFaEnabled(!twoFaEnabled);
       showToast("success", `2FA ${twoFaEnabled ? "disabled" : "enabled"}`);
     } catch {
@@ -1512,26 +1758,11 @@ function SecuritySettings({
 
   const revokeSession = async (sessionId: string) => {
     try {
-      await del(`${apiBase}/sessions/${sessionId}`);
+      await del(`${appBase}/sessions/${sessionId}`);
       setSessions((s) => s.filter((x) => x.id !== sessionId));
       showToast("success", "Session revoked");
     } catch {
       showToast("error", "Failed to revoke session");
-    }
-  };
-
-  const saveEncryption = async () => {
-    if (!encryptionEntity || !encryptionField) return;
-    setEncryptionSaving(true);
-    try {
-      await post(`${apiBase}/encryption`, { entity: encryptionEntity, field: encryptionField });
-      showToast("success", "Field encryption configured");
-      setEncryptionEntity("");
-      setEncryptionField("");
-    } catch {
-      showToast("error", "Failed to configure encryption");
-    } finally {
-      setEncryptionSaving(false);
     }
   };
 
@@ -1551,7 +1782,7 @@ function SecuritySettings({
       </div>
 
       {/* IP Whitelist */}
-      <SectionCard title="IP Whitelist" saving={ipSaving} onSave={saveIpWhitelist}>
+      <SectionCard title="IP Whitelist" saving={ipSaving} onSave={saveIpWhitelist} unavailable={ipUnavailable}>
         <Toggle checked={ipWhitelistEnabled} onChange={setIpWhitelistEnabled} label="Enable IP Whitelist" />
         {ipWhitelistEnabled && (
           <FormField label="Allowed IPs" hint="One IP address per line">
@@ -1567,8 +1798,24 @@ function SecuritySettings({
       </SectionCard>
 
       {/* Field Encryption */}
-      <SectionCard title="Field Encryption" saving={encryptionSaving} onSave={saveEncryption}>
+      <SectionCard title="Field Encryption" saving={encryptionSaving} onSave={saveEncryption} unavailable={encryptionUnavailable}>
         <p className="mb-3 text-xs text-gray-500">Encrypt sensitive fields at rest in the database.</p>
+        <Toggle checked={encryptionEnabled} onChange={setEncryptionEnabled} label="Enable field encryption" />
+        {encryptionFields.length > 0 && (
+          <div className="mb-3 space-y-1">
+            {encryptionFields.map((ef, i) => (
+              <div key={i} className="flex items-center justify-between rounded-lg bg-gray-50 px-3 py-2 text-xs">
+                <span><strong>{ef.entity}</strong>.{ef.field}</span>
+                <button
+                  onClick={() => setEncryptionFields((f) => f.filter((_, idx) => idx !== i))}
+                  className="text-red-400 hover:text-red-600"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-2">
           <FormField label="Entity">
             <TextInput value={encryptionEntity} onChange={setEncryptionEntity} placeholder="e.g. Customer" />
@@ -1633,26 +1880,26 @@ function SecuritySettings({
 // 8. VIEWS
 // ═══════════════════════════════════════════════════════════════
 const VIEW_TYPES = [
-  { id: "table", label: "Table", icon: "📋" },
-  { id: "kanban", label: "Kanban", icon: "📊" },
-  { id: "calendar", label: "Calendar", icon: "📅" },
-  { id: "gantt", label: "Gantt Chart", icon: "📈" },
-  { id: "map", label: "Map", icon: "🗺️" },
-  { id: "gallery", label: "Gallery", icon: "🖼️" },
-  { id: "timeline", label: "Timeline", icon: "⏳" },
-  { id: "chart", label: "Chart", icon: "📉" },
+  { id: "table", label: "Table", icon: "\u{1F4CB}" },
+  { id: "kanban", label: "Kanban", icon: "\u{1F4CA}" },
+  { id: "calendar", label: "Calendar", icon: "\u{1F4C5}" },
+  { id: "gantt", label: "Gantt Chart", icon: "\u{1F4C8}" },
+  { id: "map", label: "Map", icon: "\u{1F5FA}\uFE0F" },
+  { id: "gallery", label: "Gallery", icon: "\u{1F5BC}\uFE0F" },
+  { id: "timeline", label: "Timeline", icon: "\u231B" },
+  { id: "chart", label: "Chart", icon: "\u{1F4C9}" },
 ];
 
 function ViewsSettings({
   projectId,
   spec,
   showToast,
-  apiBase,
+  projectBase,
 }: {
   projectId: string;
   spec: any;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  projectBase: string;
 }) {
   const entities = spec?.entities || [];
   const [selectedEntity, setSelectedEntity] = useState(entities[0]?.name || "");
@@ -1665,28 +1912,27 @@ function ViewsSettings({
   const selectedEntityObj = entities.find((e: any) => e.name === selectedEntity);
   const fields = selectedEntityObj?.fields?.map((f: any) => f.name) || [];
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const data = await get<any[]>(`${apiBase}/view-configs`);
-        setViewConfigs(data || []);
-      } catch {}
-      finally { setLoading(false); }
-    })();
-  }, [apiBase]);
+  const loadViews = async () => {
+    try {
+      const data = await get<any[]>(`${projectBase}/views`);
+      setViewConfigs(data || []);
+    } catch {}
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadViews(); }, [projectBase]);
 
   const entityViews = viewConfigs.filter((v) => v.entity === selectedEntity);
 
   const addView = async (viewType: string) => {
     setSaving(true);
     try {
-      await post(`${apiBase}/view-configs`, {
+      await post(`${projectBase}/views`, {
         entity: selectedEntity,
         view_type: viewType,
         config: {},
       });
-      const data = await get<any[]>(`${apiBase}/view-configs`);
-      setViewConfigs(data || []);
+      await loadViews();
       showToast("success", `${viewType} view added for ${selectedEntity}`);
     } catch {
       showToast("error", "Failed to add view");
@@ -1698,9 +1944,8 @@ function ViewsSettings({
   const saveViewConfig = async (viewId: string) => {
     setSaving(true);
     try {
-      await put(`${apiBase}/view-configs/${viewId}`, { config: viewConfig });
-      const data = await get<any[]>(`${apiBase}/view-configs`);
-      setViewConfigs(data || []);
+      await put(`${projectBase}/views/${viewId}`, { config: viewConfig });
+      await loadViews();
       setEditingView(null);
       showToast("success", "View configuration saved");
     } catch {
@@ -1712,9 +1957,8 @@ function ViewsSettings({
 
   const deleteView = async (viewId: string) => {
     try {
-      await del(`${apiBase}/view-configs/${viewId}`);
-      const data = await get<any[]>(`${apiBase}/view-configs`);
-      setViewConfigs(data || []);
+      await del(`${projectBase}/views/${viewId}`);
+      await loadViews();
       showToast("success", "View removed");
     } catch {
       showToast("error", "Failed to remove view");
@@ -1750,7 +1994,7 @@ function ViewsSettings({
                 <div key={v.id} className="rounded-lg border border-gray-100 bg-gray-50 p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span>{VIEW_TYPES.find((vt) => vt.id === v.view_type)?.icon || "📋"}</span>
+                      <span>{VIEW_TYPES.find((vt) => vt.id === v.view_type)?.icon || "\u{1F4CB}"}</span>
                       <span className="text-sm font-medium text-black capitalize">{v.view_type}</span>
                     </div>
                     <div className="flex gap-1">
@@ -1885,17 +2129,21 @@ function AdvancedSettings({
   projectId,
   spec,
   showToast,
-  apiBase,
+  projectBase,
+  appBase,
 }: {
   projectId: string;
   spec: any;
   showToast: (type: "success" | "error", msg: string) => void;
-  apiBase: string;
+  projectBase: string;
+  appBase: string;
 }) {
   const [subdomain, setSubdomain] = useState("");
   const [subdomainSaving, setSubdomainSaving] = useState(false);
   const [whiteLabelName, setWhiteLabelName] = useState("");
+  const [whiteLabelDomain, setWhiteLabelDomain] = useState("");
   const [whiteLabelSaving, setWhiteLabelSaving] = useState(false);
+  const [whiteLabelUnavailable, setWhiteLabelUnavailable] = useState(false);
   const [embeds, setEmbeds] = useState<any[]>([]);
   const [embedName, setEmbedName] = useState("");
   const [embedEntity, setEmbedEntity] = useState("");
@@ -1903,25 +2151,43 @@ function AdvancedSettings({
   const [versions, setVersions] = useState<any[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [rollingBack, setRollingBack] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const entities = spec?.entities?.map((e: any) => e.name) || [];
 
   useEffect(() => {
     (async () => {
-      try { const d = await get<any>(`${apiBase}/subdomain`); setSubdomain(d?.subdomain || ""); } catch {}
-      try { const d = await get<any[]>(`${apiBase}/embeds`); setEmbeds(d || []); } catch {}
+      // Subdomain: GET /projects/{projectId}/subdomain
+      try { const d = await get<any>(`${projectBase}/subdomain`); setSubdomain(d?.subdomain || ""); } catch {}
+      // White-label: GET /projects/{projectId}/white-label
+      {
+        const { data, unavailable } = await safeFetch(
+          () => get<any>(`${projectBase}/white-label`),
+          null
+        );
+        setWhiteLabelUnavailable(unavailable);
+        if (data) {
+          setWhiteLabelName(data.brand_name || data.name || "");
+          setWhiteLabelDomain(data.custom_domain || "");
+        }
+      }
+      // Embeds: GET /projects/{projectId}/embeds
+      try { const d = await get<any[]>(`${projectBase}/embeds`); setEmbeds(d || []); } catch {}
+      // Versions: GET /projects/{projectId}/versions
       try {
-        const d = await get<any[]>(`/projects/${projectId}/versions`);
+        const d = await get<any[]>(`${projectBase}/versions`);
         setVersions(d || []);
       } catch {}
       setVersionsLoading(false);
+      setLoading(false);
     })();
-  }, [apiBase, projectId]);
+  }, [projectBase]);
 
   const saveSubdomain = async () => {
     setSubdomainSaving(true);
     try {
-      await put(`${apiBase}/subdomain`, { subdomain: subdomain.trim() });
+      await post(`${projectBase}/subdomain`, { subdomain: subdomain.trim() });
       showToast("success", "Subdomain saved");
     } catch {
       showToast("error", "Failed to save subdomain");
@@ -1933,7 +2199,11 @@ function AdvancedSettings({
   const saveWhiteLabel = async () => {
     setWhiteLabelSaving(true);
     try {
-      await put(`${apiBase}/branding`, { white_label_name: whiteLabelName.trim(), hide_powered_by: true });
+      await put(`${projectBase}/white-label`, {
+        brand_name: whiteLabelName.trim(),
+        custom_domain: whiteLabelDomain.trim(),
+        hide_powered_by: true,
+      });
       showToast("success", "White-label settings saved");
     } catch {
       showToast("error", "Failed to save white-label settings");
@@ -1946,8 +2216,8 @@ function AdvancedSettings({
     if (!embedName.trim() || !embedEntity) return;
     setEmbedSaving(true);
     try {
-      await post(`${apiBase}/embeds`, { name: embedName.trim(), entity: embedEntity });
-      const d = await get<any[]>(`${apiBase}/embeds`);
+      await post(`${projectBase}/embeds`, { name: embedName.trim(), entity: embedEntity });
+      const d = await get<any[]>(`${projectBase}/embeds`);
       setEmbeds(d || []);
       setEmbedName("");
       setEmbedEntity("");
@@ -1959,13 +2229,23 @@ function AdvancedSettings({
     }
   };
 
+  const deleteEmbed = async (embedId: string) => {
+    try {
+      await del(`${projectBase}/embeds/${embedId}`);
+      const d = await get<any[]>(`${projectBase}/embeds`);
+      setEmbeds(d || []);
+      showToast("success", "Widget deleted");
+    } catch {
+      showToast("error", "Failed to delete widget");
+    }
+  };
+
   const restoreVersion = async (versionId: string) => {
     setRestoringId(versionId);
     try {
-      await post(`/projects/${projectId}/versions/${versionId}/restore`, {});
+      await post(`${projectBase}/versions/${versionId}/restore`, {});
       showToast("success", "Version restored");
-      // Reload versions
-      const d = await get<any[]>(`/projects/${projectId}/versions`);
+      const d = await get<any[]>(`${projectBase}/versions`);
       setVersions(d || []);
     } catch {
       showToast("error", "Failed to restore version");
@@ -1974,7 +2254,31 @@ function AdvancedSettings({
     }
   };
 
+  const handleRollback = async () => {
+    if (!confirm("Are you sure you want to rollback? This will revert to the previous version.")) return;
+    setRollingBack(true);
+    try {
+      await post(`${projectBase}/rollback`, {});
+      showToast("success", "Rollback successful");
+      // Reload versions
+      const d = await get<any[]>(`${projectBase}/versions`);
+      setVersions(d || []);
+    } catch {
+      showToast("error", "Rollback failed");
+    } finally {
+      setRollingBack(false);
+    }
+  };
+
   const selectClass = "w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400";
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -1994,9 +2298,12 @@ function AdvancedSettings({
       </SectionCard>
 
       {/* White Label */}
-      <SectionCard title="White Label" saving={whiteLabelSaving} onSave={saveWhiteLabel}>
+      <SectionCard title="White Label" saving={whiteLabelSaving} onSave={saveWhiteLabel} unavailable={whiteLabelUnavailable}>
         <FormField label="App Brand Name" hint="Replace isibi.ai branding with your own">
           <TextInput value={whiteLabelName} onChange={setWhiteLabelName} placeholder="Your Brand Name" />
+        </FormField>
+        <FormField label="Custom Domain" hint="Point your own domain to this app">
+          <TextInput value={whiteLabelDomain} onChange={setWhiteLabelDomain} placeholder="app.yourdomain.com" />
         </FormField>
       </SectionCard>
 
@@ -2008,15 +2315,23 @@ function AdvancedSettings({
               <div key={e.id || i} className="rounded-lg bg-gray-50 px-3 py-2.5">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-black">{e.name}</span>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`<iframe src="${window.location.origin}/embed/${e.id}" width="100%" height="500"></iframe>`);
-                      showToast("success", "Embed code copied");
-                    }}
-                    className="flex items-center gap-1 text-xs text-pink-500 hover:text-pink-700"
-                  >
-                    <Copy className="h-3 w-3" /> Copy Embed Code
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`<iframe src="${window.location.origin}/embed/${e.id}" width="100%" height="500"></iframe>`);
+                        showToast("success", "Embed code copied");
+                      }}
+                      className="flex items-center gap-1 text-xs text-pink-500 hover:text-pink-700"
+                    >
+                      <Copy className="h-3 w-3" /> Copy
+                    </button>
+                    <button
+                      onClick={() => deleteEmbed(e.id)}
+                      className="text-red-400 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
                 <p className="mt-0.5 text-[11px] text-gray-400">Entity: {e.entity}</p>
               </div>
@@ -2046,7 +2361,7 @@ function AdvancedSettings({
           View the auto-generated API documentation for your app's endpoints.
         </p>
         <a
-          href={`${import.meta.env.VITE_API_URL || "/api"}${apiBase}/docs`}
+          href={`${import.meta.env.VITE_API_URL || "/api"}${appBase}/docs/html`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-black transition hover:bg-gray-200"
@@ -2054,6 +2369,19 @@ function AdvancedSettings({
           <ExternalLink className="h-3.5 w-3.5" />
           Open API Docs
         </a>
+      </SectionCard>
+
+      {/* Rollback */}
+      <SectionCard title="Rollback">
+        <p className="mb-3 text-xs text-gray-500">Revert your app to the previous version. This action can be undone by restoring a specific version below.</p>
+        <button
+          onClick={handleRollback}
+          disabled={rollingBack}
+          className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+        >
+          {rollingBack ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+          {rollingBack ? "Rolling back..." : "Rollback to Previous Version"}
+        </button>
       </SectionCard>
 
       {/* Version History */}
@@ -2079,7 +2407,7 @@ function AdvancedSettings({
                   className="flex items-center gap-1 rounded-md px-2.5 py-1 text-xs text-pink-600 hover:bg-pink-50 disabled:opacity-50"
                 >
                   {restoringId === v.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
-                  Rollback
+                  Restore
                 </button>
               </div>
             ))}

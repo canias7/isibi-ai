@@ -72,6 +72,20 @@ async def trigger_deploy(
             detail="Project has no spec. Generate a spec first.",
         )
 
+    # If already deployed and has build data, return existing URL without re-building
+    if project.status == "deployed" and project.build_path:
+        import os
+        app_host = os.getenv("APP_HOST", "")
+        existing_url = (
+            f"{app_host}/live/{project_id}" if app_host
+            else f"https://api.isibi.ai/live/{project_id}"
+        )
+        return {
+            "project_id": str(project.id),
+            "status": "deployed",
+            "url": existing_url,
+        }
+
     # Deploy
     try:
         deploy_info = await deploy_app(
@@ -116,7 +130,16 @@ async def deploy_status(
         )
 
     is_deployed = project.status == "deployed" and project.build_path
-    url = f"/live/{project_id}" if is_deployed else None
+
+    import os
+    if is_deployed:
+        app_host = os.getenv("APP_HOST", "")
+        url = (
+            f"{app_host}/live/{project_id}" if app_host
+            else f"https://api.isibi.ai/live/{project_id}"
+        )
+    else:
+        url = None
 
     return {
         "project_id": str(project.id),

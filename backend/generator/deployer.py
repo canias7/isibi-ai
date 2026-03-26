@@ -108,12 +108,12 @@ self.addEventListener('fetch', (e) => {
 </svg>'''
     (build_dir / "icon.svg").write_text(icon_svg, encoding="utf-8")
 
-    # Determine the live URL
+    # Determine the live URL — always use absolute URL
     app_host = os.getenv("APP_HOST", "")
     if app_host:
         deploy_url = f"{app_host}/live/{project_id}"
     else:
-        deploy_url = f"/live/{project_id}"
+        deploy_url = f"https://api.isibi.ai/live/{project_id}"
 
     # Store build artifacts in the spec metadata so they survive Render restarts
     import json as _json

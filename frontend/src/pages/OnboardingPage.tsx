@@ -552,6 +552,11 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [deploying, setDeploying] = useState(false);
   const [deployUrl, setDeployUrl] = useState<string | null>(null);
 
+  // Live preview state (iframe showing actual deployed app)
+  const [livePreview, setLivePreview] = useState(false);
+  const [livePreviewLoading, setLivePreviewLoading] = useState(false);
+  const [livePreviewError, setLivePreviewError] = useState<string | null>(null);
+
   // Version history state
   const [versions, setVersions] = useState<Array<{
     id: string;
@@ -575,6 +580,49 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // Coming soon toast
   const [comingSoonToast, setComingSoonToast] = useState<string | null>(null);
+
+  // Billing state
+  const [billingInfo, setBillingInfo] = useState<{
+    plan: string;
+    builds_used: number;
+    builds_limit: number;
+    can_build: boolean;
+  } | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  // Fetch billing info on mount
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const data = await get<{
+          can_build: boolean;
+          plan: string;
+          builds_used: number;
+          builds_limit: number;
+        }>("/billing/can-build");
+        setBillingInfo(data);
+      } catch {
+        // If billing endpoint fails, assume free plan with builds available
+        setBillingInfo({ plan: "free", builds_used: 0, builds_limit: 3, can_build: true });
+      }
+    })();
+  }, [isAuthenticated]);
+
+  const handleUpgrade = async () => {
+    setCheckoutLoading(true);
+    try {
+      const res = await post<{ checkout_url: string }>("/billing/checkout", { plan: "pro" });
+      if (res.checkout_url) {
+        window.location.href = res.checkout_url;
+      }
+    } catch {
+      setComingSoonToast("Failed to start checkout. Please try again.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
 
   // Collaborative editing state
   interface PresenceUser {
@@ -798,6 +846,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setBuiltProjectId(null);
     setDeployUrl(null);
     setDeploying(false);
+    setLivePreview(false);
+    setLivePreviewLoading(false);
+    setLivePreviewError(null);
     setEditMode(false);
     setError(null);
     setActiveView("chat");
@@ -874,6 +925,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       setBuiltSpec(null);
       setBuiltProjectId(null);
       setDeployUrl(null);
+      setLivePreview(false);
+      setLivePreviewError(null);
     }
   };
 
@@ -962,6 +1015,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           );
         }
       } else {
+        // Check billing before initiating a new build
+        if (billingInfo && !billingInfo.can_build && billingInfo.builds_limit !== -1) {
+          setUpgradeModalOpen(true);
+          setLoading(false);
+          return;
+        }
+
         const res = await post<{
           reply: string;
           ready_to_build: boolean;
@@ -988,6 +1048,19 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           // Switch to cloud IDE to show streaming file generation
           setIsGenerating(true);
           setPreviewTab("cloud");
+
+          // Refresh billing info after build starts
+          try {
+            const billingData = await get<{
+              can_build: boolean;
+              plan: string;
+              builds_used: number;
+              builds_limit: number;
+            }>("/billing/can-build");
+            setBillingInfo(billingData);
+          } catch {
+            // Non-critical — ignore
+          }
 
           // Fetch the generated spec — once it arrives, transition to preview
           try {
@@ -1226,6 +1299,53 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     // Strip trailing /api to get the host root (e.g. "https://api.isibi.ai")
     const base = apiUrl.replace(/\/api\/?$/, "");
     return `${base}${url}`;
+  };
+
+  // Toggle live preview — deploy if needed, then show iframe
+  const handleToggleLivePreview = async () => {
+    if (livePreview) {
+      // Turning off — go back to SpecPreview
+      setLivePreview(false);
+      setLivePreviewError(null);
+      return;
+    }
+
+    if (!builtSpec || !builtProjectId) return;
+
+    // If already have a deploy URL, just switch to iframe
+    if (deployUrl) {
+      setLivePreview(true);
+      setLivePreviewError(null);
+      return;
+    }
+
+    // Need to deploy first
+    setLivePreviewLoading(true);
+    setLivePreviewError(null);
+    try {
+      const res = await post<{ url: string; status: string }>(
+        `/projects/${builtProjectId}/deploy`,
+        {}
+      );
+      if (res?.url) {
+        const fullUrl = resolveAppUrl(res.url);
+        setDeployUrl(fullUrl);
+        const cid = activeChatId;
+        if (cid) {
+          setChatSessions((prev) =>
+            prev.map((s) => (s.id === cid ? { ...s, deployUrl: fullUrl } : s))
+          );
+        }
+        setLivePreview(true);
+      } else {
+        setLivePreviewError("Deploy succeeded but no URL was returned.");
+      }
+    } catch (err: unknown) {
+      const e = err as Record<string, string>;
+      setLivePreviewError(e?.detail || e?.message || "Failed to deploy app for live preview.");
+    } finally {
+      setLivePreviewLoading(false);
+    }
   };
 
   // Marketplace listing modal state
@@ -1563,6 +1683,25 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </button>
             </>
           )}
+          {builtSpec && builtProjectId && (
+            <button
+              onClick={handleToggleLivePreview}
+              disabled={livePreviewLoading}
+              className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
+                livePreview
+                  ? "bg-green-50 text-green-700 ring-1 ring-green-200"
+                  : "text-gray-400 hover:bg-gray-100 hover:text-black"
+              } disabled:opacity-50`}
+              title={livePreview ? "Switch to mock preview" : "Switch to live preview"}
+            >
+              {livePreviewLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Eye className="h-3.5 w-3.5" />
+              )}
+              {livePreview ? "Live" : "Live Preview"}
+            </button>
+          )}
           <button className="rounded-lg p-1.5 text-gray-400 transition hover:text-black">
             <ExternalLink className="h-4 w-4" />
           </button>
@@ -1665,14 +1804,41 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
             {/* Preview area */}
             <div className="flex-1 overflow-hidden">
-              {builtSpec ? (
-                <MemoizedPreview
-                  spec={builtSpec}
-                  device={previewDevice}
-                  editMode={editMode}
-                  onSpecUpdate={setBuiltSpec}
-                  projectId={builtProjectId}
-                />
+              {builtSpec && livePreview && deployUrl ? (
+                <div className="flex h-full flex-col">
+                  {/* Live preview banner */}
+                  <div className="flex items-center gap-2 bg-green-50 border-b border-green-200 px-3 py-1.5">
+                    <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[11px] font-medium text-green-700">Live Preview — This is your actual app</span>
+                  </div>
+                  {/* Live preview error */}
+                  {livePreviewError && (
+                    <div className="bg-red-50 border-b border-red-200 px-3 py-1.5 text-[11px] text-red-700">
+                      {livePreviewError}
+                    </div>
+                  )}
+                  {/* Iframe with actual deployed app */}
+                  <iframe
+                    src={deployUrl}
+                    className="w-full flex-1 border-0 rounded-b-lg"
+                    sandbox="allow-scripts allow-forms allow-same-origin"
+                  />
+                </div>
+              ) : builtSpec ? (
+                <>
+                  {livePreviewError && (
+                    <div className="bg-red-50 border-b border-red-200 px-3 py-1.5 text-[11px] text-red-700">
+                      {livePreviewError}
+                    </div>
+                  )}
+                  <MemoizedPreview
+                    spec={builtSpec}
+                    device={previewDevice}
+                    editMode={editMode}
+                    onSpecUpdate={setBuiltSpec}
+                    projectId={builtProjectId}
+                  />
+                </>
               ) : (
                 <div className="flex h-full items-center justify-center p-8">
                   {loading ? (
@@ -2563,9 +2729,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     </button>
                   </div>
                 </div>
-                <p className="mt-2 text-center text-xs text-gray-400">
-                  {selectedModel.label} can make mistakes. Review generated apps before use.
-                </p>
+                <div className="mt-2 flex items-center justify-center gap-3">
+                  <p className="text-xs text-gray-400">
+                    {selectedModel.label} can make mistakes. Review generated apps before use.
+                  </p>
+                  {billingInfo && billingInfo.builds_limit !== -1 && (
+                    <span className="text-[10px] text-gray-400">
+                      {billingInfo.builds_used}/{billingInfo.builds_limit} builds used
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </>
@@ -2780,23 +2953,54 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     {user ? `${user.first_name} ${user.last_name}` : "My Account"}
                   </p>
                   <p className="text-xs text-gray-400">{user?.email || ""}</p>
-                  {user?.account_type && (
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {user?.account_type && (
+                      <span
+                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                          isDev ? "bg-pink-100 text-pink-700" : "bg-gray-100 text-gray-600"
+                        }`}
+                      >
+                        {isDev ? "Developer" : "User"}
+                      </span>
+                    )}
                     <span
-                      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        isDev ? "bg-pink-100 text-pink-700" : "bg-gray-100 text-gray-600"
+                      className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                        billingInfo?.plan === "pro" || billingInfo?.plan === "teams"
+                          ? "bg-pink-100 text-pink-700"
+                          : "bg-gray-100 text-gray-600"
                       }`}
                     >
-                      {isDev ? "Developer" : "User"}
+                      {billingInfo?.plan === "pro"
+                        ? "Pro Plan"
+                        : billingInfo?.plan === "teams"
+                        ? "Teams Plan"
+                        : "Free Plan"}
                     </span>
+                  </div>
+                  {billingInfo && billingInfo.builds_limit !== -1 && (
+                    <p className="mt-1 text-[10px] text-gray-400">
+                      {billingInfo.builds_used}/{billingInfo.builds_limit} builds used
+                    </p>
                   )}
                 </div>
                 <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
                   <Settings className="h-4 w-4" />
                   Settings
                 </button>
-                <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    setUpgradeModalOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50"
+                >
                   <CreditCard className="h-4 w-4" />
                   Billing
+                  {billingInfo?.plan === "free" && (
+                    <span className="ml-auto rounded-full bg-pink-100 px-1.5 py-0.5 text-[9px] font-medium text-pink-700">
+                      Upgrade
+                    </span>
+                  )}
                 </button>
                 <button className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50">
                   <HelpCircle className="h-4 w-4" />
@@ -2826,6 +3030,91 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         {/* View content */}
         {renderContent()}
       </div>
+
+      {/* Upgrade modal */}
+      {upgradeModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50"
+          onClick={() => setUpgradeModalOpen(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-black">Upgrade to Pro</h3>
+              <button
+                onClick={() => setUpgradeModalOpen(false)}
+                className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-gray-100"
+              >
+                <X className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="mt-4 rounded-xl border border-pink-100 bg-pink-50 p-4">
+              <p className="text-sm font-medium text-pink-800">
+                You've used {billingInfo?.builds_used || 0}/{billingInfo?.builds_limit || 3} free builds
+              </p>
+              <p className="mt-1 text-xs text-pink-600">
+                Upgrade to Pro for unlimited builds and more features.
+              </p>
+            </div>
+
+            <div className="mt-4 space-y-2">
+              <div className="rounded-xl border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-black">Pro Plan</p>
+                    <p className="text-xs text-gray-500">$29/mo</p>
+                  </div>
+                  <span className="rounded-full bg-pink-100 px-2.5 py-0.5 text-[10px] font-medium text-pink-700">
+                    Recommended
+                  </span>
+                </div>
+                <ul className="mt-3 space-y-1">
+                  <li className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <Check className="h-3 w-3 text-green-600" />
+                    Unlimited builds
+                  </li>
+                  <li className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <Check className="h-3 w-3 text-green-600" />
+                    10 projects
+                  </li>
+                  <li className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <Check className="h-3 w-3 text-green-600" />
+                    Custom domains
+                  </li>
+                  <li className="flex items-center gap-1.5 text-xs text-gray-600">
+                    <Check className="h-3 w-3 text-green-600" />
+                    Priority support
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="mt-5 flex gap-2">
+              <button
+                onClick={() => setUpgradeModalOpen(false)}
+                className="flex-1 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+              >
+                Maybe Later
+              </button>
+              <button
+                onClick={handleUpgrade}
+                disabled={checkoutLoading}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                style={{ backgroundColor: "#ec4899" }}
+              >
+                {checkoutLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Upgrade"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Coming soon toast */}
       {comingSoonToast && (

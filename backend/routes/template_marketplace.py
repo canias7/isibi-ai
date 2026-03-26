@@ -103,12 +103,16 @@ async def list_marketplace_templates(
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
     sort: str = Query("popular", pattern="^(popular|recent|price)$"),
+    author_id: Optional[str] = Query(None, description="Filter by author UUID"),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
 ):
     """List published marketplace templates with search, category filter, sort."""
     query = select(MarketplaceTemplate).where(MarketplaceTemplate.is_published.is_(True))
+
+    if author_id:
+        query = query.where(MarketplaceTemplate.author_id == uuid.UUID(author_id))
 
     if category:
         query = query.where(MarketplaceTemplate.category == category)
@@ -156,6 +160,93 @@ async def list_marketplace_templates(
         "total": total,
         "limit": limit,
         "offset": offset,
+    }
+
+
+@router.get("/my-listings")
+async def my_listings(
+    db: AsyncSession = Depends(get_db),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+):
+    """Return all templates owned by the current user (including drafts)."""
+    result = await db.execute(
+        select(MarketplaceTemplate)
+        .where(MarketplaceTemplate.author_id == user_id)
+        .order_by(MarketplaceTemplate.created_at.desc())
+    )
+    templates = result.scalars().all()
+    return {
+        "templates": [
+            {
+                "id": str(t.id),
+                "title": t.title,
+                "description": t.description,
+                "category": t.category,
+                "price": t.price,
+                "rating_avg": t.rating_avg,
+                "rating_count": t.rating_count,
+                "purchases": t.purchases,
+                "is_published": t.is_published,
+                "preview_images": t.preview_images or [],
+                "author_id": str(t.author_id),
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            }
+            for t in templates
+        ],
+    }
+
+
+@router.delete("/{template_id}")
+async def delete_template(
+    template_id: str,
+    db: AsyncSession = Depends(get_db),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+):
+    """Delete a marketplace template owned by the current user."""
+    tid = uuid.UUID(template_id)
+    result = await db.execute(
+        select(MarketplaceTemplate).where(
+            MarketplaceTemplate.id == tid,
+            MarketplaceTemplate.author_id == user_id,
+        )
+    )
+    template = result.scalar_one_or_none()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found or not owned by you")
+    await db.delete(template)
+    await db.commit()
+    return {"deleted": True, "id": str(tid)}
+
+
+@router.patch("/{template_id}")
+async def update_template(
+    template_id: str,
+    body: dict,
+    db: AsyncSession = Depends(get_db),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+):
+    """Update a marketplace template owned by the current user."""
+    tid = uuid.UUID(template_id)
+    result = await db.execute(
+        select(MarketplaceTemplate).where(
+            MarketplaceTemplate.id == tid,
+            MarketplaceTemplate.author_id == user_id,
+        )
+    )
+    template = result.scalar_one_or_none()
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found or not owned by you")
+
+    for field in ("title", "description", "category", "price", "is_published"):
+        if field in body:
+            setattr(template, field, body[field])
+    await db.commit()
+    await db.refresh(template)
+    return {
+        "id": str(template.id),
+        "title": template.title,
+        "price": template.price,
+        "is_published": template.is_published,
     }
 
 

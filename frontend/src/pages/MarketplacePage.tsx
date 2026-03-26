@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import JSZip from "jszip";
 import { useAppStore } from "@/stores/appStore";
 import { useAuthStore } from "@/stores/authStore";
+import { get, post } from "@/api/client";
 
 type Category =
   | "all"
@@ -318,16 +319,33 @@ function hashGradient(str: string): string {
   return `linear-gradient(135deg, hsl(${h1}, 70%, 60%) 0%, hsl(${h2}, 80%, 45%) 100%)`;
 }
 
-function StarRating({ rating, count }: { rating: number; count: number }) {
+function StarRating({
+  rating,
+  count,
+  interactive,
+  onRate,
+}: {
+  rating: number;
+  count: number;
+  interactive?: boolean;
+  onRate?: (stars: number) => void;
+}) {
+  const [hover, setHover] = useState(0);
   return (
     <span className="flex items-center gap-1 text-xs text-gray-500">
       <span className="flex">
         {[1, 2, 3, 4, 5].map((s) => (
           <Star
             key={s}
-            className="h-3 w-3"
-            fill={s <= Math.round(rating) ? "#f59e0b" : "none"}
-            stroke={s <= Math.round(rating) ? "#f59e0b" : "#d1d5db"}
+            className={`h-3 w-3 ${interactive ? "cursor-pointer" : ""}`}
+            fill={s <= (hover || Math.round(rating)) ? "#f59e0b" : "none"}
+            stroke={s <= (hover || Math.round(rating)) ? "#f59e0b" : "#d1d5db"}
+            onMouseEnter={() => interactive && setHover(s)}
+            onMouseLeave={() => interactive && setHover(0)}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (interactive && onRate) onRate(s);
+            }}
           />
         ))}
       </span>
@@ -374,19 +392,69 @@ export function MarketplacePage() {
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const [initialLoading, setInitialLoading] = useState(true);
   const [authToast, setAuthToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [items, setItems] = useState<MarketplaceItem[]>(MOCK_ITEMS);
   const { addApp, apps } = useAppStore();
   const { isAuthenticated, user } = useAuthStore();
   const navigate = useNavigate();
   const isDev = user?.account_type === "developer";
   const cameFromDashboard = isAuthenticated && isDev;
 
-  // Simulate initial load
+  // Fetch real listings from API on mount, fallback to mock data
   useEffect(() => {
-    const timer = setTimeout(() => setInitialLoading(false), 300);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await get<{
+          templates: Array<{
+            id: string;
+            title: string;
+            description: string;
+            category: string;
+            price: number;
+            rating_avg: number;
+            rating_count: number;
+            purchases: number;
+            preview_images: string[];
+            author_id: string;
+            created_at: string;
+          }>;
+          total: number;
+        }>("/template-marketplace");
+        if (!cancelled && data.templates && data.templates.length > 0) {
+          const mapped: MarketplaceItem[] = data.templates.map((t) => ({
+            id: t.id,
+            title: t.title,
+            description: t.description || "",
+            creator: t.author_id.slice(0, 8),
+            category: (t.category || "software") as Exclude<Category, "all">,
+            price: t.price || 0,
+            rating: t.rating_avg || 0,
+            ratingCount: t.rating_count || 0,
+            downloads: t.purchases || 0,
+            tags: [t.category || "software"].filter(Boolean),
+            featured: t.purchases > 100,
+          }));
+          setItems(mapped);
+        }
+        // If empty, keep mock data
+      } catch {
+        // API failed, keep mock data as fallback
+      } finally {
+        if (!cancelled) setInitialLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
-  const filtered = MOCK_ITEMS.filter((item) => {
+  // Auto-hide general toast
+  useEffect(() => {
+    if (!toastMessage) return;
+    const t = setTimeout(() => setToastMessage(null), 3000);
+    return () => clearTimeout(t);
+  }, [toastMessage]);
+
+  const filtered = items.filter((item) => {
     if (category !== "all" && item.category !== category) return false;
     if (
       search &&
@@ -410,7 +478,79 @@ export function MarketplacePage() {
     }
   });
 
-  const featuredItems = MOCK_ITEMS.filter((item) => item.featured);
+  const featuredItems = items.filter((item) => item.featured);
+
+  const handleGetApp = async (item: MarketplaceItem) => {
+    if (!isAuthenticated) {
+      setAuthToast(true);
+      setTimeout(() => navigate("/signup"), 1500);
+      return;
+    }
+    if (item.price > 0) {
+      setToastMessage("Payment coming soon");
+      return;
+    }
+    // Free item: purchase (clone) via API
+    try {
+      const res = await post<{ project_id: string; title: string }>(
+        `/template-marketplace/${item.id}/purchase`,
+        {}
+      );
+      if (res.project_id) {
+        setJustAdded((prev) => new Set(prev).add(item.id));
+        // Also add to local app store
+        addApp({
+          name: item.title,
+          type:
+            item.category === "websites"
+              ? "website"
+              : item.category === "agents"
+              ? "agent"
+              : item.category === "apps"
+              ? "app"
+              : "software",
+          status: "online",
+          color: "#ec4899",
+          source: "marketplace",
+        });
+        setToastMessage(`"${item.title}" added to your projects!`);
+        // Redirect to app after brief delay
+        setTimeout(() => navigate("/app"), 1200);
+      }
+    } catch {
+      // Fallback: use existing download logic if API fails
+      if (item.downloadable) {
+        handleDownload(item);
+      } else {
+        setToastMessage("Failed to get app. Please try again.");
+      }
+    }
+  };
+
+  const handleRate = async (item: MarketplaceItem, stars: number) => {
+    if (!isAuthenticated) {
+      setAuthToast(true);
+      setTimeout(() => navigate("/signup"), 1500);
+      return;
+    }
+    try {
+      const res = await post<{
+        rating_avg: number;
+        rating_count: number;
+      }>(`/template-marketplace/${item.id}/rate`, { rating: stars });
+      // Update local state
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === item.id
+            ? { ...i, rating: res.rating_avg, ratingCount: res.rating_count }
+            : i
+        )
+      );
+      setToastMessage(`Rated "${item.title}" ${stars} star${stars > 1 ? "s" : ""}`);
+    } catch {
+      setToastMessage("Failed to submit rating. Please try again.");
+    }
+  };
 
   // Auto-hide auth toast
   useEffect(() => {
@@ -578,6 +718,15 @@ npx electron .
         <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2">
           <div className="flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-4 py-2.5 shadow-lg">
             <p className="text-xs font-medium text-pink-800">Please sign up to get this app. Redirecting...</p>
+          </div>
+        </div>
+      )}
+
+      {/* General toast */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2">
+          <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 shadow-lg">
+            <p className="text-xs font-medium text-gray-800">{toastMessage}</p>
           </div>
         </div>
       )}
@@ -770,7 +919,12 @@ npx electron .
                 <p className="mt-1.5 text-xs text-gray-500 line-clamp-1">{item.description}</p>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <StarRating rating={item.rating} count={item.ratingCount} />
+                  <StarRating
+                    rating={item.rating}
+                    count={item.ratingCount}
+                    interactive={isAuthenticated}
+                    onRate={(stars) => handleRate(item, stars)}
+                  />
                   <span className="flex items-center gap-1 text-xs text-gray-400">
                     <Download className="h-3 w-3" />
                     {item.downloads.toLocaleString()}
@@ -785,9 +939,7 @@ npx electron .
                     {item.price === 0 ? "Free" : `$${item.price}`}
                   </span>
                   <button
-                    onClick={() =>
-                      item.downloadable ? handleDownload(item) : setPreviewItem(item)
-                    }
+                    onClick={() => handleGetApp(item)}
                     className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition ${
                       justAdded.has(item.id)
                         ? "bg-green-600 text-white"
@@ -804,13 +956,11 @@ npx electron .
                         <Check className="h-3 w-3" />
                         Added
                       </>
-                    ) : item.downloadable ? (
+                    ) : (
                       <>
                         <Download className="h-3 w-3" />
-                        Get App
+                        {item.price > 0 ? `$${item.price}` : "Get App"}
                       </>
-                    ) : (
-                      "View"
                     )}
                   </button>
                 </div>
@@ -888,7 +1038,12 @@ npx electron .
               </div>
 
               <div className="mt-4 flex items-center gap-6 text-sm text-gray-500">
-                <StarRating rating={previewItem.rating} count={previewItem.ratingCount} />
+                <StarRating
+                  rating={previewItem.rating}
+                  count={previewItem.ratingCount}
+                  interactive={isAuthenticated}
+                  onRate={(stars) => handleRate(previewItem, stars)}
+                />
                 <span className="flex items-center gap-1">
                   <Download className="h-4 w-4" />
                   {previewItem.downloads.toLocaleString()} downloads
@@ -904,21 +1059,14 @@ npx electron .
                 </span>
                 <button
                   onClick={() => {
-                    if (!isAuthenticated) {
-                      setAuthToast(true);
-                      setPreviewItem(null);
-                      setTimeout(() => navigate("/signup"), 1500);
-                      return;
-                    }
-                    handleDownload(previewItem);
+                    handleGetApp(previewItem);
                     setPreviewItem(null);
                   }}
-                  disabled={!previewItem.downloadable && previewItem.price > 0}
-                  className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90"
                   style={{ backgroundColor: "#ec4899" }}
                 >
                   <Download className="h-4 w-4" />
-                  {previewItem.downloadable ? "Download & Add to My Apps" : previewItem.price === 0 ? "Download" : "Buy Now"}
+                  {previewItem.price === 0 ? "Get App" : `Buy — $${previewItem.price}`}
                 </button>
               </div>
             </div>
