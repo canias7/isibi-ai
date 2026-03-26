@@ -1,13 +1,13 @@
 {
   "_meta": {
     "app_name": "Fitness Tracker",
-    "description": "Personal fitness and workout tracking"
+    "description": "Personal fitness and wellness tracking"
   },
   "entities": [
     {
-      "name": "Workout",
-      "table": "workouts",
-      "description": "Workout session",
+      "name": "Program",
+      "table": "programs",
+      "description": "Training program",
       "fields": [
         {
           "name": "id",
@@ -40,544 +40,142 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "duration_min",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "strength",
-            "cardio",
-            "hiit",
-            "yoga",
-            "stretching",
-            "sports",
-            "other"
-          ],
-          "badge_colors": {
-            "strength": "red",
-            "cardio": "blue",
-            "hiit": "amber",
-            "yoga": "purple",
-            "stretching": "green",
-            "sports": "pink",
-            "other": "slate"
-          }
-        },
-        {
-          "name": "calories_burned",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "intensity",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "low",
-            "moderate",
-            "high",
-            "extreme"
-          ],
-          "badge_colors": {
-            "low": "green",
-            "moderate": "blue",
-            "high": "amber",
-            "extreme": "red"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "date",
-            "duration_min",
-            "type",
-            "calories_burned",
-            "intensity"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Workouts yet",
-            "subtext": "Create your first workout",
-            "action_label": "Add Workout"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "date",
-            "duration_min",
-            "type",
-            "calories_burned",
-            "intensity"
-          ],
-          "required_fields": [
-            "name",
-            "date"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "date",
-            "duration_min",
-            "type",
-            "calories_burned",
-            "intensity"
-          ],
-          "required_fields": [
-            "name",
-            "date"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/workouts/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "date",
-            "duration_min",
-            "type"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "date",
-                "duration_min",
-                "type",
-                "calories_burned",
-                "intensity"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Exercise",
-      "table": "exercises",
-      "description": "Exercise definition",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "muscle_group",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "chest",
-            "back",
-            "shoulders",
-            "arms",
-            "legs",
-            "core",
-            "full_body",
-            "cardio"
-          ],
-          "badge_colors": {
-            "chest": "red",
-            "back": "blue",
-            "shoulders": "amber",
-            "arms": "purple",
-            "legs": "green",
-            "core": "pink",
-            "full_body": "slate",
-            "cardio": "blue"
-          }
-        },
-        {
-          "name": "equipment",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "instructions",
+          "name": "description",
           "db_type": "TEXT",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
           "show_in_table": false,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "muscle_group",
-            "equipment"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Exercises yet",
-            "subtext": "Create your first exercise",
-            "action_label": "Add Exercise"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "muscle_group",
-            "equipment",
-            "instructions"
-          ],
-          "required_fields": [
-            "name",
-            "muscle_group"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "muscle_group",
-            "equipment",
-            "instructions"
-          ],
-          "required_fields": [
-            "name",
-            "muscle_group"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/exercises/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "muscle_group",
-            "equipment"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "muscle_group",
-                "equipment"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "MealLog",
-      "table": "meal_logs",
-      "description": "Nutrition log",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "meal_type",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "breakfast",
-            "lunch",
-            "dinner",
-            "snack",
-            "pre_workout",
-            "post_workout"
-          ],
-          "badge_colors": {
-            "breakfast": "amber",
-            "lunch": "green",
-            "dinner": "blue",
-            "snack": "purple",
-            "pre_workout": "pink",
-            "post_workout": "red"
-          }
-        },
-        {
-          "name": "calories",
+          "name": "duration_weeks",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 52
+          }
         },
         {
-          "name": "protein_g",
-          "db_type": "NUMERIC(6,1)",
-          "ts_type": "number",
-          "nullable": true,
+          "name": "difficulty",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'intermediate'",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "intermediate",
+          "enum_values": [
+            "beginner",
+            "intermediate",
+            "advanced",
+            "elite"
+          ],
+          "badge_colors": {
+            "beginner": "green",
+            "intermediate": "blue",
+            "advanced": "orange",
+            "elite": "red"
+          }
         },
         {
-          "name": "carbs_g",
-          "db_type": "NUMERIC(6,1)",
-          "ts_type": "number",
-          "nullable": true,
+          "name": "program_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "strength",
+            "cardio",
+            "hiit",
+            "yoga",
+            "flexibility",
+            "crossfit",
+            "bodybuilding",
+            "sports"
+          ],
+          "badge_colors": {
+            "strength": "red",
+            "cardio": "green",
+            "hiit": "orange",
+            "yoga": "purple",
+            "flexibility": "teal",
+            "crossfit": "yellow",
+            "bodybuilding": "blue",
+            "sports": "gray"
+          }
         },
         {
-          "name": "fat_g",
-          "db_type": "NUMERIC(6,1)",
+          "name": "sessions_per_week",
+          "db_type": "INTEGER NOT NULL DEFAULT 3",
           "ts_type": "number",
-          "nullable": true,
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 3,
+          "validation": {
+            "min": 1,
+            "max": 14
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "draft",
+            "active",
+            "completed",
+            "archived"
+          ],
+          "badge_colors": {
+            "draft": "gray",
+            "active": "green",
+            "completed": "blue",
+            "archived": "orange"
+          }
         },
         {
           "name": "created_at",
@@ -629,55 +227,63 @@
           "layout": "table",
           "columns": [
             "name",
-            "date",
-            "meal_type",
-            "calories",
-            "protein_g",
-            "carbs_g"
+            "duration_weeks",
+            "difficulty",
+            "program_type",
+            "sessions_per_week",
+            "status"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No MealLogs yet",
-            "subtext": "Create your first meallog",
-            "action_label": "Add MealLog"
+            "heading": "No Programs yet",
+            "subtext": "Create your first program",
+            "action_label": "Add Program"
           }
         },
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "date",
-            "meal_type",
-            "calories",
-            "protein_g",
-            "carbs_g",
-            "fat_g"
+            "description",
+            "duration_weeks",
+            "difficulty",
+            "program_type",
+            "sessions_per_week",
+            "status"
           ],
           "required_fields": [
             "name",
-            "date"
+            "duration_weeks",
+            "difficulty",
+            "program_type",
+            "sessions_per_week",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "date",
-            "meal_type",
-            "calories",
-            "protein_g",
-            "carbs_g",
-            "fat_g"
+            "description",
+            "duration_weeks",
+            "difficulty",
+            "program_type",
+            "sessions_per_week",
+            "status"
           ],
           "required_fields": [
             "name",
-            "date"
+            "duration_weeks",
+            "difficulty",
+            "program_type",
+            "sessions_per_week",
+            "status"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/meal_logs/:id",
+          "route": "/programs/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
@@ -687,21 +293,32 @@
           },
           "primary_fields": [
             "name",
-            "date",
-            "meal_type",
-            "calories"
+            "duration_weeks",
+            "difficulty",
+            "program_type"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "name",
-                "date",
-                "meal_type",
-                "calories",
-                "protein_g",
-                "carbs_g",
-                "fat_g"
+                "duration_weeks",
+                "difficulty",
+                "program_type",
+                "sessions_per_week",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "description",
+                "duration_weeks",
+                "difficulty",
+                "program_type",
+                "sessions_per_week",
+                "status"
               ]
             }
           ]
@@ -744,87 +361,150 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "goal_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
             "weight_loss",
             "muscle_gain",
             "endurance",
             "flexibility",
             "strength",
-            "general"
+            "general_fitness"
           ],
           "badge_colors": {
-            "weight_loss": "blue",
+            "weight_loss": "green",
             "muscle_gain": "red",
-            "endurance": "green",
+            "endurance": "blue",
             "flexibility": "purple",
-            "strength": "amber",
-            "general": "slate"
+            "strength": "orange",
+            "general_fitness": "teal"
           }
         },
         {
           "name": "target_value",
-          "db_type": "NUMERIC(10,2)",
+          "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
-          "nullable": true,
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
           "name": "current_value",
-          "db_type": "NUMERIC(10,2)",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
           "ts_type": "number",
-          "nullable": true,
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
-          "name": "deadline",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "unit",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "kg",
+            "lbs",
+            "minutes",
+            "reps",
+            "km",
+            "miles",
+            "percent"
+          ],
+          "badge_colors": {
+            "kg": "blue",
+            "lbs": "blue",
+            "minutes": "green",
+            "reps": "orange",
+            "km": "teal",
+            "miles": "teal",
+            "percent": "purple"
+          }
+        },
+        {
+          "name": "target_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
           "enum_values": [
             "active",
             "achieved",
-            "abandoned"
+            "missed",
+            "paused"
           ],
           "badge_colors": {
             "active": "blue",
             "achieved": "green",
-            "abandoned": "red"
+            "missed": "red",
+            "paused": "yellow"
           }
         },
         {
@@ -877,11 +557,11 @@
           "layout": "table",
           "columns": [
             "title",
-            "type",
+            "goal_type",
             "target_value",
             "current_value",
-            "deadline",
-            "status"
+            "unit",
+            "target_date"
           ],
           "filters": [],
           "empty_state": {
@@ -895,30 +575,44 @@
           "type": "SlideOverForm",
           "field_order": [
             "title",
-            "type",
+            "description",
+            "goal_type",
             "target_value",
             "current_value",
-            "deadline",
+            "unit",
+            "target_date",
             "status"
           ],
           "required_fields": [
             "title",
-            "type"
+            "goal_type",
+            "target_value",
+            "current_value",
+            "unit",
+            "target_date",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "title",
-            "type",
+            "description",
+            "goal_type",
             "target_value",
             "current_value",
-            "deadline",
+            "unit",
+            "target_date",
             "status"
           ],
           "required_fields": [
             "title",
-            "type"
+            "goal_type",
+            "target_value",
+            "current_value",
+            "unit",
+            "target_date",
+            "status"
           ],
           "prefilled": true
         },
@@ -933,7 +627,7 @@
           },
           "primary_fields": [
             "title",
-            "type",
+            "goal_type",
             "target_value",
             "current_value"
           ],
@@ -942,111 +636,1664 @@
               "name": "Overview",
               "fields": [
                 "title",
-                "type",
+                "goal_type",
                 "target_value",
                 "current_value",
-                "deadline",
+                "unit",
+                "target_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "title",
+                "description",
+                "goal_type",
+                "target_value",
+                "current_value",
+                "unit",
+                "target_date",
                 "status"
+              ]
+            }
+          ]
+        }
+      },
+      "computed_fields": [
+        {
+          "name": "progress_pct",
+          "expression": "ROUND(current_value / NULLIF(target_value,0) * 100, 2)",
+          "ts_expression": "(current_value / target_value * 100).toFixed(2)"
+        },
+        {
+          "name": "remaining",
+          "expression": "target_value - current_value",
+          "ts_expression": "target_value - current_value"
+        }
+      ]
+    },
+    {
+      "name": "Exercise",
+      "table": "exercises",
+      "description": "Exercise definition",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "muscle_group",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "chest",
+            "back",
+            "shoulders",
+            "biceps",
+            "triceps",
+            "legs",
+            "core",
+            "glutes",
+            "full_body",
+            "cardio"
+          ],
+          "badge_colors": {
+            "chest": "red",
+            "back": "blue",
+            "shoulders": "orange",
+            "biceps": "purple",
+            "triceps": "teal",
+            "legs": "green",
+            "core": "yellow",
+            "glutes": "pink",
+            "full_body": "gray",
+            "cardio": "green"
+          }
+        },
+        {
+          "name": "exercise_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "compound",
+            "isolation",
+            "cardio",
+            "flexibility",
+            "plyometric",
+            "isometric"
+          ],
+          "badge_colors": {
+            "compound": "blue",
+            "isolation": "orange",
+            "cardio": "green",
+            "flexibility": "purple",
+            "plyometric": "red",
+            "isometric": "teal"
+          }
+        },
+        {
+          "name": "equipment_needed",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "difficulty",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'intermediate'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "intermediate",
+          "enum_values": [
+            "beginner",
+            "intermediate",
+            "advanced"
+          ],
+          "badge_colors": {
+            "beginner": "green",
+            "intermediate": "blue",
+            "advanced": "red"
+          }
+        },
+        {
+          "name": "calories_per_hour",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "muscle_group",
+            "exercise_type",
+            "equipment_needed",
+            "difficulty",
+            "calories_per_hour"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Exercises yet",
+            "subtext": "Create your first exercise",
+            "action_label": "Add Exercise"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "muscle_group",
+            "exercise_type",
+            "equipment_needed",
+            "difficulty",
+            "calories_per_hour"
+          ],
+          "required_fields": [
+            "name",
+            "muscle_group",
+            "exercise_type",
+            "difficulty"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "muscle_group",
+            "exercise_type",
+            "equipment_needed",
+            "difficulty",
+            "calories_per_hour"
+          ],
+          "required_fields": [
+            "name",
+            "muscle_group",
+            "exercise_type",
+            "difficulty"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/exercises/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "muscle_group",
+            "exercise_type",
+            "equipment_needed"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "muscle_group",
+                "exercise_type",
+                "equipment_needed",
+                "difficulty",
+                "calories_per_hour"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "description",
+                "muscle_group",
+                "exercise_type",
+                "equipment_needed",
+                "difficulty",
+                "calories_per_hour"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Workout",
+      "table": "workouts",
+      "description": "Workout session",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "program_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "programs",
+          "fk_display": "name"
+        },
+        {
+          "name": "workout_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "time_picker",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "duration_minutes",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 480
+          }
+        },
+        {
+          "name": "workout_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "strength",
+            "cardio",
+            "hiit",
+            "yoga",
+            "flexibility",
+            "mixed"
+          ],
+          "badge_colors": {
+            "strength": "red",
+            "cardio": "green",
+            "hiit": "orange",
+            "yoga": "purple",
+            "flexibility": "teal",
+            "mixed": "blue"
+          }
+        },
+        {
+          "name": "calories_burned",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "intensity",
+          "db_type": "VARCHAR(10) NOT NULL DEFAULT 'moderate'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "moderate",
+          "enum_values": [
+            "light",
+            "moderate",
+            "high",
+            "maximum"
+          ],
+          "badge_colors": {
+            "light": "green",
+            "moderate": "blue",
+            "high": "orange",
+            "maximum": "red"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "rating",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 5
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "program_id",
+            "workout_date",
+            "start_time",
+            "duration_minutes",
+            "workout_type",
+            "calories_burned"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Workouts yet",
+            "subtext": "Create your first workout",
+            "action_label": "Add Workout"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "program_id",
+            "workout_date",
+            "start_time",
+            "duration_minutes",
+            "workout_type",
+            "calories_burned",
+            "intensity",
+            "notes",
+            "rating"
+          ],
+          "required_fields": [
+            "workout_date",
+            "start_time",
+            "duration_minutes",
+            "workout_type",
+            "intensity"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "program_id",
+            "workout_date",
+            "start_time",
+            "duration_minutes",
+            "workout_type",
+            "calories_burned",
+            "intensity",
+            "notes",
+            "rating"
+          ],
+          "required_fields": [
+            "workout_date",
+            "start_time",
+            "duration_minutes",
+            "workout_type",
+            "intensity"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/workouts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "program_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "program_id",
+            "workout_date",
+            "start_time",
+            "duration_minutes"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "program_id",
+                "workout_date",
+                "start_time",
+                "duration_minutes",
+                "workout_type",
+                "calories_burned"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "program_id",
+                "workout_date",
+                "start_time",
+                "duration_minutes",
+                "workout_type",
+                "calories_burned",
+                "intensity",
+                "notes",
+                "rating"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "program_id",
+          "references": {
+            "table": "programs",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "MealLog",
+      "table": "meal_logs",
+      "description": "Daily meal tracking",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "meal_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "meal_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "breakfast",
+            "lunch",
+            "dinner",
+            "snack",
+            "pre_workout",
+            "post_workout"
+          ],
+          "badge_colors": {
+            "breakfast": "yellow",
+            "lunch": "green",
+            "dinner": "blue",
+            "snack": "orange",
+            "pre_workout": "purple",
+            "post_workout": "teal"
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "calories",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "protein_g",
+          "db_type": "NUMERIC(6,1) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "carbs_g",
+          "db_type": "NUMERIC(6,1) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "fat_g",
+          "db_type": "NUMERIC(6,1) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "goal_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "goals",
+          "fk_display": "title"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "meal_date",
+            "meal_type",
+            "description",
+            "calories",
+            "protein_g",
+            "carbs_g"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No MealLogs yet",
+            "subtext": "Create your first meallog",
+            "action_label": "Add MealLog"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "meal_date",
+            "meal_type",
+            "description",
+            "calories",
+            "protein_g",
+            "carbs_g",
+            "fat_g",
+            "goal_id"
+          ],
+          "required_fields": [
+            "meal_date",
+            "meal_type",
+            "description",
+            "calories",
+            "protein_g",
+            "carbs_g",
+            "fat_g"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "meal_date",
+            "meal_type",
+            "description",
+            "calories",
+            "protein_g",
+            "carbs_g",
+            "fat_g",
+            "goal_id"
+          ],
+          "required_fields": [
+            "meal_date",
+            "meal_type",
+            "description",
+            "calories",
+            "protein_g",
+            "carbs_g",
+            "fat_g"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/meal_logs/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "meal_date"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "meal_date",
+            "meal_type",
+            "description",
+            "calories"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "meal_date",
+                "meal_type",
+                "description",
+                "calories",
+                "protein_g",
+                "carbs_g"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "meal_date",
+                "meal_type",
+                "description",
+                "calories",
+                "protein_g",
+                "carbs_g",
+                "fat_g",
+                "goal_id"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "goal_id",
+          "references": {
+            "table": "goals",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total_macros_g",
+          "expression": "protein_g + carbs_g + fat_g",
+          "ts_expression": "protein_g + carbs_g + fat_g"
+        }
+      ]
+    },
+    {
+      "name": "BodyMetric",
+      "table": "body_metrics",
+      "description": "Body measurement record",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "weight_kg",
+          "db_type": "NUMERIC(5,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 20,
+            "max": 300
+          }
+        },
+        {
+          "name": "body_fat_pct",
+          "db_type": "NUMERIC(4,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 2,
+            "max": 60
+          }
+        },
+        {
+          "name": "muscle_mass_kg",
+          "db_type": "NUMERIC(5,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "waist_cm",
+          "db_type": "NUMERIC(5,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 30,
+            "max": 200
+          }
+        },
+        {
+          "name": "chest_cm",
+          "db_type": "NUMERIC(5,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 50,
+            "max": 200
+          }
+        },
+        {
+          "name": "bmi",
+          "db_type": "NUMERIC(4,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "goal_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "goals",
+          "fk_display": "title"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "date",
+            "weight_kg",
+            "body_fat_pct",
+            "muscle_mass_kg",
+            "waist_cm",
+            "chest_cm"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No BodyMetrics yet",
+            "subtext": "Create your first bodymetric",
+            "action_label": "Add BodyMetric"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "date",
+            "weight_kg",
+            "body_fat_pct",
+            "muscle_mass_kg",
+            "waist_cm",
+            "chest_cm",
+            "goal_id",
+            "notes"
+          ],
+          "required_fields": [
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "date",
+            "weight_kg",
+            "body_fat_pct",
+            "muscle_mass_kg",
+            "waist_cm",
+            "chest_cm",
+            "goal_id",
+            "notes"
+          ],
+          "required_fields": [
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/body_metrics/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "date"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "date",
+            "weight_kg",
+            "body_fat_pct",
+            "muscle_mass_kg"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "date",
+                "weight_kg",
+                "body_fat_pct",
+                "muscle_mass_kg",
+                "waist_cm",
+                "chest_cm"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "date",
+                "weight_kg",
+                "body_fat_pct",
+                "muscle_mass_kg",
+                "waist_cm",
+                "chest_cm",
+                "goal_id",
+                "notes"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "goal_id",
+          "references": {
+            "table": "goals",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Achievement",
+      "table": "achievements",
+      "description": "Fitness milestone / achievement",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "achieved_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "achievement_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "personal_record",
+            "streak",
+            "milestone",
+            "challenge",
+            "competition"
+          ],
+          "badge_colors": {
+            "personal_record": "gold",
+            "streak": "green",
+            "milestone": "blue",
+            "challenge": "purple",
+            "competition": "red"
+          }
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "strength",
+            "cardio",
+            "consistency",
+            "nutrition",
+            "body_composition"
+          ],
+          "badge_colors": {
+            "strength": "red",
+            "cardio": "green",
+            "consistency": "blue",
+            "nutrition": "orange",
+            "body_composition": "purple"
+          }
+        },
+        {
+          "name": "value",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "unit",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "is_verified",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "title",
+            "achieved_date",
+            "achievement_type",
+            "category",
+            "value",
+            "unit"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Achievements yet",
+            "subtext": "Create your first achievement",
+            "action_label": "Add Achievement"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "description",
+            "achieved_date",
+            "achievement_type",
+            "category",
+            "value",
+            "unit",
+            "is_verified"
+          ],
+          "required_fields": [
+            "title",
+            "achieved_date",
+            "achievement_type",
+            "category",
+            "is_verified"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "description",
+            "achieved_date",
+            "achievement_type",
+            "category",
+            "value",
+            "unit",
+            "is_verified"
+          ],
+          "required_fields": [
+            "title",
+            "achieved_date",
+            "achievement_type",
+            "category",
+            "is_verified"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/achievements/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "title"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "title",
+            "achieved_date",
+            "achievement_type",
+            "category"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "title",
+                "achieved_date",
+                "achievement_type",
+                "category",
+                "value",
+                "unit"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "title",
+                "description",
+                "achieved_date",
+                "achievement_type",
+                "category",
+                "value",
+                "unit",
+                "is_verified"
               ]
             }
           ]
         }
       }
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Workouts",
-      "route": "/workouts",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Dumbbell",
-      "entity": "Workout"
-    },
-    {
-      "name": "Exercises",
-      "route": "/exercises",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Activity",
-      "entity": "Exercise"
-    },
-    {
-      "name": "MealLogs",
-      "route": "/meal_logs",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Apple",
-      "entity": "MealLog"
-    },
-    {
-      "name": "Goals",
-      "route": "/goals",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Target",
-      "entity": "Goal"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Workouts",
-        "entity": "Workout",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

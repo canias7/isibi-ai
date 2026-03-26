@@ -40,65 +40,136 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "address",
-          "db_type": "VARCHAR(500) NOT NULL",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "city",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "state",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "property_type",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
             "apartment",
             "house",
             "condo",
+            "townhouse",
             "commercial",
-            "storage"
+            "mixed_use"
           ],
           "badge_colors": {
             "apartment": "blue",
             "house": "green",
             "condo": "purple",
-            "commercial": "amber",
-            "storage": "slate"
+            "townhouse": "teal",
+            "commercial": "orange",
+            "mixed_use": "pink"
           }
         },
         {
-          "name": "units",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "name": "total_units",
+          "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1
+          }
         },
         {
-          "name": "monthly_rent",
-          "db_type": "NUMERIC(10,2) NOT NULL",
+          "name": "year_built",
+          "db_type": "INTEGER",
           "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1800,
+            "max": 2030
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "under_renovation",
+            "inactive",
+            "sold"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "under_renovation": "yellow",
+            "inactive": "gray",
+            "sold": "blue"
+          }
         },
         {
           "name": "created_at",
@@ -151,9 +222,10 @@
           "columns": [
             "name",
             "address",
-            "type",
-            "units",
-            "monthly_rent"
+            "city",
+            "state",
+            "property_type",
+            "total_units"
           ],
           "filters": [],
           "empty_state": {
@@ -168,13 +240,21 @@
           "field_order": [
             "name",
             "address",
-            "type",
-            "units",
-            "monthly_rent"
+            "city",
+            "state",
+            "property_type",
+            "total_units",
+            "year_built",
+            "status"
           ],
           "required_fields": [
             "name",
-            "address"
+            "address",
+            "city",
+            "state",
+            "property_type",
+            "total_units",
+            "status"
           ]
         },
         "edit_form": {
@@ -182,13 +262,21 @@
           "field_order": [
             "name",
             "address",
-            "type",
-            "units",
-            "monthly_rent"
+            "city",
+            "state",
+            "property_type",
+            "total_units",
+            "year_built",
+            "status"
           ],
           "required_fields": [
             "name",
-            "address"
+            "address",
+            "city",
+            "state",
+            "property_type",
+            "total_units",
+            "status"
           ],
           "prefilled": true
         },
@@ -204,8 +292,8 @@
           "primary_fields": [
             "name",
             "address",
-            "type",
-            "units"
+            "city",
+            "state"
           ],
           "tabs": [
             {
@@ -213,14 +301,374 @@
               "fields": [
                 "name",
                 "address",
-                "type",
-                "units",
-                "monthly_rent"
+                "city",
+                "state",
+                "property_type",
+                "total_units"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "address",
+                "city",
+                "state",
+                "property_type",
+                "total_units",
+                "year_built",
+                "status"
               ]
             }
           ]
         }
       }
+    },
+    {
+      "name": "Unit",
+      "table": "units",
+      "description": "Individual rental unit",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "properties",
+          "fk_display": "name"
+        },
+        {
+          "name": "unit_number",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "floor",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "bedrooms",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "name": "bathrooms",
+          "db_type": "NUMERIC(3,1) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 10
+          }
+        },
+        {
+          "name": "sqft",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "monthly_rent",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'vacant'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "vacant",
+          "enum_values": [
+            "occupied",
+            "vacant",
+            "maintenance",
+            "reserved"
+          ],
+          "badge_colors": {
+            "occupied": "green",
+            "vacant": "blue",
+            "maintenance": "yellow",
+            "reserved": "purple"
+          }
+        },
+        {
+          "name": "amenities",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "property_id",
+            "unit_number",
+            "floor",
+            "bedrooms",
+            "bathrooms",
+            "sqft"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Units yet",
+            "subtext": "Create your first unit",
+            "action_label": "Add Unit"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "unit_number",
+            "floor",
+            "bedrooms",
+            "bathrooms",
+            "sqft",
+            "monthly_rent",
+            "status",
+            "amenities"
+          ],
+          "required_fields": [
+            "property_id",
+            "unit_number",
+            "bedrooms",
+            "bathrooms",
+            "sqft",
+            "monthly_rent",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "unit_number",
+            "floor",
+            "bedrooms",
+            "bathrooms",
+            "sqft",
+            "monthly_rent",
+            "status",
+            "amenities"
+          ],
+          "required_fields": [
+            "property_id",
+            "unit_number",
+            "bedrooms",
+            "bathrooms",
+            "sqft",
+            "monthly_rent",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/units/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "property_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "property_id",
+            "unit_number",
+            "floor",
+            "bedrooms"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "property_id",
+                "unit_number",
+                "floor",
+                "bedrooms",
+                "bathrooms",
+                "sqft"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "property_id",
+                "unit_number",
+                "floor",
+                "bedrooms",
+                "bathrooms",
+                "sqft",
+                "monthly_rent",
+                "status",
+                "amenities"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "property_id",
+          "references": {
+            "table": "properties",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "price_per_sqft",
+          "expression": "ROUND(monthly_rent / NULLIF(sqft,0), 2)",
+          "ts_expression": "(monthly_rent / sqft).toFixed(2)"
+        }
+      ]
     },
     {
       "name": "Tenant",
@@ -250,92 +698,484 @@
           "display_component": "text"
         },
         {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "first_name",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "last_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
           "name": "phone",
-          "db_type": "VARCHAR(20)",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
         },
         {
-          "name": "unit",
-          "db_type": "VARCHAR(20)",
+          "name": "date_of_birth",
+          "db_type": "DATE",
           "ts_type": "string",
-          "nullable": false,
+          "nullable": true,
           "editable": true,
-          "show_in_table": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "employer",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "lease_start",
-          "db_type": "DATE",
-          "ts_type": "string",
+          "name": "monthly_income",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
           "nullable": true,
           "editable": true,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "lease_end",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
           "enum_values": [
             "active",
-            "past_due",
-            "eviction",
-            "moved_out"
+            "past",
+            "evicted",
+            "applicant"
           ],
           "badge_colors": {
             "active": "green",
-            "past_due": "red",
-            "eviction": "red",
-            "moved_out": "slate"
+            "past": "gray",
+            "evicted": "red",
+            "applicant": "yellow"
+          }
+        },
+        {
+          "name": "emergency_contact",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Tenants yet",
+            "subtext": "Create your first tenant",
+            "action_label": "Add Tenant"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "date_of_birth",
+            "employer",
+            "monthly_income",
+            "status",
+            "emergency_contact"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "date_of_birth",
+            "employer",
+            "monthly_income",
+            "status",
+            "emergency_contact"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tenants/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "first_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "date_of_birth",
+                "employer",
+                "monthly_income",
+                "status",
+                "emergency_contact"
+              ]
+            }
+          ]
+        }
+      },
+      "computed_fields": [
+        {
+          "name": "full_name",
+          "expression": "first_name || ' ' || last_name",
+          "ts_expression": "first_name + ' ' + last_name"
+        }
+      ]
+    },
+    {
+      "name": "Lease",
+      "table": "leases",
+      "description": "Rental lease agreement",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "unit_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "units",
+          "fk_display": "unit_number"
+        },
+        {
+          "name": "tenant_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tenants",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "monthly_rent",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "security_deposit",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "lease_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "fixed",
+            "month_to_month",
+            "sublease"
+          ],
+          "badge_colors": {
+            "fixed": "blue",
+            "month_to_month": "green",
+            "sublease": "purple"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "expired",
+            "terminated",
+            "renewed",
+            "pending"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "expired": "gray",
+            "terminated": "red",
+            "renewed": "blue",
+            "pending": "yellow"
+          }
+        },
+        {
+          "name": "termination_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "terminated"
           }
         },
         {
@@ -387,85 +1227,130 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "name",
-            "email",
-            "phone",
-            "unit",
-            "lease_start",
-            "lease_end"
+            "unit_id",
+            "tenant_id",
+            "start_date",
+            "end_date",
+            "monthly_rent",
+            "security_deposit"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No Tenants yet",
-            "subtext": "Create your first tenant",
-            "action_label": "Add Tenant"
+            "heading": "No Leases yet",
+            "subtext": "Create your first lease",
+            "action_label": "Add Lease"
           }
         },
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "email",
-            "phone",
-            "unit",
-            "lease_start",
-            "lease_end",
-            "status"
+            "unit_id",
+            "tenant_id",
+            "start_date",
+            "end_date",
+            "monthly_rent",
+            "security_deposit",
+            "lease_type",
+            "status",
+            "termination_reason"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "unit_id",
+            "tenant_id",
+            "start_date",
+            "end_date",
+            "monthly_rent",
+            "security_deposit",
+            "lease_type",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "email",
-            "phone",
-            "unit",
-            "lease_start",
-            "lease_end",
-            "status"
+            "unit_id",
+            "tenant_id",
+            "start_date",
+            "end_date",
+            "monthly_rent",
+            "security_deposit",
+            "lease_type",
+            "status",
+            "termination_reason"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "unit_id",
+            "tenant_id",
+            "start_date",
+            "end_date",
+            "monthly_rent",
+            "security_deposit",
+            "lease_type",
+            "status"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/tenants/:id",
+          "route": "/leases/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "unit_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "name",
-            "email",
-            "phone",
-            "unit"
+            "unit_id",
+            "tenant_id",
+            "start_date",
+            "end_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "unit",
-                "lease_start",
-                "lease_end",
-                "status"
+                "unit_id",
+                "tenant_id",
+                "start_date",
+                "end_date",
+                "monthly_rent",
+                "security_deposit"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "unit_id",
+                "tenant_id",
+                "start_date",
+                "end_date",
+                "monthly_rent",
+                "security_deposit",
+                "lease_type",
+                "status",
+                "termination_reason"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "unit_id",
+          "references": {
+            "table": "units",
+            "column": "id"
+          }
+        },
+        {
+          "column": "tenant_id",
+          "references": {
+            "table": "tenants",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Payment",
@@ -495,15 +1380,36 @@
           "display_component": "text"
         },
         {
-          "name": "tenant_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "lease_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "leases",
+          "fk_display": "id"
+        },
+        {
+          "name": "tenant_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tenants",
+          "fk_display": "first_name"
         },
         {
           "name": "amount",
@@ -513,64 +1419,115 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01
+          }
         },
         {
-          "name": "date",
+          "name": "payment_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "method",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "bank_transfer",
             "check",
+            "bank_transfer",
             "cash",
-            "online"
+            "online",
+            "money_order"
           ],
           "badge_colors": {
-            "bank_transfer": "blue",
-            "check": "amber",
-            "cash": "green",
-            "online": "purple"
+            "check": "blue",
+            "bank_transfer": "green",
+            "cash": "teal",
+            "online": "purple",
+            "money_order": "orange"
           }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'completed'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "completed",
           "enum_values": [
-            "paid",
             "pending",
-            "overdue",
+            "completed",
+            "late",
+            "bounced",
             "partial"
           ],
           "badge_colors": {
-            "paid": "green",
-            "pending": "amber",
-            "overdue": "red",
-            "partial": "blue"
+            "pending": "yellow",
+            "completed": "green",
+            "late": "red",
+            "bounced": "red",
+            "partial": "orange"
+          }
+        },
+        {
+          "name": "late_fee",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "late",
+              "bounced"
+            ]
           }
         },
         {
@@ -622,11 +1579,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "tenant_name",
+            "lease_id",
+            "tenant_id",
             "amount",
-            "date",
-            "method",
-            "status"
+            "payment_date",
+            "due_date",
+            "payment_method"
           ],
           "filters": [],
           "empty_state": {
@@ -639,29 +1597,47 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "tenant_name",
+            "lease_id",
+            "tenant_id",
             "amount",
-            "date",
-            "method",
-            "status"
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ],
           "required_fields": [
-            "tenant_name",
-            "amount"
+            "lease_id",
+            "tenant_id",
+            "amount",
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "tenant_name",
+            "lease_id",
+            "tenant_id",
             "amount",
-            "date",
-            "method",
-            "status"
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ],
           "required_fields": [
-            "tenant_name",
-            "amount"
+            "lease_id",
+            "tenant_id",
+            "amount",
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ],
           "prefilled": true
         },
@@ -670,35 +1646,72 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "tenant_name"
+              "lease_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "tenant_name",
+            "lease_id",
+            "tenant_id",
             "amount",
-            "date",
-            "method"
+            "payment_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "tenant_name",
+                "lease_id",
+                "tenant_id",
                 "amount",
-                "date",
-                "method",
-                "status"
+                "payment_date",
+                "due_date",
+                "payment_method"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "lease_id",
+                "tenant_id",
+                "amount",
+                "payment_date",
+                "due_date",
+                "payment_method",
+                "status",
+                "late_fee"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "lease_id",
+          "references": {
+            "table": "leases",
+            "column": "id"
+          }
+        },
+        {
+          "column": "tenant_id",
+          "references": {
+            "table": "tenants",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total_with_fees",
+          "expression": "amount + late_fee",
+          "ts_expression": "amount + late_fee"
+        }
+      ]
     },
     {
       "name": "MaintenanceRequest",
       "table": "maintenance_requests",
-      "description": "Maintenance request",
+      "description": "Maintenance work request",
       "fields": [
         {
           "name": "id",
@@ -723,7 +1736,39 @@
           "display_component": "text"
         },
         {
-          "name": "tenant_name",
+          "name": "unit_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "units",
+          "fk_display": "unit_number"
+        },
+        {
+          "name": "tenant_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tenants",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "title",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -731,18 +1776,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "unit",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "description",
@@ -750,55 +1786,132 @@
           "ts_type": "string",
           "nullable": false,
           "editable": true,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "priority",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "category",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "plumbing",
+            "electrical",
+            "hvac",
+            "appliance",
+            "structural",
+            "pest",
+            "landscaping",
+            "other"
+          ],
+          "badge_colors": {
+            "plumbing": "blue",
+            "electrical": "yellow",
+            "hvac": "teal",
+            "appliance": "orange",
+            "structural": "red",
+            "pest": "purple",
+            "landscaping": "green",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(10) NOT NULL DEFAULT 'normal'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "normal",
           "enum_values": [
             "low",
-            "medium",
+            "normal",
             "high",
             "emergency"
           ],
           "badge_colors": {
-            "low": "slate",
-            "medium": "amber",
-            "high": "red",
+            "low": "gray",
+            "normal": "blue",
+            "high": "orange",
             "emergency": "red"
           }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'submitted'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "submitted",
           "enum_values": [
             "submitted",
+            "assigned",
             "in_progress",
             "completed",
             "cancelled"
           ],
           "badge_colors": {
             "submitted": "blue",
-            "in_progress": "amber",
+            "assigned": "purple",
+            "in_progress": "yellow",
             "completed": "green",
-            "cancelled": "slate"
+            "cancelled": "gray"
+          }
+        },
+        {
+          "name": "vendor_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "vendors",
+          "fk_display": "company_name"
+        },
+        {
+          "name": "cost",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "completed"
           }
         },
         {
@@ -850,9 +1963,10 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "tenant_name",
-            "unit",
-            "description",
+            "unit_id",
+            "tenant_id",
+            "title",
+            "category",
             "priority",
             "status"
           ],
@@ -867,29 +1981,45 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "tenant_name",
-            "unit",
+            "unit_id",
+            "tenant_id",
+            "title",
             "description",
+            "category",
             "priority",
-            "status"
+            "status",
+            "vendor_id",
+            "cost"
           ],
           "required_fields": [
-            "tenant_name",
-            "unit"
+            "unit_id",
+            "title",
+            "description",
+            "category",
+            "priority",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "tenant_name",
-            "unit",
+            "unit_id",
+            "tenant_id",
+            "title",
             "description",
+            "category",
             "priority",
-            "status"
+            "status",
+            "vendor_id",
+            "cost"
           ],
           "required_fields": [
-            "tenant_name",
-            "unit"
+            "unit_id",
+            "title",
+            "description",
+            "category",
+            "priority",
+            "status"
           ],
           "prefilled": true
         },
@@ -898,24 +2028,390 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "tenant_name"
+              "unit_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "tenant_name",
-            "unit",
-            "description",
-            "priority"
+            "unit_id",
+            "tenant_id",
+            "title",
+            "category"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "tenant_name",
-                "unit",
-                "description",
+                "unit_id",
+                "tenant_id",
+                "title",
+                "category",
                 "priority",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "unit_id",
+                "tenant_id",
+                "title",
+                "description",
+                "category",
+                "priority",
+                "status",
+                "vendor_id",
+                "cost"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "unit_id",
+          "references": {
+            "table": "units",
+            "column": "id"
+          }
+        },
+        {
+          "column": "tenant_id",
+          "references": {
+            "table": "tenants",
+            "column": "id"
+          }
+        },
+        {
+          "column": "vendor_id",
+          "references": {
+            "table": "vendors",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendor",
+      "table": "vendors",
+      "description": "Maintenance vendor / contractor",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "company_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contact_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "specialty",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "plumbing",
+            "electrical",
+            "hvac",
+            "general",
+            "landscaping",
+            "cleaning",
+            "pest_control"
+          ],
+          "badge_colors": {
+            "plumbing": "blue",
+            "electrical": "yellow",
+            "hvac": "teal",
+            "general": "gray",
+            "landscaping": "green",
+            "cleaning": "pink",
+            "pest_control": "purple"
+          }
+        },
+        {
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "rating",
+          "db_type": "NUMERIC(3,1)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 5
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "blacklisted"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "blacklisted": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "specialty",
+            "hourly_rate"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Vendors yet",
+            "subtext": "Create your first vendor",
+            "action_label": "Add Vendor"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "specialty",
+            "hourly_rate",
+            "rating",
+            "status"
+          ],
+          "required_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "specialty",
+            "hourly_rate",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "specialty",
+            "hourly_rate",
+            "rating",
+            "status"
+          ],
+          "required_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "specialty",
+            "hourly_rate",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/vendors/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "company_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "company_name",
+                "contact_name",
+                "email",
+                "phone",
+                "specialty",
+                "hourly_rate"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "company_name",
+                "contact_name",
+                "email",
+                "phone",
+                "specialty",
+                "hourly_rate",
+                "rating",
                 "status"
               ]
             }
@@ -923,100 +2419,5 @@
         }
       }
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Propertys",
-      "route": "/properties",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Building2",
-      "entity": "Property"
-    },
-    {
-      "name": "Tenants",
-      "route": "/tenants",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Users",
-      "entity": "Tenant"
-    },
-    {
-      "name": "Payments",
-      "route": "/payments",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "DollarSign",
-      "entity": "Payment"
-    },
-    {
-      "name": "MaintenanceRequests",
-      "route": "/maintenance_requests",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Wrench",
-      "entity": "MaintenanceRequest"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Propertys",
-        "entity": "Property",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

@@ -1,7 +1,7 @@
 {
   "_meta": {
     "app_name": "Salon Booking",
-    "description": "Hair and beauty salon management"
+    "description": "Hair and beauty salon appointment management"
   },
   "entities": [
     {
@@ -32,15 +32,32 @@
           "display_component": "text"
         },
         {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "first_name",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "label": "First Name"
+        },
+        {
+          "name": "last_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "label": "Last Name"
         },
         {
           "name": "email",
@@ -51,18 +68,98 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
           "name": "phone",
-          "db_type": "VARCHAR(20)",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "gender",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "female",
+            "male",
+            "non_binary",
+            "prefer_not_to_say"
+          ],
+          "badge_colors": {
+            "female": "pink",
+            "male": "blue",
+            "non_binary": "purple",
+            "prefer_not_to_say": "gray"
+          }
+        },
+        {
+          "name": "date_of_birth",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "preferred_stylist_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "stylists",
+          "fk_display": "name"
+        },
+        {
+          "name": "loyalty_points",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
           "name": "notes",
@@ -72,8 +169,34 @@
           "editable": true,
           "show_in_table": false,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "vip"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "vip": "gold"
+          }
         },
         {
           "name": "created_at",
@@ -124,9 +247,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
-            "phone"
+            "phone",
+            "gender",
+            "loyalty_points"
           ],
           "filters": [],
           "empty_state": {
@@ -139,27 +265,41 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
             "phone",
-            "notes"
+            "gender",
+            "date_of_birth",
+            "preferred_stylist_id",
+            "notes",
+            "status"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "first_name",
+            "last_name",
+            "phone",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
             "phone",
-            "notes"
+            "gender",
+            "date_of_birth",
+            "preferred_stylist_id",
+            "notes",
+            "status"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "first_name",
+            "last_name",
+            "phone",
+            "status"
           ],
           "prefilled": true
         },
@@ -168,12 +308,13 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "first_name"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
             "phone"
           ],
@@ -181,19 +322,52 @@
             {
               "name": "Overview",
               "fields": [
-                "name",
+                "first_name",
+                "last_name",
                 "email",
-                "phone"
+                "phone",
+                "gender",
+                "loyalty_points"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "gender",
+                "date_of_birth",
+                "preferred_stylist_id",
+                "notes",
+                "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "preferred_stylist_id",
+          "references": {
+            "table": "stylists",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "full_name",
+          "expression": "first_name || ' ' || last_name",
+          "ts_expression": "first_name + ' ' + last_name"
+        }
+      ]
     },
     {
       "name": "Service",
       "table": "services",
-      "description": "Salon service",
+      "description": "Salon service offering",
       "fields": [
         {
           "name": "id",
@@ -226,43 +400,71 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "category",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "hair",
+            "haircut",
+            "coloring",
+            "styling",
+            "treatment",
             "nails",
-            "facial",
-            "massage",
-            "makeup"
+            "makeup",
+            "spa"
           ],
           "badge_colors": {
-            "hair": "pink",
-            "nails": "purple",
-            "facial": "blue",
-            "massage": "green",
-            "makeup": "amber"
+            "haircut": "blue",
+            "coloring": "purple",
+            "styling": "pink",
+            "treatment": "green",
+            "nails": "red",
+            "makeup": "orange",
+            "spa": "teal"
           }
         },
         {
-          "name": "duration_min",
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "duration_minutes",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 5,
+            "max": 480,
+            "message": "Duration 5-480 mins"
+          }
         },
         {
           "name": "price",
@@ -272,8 +474,51 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "message": "Price must be positive"
+          }
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT TRUE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": true
+        },
+        {
+          "name": "skill_level_required",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'junior'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "junior",
+            "senior",
+            "specialist"
+          ],
+          "badge_colors": {
+            "junior": "gray",
+            "senior": "blue",
+            "specialist": "gold"
+          }
         },
         {
           "name": "created_at",
@@ -326,8 +571,10 @@
           "columns": [
             "name",
             "category",
-            "duration_min",
-            "price"
+            "duration_minutes",
+            "price",
+            "is_active",
+            "skill_level_required"
           ],
           "filters": [],
           "empty_state": {
@@ -342,12 +589,19 @@
           "field_order": [
             "name",
             "category",
-            "duration_min",
-            "price"
+            "description",
+            "duration_minutes",
+            "price",
+            "is_active",
+            "skill_level_required"
           ],
           "required_fields": [
             "name",
-            "category"
+            "category",
+            "duration_minutes",
+            "price",
+            "is_active",
+            "skill_level_required"
           ]
         },
         "edit_form": {
@@ -355,12 +609,19 @@
           "field_order": [
             "name",
             "category",
-            "duration_min",
-            "price"
+            "description",
+            "duration_minutes",
+            "price",
+            "is_active",
+            "skill_level_required"
           ],
           "required_fields": [
             "name",
-            "category"
+            "category",
+            "duration_minutes",
+            "price",
+            "is_active",
+            "skill_level_required"
           ],
           "prefilled": true
         },
@@ -376,7 +637,7 @@
           "primary_fields": [
             "name",
             "category",
-            "duration_min",
+            "duration_minutes",
             "price"
           ],
           "tabs": [
@@ -385,8 +646,22 @@
               "fields": [
                 "name",
                 "category",
-                "duration_min",
-                "price"
+                "duration_minutes",
+                "price",
+                "is_active",
+                "skill_level_required"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "category",
+                "description",
+                "duration_minutes",
+                "price",
+                "is_active",
+                "skill_level_required"
               ]
             }
           ]
@@ -396,7 +671,7 @@
     {
       "name": "Stylist",
       "table": "stylists",
-      "description": "Hair stylist / technician",
+      "description": "Salon stylist / staff member",
       "fields": [
         {
           "name": "id",
@@ -429,49 +704,145 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "specialties",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "status",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "specialization",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "hair",
+            "nails",
+            "makeup",
+            "spa",
+            "all_rounder"
+          ],
+          "badge_colors": {
+            "hair": "blue",
+            "nails": "red",
+            "makeup": "pink",
+            "spa": "teal",
+            "all_rounder": "purple"
+          }
+        },
+        {
+          "name": "experience_years",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 50
+          }
+        },
+        {
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'available'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "available",
           "enum_values": [
             "available",
             "busy",
-            "off"
+            "on_leave",
+            "terminated"
           ],
           "badge_colors": {
             "available": "green",
-            "busy": "red",
-            "off": "slate"
+            "busy": "yellow",
+            "on_leave": "orange",
+            "terminated": "red"
+          }
+        },
+        {
+          "name": "commission_pct",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 100
           }
         },
         {
@@ -525,8 +896,10 @@
           "columns": [
             "name",
             "email",
-            "specialties",
-            "status"
+            "phone",
+            "specialization",
+            "experience_years",
+            "hourly_rate"
           ],
           "filters": [],
           "empty_state": {
@@ -541,12 +914,22 @@
           "field_order": [
             "name",
             "email",
-            "specialties",
-            "status"
+            "phone",
+            "specialization",
+            "experience_years",
+            "hourly_rate",
+            "status",
+            "commission_pct"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone",
+            "specialization",
+            "experience_years",
+            "hourly_rate",
+            "status",
+            "commission_pct"
           ]
         },
         "edit_form": {
@@ -554,12 +937,22 @@
           "field_order": [
             "name",
             "email",
-            "specialties",
-            "status"
+            "phone",
+            "specialization",
+            "experience_years",
+            "hourly_rate",
+            "status",
+            "commission_pct"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone",
+            "specialization",
+            "experience_years",
+            "hourly_rate",
+            "status",
+            "commission_pct"
           ],
           "prefilled": true
         },
@@ -575,8 +968,8 @@
           "primary_fields": [
             "name",
             "email",
-            "specialties",
-            "status"
+            "phone",
+            "specialization"
           ],
           "tabs": [
             {
@@ -584,8 +977,23 @@
               "fields": [
                 "name",
                 "email",
-                "specialties",
-                "status"
+                "phone",
+                "specialization",
+                "experience_years",
+                "hourly_rate"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "specialization",
+                "experience_years",
+                "hourly_rate",
+                "status",
+                "commission_pct"
               ]
             }
           ]
@@ -595,7 +1003,7 @@
     {
       "name": "Appointment",
       "table": "appointments",
-      "description": "Client appointment",
+      "description": "Client appointment booking",
       "fields": [
         {
           "name": "id",
@@ -620,83 +1028,151 @@
           "display_component": "text"
         },
         {
-          "name": "client_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "first_name"
         },
         {
-          "name": "service_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "stylist_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "stylists",
+          "fk_display": "name"
         },
         {
-          "name": "stylist_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "service_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "services",
+          "fk_display": "name"
         },
         {
-          "name": "date",
+          "name": "appointment_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "time",
+          "name": "start_time",
           "db_type": "TIME NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "time_picker",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIME",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "time_picker",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'scheduled'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "scheduled",
           "enum_values": [
-            "booked",
+            "scheduled",
             "confirmed",
             "in_progress",
             "completed",
-            "cancelled"
+            "cancelled",
+            "no_show"
           ],
           "badge_colors": {
-            "booked": "blue",
+            "scheduled": "blue",
             "confirmed": "green",
-            "in_progress": "amber",
-            "completed": "slate",
-            "cancelled": "red"
+            "in_progress": "yellow",
+            "completed": "teal",
+            "cancelled": "red",
+            "no_show": "gray"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "cancellation_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "cancelled"
           }
         },
         {
@@ -748,12 +1224,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "client_name",
-            "service_name",
-            "stylist_name",
-            "date",
-            "time",
-            "status"
+            "client_id",
+            "stylist_id",
+            "service_id",
+            "appointment_date",
+            "start_time",
+            "end_time"
           ],
           "filters": [],
           "empty_state": {
@@ -766,31 +1242,45 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "client_name",
-            "service_name",
-            "stylist_name",
-            "date",
-            "time",
-            "status"
+            "client_id",
+            "stylist_id",
+            "service_id",
+            "appointment_date",
+            "start_time",
+            "end_time",
+            "status",
+            "notes",
+            "cancellation_reason"
           ],
           "required_fields": [
-            "client_name",
-            "service_name"
+            "client_id",
+            "stylist_id",
+            "service_id",
+            "appointment_date",
+            "start_time",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "client_name",
-            "service_name",
-            "stylist_name",
-            "date",
-            "time",
-            "status"
+            "client_id",
+            "stylist_id",
+            "service_id",
+            "appointment_date",
+            "start_time",
+            "end_time",
+            "status",
+            "notes",
+            "cancellation_reason"
           ],
           "required_fields": [
-            "client_name",
-            "service_name"
+            "client_id",
+            "stylist_id",
+            "service_id",
+            "appointment_date",
+            "start_time",
+            "status"
           ],
           "prefilled": true
         },
@@ -799,126 +1289,1027 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "client_name"
+              "client_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "client_name",
-            "service_name",
-            "stylist_name",
-            "date"
+            "client_id",
+            "stylist_id",
+            "service_id",
+            "appointment_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "client_name",
-                "service_name",
-                "stylist_name",
-                "date",
-                "time",
-                "status"
+                "client_id",
+                "stylist_id",
+                "service_id",
+                "appointment_date",
+                "start_time",
+                "end_time"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "client_id",
+                "stylist_id",
+                "service_id",
+                "appointment_date",
+                "start_time",
+                "end_time",
+                "status",
+                "notes",
+                "cancellation_reason"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        },
+        {
+          "column": "stylist_id",
+          "references": {
+            "table": "stylists",
+            "column": "id"
+          }
+        },
+        {
+          "column": "service_id",
+          "references": {
+            "table": "services",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "table": "products",
+      "description": "Retail product sold at salon",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "brand",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "shampoo",
+            "conditioner",
+            "styling",
+            "treatment",
+            "tools",
+            "accessories"
+          ],
+          "badge_colors": {
+            "shampoo": "blue",
+            "conditioner": "green",
+            "styling": "pink",
+            "treatment": "purple",
+            "tools": "gray",
+            "accessories": "orange"
+          }
+        },
+        {
+          "name": "sku",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[A-Z0-9\\-]+$",
+            "message": "SKU must be uppercase alphanumeric"
+          }
+        },
+        {
+          "name": "cost_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "retail_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "stock_qty",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "reorder_level",
+          "db_type": "INTEGER NOT NULL DEFAULT 5",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 5
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "brand",
+            "category",
+            "sku",
+            "cost_price",
+            "retail_price"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Products yet",
+            "subtext": "Create your first product",
+            "action_label": "Add Product"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "brand",
+            "category",
+            "sku",
+            "cost_price",
+            "retail_price",
+            "stock_qty",
+            "reorder_level"
+          ],
+          "required_fields": [
+            "name",
+            "brand",
+            "category",
+            "sku",
+            "cost_price",
+            "retail_price",
+            "stock_qty",
+            "reorder_level"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "brand",
+            "category",
+            "sku",
+            "cost_price",
+            "retail_price",
+            "stock_qty",
+            "reorder_level"
+          ],
+          "required_fields": [
+            "name",
+            "brand",
+            "category",
+            "sku",
+            "cost_price",
+            "retail_price",
+            "stock_qty",
+            "reorder_level"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/products/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "brand",
+            "category",
+            "sku"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "brand",
+                "category",
+                "sku",
+                "cost_price",
+                "retail_price"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "brand",
+                "category",
+                "sku",
+                "cost_price",
+                "retail_price",
+                "stock_qty",
+                "reorder_level"
+              ]
+            }
+          ]
+        }
+      },
+      "computed_fields": [
+        {
+          "name": "profit_margin",
+          "expression": "ROUND((retail_price - cost_price) / NULLIF(retail_price,0) * 100, 2)",
+          "ts_expression": "((retail_price - cost_price) / retail_price * 100).toFixed(2)"
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "table": "payments",
+      "description": "Payment for services or products",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "appointment_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "appointments",
+          "fk_display": "id"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01,
+            "message": "Amount must be positive"
+          }
+        },
+        {
+          "name": "tip_amount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "cash",
+            "credit_card",
+            "debit_card",
+            "mobile_pay",
+            "gift_card"
+          ],
+          "badge_colors": {
+            "cash": "green",
+            "credit_card": "blue",
+            "debit_card": "purple",
+            "mobile_pay": "teal",
+            "gift_card": "orange"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'completed'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "completed",
+          "enum_values": [
+            "pending",
+            "completed",
+            "refunded",
+            "failed"
+          ],
+          "badge_colors": {
+            "pending": "yellow",
+            "completed": "green",
+            "refunded": "orange",
+            "failed": "red"
+          }
+        },
+        {
+          "name": "refund_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "refunded"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "client_id",
+            "appointment_id",
+            "amount",
+            "tip_amount",
+            "payment_method",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Payments yet",
+            "subtext": "Create your first payment",
+            "action_label": "Add Payment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client_id",
+            "appointment_id",
+            "amount",
+            "tip_amount",
+            "payment_method",
+            "status",
+            "refund_reason"
+          ],
+          "required_fields": [
+            "client_id",
+            "amount",
+            "tip_amount",
+            "payment_method",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client_id",
+            "appointment_id",
+            "amount",
+            "tip_amount",
+            "payment_method",
+            "status",
+            "refund_reason"
+          ],
+          "required_fields": [
+            "client_id",
+            "amount",
+            "tip_amount",
+            "payment_method",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/payments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "client_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "client_id",
+            "appointment_id",
+            "amount",
+            "tip_amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "client_id",
+                "appointment_id",
+                "amount",
+                "tip_amount",
+                "payment_method",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "client_id",
+                "appointment_id",
+                "amount",
+                "tip_amount",
+                "payment_method",
+                "status",
+                "refund_reason"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        },
+        {
+          "column": "appointment_id",
+          "references": {
+            "table": "appointments",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total_with_tip",
+          "expression": "amount + tip_amount",
+          "ts_expression": "amount + tip_amount"
+        }
+      ]
+    },
+    {
+      "name": "Review",
+      "table": "reviews",
+      "description": "Client review of service",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "stylist_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "stylists",
+          "fk_display": "name"
+        },
+        {
+          "name": "appointment_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "appointments",
+          "fk_display": "id"
+        },
+        {
+          "name": "rating",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 5,
+            "message": "Rating 1-5"
+          }
+        },
+        {
+          "name": "comment",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "is_public",
+          "db_type": "BOOLEAN NOT NULL DEFAULT TRUE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": true
+        },
+        {
+          "name": "response",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "is_public",
+            "operator": "equals",
+            "value": true
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "client_id",
+            "stylist_id",
+            "appointment_id",
+            "rating",
+            "comment",
+            "is_public"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Reviews yet",
+            "subtext": "Create your first review",
+            "action_label": "Add Review"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client_id",
+            "stylist_id",
+            "appointment_id",
+            "rating",
+            "comment",
+            "is_public",
+            "response"
+          ],
+          "required_fields": [
+            "client_id",
+            "stylist_id",
+            "rating",
+            "is_public"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client_id",
+            "stylist_id",
+            "appointment_id",
+            "rating",
+            "comment",
+            "is_public",
+            "response"
+          ],
+          "required_fields": [
+            "client_id",
+            "stylist_id",
+            "rating",
+            "is_public"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/reviews/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "client_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "client_id",
+            "stylist_id",
+            "appointment_id",
+            "rating"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "client_id",
+                "stylist_id",
+                "appointment_id",
+                "rating",
+                "comment",
+                "is_public"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "client_id",
+                "stylist_id",
+                "appointment_id",
+                "rating",
+                "comment",
+                "is_public",
+                "response"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        },
+        {
+          "column": "stylist_id",
+          "references": {
+            "table": "stylists",
+            "column": "id"
+          }
+        },
+        {
+          "column": "appointment_id",
+          "references": {
+            "table": "appointments",
+            "column": "id"
+          }
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Clients",
-      "route": "/clients",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Users",
-      "entity": "Client"
-    },
-    {
-      "name": "Services",
-      "route": "/services",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Scissors",
-      "entity": "Service"
-    },
-    {
-      "name": "Stylists",
-      "route": "/stylists",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "UserCheck",
-      "entity": "Stylist"
-    },
-    {
-      "name": "Appointments",
-      "route": "/appointments",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "CalendarDays",
-      "entity": "Appointment"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Clients",
-        "entity": "Client",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

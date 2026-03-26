@@ -1,4237 +1,1004 @@
 {
   "_meta": {
-    "title": "Subscription Management Module Specification",
-    "version": "1.0.0",
-    "purpose": "Complete production-ready specification for subscription lifecycle management including plans, billing cycles, discounts, and automated renewal logic",
-    "domain": "subscription_management",
-    "instructions": [
-      "Generate TypeScript types from all entity fields",
-      "Generate Zod schemas for all form inputs",
-      "Implement all flows with the exact API calls listed",
-      "All billing cycle generation happens server-side only",
-      "MRR and ARR are always computed and never stored directly",
-      "Proration logic must be implemented server-side with the formula: (days_remaining / days_in_cycle) * cycle_amount",
-      "Discount redemption_count must be incremented atomically at application time",
-      "Use Socket.io events to push real-time subscription state changes to connected clients"
-    ]
+    "app_name": "Subscription Management",
+    "description": "Complete subscription management management"
   },
-  "tech_stack": {
-    "frontend": {
-      "framework": "React 18",
-      "language": "TypeScript strict",
-      "styling": "Tailwind CSS",
-      "data_fetching": "TanStack Query v5",
-      "forms": "React Hook Form v7 + Zod",
-      "state": "Zustand v4",
-      "routing": "React Router v6",
-      "charts": "Recharts",
-      "dates": "date-fns",
-      "icons": "Lucide React",
-      "primitives": "Radix UI"
-    },
-    "backend": {
-      "runtime": "Node.js",
-      "framework": "Express",
-      "database": "PostgreSQL 15+",
-      "cache": "Redis",
-      "auth": "JWT",
-      "storage": "AWS S3",
-      "realtime": "Socket.io"
-    }
-  },
+  "spec_name": "subscription_management_spec",
   "entities": [
     {
-      "name": "Plan",
-      "table": "subscription_plans",
-      "description": "Defines a subscription offering with pricing, interval, and feature set",
+      "name": "Subscriber",
+      "table": "subscribers",
+      "description": "Subscriber",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "maxLength": 255
+            "rule": "email",
+            "message": "Valid email required"
           }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "phone",
+            "message": "Valid phone number required"
+          }
+        },
+        {
+          "name": "company",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "source",
+          "db_type": "VARCHAR(30)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "organic",
+            "referral",
+            "paid_ad",
+            "partner",
+            "direct"
+          ],
+          "badge_colors": {
+            "organic": "green",
+            "referral": "blue",
+            "paid_ad": "amber",
+            "partner": "purple",
+            "direct": "slate"
+          }
+        },
+        {
+          "name": "lifetime_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(payments.amount)",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "churned",
+            "paused",
+            "trial"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "churned": "red",
+            "paused": "amber",
+            "trial": "blue"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Plan",
+      "table": "subscription_plans",
+      "description": "Plan",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "code",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "monthly_price",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true,
-            "maxLength": 50,
-            "uniqueWithinOrg": true
+            "min": 0
           }
         },
         {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
+          "name": "annual_price",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "maxLength": 5000
-          }
+          "input_component": "number_input",
+          "display_component": "currency"
         },
         {
           "name": "billing_interval",
           "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'monthly' | 'quarterly' | 'semi_annual' | 'annual' | 'custom'",
-          "nullable": false,
-          "default": "monthly",
-          "input_component": "Select",
-          "display_component": "IntervalBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "monthly",
-              "quarterly",
-              "semi_annual",
-              "annual",
-              "custom"
-            ]
-          }
-        },
-        {
-          "name": "interval_count",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": "1",
-          "input_component": "NumberInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 1
-          }
-        },
-        {
-          "name": "price",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "USD",
-          "input_component": "CurrencySelect",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "length": 3
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "monthly",
+            "quarterly",
+            "annual",
+            "lifetime"
+          ],
+          "badge_colors": {
+            "monthly": "blue",
+            "quarterly": "purple",
+            "annual": "green",
+            "lifetime": "amber"
           }
         },
         {
           "name": "trial_days",
-          "db_type": "INTEGER NOT NULL",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": "0",
-          "input_component": "NumberInput",
-          "display_component": "NumberDisplay",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "setup_fee",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": "0",
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "max_seats",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "NumberInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 1
-          }
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "features",
-          "db_type": "JSONB NOT NULL",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "[]",
-          "input_component": "TagInput",
-          "display_component": "TagList",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": null
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
           "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
           "ts_type": "boolean",
           "nullable": false,
-          "default": "true",
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": null
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
-          "name": "is_public",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": "true",
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
+          "name": "max_users",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": null
-        },
-        {
-          "name": "metadata",
-          "db_type": "JSONB",
-          "ts_type": "Record<string, unknown> | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_subscription_plans_org_id",
-          "columns": [
-            "org_id"
-          ]
-        },
-        {
-          "name": "idx_subscription_plans_org_code",
-          "columns": [
-            "org_id",
-            "code"
-          ],
-          "unique": true
-        },
-        {
-          "name": "idx_subscription_plans_org_is_active",
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        },
-        {
-          "name": "idx_subscription_plans_org_billing_interval",
-          "columns": [
-            "org_id",
-            "billing_interval"
-          ]
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_subscription_plans_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_subscription_plans_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        },
-        {
-          "name": "chk_subscription_plans_positive_amounts",
-          "type": "CHECK",
-          "expression": "All monetary amount columns >= 0",
-          "applies_to": "amount, total, price, balance columns"
-        },
-        {
-          "name": "chk_subscription_plans_currency_len",
-          "type": "CHECK",
-          "expression": "char_length(currency) = 3 WHERE currency IS NOT NULL"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
       "name": "Subscription",
       "table": "subscriptions",
-      "description": "An active or historical subscription linking a customer to a plan",
+      "description": "Subscription",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "subscription_number",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "auto-generated server-side: SUB-YYYYMMDD-NNNN",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "customer_id",
+          "name": "subscriber_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "CustomerSelector",
-          "display_component": "CustomerLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Subscriber"
         },
         {
           "name": "plan_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "PlanSelector",
-          "display_component": "PlanCard",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Plan"
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'trialing' | 'active' | 'past_due' | 'paused' | 'cancelled' | 'expired'",
-          "nullable": false,
-          "default": "trialing",
-          "input_component": null,
-          "display_component": "SubscriptionStatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "enum": [
-              "trialing",
-              "active",
-              "past_due",
-              "paused",
-              "cancelled",
-              "expired"
-            ]
-          }
-        },
-        {
-          "name": "current_period_start",
+          "name": "start_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "current_period_end",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
-          "name": "trial_start",
+          "name": "end_date",
           "db_type": "DATE",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "trial_end",
           "db_type": "DATE",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "cancelled_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "cancel_at_period_end",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": "false",
-          "input_component": null,
-          "display_component": "YesNoBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "cancellation_reason",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "seats",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": "1",
-          "input_component": "NumberInput",
-          "display_component": "SeatCounter",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 1
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
-          "name": "current_price",
+          "name": "mrr",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "PriceDisplay",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "plan.monthly_price",
           "validation": {
-            "required": true,
             "min": 0
           }
         },
         {
-          "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "USD",
-          "input_component": "CurrencySelect",
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "editable": true,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "trialing",
+            "active",
+            "past_due",
+            "cancelled",
+            "expired"
+          ],
+          "badge_colors": {
+            "trialing": "blue",
+            "active": "green",
+            "past_due": "red",
+            "cancelled": "slate",
+            "expired": "amber"
           }
         },
         {
-          "name": "discount_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
+          "name": "cancellation_reason",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "DiscountBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "cancelled"
+          }
         },
         {
-          "name": "metadata",
-          "db_type": "JSONB",
-          "ts_type": "Record<string, unknown> | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
+          "name": "auto_renew",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_subscriptions_org_id",
-          "columns": [
-            "org_id"
-          ]
-        },
-        {
-          "name": "idx_subscriptions_org_customer_id",
-          "columns": [
-            "org_id",
-            "customer_id"
-          ]
-        },
-        {
-          "name": "idx_subscriptions_org_plan_id",
-          "columns": [
-            "org_id",
-            "plan_id"
-          ]
-        },
-        {
-          "name": "idx_subscriptions_org_status",
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "name": "idx_subscriptions_org_period_end",
-          "columns": [
-            "org_id",
-            "current_period_end"
-          ]
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_subscriptions_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_subscriptions_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        },
-        {
-          "name": "chk_subscriptions_positive_amounts",
-          "type": "CHECK",
-          "expression": "All monetary amount columns >= 0",
-          "applies_to": "amount, total, price, balance columns"
-        },
-        {
-          "name": "chk_subscriptions_currency_len",
-          "type": "CHECK",
-          "expression": "char_length(currency) = 3 WHERE currency IS NOT NULL"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "BillingCycle",
-      "table": "billing_cycles",
-      "description": "Individual billing period record tracking invoicing and payment status for a subscription",
+      "name": "Payment",
+      "table": "subscription_payments",
+      "description": "Payment",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "subscription_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "cycle_number",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "min": 1
-          }
-        },
-        {
-          "name": "period_start",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "period_end",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Subscription"
         },
         {
           "name": "amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'pending' | 'invoiced' | 'paid' | 'failed' | 'waived'",
-          "nullable": false,
-          "default": "pending",
-          "input_component": null,
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "enum": [
-              "pending",
-              "invoiced",
-              "paid",
-              "failed",
-              "waived"
-            ]
-          }
-        },
-        {
-          "name": "invoice_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "InvoiceLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "attempt_count",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": "0",
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "last_attempt_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "next_retry_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "paid_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_billing_cycles_org_id",
-          "columns": [
-            "org_id"
-          ]
-        },
-        {
-          "name": "idx_billing_cycles_org_subscription_id",
-          "columns": [
-            "org_id",
-            "subscription_id"
-          ]
-        },
-        {
-          "name": "idx_billing_cycles_org_status",
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "name": "idx_billing_cycles_org_period_start",
-          "columns": [
-            "org_id",
-            "period_start"
-          ]
-        },
-        {
-          "name": "idx_billing_cycles_org_next_retry_at",
-          "columns": [
-            "org_id",
-            "next_retry_at"
-          ]
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_billing_cycles_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_billing_cycles_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        },
-        {
-          "name": "chk_billing_cycles_positive_amounts",
-          "type": "CHECK",
-          "expression": "All monetary amount columns >= 0",
-          "applies_to": "amount, total, price, balance columns"
-        },
-        {
-          "name": "chk_billing_cycles_currency_len",
-          "type": "CHECK",
-          "expression": "char_length(currency) = 3 WHERE currency IS NOT NULL"
-        }
-      ]
-    },
-    {
-      "name": "SubscriptionDiscount",
-      "table": "subscription_discounts",
-      "description": "Promotional codes and discounts applicable to subscriptions",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "code",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 50,
-            "uniqueWithinOrg": true
-          }
-        },
-        {
-          "name": "type",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'percentage' | 'fixed_amount'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "percentage",
-              "fixed_amount"
-            ]
-          }
-        },
-        {
-          "name": "value",
-          "db_type": "NUMERIC(15,4) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
             "min": 0
           }
         },
         {
           "name": "currency",
-          "db_type": "CHAR(3)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencySelect",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "requiredIfType": "fixed_amount"
-          }
-        },
-        {
-          "name": "applies_to",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'first_cycle' | 'all_cycles' | 'n_cycles'",
+          "db_type": "CHAR(3) NOT NULL DEFAULT 'USD'",
+          "ts_type": "string",
           "nullable": false,
-          "default": "all_cycles",
-          "input_component": "Select",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "first_cycle",
-              "all_cycles",
-              "n_cycles"
-            ]
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "n_cycles",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "NumberInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 1,
-            "requiredIfAppliesTo": "n_cycles"
-          }
-        },
-        {
-          "name": "max_redemptions",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "NumberInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 1
-          }
-        },
-        {
-          "name": "redemption_count",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
+          "name": "payment_method",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "0",
-          "input_component": null,
-          "display_component": "NumberDisplay",
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "credit_card",
+            "bank_transfer",
+            "paypal",
+            "wire",
+            "crypto"
+          ],
+          "badge_colors": {
+            "credit_card": "blue",
+            "bank_transfer": "green",
+            "paypal": "amber",
+            "wire": "purple",
+            "crypto": "pink"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "completed",
+            "failed",
+            "refunded"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "completed": "green",
+            "failed": "red",
+            "refunded": "purple"
+          }
+        },
+        {
+          "name": "paid_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "transaction_id",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {
-            "min": 0
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "valid_from",
-          "db_type": "DATE",
-          "ts_type": "string | null",
+          "name": "failure_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {
-            "format": "date"
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "failed"
           }
-        },
-        {
-          "name": "valid_until",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "format": "date",
-            "minDate": "valid_from"
-          }
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": "true",
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": null
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_subscription_discounts_org_id",
-          "columns": [
-            "org_id"
-          ]
-        },
-        {
-          "name": "idx_subscription_discounts_org_code",
-          "columns": [
-            "org_id",
-            "code"
-          ],
-          "unique": true
-        },
-        {
-          "name": "idx_subscription_discounts_org_is_active",
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_subscription_discounts_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_subscription_discounts_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        },
-        {
-          "name": "chk_subscription_discounts_positive_amounts",
-          "type": "CHECK",
-          "expression": "All monetary amount columns >= 0",
-          "applies_to": "amount, total, price, balance columns"
-        },
-        {
-          "name": "chk_subscription_discounts_currency_len",
-          "type": "CHECK",
-          "expression": "char_length(currency) = 3 WHERE currency IS NOT NULL"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "Customer",
-      "table": "customers",
-      "description": "Shared customer entity \u2014 same org_id scoped table as used in invoice billing. All subscription customer references point to this table.",
-      "shared_with": "invoice_billing_spec",
+      "name": "Invoice",
+      "table": "subscription_invoices",
+      "description": "Invoice",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "display_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "subscription_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "CustomerLink",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 255
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Subscription"
         },
         {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "EmailInput",
-          "display_component": "EmailLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "format": "email"
-          }
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
+          "name": "invoice_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "true",
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": null
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "subtotal",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "tax",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "total",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "subtotal + tax",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "issue_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "sent",
+            "paid",
+            "overdue",
+            "void"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "sent": "amber",
+            "paid": "green",
+            "overdue": "red",
+            "void": "purple"
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Usage",
+      "table": "subscription_usage",
+      "description": "Usage",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": null
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "version",
-          "db_type": "INTEGER",
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "subscription_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Subscription"
+        },
+        {
+          "name": "metric_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "usage_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "unit",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "limit_value",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "usage_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "usage_value / limit_value * 100"
+        },
+        {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "overage_notified",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
-      ],
-      "indexes": [
-        {
-          "name": "idx_customers_org_id",
-          "columns": [
-            "org_id"
-          ]
-        },
-        {
-          "name": "idx_customers_org_email",
-          "columns": [
-            "org_id",
-            "email"
-          ]
-        },
-        {
-          "name": "idx_customers_org_display_name",
-          "columns": [
-            "org_id",
-            "display_name"
-          ]
-        },
-        {
-          "name": "idx_customers_org_is_active",
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_customers_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_customers_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        },
-        {
-          "name": "chk_customers_positive_amounts",
-          "type": "CHECK",
-          "expression": "All monetary amount columns >= 0",
-          "applies_to": "amount, total, price, balance columns"
-        },
-        {
-          "name": "chk_customers_currency_len",
-          "type": "CHECK",
-          "expression": "char_length(currency) = 3 WHERE currency IS NOT NULL"
-        }
-      ]
-    }
-  ],
-  "components": [
-    {
-      "name": "TagInput",
-      "type": "input",
-      "description": "Input that allows creating and removing string tags",
-      "props": [
-        "value: string[]",
-        "onChange: (tags: string[]) => void",
-        "placeholder?: string",
-        "disabled?: boolean",
-        "suggestions?: string[]"
-      ],
-      "behavior": "Enter or comma to add tag. Click X to remove. Shows autocomplete suggestions if provided.",
-      "variants": [
-        "default",
-        "disabled"
-      ],
-      "tailwind": "flex flex-wrap gap-1.5 p-2 bg-slate-800 border border-slate-700 rounded-md"
-    },
-    {
-      "name": "TagList",
-      "type": "display",
-      "description": "Read-only display of string tags",
-      "props": [
-        "tags: string[]",
-        "maxVisible?: number"
-      ],
-      "behavior": "Renders tags as badges. Shows +N more if exceeds maxVisible.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "flex flex-wrap gap-1"
-    },
-    {
-      "name": "PlanCard",
-      "type": "display",
-      "description": "Card displaying plan details: name, price, interval, features",
-      "props": [
-        "plan: Plan",
-        "isSelected?: boolean",
-        "onClick?: () => void"
-      ],
-      "behavior": "Renders plan info with pricing prominently. Checkmark icon when selected.",
-      "variants": [
-        "default",
-        "selected",
-        "compact"
-      ],
-      "tailwind": "border border-slate-700 rounded-xl p-4 cursor-pointer hover:border-blue-500 transition-colors"
-    },
-    {
-      "name": "PlanSelector",
-      "type": "input",
-      "description": "Grid of PlanCards for selecting a subscription plan",
-      "props": [
-        "value: string | null",
-        "onChange: (planId: string, plan: Plan) => void",
-        "plans?: Plan[]",
-        "disabled?: boolean"
-      ],
-      "behavior": "Fetches active public plans. Renders as PlanCard grid. Highlights selected plan.",
-      "variants": [
-        "default",
-        "compact-list"
-      ],
-      "tailwind": "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-    },
-    {
-      "name": "SubscriptionStatusBadge",
-      "type": "display",
-      "description": "Status badge for subscription lifecycle states",
-      "props": [
-        "status: SubscriptionStatus",
-        "cancelAtPeriodEnd?: boolean"
-      ],
-      "behavior": "Maps status to colors. Shows 'Cancels at period end' indicator if cancel_at_period_end is true.",
-      "variants": [
-        "trialing",
-        "active",
-        "past_due",
-        "paused",
-        "cancelled",
-        "expired"
-      ],
-      "tailwind": "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
-    },
-    {
-      "name": "BillingCycleTable",
-      "type": "composite",
-      "description": "Table listing billing cycles for a subscription with status and invoice links",
-      "props": [
-        "subscriptionId: string",
-        "isLoading?: boolean"
-      ],
-      "behavior": "Fetches and renders billing_cycles ordered by cycle_number desc. Shows retry button for failed cycles.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "w-full"
-    },
-    {
-      "name": "TrialBadge",
-      "type": "display",
-      "description": "Badge showing trial status and days remaining",
-      "props": [
-        "trialEnd: string | null",
-        "status: SubscriptionStatus"
-      ],
-      "behavior": "Only visible when status = 'trialing'. Shows days remaining or 'Trial ended'.",
-      "variants": [
-        "active",
-        "ending-soon",
-        "expired"
-      ],
-      "tailwind": "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-purple-900 text-purple-300"
-    },
-    {
-      "name": "SeatCounter",
-      "type": "display",
-      "description": "Display showing current and max seats for a subscription",
-      "props": [
-        "seats: number",
-        "maxSeats: number | null"
-      ],
-      "behavior": "Shows N seats or N / max seats with progress bar if maxSeats is set.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "flex items-center gap-2 text-sm"
-    },
-    {
-      "name": "DiscountBadge",
-      "type": "display",
-      "description": "Badge showing applied discount details",
-      "props": [
-        "discountId: string | null",
-        "discountCode?: string",
-        "discountValue?: number",
-        "discountType?: string"
-      ],
-      "behavior": "Renders discount code and value. Green background.",
-      "variants": [
-        "default",
-        "inline"
-      ],
-      "tailwind": "inline-flex items-center gap-1 px-2 py-0.5 rounded bg-green-900 text-green-300 text-xs"
-    },
-    {
-      "name": "UpgradeDowngradeModal",
-      "type": "composite",
-      "description": "Modal for changing subscription plan with proration preview",
-      "props": [
-        "isOpen: boolean",
-        "onClose: () => void",
-        "subscription: Subscription",
-        "onConfirm: (planId: string, effective: 'now' | 'period_end') => void"
-      ],
-      "behavior": "Shows current plan vs new plan comparison. Displays proration amount. Allows choosing immediate or end-of-period effective date.",
-      "variants": [
-        "upgrade",
-        "downgrade"
-      ],
-      "tailwind": "fixed inset-0 z-50 flex items-center justify-center"
-    },
-    {
-      "name": "CancellationModal",
-      "type": "composite",
-      "description": "Modal for cancelling a subscription with reason and timing options",
-      "props": [
-        "isOpen: boolean",
-        "onClose: () => void",
-        "subscription: Subscription",
-        "onConfirm: (immediate: boolean, reason: string) => void"
-      ],
-      "behavior": "Presents cancel immediately vs cancel at period end. Requires reason text. Shows when access will end.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "fixed inset-0 z-50 flex items-center justify-center"
-    },
-    {
-      "name": "SubscriptionTimeline",
-      "type": "composite",
-      "description": "Visual timeline of subscription events: created, trialing, activated, upgraded, cancelled",
-      "props": [
-        "subscriptionId: string",
-        "events: SubscriptionEvent[]"
-      ],
-      "behavior": "Vertical timeline with event type icons and timestamps. Color-coded by event type.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "space-y-3 relative before:absolute before:left-3 before:top-0 before:bottom-0 before:w-px before:bg-slate-800"
-    },
-    {
-      "name": "PriceDisplay",
-      "type": "display",
-      "description": "Displays subscription price with interval (e.g., $49.00 / month)",
-      "props": [
-        "amount: number",
-        "currency: string",
-        "interval: string",
-        "intervalCount?: number"
-      ],
-      "behavior": "Formats price and appends interval label. Handles custom intervals.",
-      "variants": [
-        "default",
-        "large",
-        "compact"
-      ],
-      "tailwind": "font-mono tabular-nums"
-    },
-    {
-      "name": "IntervalBadge",
-      "type": "display",
-      "description": "Badge showing billing interval",
-      "props": [
-        "interval: BillingInterval",
-        "intervalCount?: number"
-      ],
-      "behavior": "Maps interval to human-readable label (Monthly, Quarterly, Annual, etc.).",
-      "variants": [
-        "monthly",
-        "quarterly",
-        "semi_annual",
-        "annual",
-        "custom"
-      ],
-      "tailwind": "inline-flex items-center px-2 py-0.5 rounded bg-slate-700 text-slate-300 text-xs"
-    },
-    {
-      "name": "FeatureList",
-      "type": "display",
-      "description": "Bulleted list of plan features with checkmark icons",
-      "props": [
-        "features: string[]",
-        "maxVisible?: number"
-      ],
-      "behavior": "Renders feature strings with green checkmark icons. Expandable if maxVisible set.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "space-y-1.5"
-    },
-    {
-      "name": "DataTable",
-      "type": "composite",
-      "description": "Sortable, filterable, paginated table",
-      "props": [
-        "data: T[]",
-        "columns: ColumnDef<T>[]",
-        "isLoading: boolean",
-        "pagination: PaginationState",
-        "onPaginationChange: (p: PaginationState) => void",
-        "sorting: SortingState",
-        "onSortingChange: (s: SortingState) => void"
-      ],
-      "behavior": "Standard DataTable with dark theme.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "w-full border border-slate-800 rounded-lg overflow-hidden bg-slate-900"
-    },
-    {
-      "name": "StatusBadge",
-      "type": "display",
-      "description": "Colored status pill badge",
-      "props": [
-        "status: string",
-        "size?: 'sm' | 'md'"
-      ],
-      "behavior": "Reads colors from constants/statusColors.ts.",
-      "variants": [
-        "pending",
-        "invoiced",
-        "paid",
-        "failed",
-        "waived"
-      ],
-      "tailwind": "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
-    },
-    {
-      "name": "CurrencyDisplay",
-      "type": "display",
-      "description": "Formats monetary value",
-      "props": [
-        "amount: number",
-        "currency?: string",
-        "colorizeNegative?: boolean"
-      ],
-      "behavior": "Intl.NumberFormat formatting.",
-      "variants": [
-        "default",
-        "large",
-        "inline"
-      ],
-      "tailwind": "font-mono tabular-nums text-white"
-    },
-    {
-      "name": "CurrencyInput",
-      "type": "input",
-      "description": "Currency numeric input",
-      "props": [
-        "value: number",
-        "onChange: (v: number) => void",
-        "currency?: string",
-        "disabled?: boolean",
-        "error?: string"
-      ],
-      "behavior": "Currency symbol prefix, numeric only.",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white font-mono"
-    },
-    {
-      "name": "CustomerSelector",
-      "type": "input",
-      "description": "Searchable customer combobox",
-      "props": [
-        "value: string | null",
-        "onChange: (id: string) => void",
-        "disabled?: boolean",
-        "error?: string"
-      ],
-      "behavior": "Filters is_active=true customers.",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "w-full"
-    },
-    {
-      "name": "CustomerLink",
-      "type": "display",
-      "description": "Link to customer detail",
-      "props": [
-        "customerId: string",
-        "customerName?: string"
-      ],
-      "behavior": "Navigates to /customers/:id.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-blue-400 hover:text-blue-300 text-sm"
-    },
-    {
-      "name": "InvoiceLink",
-      "type": "display",
-      "description": "Link to invoice detail",
-      "props": [
-        "invoiceId: string | null",
-        "invoiceNumber?: string"
-      ],
-      "behavior": "Navigates to /invoices/:id.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-blue-400 hover:text-blue-300 font-mono text-sm"
-    },
-    {
-      "name": "SlideOverForm",
-      "type": "layout",
-      "description": "Slide-in panel form",
-      "props": [
-        "isOpen: boolean",
-        "onClose: () => void",
-        "title: string",
-        "children: ReactNode"
-      ],
-      "behavior": "Right slide-in with focus trap.",
-      "variants": [
-        "sm",
-        "md",
-        "lg"
-      ],
-      "tailwind": "fixed inset-y-0 right-0 flex flex-col bg-slate-900 border-l border-slate-800 shadow-2xl z-50"
-    },
-    {
-      "name": "ConfirmationDialog",
-      "type": "composite",
-      "description": "Destructive action confirmation modal",
-      "props": [
-        "isOpen: boolean",
-        "onConfirm: () => void",
-        "onCancel: () => void",
-        "title: string",
-        "description: string",
-        "variant?: 'danger' | 'warning'"
-      ],
-      "behavior": "Requires explicit confirmation.",
-      "variants": [
-        "danger",
-        "warning"
-      ],
-      "tailwind": "fixed inset-0 z-50 flex items-center justify-center"
-    },
-    {
-      "name": "EmptyState",
-      "type": "display",
-      "description": "Empty list placeholder",
-      "props": [
-        "title: string",
-        "description?: string",
-        "action?: ReactNode"
-      ],
-      "behavior": "Centered empty state with optional CTA.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "flex flex-col items-center justify-center py-16 text-center"
-    },
-    {
-      "name": "LoadingSkeleton",
-      "type": "display",
-      "description": "Loading placeholder",
-      "props": [
-        "rows?: number",
-        "variant?: 'table' | 'card'"
-      ],
-      "behavior": "Shimmer animation placeholder.",
-      "variants": [
-        "table",
-        "card"
-      ],
-      "tailwind": "animate-pulse bg-slate-800 rounded"
-    },
-    {
-      "name": "PageHeader",
-      "type": "layout",
-      "description": "Page header with title, breadcrumbs, actions",
-      "props": [
-        "title: string",
-        "breadcrumbs?: Breadcrumb[]",
-        "actions?: ReactNode",
-        "tabs?: TabItem[]"
-      ],
-      "behavior": "Sticky header.",
-      "variants": [
-        "default",
-        "with-tabs"
-      ],
-      "tailwind": "sticky top-0 z-10 bg-slate-950 border-b border-slate-800 px-6 py-4"
-    },
-    {
-      "name": "FilterPanel",
-      "type": "composite",
-      "description": "Filter controls panel",
-      "props": [
-        "filters: FilterDef[]",
-        "values: Record<string, unknown>",
-        "onChange: (key: string, value: unknown) => void",
-        "onReset: () => void"
-      ],
-      "behavior": "Inline filter inputs with active count badge.",
-      "variants": [
-        "inline",
-        "popover"
-      ],
-      "tailwind": "flex items-center gap-3 flex-wrap"
-    },
-    {
-      "name": "TabPanel",
-      "type": "layout",
-      "description": "Tab navigation",
-      "props": [
-        "tabs: TabItem[]",
-        "activeTab: string",
-        "onTabChange: (tab: string) => void",
-        "children: ReactNode"
-      ],
-      "behavior": "Tab bar with active content.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "border-b border-slate-800"
-    },
-    {
-      "name": "TextInput",
-      "type": "input",
-      "description": "Text input field",
-      "props": [
-        "value: string",
-        "onChange: (v: string) => void",
-        "placeholder?: string",
-        "disabled?: boolean",
-        "error?: string"
-      ],
-      "behavior": "Controlled input.",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white"
-    },
-    {
-      "name": "NumberInput",
-      "type": "input",
-      "description": "Numeric input",
-      "props": [
-        "value: number",
-        "onChange: (v: number) => void",
-        "min?: number",
-        "max?: number",
-        "disabled?: boolean"
-      ],
-      "behavior": "Validated numeric input.",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white font-mono"
-    },
-    {
-      "name": "Select",
-      "type": "input",
-      "description": "Dropdown select",
-      "props": [
-        "value: string",
-        "onChange: (v: string) => void",
-        "options: SelectOption[]",
-        "disabled?: boolean"
-      ],
-      "behavior": "Radix UI Select.",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "w-full bg-slate-800 border border-slate-700 rounded-md"
-    },
-    {
-      "name": "Toggle",
-      "type": "input",
-      "description": "Boolean toggle",
-      "props": [
-        "checked: boolean",
-        "onChange: (v: boolean) => void",
-        "disabled?: boolean"
-      ],
-      "behavior": "Radix Switch.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative inline-flex h-5 w-9 cursor-pointer rounded-full"
-    },
-    {
-      "name": "DatePicker",
-      "type": "input",
-      "description": "Calendar date picker",
-      "props": [
-        "value: string | null",
-        "onChange: (v: string | null) => void",
-        "disabled?: boolean"
-      ],
-      "behavior": "date-fns calendar popover.",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "w-full"
-    },
-    {
-      "name": "Textarea",
-      "type": "input",
-      "description": "Multi-line text input",
-      "props": [
-        "value: string",
-        "onChange: (v: string) => void",
-        "rows?: number",
-        "disabled?: boolean"
-      ],
-      "behavior": "Auto-resize.",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "w-full bg-slate-800 border border-slate-700 rounded-md px-3 py-2 text-white resize-none"
-    },
-    {
-      "name": "CurrencySelect",
-      "type": "input",
-      "description": "ISO currency code select",
-      "props": [
-        "value: string",
-        "onChange: (v: string) => void",
-        "disabled?: boolean"
-      ],
-      "behavior": "Common currencies prioritized.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "w-full"
-    },
-    {
-      "name": "YesNoBadge",
-      "type": "display",
-      "description": "Boolean badge",
-      "props": [
-        "value: boolean"
-      ],
-      "behavior": "Green/slate pill.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium"
-    },
-    {
-      "name": "AbsoluteDate",
-      "type": "display",
-      "description": "Formatted absolute date",
-      "props": [
-        "value: string | null",
-        "showTime?: boolean"
-      ],
-      "behavior": "date-fns format.",
-      "variants": [
-        "date-only",
-        "date-time"
-      ],
-      "tailwind": "text-slate-300 text-sm"
-    },
-    {
-      "name": "MonospaceText",
-      "type": "display",
-      "description": "Monospace text display",
-      "props": [
-        "value: string | null",
-        "copyable?: boolean"
-      ],
-      "behavior": "Mono font, optional copy.",
-      "variants": [
-        "default",
-        "copyable"
-      ],
-      "tailwind": "font-mono text-sm text-slate-200"
-    },
-    {
-      "name": "PlainText",
-      "type": "display",
-      "description": "Simple text display",
-      "props": [
-        "value: string | null"
-      ],
-      "behavior": "Renders value or em dash.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-sm text-slate-300"
-    },
-    {
-      "name": "TruncatedText",
-      "type": "display",
-      "description": "Truncated text with tooltip",
-      "props": [
-        "value: string | null"
-      ],
-      "behavior": "Ellipsis with Radix tooltip.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "truncate text-sm text-slate-300 max-w-xs"
-    },
-    {
-      "name": "NumberDisplay",
-      "type": "display",
-      "description": "Formatted number",
-      "props": [
-        "value: number | null",
-        "decimals?: number"
-      ],
-      "behavior": "Intl.NumberFormat.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "font-mono tabular-nums text-sm text-slate-300"
-    },
-    {
-      "name": "StatCard",
-      "type": "display",
-      "description": "KPI metric card",
-      "props": [
-        "title: string",
-        "value: string | number",
-        "change?: number",
-        "icon?: LucideIcon",
-        "isLoading?: boolean"
-      ],
-      "behavior": "Shows metric with change indicator.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "bg-slate-900 border border-slate-800 rounded-xl p-5"
-    },
-    {
-      "name": "ActivityTimeline",
-      "type": "composite",
-      "description": "Chronological activity list",
-      "props": [
-        "activities: Activity[]",
-        "isLoading?: boolean"
-      ],
-      "behavior": "Vertical timeline with event icons.",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "space-y-4 relative"
-    },
-    {
-      "name": "NotificationBell",
-      "type": "composite",
-      "description": "Notification bell with badge",
-      "props": [
-        "count: number",
-        "notifications: Notification[]",
-        "onMarkRead: (id: string) => void"
-      ],
-      "behavior": "Bell icon with unread count. Popover list.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "AuthGuard",
-      "type": "layout",
-      "description": "Permission-enforcing route wrapper",
-      "props": [
-        "requiredPermission?: string",
-        "children: ReactNode"
-      ],
-      "behavior": "Redirects or shows 403 as needed.",
-      "variants": [
-        "default"
-      ],
-      "tailwind": ""
-    }
-  ],
-  "modules": [
-    {
-      "name": "SubscriptionList",
-      "route": "/subscriptions",
-      "sidebar_label": "Subscriptions",
-      "icon": "RefreshCw",
-      "page_component": "SubscriptionListPage",
-      "layout": "DashboardLayout",
-      "permissions": {
-        "roles": [
-          "admin",
-          "billing_manager",
-          "support",
-          "viewer"
-        ]
-      },
-      "tabs": [
-        "All",
-        "Trialing",
-        "Active",
-        "Past Due",
-        "Cancelled"
-      ],
-      "data_sources": [
-        "useSubscriptions",
-        "useSubscriptionStats"
-      ],
-      "query_keys": [
-        "subscriptions.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "New Subscription",
-          "hook": "useNavigate",
-          "navigateTo": "/subscriptions/new"
-        }
-      ],
-      "child_routes": [
-        {
-          "path": "/subscriptions/new",
-          "component": "SubscriptionCreatePage"
-        },
-        {
-          "path": "/subscriptions/:id",
-          "component": "SubscriptionDetailPage"
-        }
-      ]
-    },
-    {
-      "name": "SubscriptionDetail",
-      "route": "/subscriptions/:id",
-      "sidebar_label": null,
-      "icon": null,
-      "page_component": "SubscriptionDetailPage",
-      "layout": "DashboardLayout",
-      "permissions": {
-        "roles": [
-          "admin",
-          "billing_manager",
-          "support",
-          "viewer"
-        ]
-      },
-      "tabs": [
-        "Overview",
-        "Billing History",
-        "Activity"
-      ],
-      "data_sources": [
-        "useSubscription",
-        "useBillingCycles"
-      ],
-      "query_keys": [
-        "subscriptions.detail",
-        "billingCycles.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "Change Plan",
-          "hook": "useChangePlan"
-        },
-        {
-          "label": "Cancel Subscription",
-          "hook": "useCancelSubscription"
-        },
-        {
-          "label": "Pause",
-          "hook": "usePauseSubscription"
-        },
-        {
-          "label": "Apply Discount",
-          "hook": "useApplyDiscount"
-        }
-      ],
-      "child_routes": []
-    },
-    {
-      "name": "PlanList",
-      "route": "/plans",
-      "sidebar_label": "Plans",
-      "icon": "Package",
-      "page_component": "PlanListPage",
-      "layout": "DashboardLayout",
-      "permissions": {
-        "roles": [
-          "admin",
-          "billing_manager"
-        ]
-      },
-      "tabs": [],
-      "data_sources": [
-        "usePlans"
-      ],
-      "query_keys": [
-        "plans.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "New Plan",
-          "hook": "useCreatePlan"
-        }
-      ],
-      "child_routes": [
-        {
-          "path": "/plans/:id",
-          "component": "PlanDetailPage"
-        }
-      ]
-    },
-    {
-      "name": "PlanDetail",
-      "route": "/plans/:id",
-      "sidebar_label": null,
-      "icon": null,
-      "page_component": "PlanDetailPage",
-      "layout": "DashboardLayout",
-      "permissions": {
-        "roles": [
-          "admin",
-          "billing_manager"
-        ]
-      },
-      "tabs": [
-        "Overview",
-        "Subscribers",
-        "Activity"
-      ],
-      "data_sources": [
-        "usePlan",
-        "usePlanSubscriptions"
-      ],
-      "query_keys": [
-        "plans.detail",
-        "subscriptions.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "Edit Plan",
-          "hook": "useUpdatePlan"
-        }
-      ],
-      "child_routes": []
-    },
-    {
-      "name": "DiscountList",
-      "route": "/discounts",
-      "sidebar_label": "Discounts",
-      "icon": "Tag",
-      "page_component": "DiscountListPage",
-      "layout": "DashboardLayout",
-      "permissions": {
-        "roles": [
-          "admin"
-        ]
-      },
-      "tabs": [
-        "All",
-        "Active",
-        "Expired"
-      ],
-      "data_sources": [
-        "useDiscounts"
-      ],
-      "query_keys": [
-        "discounts.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "New Discount",
-          "hook": "useCreateDiscount"
-        }
-      ],
-      "child_routes": []
-    },
-    {
-      "name": "CustomerSubscriptions",
-      "route": "/customers/:id/subscriptions",
-      "sidebar_label": null,
-      "icon": null,
-      "page_component": "CustomerSubscriptionsTab",
-      "layout": "nested",
-      "permissions": {
-        "roles": [
-          "admin",
-          "billing_manager",
-          "support",
-          "viewer"
-        ]
-      },
-      "tabs": [],
-      "data_sources": [
-        "useCustomerSubscriptions"
-      ],
-      "query_keys": [
-        "subscriptions.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "New Subscription",
-          "hook": "useNavigate",
-          "navigateTo": "/subscriptions/new?customerId=:id"
-        }
-      ],
-      "child_routes": []
-    }
-  ],
-  "api": {
-    "endpoints": [
-      {
-        "method": "GET",
-        "path": "/plans",
-        "description": "List all active subscription plans",
-        "request_schema": {
-          "is_active": "boolean optional default true",
-          "is_public": "boolean optional",
-          "page": "number",
-          "limit": "number"
-        },
-        "response_schema": {
-          "data": "Plan[]",
-          "total": "number"
-        },
-        "react_query_hook": "usePlans",
-        "query_key": "['plans', 'list', filters]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/plans",
-        "description": "Create a new subscription plan",
-        "request_schema": {
-          "name": "string required",
-          "code": "string required",
-          "description": "string optional",
-          "billing_interval": "string required",
-          "interval_count": "number default 1",
-          "price": "number required",
-          "currency": "string default USD",
-          "trial_days": "number default 0",
-          "setup_fee": "number default 0",
-          "max_seats": "number optional",
-          "features": "string[] default []",
-          "is_active": "boolean default true",
-          "is_public": "boolean default true"
-        },
-        "response_schema": {
-          "data": "Plan"
-        },
-        "react_query_hook": "useCreatePlan",
-        "query_key": null,
-        "invalidates": [
-          "['plans', 'list']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/plans/:id",
-        "description": "Get a single plan by ID",
-        "request_schema": {
-          "id": "string UUID"
-        },
-        "response_schema": {
-          "data": "Plan"
-        },
-        "react_query_hook": "usePlan",
-        "query_key": "['plans', 'detail', id]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/plans/:id",
-        "description": "Update a plan. Price changes do not affect existing subscriptions current_price.",
-        "request_schema": {
-          "name": "string optional",
-          "description": "string optional",
-          "price": "number optional",
-          "features": "string[] optional",
-          "is_active": "boolean optional",
-          "is_public": "boolean optional"
-        },
-        "response_schema": {
-          "data": "Plan"
-        },
-        "react_query_hook": "useUpdatePlan",
-        "query_key": null,
-        "invalidates": [
-          "['plans', 'detail', id]",
-          "['plans', 'list']"
-        ],
-        "optimistic_updates": true,
-        "optimistic_description": "Update plan in list cache immediately"
-      },
-      {
-        "method": "DELETE",
-        "path": "/plans/:id",
-        "description": "Soft-delete a plan. Blocked if active subscriptions exist.",
-        "request_schema": {},
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeletePlan",
-        "query_key": null,
-        "invalidates": [
-          "['plans', 'list']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/subscriptions",
-        "description": "List subscriptions with filtering",
-        "request_schema": {
-          "status": "string optional",
-          "customer_id": "string optional",
-          "plan_id": "string optional",
-          "page": "number",
-          "limit": "number",
-          "sort": "string optional"
-        },
-        "response_schema": {
-          "data": "Subscription[]",
-          "total": "number"
-        },
-        "react_query_hook": "useSubscriptions",
-        "query_key": "['subscriptions', 'list', filters]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/subscriptions",
-        "description": "Create a new subscription. Server sets status based on trial_days. Auto-creates first billing_cycle.",
-        "request_schema": {
-          "customer_id": "string required",
-          "plan_id": "string required",
-          "seats": "number default 1",
-          "current_period_start": "string required ISO date",
-          "discount_id": "string optional",
-          "metadata": "object optional"
-        },
-        "response_schema": {
-          "data": "Subscription"
-        },
-        "react_query_hook": "useCreateSubscription",
-        "query_key": null,
-        "invalidates": [
-          "['subscriptions', 'list']",
-          "['customers', 'detail', customerId]"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/subscriptions/:id",
-        "description": "Get a single subscription with plan and customer details",
-        "request_schema": {
-          "id": "string UUID"
-        },
-        "response_schema": {
-          "data": "Subscription & { plan: Plan, customer: Customer, discount: SubscriptionDiscount | null }"
-        },
-        "react_query_hook": "useSubscription",
-        "query_key": "['subscriptions', 'detail', id]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/subscriptions/:id",
-        "description": "Update subscription seats or metadata",
-        "request_schema": {
-          "seats": "number optional",
-          "metadata": "object optional"
-        },
-        "response_schema": {
-          "data": "Subscription"
-        },
-        "react_query_hook": "useUpdateSubscription",
-        "query_key": null,
-        "invalidates": [
-          "['subscriptions', 'detail', id]",
-          "['subscriptions', 'list']"
-        ],
-        "optimistic_updates": true,
-        "optimistic_description": "Update subscription in cache immediately"
-      },
-      {
-        "method": "POST",
-        "path": "/subscriptions/:id/cancel",
-        "description": "Cancel a subscription immediately or at period end",
-        "request_schema": {
-          "immediate": "boolean default false",
-          "reason": "string optional"
-        },
-        "response_schema": {
-          "data": "Subscription"
-        },
-        "react_query_hook": "useCancelSubscription",
-        "query_key": null,
-        "invalidates": [
-          "['subscriptions', 'detail', id]",
-          "['subscriptions', 'list']",
-          "['customers', 'detail']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/subscriptions/:id/pause",
-        "description": "Pause a subscription, suspending billing cycle generation",
-        "request_schema": {
-          "resume_at": "string optional ISO date"
-        },
-        "response_schema": {
-          "data": "Subscription"
-        },
-        "react_query_hook": "usePauseSubscription",
-        "query_key": null,
-        "invalidates": [
-          "['subscriptions', 'detail', id]",
-          "['subscriptions', 'list']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/subscriptions/:id/resume",
-        "description": "Resume a paused subscription",
-        "request_schema": {},
-        "response_schema": {
-          "data": "Subscription"
-        },
-        "react_query_hook": "useResumeSubscription",
-        "query_key": null,
-        "invalidates": [
-          "['subscriptions', 'detail', id]",
-          "['subscriptions', 'list']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/subscriptions/:id/change-plan",
-        "description": "Change subscription plan with optional proration. Creates new billing_cycle for proration amount if immediate.",
-        "request_schema": {
-          "plan_id": "string required",
-          "effective": "'now' | 'period_end' default 'now'",
-          "prorate": "boolean default true"
-        },
-        "response_schema": {
-          "data": "Subscription"
-        },
-        "react_query_hook": "useChangePlan",
-        "query_key": null,
-        "invalidates": [
-          "['subscriptions', 'detail', id]",
-          "['subscriptions', 'list']",
-          "['billingCycles', 'list', id]"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/billing-cycles",
-        "description": "List all billing cycles with filtering",
-        "request_schema": {
-          "status": "string optional",
-          "subscription_id": "string optional",
-          "period_start_from": "string optional",
-          "page": "number",
-          "limit": "number"
-        },
-        "response_schema": {
-          "data": "BillingCycle[]",
-          "total": "number"
-        },
-        "react_query_hook": "useBillingCycles",
-        "query_key": "['billingCycles', 'list', filters]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/subscriptions/:id/billing-cycles",
-        "description": "Get all billing cycles for a specific subscription",
-        "request_schema": {
-          "id": "string UUID",
-          "page": "number",
-          "limit": "number"
-        },
-        "response_schema": {
-          "data": "BillingCycle[]",
-          "total": "number"
-        },
-        "react_query_hook": "useSubscriptionBillingCycles",
-        "query_key": "['billingCycles', 'subscription', id]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/billing-cycles/:id/retry",
-        "description": "Manually retry a failed billing cycle attempt",
-        "request_schema": {},
-        "response_schema": {
-          "data": "BillingCycle"
-        },
-        "react_query_hook": "useRetryBillingCycle",
-        "query_key": null,
-        "invalidates": [
-          "['billingCycles', 'list']",
-          "['subscriptions', 'detail']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/billing-cycles/:id/waive",
-        "description": "Waive a billing cycle, marking it as not requiring payment",
-        "request_schema": {
-          "reason": "string optional"
-        },
-        "response_schema": {
-          "data": "BillingCycle"
-        },
-        "react_query_hook": "useWaiveBillingCycle",
-        "query_key": null,
-        "invalidates": [
-          "['billingCycles', 'list']",
-          "['subscriptions', 'detail']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/discounts",
-        "description": "List subscription discounts",
-        "request_schema": {
-          "is_active": "boolean optional",
-          "page": "number",
-          "limit": "number"
-        },
-        "response_schema": {
-          "data": "SubscriptionDiscount[]",
-          "total": "number"
-        },
-        "react_query_hook": "useDiscounts",
-        "query_key": "['discounts', 'list', filters]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/discounts",
-        "description": "Create a new discount",
-        "request_schema": {
-          "name": "string required",
-          "code": "string required",
-          "type": "string required",
-          "value": "number required",
-          "currency": "string optional",
-          "applies_to": "string required",
-          "n_cycles": "number optional",
-          "max_redemptions": "number optional",
-          "valid_from": "string optional",
-          "valid_until": "string optional"
-        },
-        "response_schema": {
-          "data": "SubscriptionDiscount"
-        },
-        "react_query_hook": "useCreateDiscount",
-        "query_key": null,
-        "invalidates": [
-          "['discounts', 'list']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/discounts/:id",
-        "description": "Get a single discount",
-        "request_schema": {},
-        "response_schema": {
-          "data": "SubscriptionDiscount"
-        },
-        "react_query_hook": "useDiscount",
-        "query_key": "['discounts', 'detail', id]",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/discounts/:id",
-        "description": "Update a discount",
-        "request_schema": {
-          "name": "string optional",
-          "is_active": "boolean optional",
-          "valid_until": "string optional"
-        },
-        "response_schema": {
-          "data": "SubscriptionDiscount"
-        },
-        "react_query_hook": "useUpdateDiscount",
-        "query_key": null,
-        "invalidates": [
-          "['discounts', 'list']",
-          "['discounts', 'detail', id]"
-        ],
-        "optimistic_updates": true,
-        "optimistic_description": "Update discount in cache"
-      },
-      {
-        "method": "DELETE",
-        "path": "/discounts/:id",
-        "description": "Soft-delete a discount. Blocked if applied to active subscriptions.",
-        "request_schema": {},
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteDiscount",
-        "query_key": null,
-        "invalidates": [
-          "['discounts', 'list']"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/subscriptions/:id/apply-discount",
-        "description": "Apply a discount code to an active subscription. Increments redemption_count atomically.",
-        "request_schema": {
-          "discount_code": "string required"
-        },
-        "response_schema": {
-          "data": "Subscription"
-        },
-        "react_query_hook": "useApplyDiscount",
-        "query_key": null,
-        "invalidates": [
-          "['subscriptions', 'detail', id]",
-          "['discounts', 'list']"
-        ],
-        "optimistic_updates": false
-      }
-    ]
-  },
-  "permissions": {
-    "roles": [
-      "admin",
-      "billing_manager",
-      "support",
-      "viewer"
-    ],
-    "matrix": {
-      "plans.manage": [
-        "admin"
-      ],
-      "plans.view": [
-        "admin",
-        "billing_manager",
-        "support",
-        "viewer"
-      ],
-      "subscriptions.view": [
-        "admin",
-        "billing_manager",
-        "support",
-        "viewer"
-      ],
-      "subscriptions.create": [
-        "admin",
-        "billing_manager"
-      ],
-      "subscriptions.edit": [
-        "admin",
-        "billing_manager"
-      ],
-      "subscriptions.cancel": [
-        "admin"
-      ],
-      "subscriptions.pause": [
-        "admin",
-        "billing_manager"
-      ],
-      "billing_cycles.view": [
-        "admin",
-        "billing_manager",
-        "support"
-      ],
-      "billing_cycles.retry": [
-        "admin",
-        "billing_manager"
-      ],
-      "billing_cycles.waive": [
-        "admin"
-      ],
-      "discounts.manage": [
-        "admin"
-      ],
-      "discounts.view": [
-        "admin",
-        "billing_manager"
-      ]
-    }
-  },
-  "state_management": {
-    "stores": [
-      {
-        "name": "authStore",
-        "description": "Authenticated user, organization, token, and permissions",
-        "state": {
-          "user": "User | null",
-          "org": "Organization | null",
-          "token": "string | null",
-          "permissions": "string[]"
-        },
-        "actions": [
-          "setAuth(user, org, token, permissions)",
-          "clearAuth()",
-          "hasPermission(permission: string): boolean"
-        ]
-      },
-      {
-        "name": "uiStore",
-        "description": "Global UI state for modals, slide-overs, and toasts",
-        "state": {
-          "activeModal": "string | null",
-          "modalData": "unknown",
-          "activeSlideOver": "string | null",
-          "toasts": "Toast[]"
-        },
-        "actions": [
-          "openModal(name, data?)",
-          "closeModal()",
-          "openSlideOver(name, data?)",
-          "closeSlideOver()",
-          "addToast(toast)",
-          "removeToast(id)"
-        ]
-      },
-      {
-        "name": "subscriptionStore",
-        "description": "Active subscription detail and upgrade/downgrade modal state",
-        "state": {
-          "activeSubscription": "Subscription | null",
-          "upgradeModalOpen": "boolean",
-          "upgradeTargetPlanId": "string | null",
-          "cancellationModalOpen": "boolean"
-        },
-        "actions": [
-          "setActiveSubscription(sub)",
-          "openUpgradeModal(planId?)",
-          "closeUpgradeModal()",
-          "openCancellationModal()",
-          "closeCancellationModal()"
-        ]
-      }
-    ],
-    "query_config": {
-      "staleTime": 30000,
-      "refetchOnWindowFocus": false,
-      "retry": 2,
-      "gcTime": 300000
-    },
-    "query_keys": {
-      "subscriptions": {
-        "all": "['subscriptions']",
-        "list": "['subscriptions', 'list', filters]",
-        "detail": "['subscriptions', 'detail', id]"
-      },
-      "plans": {
-        "all": "['plans']",
-        "list": "['plans', 'list', filters]",
-        "detail": "['plans', 'detail', id]"
-      },
-      "billingCycles": {
-        "all": "['billingCycles']",
-        "list": "['billingCycles', 'list', filters]",
-        "subscription": "['billingCycles', 'subscription', subscriptionId]"
-      },
-      "discounts": {
-        "all": "['discounts']",
-        "list": "['discounts', 'list', filters]"
-      }
-    }
-  },
-  "websocket": {
-    "events": [
-      {
-        "event": "subscription.activated",
-        "payload": {
-          "subscriptionId": "string",
-          "customerId": "string"
-        },
-        "description": "Emitted when trial ends and subscription becomes active. Triggers subscription cache invalidation."
-      },
-      {
-        "event": "subscription.cancelled",
-        "payload": {
-          "subscriptionId": "string",
-          "customerId": "string",
-          "effectiveDate": "string"
-        },
-        "description": "Emitted when subscription is cancelled. Updates subscription status in UI."
-      },
-      {
-        "event": "subscription.past_due",
-        "payload": {
-          "subscriptionId": "string",
-          "customerId": "string",
-          "failedAmount": "number"
-        },
-        "description": "Emitted when subscription moves to past_due after max billing attempts."
-      },
-      {
-        "event": "billing_cycle.failed",
-        "payload": {
-          "billingCycleId": "string",
-          "subscriptionId": "string",
-          "attemptCount": "number"
-        },
-        "description": "Emitted when a billing cycle charge attempt fails. Triggers retry scheduling."
-      },
-      {
-        "event": "billing_cycle.paid",
-        "payload": {
-          "billingCycleId": "string",
-          "subscriptionId": "string",
-          "amount": "number"
-        },
-        "description": "Emitted when a billing cycle is successfully paid. Updates billing history."
-      },
-      {
-        "event": "trial.ending",
-        "payload": {
-          "subscriptionId": "string",
-          "customerId": "string",
-          "trialEnd": "string",
-          "daysRemaining": "number"
-        },
-        "description": "Emitted 3 days before trial end. Used for in-app and email notifications."
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Create Subscription",
-      "description": "Create a new subscription for a customer, optionally with trial and discount",
-      "steps": [
-        {
-          "step": 1,
-          "ui": "Navigate to /subscriptions/new",
-          "action": "Router navigation"
-        },
-        {
-          "step": 2,
-          "ui": "Select customer using CustomerSelector",
-          "action": "Form field update"
-        },
-        {
-          "step": 3,
-          "ui": "Choose plan using PlanSelector grid. PlanCard shows price, interval, features.",
-          "action": "Form field update, current_price auto-populated from plan.price"
-        },
-        {
-          "step": 4,
-          "ui": "Set seats, current_period_start. current_period_end auto-calculated from interval.",
-          "action": "Date calculation using date-fns"
-        },
-        {
-          "step": 5,
-          "ui": "Optionally enter discount code",
-          "action": "Client-side discount preview, server validates on submit"
-        },
-        {
-          "step": 6,
-          "ui": "Click Create Subscription",
-          "action": "POST /subscriptions"
-        },
-        {
-          "step": 7,
-          "ui": "Server creates subscription and auto-generates first billing_cycle server-side",
-          "action": "Backend: if plan.trial_days > 0: status=trialing, trial_start=now, trial_end=now+trial_days else status=active"
-        },
-        {
-          "step": 8,
-          "ui": "Redirect to /subscriptions/:id. TrialBadge visible if trialing.",
-          "action": "Invalidate subscriptions.list, customers.detail"
-        }
-      ],
-      "backend_mutations": [
-        "POST /subscriptions"
-      ],
-      "cross_entity_updates": [
-        "customer.active_subscription_count += 1"
-      ],
-      "journal_entry_side_effects": [
-        "On first paid billing cycle: DR Accounts Receivable, CR Deferred Revenue (for prepaid period) or CR Revenue (for current period)"
-      ]
-    },
-    {
-      "name": "Recurring Billing Automated Job",
-      "description": "Automated cron job that generates invoices and attempts charges for due billing cycles",
-      "steps": [
-        {
-          "step": 1,
-          "ui": "No UI \u2014 server-side scheduled job (daily cron)",
-          "action": "SELECT billing_cycles WHERE status=pending AND period_end <= CURRENT_DATE AND deleted_at IS NULL"
-        },
-        {
-          "step": 2,
-          "ui": "For each due cycle:",
-          "action": "POST /invoices with subscription customer and billing_cycle amount"
-        },
-        {
-          "step": 3,
-          "ui": "Attempt charge via payment gateway",
-          "action": "If success: billing_cycle.status=paid, subscription.status=active, socket emit billing_cycle.paid"
-        },
-        {
-          "step": 4,
-          "ui": "On failure:",
-          "action": "billing_cycle.attempt_count += 1, next_retry_at = now + retry_interval, socket emit billing_cycle.failed"
-        },
-        {
-          "step": 5,
-          "ui": "If attempt_count >= 3:",
-          "action": "subscription.status = past_due, socket emit subscription.past_due"
-        },
-        {
-          "step": 6,
-          "ui": "On success, generate next billing_cycle for next period",
-          "action": "INSERT billing_cycles for next period based on billing_interval"
-        }
-      ],
-      "backend_mutations": [
-        "POST /invoices (auto)",
-        "UPDATE billing_cycles (auto)",
-        "INSERT billing_cycles (auto)"
-      ],
-      "cross_entity_updates": [
-        "subscription.status updated on failure threshold",
-        "subscription.current_period_start and current_period_end advanced on success"
-      ],
-      "journal_entry_side_effects": [
-        "DR Accounts Receivable (cycle amount)",
-        "CR Revenue (cycle amount)"
-      ]
-    },
-    {
-      "name": "Upgrade or Downgrade Plan",
-      "description": "Change subscription plan with proration calculation",
-      "steps": [
-        {
-          "step": 1,
-          "ui": "Click Change Plan. UpgradeDowngradeModal opens.",
-          "action": "subscriptionStore.openUpgradeModal()"
-        },
-        {
-          "step": 2,
-          "ui": "Select new plan from PlanSelector. Modal shows current vs new price, proration preview.",
-          "action": "Client-side proration preview: (days_remaining / days_in_cycle) * (new_price - old_price)"
-        },
-        {
-          "step": 3,
-          "ui": "Choose effective: Now or End of Period",
-          "action": "Form selection"
-        },
-        {
-          "step": 4,
-          "ui": "Confirm change",
-          "action": "POST /subscriptions/:id/change-plan { plan_id, effective, prorate }"
-        },
-        {
-          "step": 5,
-          "ui": "Server updates subscription.plan_id and current_price. If effective=now and prorate=true, creates adjustment billing_cycle.",
-          "action": "Backend proration: days_remaining * daily_rate_difference"
-        },
-        {
-          "step": 6,
-          "ui": "Toast: Plan changed. SubscriptionDetail refreshes.",
-          "action": "Invalidate subscriptions.detail, billingCycles.subscription"
-        }
-      ],
-      "backend_mutations": [
-        "POST /subscriptions/:id/change-plan"
-      ],
-      "cross_entity_updates": [
-        "subscription.plan_id updated",
-        "subscription.current_price updated",
-        "new billing_cycle created for proration if applicable"
-      ],
-      "journal_entry_side_effects": [
-        "Proration credit or charge posted to next invoice"
-      ]
-    },
-    {
-      "name": "Cancel Subscription",
-      "description": "Cancel subscription immediately or at end of billing period",
-      "steps": [
-        {
-          "step": 1,
-          "ui": "Click Cancel Subscription. CancellationModal opens.",
-          "action": "subscriptionStore.openCancellationModal()"
-        },
-        {
-          "step": 2,
-          "ui": "Select: Cancel immediately OR Cancel at end of period. Enter optional reason.",
-          "action": "Form state"
-        },
-        {
-          "step": 3,
-          "ui": "Confirm cancellation",
-          "action": "POST /subscriptions/:id/cancel { immediate, reason }"
-        },
-        {
-          "step": 4,
-          "ui": "If immediate: status=cancelled, access ended immediately, no further billing cycles.",
-          "action": "Backend: set cancelled_at=now, status=cancelled, clear pending billing_cycles"
-        },
-        {
-          "step": 5,
-          "ui": "If cancel_at_period_end: status remains active, cancel_at_period_end=true. CancellationBadge shown.",
-          "action": "Backend: set cancel_at_period_end=true, subscription continues until current_period_end"
-        },
-        {
-          "step": 6,
-          "ui": "Toast confirms action. SubscriptionStatusBadge updates.",
-          "action": "Invalidate subscriptions.detail, customers.detail"
-        }
-      ],
-      "backend_mutations": [
-        "POST /subscriptions/:id/cancel"
-      ],
-      "cross_entity_updates": [
-        "customer.active_subscription_count -= 1 (on effective cancellation)"
-      ],
-      "journal_entry_side_effects": []
-    }
-  ],
-  "computed_fields": [
-    {
-      "field": "Subscription.mrr",
-      "formula": "current_price / interval_months WHERE interval_months: monthly=1, quarterly=3, semi_annual=6, annual=12, custom=interval_count",
-      "triggers": [
-        "current_price changed",
-        "plan changed"
-      ],
-      "enforced_at": [
-        "api"
-      ]
-    },
-    {
-      "field": "Subscription.arr",
-      "formula": "mrr * 12",
-      "triggers": [
-        "mrr changed"
-      ],
-      "enforced_at": [
-        "api"
-      ]
-    },
-    {
-      "field": "BillingCycle.amount",
-      "formula": "subscription.current_price * seats - discount_amount",
-      "triggers": [
-        "seats changed",
-        "current_price changed",
-        "discount applied"
-      ],
-      "enforced_at": [
-        "api"
-      ]
-    },
-    {
-      "field": "SubscriptionDiscount.discount_amount",
-      "formula": "IF type = 'percentage' THEN cycle_amount * value / 100 ELSE value",
-      "triggers": [
-        "discount type or value changed"
-      ],
-      "enforced_at": [
-        "api"
-      ]
-    }
-  ],
-  "domain_rules": [
-    {
-      "rule": "cancel_at_period_end prevents immediate access revocation",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "When cancel_at_period_end=true, subscription remains active and billable until current_period_end",
-      "ui_behavior": "Show 'Cancels on [date]' banner on subscription detail. Do not show 'cancelled' badge until effective.",
-      "db_constraint": null
-    },
-    {
-      "rule": "Subscription becomes past_due after 3 consecutive failed billing attempts",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Scheduled retry job checks attempt_count >= 3 and sets status=past_due, emits socket event",
-      "ui_behavior": "SubscriptionStatusBadge shows past_due with amber color. Prompt to retry payment.",
-      "db_constraint": null
-    },
-    {
-      "rule": "Discount redemption_count must not exceed max_redemptions",
-      "enforced_at": [
-        "db",
-        "api"
-      ],
-      "api_guard": "Validate redemption_count < max_redemptions before applying. Use SELECT FOR UPDATE to prevent race condition.",
-      "ui_behavior": "Disable discount code input if discount is exhausted. Show error message.",
-      "db_constraint": "CHECK (max_redemptions IS NULL OR redemption_count <= max_redemptions)"
-    },
-    {
-      "rule": "Trial period cannot be extended after subscription is active",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Return HTTP 422 if attempt is made to set trial_end when status != 'trialing'",
-      "ui_behavior": "Trial date fields are read-only in subscription detail view",
-      "db_constraint": null
-    },
-    {
-      "rule": "Downgrade cannot take effect mid-cycle if proration is disabled",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "If prorate=false and effective=now for a downgrade, reject with HTTP 422 directing user to set effective=period_end",
-      "ui_behavior": "UpgradeDowngradeModal disables 'Now' option for downgrades when proration is disabled in org settings",
-      "db_constraint": null
-    },
-    {
-      "rule": "subscription_number must be unique within org",
-      "enforced_at": [
-        "db"
-      ],
-      "api_guard": "Server generates subscription_number and never accepts it from client",
-      "ui_behavior": "subscription_number is display-only, never shown in create form",
-      "db_constraint": "UNIQUE INDEX ON (org_id, subscription_number)"
-    }
-  ],
-  "design_system": {
-    "colors": {
-      "background": "slate-950",
-      "surface": "slate-900",
-      "border": "slate-800",
-      "text_primary": "white",
-      "text_secondary": "slate-400",
-      "accent": "blue-500",
-      "success": "green-500",
-      "danger": "red-500",
-      "warning": "amber-500",
-      "status_trialing": {
-        "bg": "purple-900",
-        "text": "purple-300",
-        "dot": "purple-400"
-      },
-      "status_active": {
-        "bg": "green-900",
-        "text": "green-300",
-        "dot": "green-400"
-      },
-      "status_past_due": {
-        "bg": "amber-900",
-        "text": "amber-300",
-        "dot": "amber-400"
-      },
-      "status_paused": {
-        "bg": "slate-700",
-        "text": "slate-300",
-        "dot": "slate-400"
-      },
-      "status_cancelled": {
-        "bg": "red-900",
-        "text": "red-300",
-        "dot": "red-400"
-      },
-      "status_expired": {
-        "bg": "slate-800",
-        "text": "slate-500",
-        "dot": "slate-600"
-      }
-    },
-    "typography": {
-      "heading_xl": "text-2xl font-semibold text-white",
-      "heading_lg": "text-xl font-semibold text-white",
-      "body": "text-sm text-slate-300",
-      "caption": "text-xs text-slate-400",
-      "monospace": "font-mono text-sm",
-      "price_display": "text-3xl font-bold text-white"
-    },
-    "spacing": {
-      "page_padding": "px-6 py-8",
-      "card_padding": "p-5",
-      "section_gap": "space-y-6"
-    }
-  },
-  "folder_structure": {
-    "src": {
-      "pages": {
-        "subscriptions": [
-          "SubscriptionListPage.tsx",
-          "SubscriptionCreatePage.tsx",
-          "SubscriptionDetailPage.tsx"
-        ],
-        "plans": [
-          "PlanListPage.tsx",
-          "PlanDetailPage.tsx"
-        ],
-        "discounts": [
-          "DiscountListPage.tsx"
-        ]
-      },
-      "components": {
-        "subscriptions": [
-          "SubscriptionStatusBadge.tsx",
-          "BillingCycleTable.tsx",
-          "TrialBadge.tsx",
-          "UpgradeDowngradeModal.tsx",
-          "CancellationModal.tsx",
-          "SubscriptionTimeline.tsx"
-        ],
-        "plans": [
-          "PlanCard.tsx",
-          "PlanSelector.tsx",
-          "FeatureList.tsx",
-          "PriceDisplay.tsx",
-          "IntervalBadge.tsx"
-        ],
-        "discounts": [
-          "DiscountBadge.tsx",
-          "DiscountForm.tsx"
-        ]
-      },
-      "hooks": [
-        "useSubscriptions.ts",
-        "useSubscription.ts",
-        "usePlans.ts",
-        "useBillingCycles.ts",
-        "useDiscounts.ts",
-        "useCreateSubscription.ts",
-        "useCancelSubscription.ts",
-        "useChangePlan.ts"
-      ],
-      "mutations": [
-        "subscriptionMutations.ts",
-        "planMutations.ts",
-        "billingCycleMutations.ts",
-        "discountMutations.ts"
-      ],
-      "stores": [
-        "authStore.ts",
-        "uiStore.ts",
-        "subscriptionStore.ts"
-      ],
-      "api": [
-        "subscriptionsApi.ts",
-        "plansApi.ts",
-        "billingCyclesApi.ts",
-        "discountsApi.ts",
-        "client.ts"
-      ],
-      "types": [
-        "subscription.types.ts",
-        "plan.types.ts",
-        "billingCycle.types.ts",
-        "discount.types.ts"
-      ],
-      "schemas": [
-        "subscription.schema.ts",
-        "plan.schema.ts",
-        "discount.schema.ts"
-      ],
-      "constants": [
-        "statusColors.ts",
-        "billingIntervals.ts",
-        "queryKeys.ts"
-      ]
-    }
-  },
-  "generation_rules": {
-    "constraints": [
-      "subscription_number MUST be auto-generated server-side and never accepted from client",
-      "First billing_cycle MUST be auto-created server-side when a subscription is POST-ed, never from client",
-      "MRR and ARR computations MUST always be derived from current_price and billing_interval at runtime, never stored",
-      "UpgradeDowngradeModal MUST show a proration preview before confirmation, computed client-side as (days_remaining / days_in_cycle) * price_difference",
-      "CancellationModal MUST clearly display when access will end based on the selected cancellation mode",
-      "EVERY mutation MUST implement onMutate, onError, and onSettled for optimistic updates",
-      "SubscriptionStatusBadge MUST read colors from constants/statusColors.ts",
-      "Discount redemption MUST use a database transaction with SELECT FOR UPDATE to prevent race conditions",
-      "BillingCycleTable retry button MUST be visible only to roles with billing_cycles.retry permission",
-      "Trial-ending WebSocket event MUST trigger an in-app notification visible via NotificationBell",
-      "AuthGuard MUST wrap all routes and check feature-level permissions"
-    ]
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, row-level security anchor"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null,
-      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
-    }
-  },
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {},
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  },
-  "external_entity_refs": [
-    {
-      "name": "Invoice",
-      "defined_in": "invoice_billing_spec.json",
-      "table": "invoices",
-      "description": "Invoice generated for a billing cycle. Full definition in invoice_billing_spec.",
-      "fk_fields_in_this_spec": [
-        "BillingCycle.invoice_id"
       ]
     }
   ]

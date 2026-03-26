@@ -1,634 +1,363 @@
 {
-  "spec_version": "1.0.0",
-  "file": "tax_management_spec.json",
-  "tech_stack": {
-    "frontend": [
-      "React 18",
-      "TypeScript strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form v7",
-      "Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node.js",
-      "Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
+  "_meta": {
+    "app_name": "Tax Management",
+    "description": "Complete tax management management"
   },
-  "design": {
-    "theme": "dark",
-    "bg": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber"
-  },
+  "spec_name": "tax_management_spec",
   "entities": [
     {
-      "table": "tax_rates",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "code"
-          ],
-          "unique": true
-        },
-        {
-          "columns": [
-            "org_id",
-            "tax_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "jurisdiction"
-          ]
-        }
-      ],
+      "name": "Client",
+      "table": "tax_clients",
+      "description": "Client",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(100) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "code",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 20
-          }
-        },
-        {
-          "name": "percentage",
-          "db_type": "NUMERIC(6,4) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "PercentageInput",
-          "display_component": "PercentageDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0,
-            "max": 100,
-            "decimalPlaces": 4
-          }
-        },
-        {
-          "name": "tax_type",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'sales' | 'purchase' | 'both' | 'withholding'",
-          "nullable": false,
-          "default": "both",
-          "input_component": "Select",
-          "display_component": "TaxRateBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "sales",
-              "purchase",
-              "both",
-              "withholding"
-            ]
-          }
-        },
-        {
-          "name": "jurisdiction",
-          "db_type": "VARCHAR(100) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "JurisdictionBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "tax_authority",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "is_compound",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "effective_date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "expiry_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "date",
-            "afterField": "effective_date"
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "name": "TaxRate",
-      "description": "TaxRate entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "code",
-            "percentage",
-            "tax_type",
-            "jurisdiction",
-            "is_compound"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No TaxRates yet",
-            "subtext": "Create your first taxrate",
-            "action_label": "Add TaxRate"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "code",
-            "percentage",
-            "tax_type",
-            "jurisdiction",
-            "tax_authority",
-            "is_compound",
-            "is_active",
-            "effective_date",
-            "expiry_date",
-            "description"
-          ],
-          "required_fields": [
-            "name",
-            "code"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "code",
-            "percentage",
-            "tax_type",
-            "jurisdiction",
-            "tax_authority",
-            "is_compound",
-            "is_active",
-            "effective_date",
-            "expiry_date",
-            "description"
-          ],
-          "required_fields": [
-            "name",
-            "code"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/tax_rates/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "code",
-            "percentage",
-            "tax_type"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "code",
-                "percentage",
-                "tax_type",
-                "jurisdiction",
-                "is_compound",
-                "is_active",
-                "effective_date"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "tax_filings",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "filing_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "period_start"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "jurisdiction"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "filing_type",
-          "db_type": "VARCHAR(30) NOT NULL",
-          "ts_type": "'sales_tax' | 'income_tax' | 'payroll_tax' | 'vat' | 'gst' | 'custom'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "sales_tax",
-              "income_tax",
-              "payroll_tax",
-              "vat",
-              "gst",
-              "custom"
-            ]
-          }
-        },
-        {
-          "name": "jurisdiction",
-          "db_type": "VARCHAR(100) NOT NULL",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "JurisdictionBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "maxLength": 100
+            "rule": "email",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "period_start",
-          "db_type": "DATE NOT NULL",
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
           "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
+          "nullable": true,
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "format": "date"
+            "rule": "phone",
+            "message": "Valid phone number required"
           }
         },
         {
-          "name": "period_end",
-          "db_type": "DATE NOT NULL",
+          "name": "tax_id",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "client_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "individual",
+            "business",
+            "trust",
+            "nonprofit"
+          ],
+          "badge_colors": {
+            "individual": "blue",
+            "business": "green",
+            "trust": "purple",
+            "nonprofit": "amber"
+          }
+        },
+        {
+          "name": "filing_status",
+          "db_type": "VARCHAR(30)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "single",
+            "married_joint",
+            "married_separate",
+            "head_of_household",
+            "qualifying_widow"
+          ],
+          "badge_colors": {
+            "single": "blue",
+            "married_joint": "green",
+            "married_separate": "amber",
+            "head_of_household": "purple",
+            "qualifying_widow": "pink"
+          }
+        },
+        {
+          "name": "total_tax_paid",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(payments.amount)",
           "validation": {
-            "required": true,
-            "format": "date",
-            "afterField": "period_start"
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "inactive",
+            "prospect"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "slate",
+            "prospect": "blue"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "TaxReturn",
+      "table": "tax_returns",
+      "description": "TaxReturn",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Client"
+        },
+        {
+          "name": "tax_year",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 2000,
+            "max": 2100
+          }
+        },
+        {
+          "name": "return_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "1040",
+            "1120",
+            "1065",
+            "990",
+            "1041",
+            "state"
+          ],
+          "badge_colors": {
+            "1040": "blue",
+            "1120": "green",
+            "1065": "purple",
+            "990": "amber",
+            "1041": "pink",
+            "state": "slate"
+          }
+        },
+        {
+          "name": "gross_income",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "total_deductions",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "taxable_income",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "gross_income - total_deductions",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "tax_liability",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "calculated from brackets",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "total_payments",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "refund_or_due",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "total_payments - tax_liability",
+          "validation": {
+            "min": 0
           }
         },
         {
@@ -636,1258 +365,437 @@
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "filing_date",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'pending' | 'in_progress' | 'filed' | 'overdue' | 'amended'",
-          "nullable": false,
-          "default": "pending",
-          "input_component": "Select",
-          "display_component": "FilingStatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "enum": [
-              "pending",
-              "in_progress",
-              "filed",
-              "overdue",
-              "amended"
-            ]
-          }
-        },
-        {
-          "name": "taxable_amount",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "tax_amount",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "penalties",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "interest",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "total_due",
-          "db_type": "NUMERIC(15,2) GENERATED ALWAYS AS (tax_amount + penalties + interest) STORED",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "amount_paid",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "balance_due",
-          "db_type": "NUMERIC(15,2) GENERATED ALWAYS AS (tax_amount + penalties + interest - amount_paid) STORED",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "filing_reference",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "filed_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "payment_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "name": "TaxFiling",
-      "description": "TaxFiling entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "filing_type",
-            "jurisdiction",
-            "period_start",
-            "period_end",
-            "due_date",
-            "filing_date"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No TaxFilings yet",
-            "subtext": "Create your first taxfiling",
-            "action_label": "Add TaxFiling"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "filing_type",
-            "jurisdiction",
-            "period_start",
-            "period_end",
-            "due_date",
-            "taxable_amount",
-            "tax_amount",
-            "penalties",
-            "interest",
-            "filing_reference",
-            "notes"
-          ],
-          "required_fields": [
-            "filing_type",
-            "jurisdiction"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "filing_type",
-            "jurisdiction",
-            "period_start",
-            "period_end",
-            "due_date",
-            "taxable_amount",
-            "tax_amount",
-            "penalties",
-            "interest",
-            "filing_reference",
-            "notes"
-          ],
-          "required_fields": [
-            "filing_type",
-            "jurisdiction"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/tax_filings/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "filing_type"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "filing_type",
-            "jurisdiction",
-            "period_start",
-            "period_end"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "filing_type",
-                "jurisdiction",
-                "period_start",
-                "period_end",
-                "due_date",
-                "filing_date",
-                "status",
-                "taxable_amount",
-                "tax_amount",
-                "total_due",
-                "amount_paid",
-                "balance_due"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "tax_records",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "source_entity_type",
-            "source_entity_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "tax_rate_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "transaction_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "filing_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "period_label"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "source_entity_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 50
-          }
-        },
-        {
-          "name": "source_entity_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "tax_rate_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TaxRateBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "transaction_date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "taxable_amount",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "tax_amount",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "direction",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'collected' | 'paid'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "collected",
-              "paid"
-            ]
-          }
-        },
-        {
-          "name": "period_label",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "maxLength": 20
-          }
-        },
-        {
-          "name": "filing_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "not_started",
+            "in_progress",
+            "review",
+            "filed",
+            "amended",
+            "extended"
+          ],
+          "badge_colors": {
+            "not_started": "slate",
+            "in_progress": "blue",
+            "review": "amber",
+            "filed": "green",
+            "amended": "purple",
+            "extended": "pink"
           }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "table": "tax_documents",
+      "description": "Document",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "name": "TaxRecord",
-      "description": "TaxRecord entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "source_entity_type",
-            "source_entity_id",
-            "tax_rate_id",
-            "transaction_date",
-            "taxable_amount",
-            "tax_amount"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No TaxRecords yet",
-            "subtext": "Create your first taxrecord",
-            "action_label": "Add TaxRecord"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "source_entity_type",
-            "tax_rate_id",
-            "transaction_date",
-            "taxable_amount",
-            "tax_amount",
-            "direction",
-            "notes"
-          ],
-          "required_fields": [
-            "source_entity_type",
-            "tax_rate_id"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "source_entity_type",
-            "tax_rate_id",
-            "transaction_date",
-            "taxable_amount",
-            "tax_amount",
-            "direction",
-            "notes"
-          ],
-          "required_fields": [
-            "source_entity_type",
-            "tax_rate_id"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/tax_records/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "source_entity_type"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "source_entity_type",
-            "source_entity_id",
-            "tax_rate_id",
-            "transaction_date"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "source_entity_type",
-                "source_entity_id",
-                "tax_rate_id",
-                "transaction_date",
-                "taxable_amount",
-                "tax_amount",
-                "direction",
-                "period_label"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "tax_exemptions",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "entity_type",
-            "entity_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "entity_type",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'customer' | 'vendor' | 'product'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "customer",
-              "vendor",
-              "product"
-            ]
-          }
-        },
-        {
-          "name": "entity_id",
+          "name": "tax_return_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
         },
         {
-          "name": "tax_rate_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TaxRateBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "exemption_certificate",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "valid_from",
-          "db_type": "DATE NOT NULL",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "doc_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "w2",
+            "1099",
+            "1098",
+            "k1",
+            "receipt",
+            "bank_statement",
+            "other"
+          ],
+          "badge_colors": {
+            "w2": "blue",
+            "1099": "green",
+            "1098": "purple",
+            "k1": "amber",
+            "receipt": "pink",
+            "bank_statement": "slate",
+            "other": "red"
           }
         },
         {
-          "name": "valid_until",
-          "db_type": "DATE",
-          "ts_type": "string | null",
+          "name": "file_url",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "file_upload",
+          "display_component": "file_link"
+        },
+        {
+          "name": "tax_year",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "date",
-            "afterField": "valid_from"
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "verified",
+            "rejected",
+            "archived"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "verified": "green",
+            "rejected": "red",
+            "archived": "slate"
           }
         },
         {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
+          "name": "uploaded_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Deduction",
+      "table": "tax_deductions",
+      "description": "Deduction",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "tax_return_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "mortgage_interest",
+            "charitable",
+            "medical",
+            "state_local_tax",
+            "business_expense",
+            "education",
+            "other"
+          ],
+          "badge_colors": {
+            "mortgage_interest": "blue",
+            "charitable": "green",
+            "medical": "red",
+            "state_local_tax": "purple",
+            "business_expense": "amber",
+            "education": "pink",
+            "other": "slate"
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "is_itemized",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
           "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "ExemptionBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false
-          }
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
+          "name": "documentation_status",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "documented",
+            "needs_docs",
+            "insufficient"
+          ],
+          "badge_colors": {
+            "documented": "green",
+            "needs_docs": "amber",
+            "insufficient": "red"
           }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Payment",
+      "table": "tax_payments",
+      "description": "Payment",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "name": "TaxExemption",
-      "description": "TaxExemption entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "entity_type",
-            "entity_id",
-            "tax_rate_id",
-            "exemption_certificate",
-            "valid_from",
-            "valid_until"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No TaxExemptions yet",
-            "subtext": "Create your first taxexemption",
-            "action_label": "Add TaxExemption"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "entity_type",
-            "entity_id",
-            "tax_rate_id",
-            "exemption_certificate",
-            "valid_from",
-            "valid_until",
-            "is_active",
-            "notes"
-          ],
-          "required_fields": [
-            "entity_type",
-            "entity_id"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "entity_type",
-            "entity_id",
-            "tax_rate_id",
-            "exemption_certificate",
-            "valid_from",
-            "valid_until",
-            "is_active",
-            "notes"
-          ],
-          "required_fields": [
-            "entity_type",
-            "entity_id"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/tax_exemptions/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "entity_type"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "entity_type",
-            "entity_id",
-            "tax_rate_id",
-            "exemption_certificate"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "entity_type",
-                "entity_id",
-                "tax_rate_id",
-                "exemption_certificate",
-                "valid_from",
-                "valid_until",
-                "is_active"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "tax_payments",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "filing_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "payment_date"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "filing_id",
+          "name": "tax_return_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
+        },
+        {
+          "name": "payment_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "estimated_q1",
+            "estimated_q2",
+            "estimated_q3",
+            "estimated_q4",
+            "withholding",
+            "extension",
+            "final"
+          ],
+          "badge_colors": {
+            "estimated_q1": "blue",
+            "estimated_q2": "green",
+            "estimated_q3": "purple",
+            "estimated_q4": "amber",
+            "withholding": "pink",
+            "extension": "slate",
+            "final": "red"
           }
         },
         {
@@ -1895,17 +803,13 @@
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true,
-            "min": 0.01
+            "min": 0
           }
         },
         {
@@ -1913,1062 +817,268 @@
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
-          "name": "payment_method",
-          "db_type": "VARCHAR(30) NOT NULL",
-          "ts_type": "'bank_transfer' | 'check' | 'online' | 'other'",
+          "name": "method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "PaymentMethodBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "bank_transfer",
-              "check",
-              "online",
-              "other"
-            ]
-          }
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "eft",
+            "check",
+            "credit_card",
+            "eftps"
+          ]
         },
         {
-          "name": "reference",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
+          "name": "confirmation_number",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 255
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "paid",
+            "confirmed",
+            "failed"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "paid": "green",
+            "confirmed": "purple",
+            "failed": "red"
           }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Filing",
+      "table": "tax_filings",
+      "description": "Filing",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "name": "TaxPayment",
-      "description": "TaxPayment entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "filing_id",
-            "amount",
-            "payment_date",
-            "payment_method"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "tax_return_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "TaxReturn"
+        },
+        {
+          "name": "filing_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "original",
+            "amended",
+            "extension"
           ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No TaxPayments yet",
-            "subtext": "Create your first taxpayment",
-            "action_label": "Add TaxPayment"
+          "badge_colors": {
+            "original": "blue",
+            "amended": "amber",
+            "extension": "purple"
           }
         },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "filing_id",
-            "amount",
-            "payment_date",
-            "payment_method",
-            "reference",
-            "notes"
+        {
+          "name": "filing_method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "e_file",
+            "mail",
+            "in_person"
+          ]
+        },
+        {
+          "name": "filed_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "confirmation_number",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "accepted_rejected",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "status_badge",
+          "enum_values": [
+            "accepted",
+            "rejected",
+            "pending"
           ],
-          "required_fields": [
-            "filing_id",
-            "amount"
-          ]
+          "badge_colors": {
+            "accepted": "green",
+            "rejected": "red",
+            "pending": "amber"
+          }
         },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "filing_id",
-            "amount",
-            "payment_date",
-            "payment_method",
-            "reference",
-            "notes"
+        {
+          "name": "rejection_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "accepted_rejected",
+            "operator": "eq",
+            "value": "rejected"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "submitted",
+            "accepted",
+            "rejected",
+            "processing"
           ],
-          "required_fields": [
-            "filing_id",
-            "amount"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/tax_payments/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "filing_id"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "filing_id",
-            "amount",
-            "payment_date",
-            "payment_method"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "filing_id",
-                "amount",
-                "payment_date",
-                "payment_method"
-              ]
-            }
-          ]
-        }
-      }
-    }
-  ],
-  "components": [
-    "DataTable",
-    "SlideOverForm",
-    "StatusBadge",
-    "CurrencyDisplay",
-    "CurrencyInput",
-    "NumberDisplay",
-    "PercentageDisplay",
-    "PercentageInput",
-    "Select",
-    "MultiSelect",
-    "Toggle",
-    "DatePicker",
-    "TextInput",
-    "Textarea",
-    "PlainText",
-    "MonospaceText",
-    "TruncatedText",
-    "TextLink",
-    "AbsoluteDate",
-    "RelativeDate",
-    "YesNoBadge",
-    "PageHeader",
-    "FilterPanel",
-    "TabPanel",
-    "EmptyState",
-    "LoadingSkeleton",
-    "ConfirmationDialog",
-    "StatCard",
-    "ActivityTimeline",
-    "AuthGuard",
-    "NotificationBell",
-    "TaxRateBadge",
-    "JurisdictionBadge",
-    "FilingStatusBadge",
-    "TaxSummaryTable",
-    "TaxCalendarWidget",
-    "TaxBreakdownChart",
-    "FilingProgressTracker",
-    "TaxRecordTable",
-    "ExemptionBadge",
-    "PaymentMethodBadge"
-  ],
-  "modules": [
-    {
-      "name": "TaxRateList",
-      "route": "/tax-rates",
-      "tabs": [
-        "All",
-        "Active",
-        "By Jurisdiction"
-      ]
-    },
-    {
-      "name": "TaxFilingList",
-      "route": "/tax-filings",
-      "tabs": [
-        "Pending",
-        "In Progress",
-        "Filed",
-        "Overdue"
-      ]
-    },
-    {
-      "name": "TaxFilingDetail",
-      "route": "/tax-filings/:id",
-      "tabs": [
-        "Overview",
-        "Records",
-        "Payments",
-        "Activity"
-      ]
-    },
-    {
-      "name": "TaxFilingCreate",
-      "route": "/tax-filings/new",
-      "tabs": []
-    },
-    {
-      "name": "TaxCalendar",
-      "route": "/tax-calendar",
-      "tabs": []
-    },
-    {
-      "name": "TaxExemptionList",
-      "route": "/tax-exemptions",
-      "tabs": []
-    },
-    {
-      "name": "TaxReports",
-      "route": "/reports/tax",
-      "tabs": []
-    },
-    {
-      "name": "TaxSettings",
-      "route": "/settings/tax",
-      "tabs": []
-    }
-  ],
-  "api": {
-    "tax_rates": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/tax-rates",
-          "description": "List all tax rates"
+          "badge_colors": {
+            "submitted": "amber",
+            "accepted": "green",
+            "rejected": "red",
+            "processing": "blue"
+          }
         },
         {
-          "method": "POST",
-          "path": "/tax-rates",
-          "description": "Create tax rate"
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "method": "GET",
-          "path": "/tax-rates/:id",
-          "description": "Get tax rate"
-        },
-        {
-          "method": "PATCH",
-          "path": "/tax-rates/:id",
-          "description": "Update tax rate"
-        },
-        {
-          "method": "DELETE",
-          "path": "/tax-rates/:id",
-          "description": "Delete tax rate"
-        },
-        {
-          "method": "GET",
-          "path": "/tax-rates/by-jurisdiction/:jurisdiction",
-          "description": "Get rates by jurisdiction"
-        }
-      ]
-    },
-    "tax_filings": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/tax-filings",
-          "description": "List all filings"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-filings",
-          "description": "Create filing"
-        },
-        {
-          "method": "GET",
-          "path": "/tax-filings/:id",
-          "description": "Get filing"
-        },
-        {
-          "method": "PATCH",
-          "path": "/tax-filings/:id",
-          "description": "Update filing"
-        },
-        {
-          "method": "DELETE",
-          "path": "/tax-filings/:id",
-          "description": "Delete filing"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-filings/:id/start",
-          "description": "Start filing process"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-filings/:id/file",
-          "description": "Submit filing"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-filings/:id/amend",
-          "description": "Amend filed filing"
-        },
-        {
-          "method": "GET",
-          "path": "/tax-filings/:id/records",
-          "description": "List included tax records"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-filings/:id/include-records",
-          "description": "Batch link tax records to filing"
-        }
-      ]
-    },
-    "tax_records": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/tax-records",
-          "description": "List tax records, filterable by period/type/direction"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-records",
-          "description": "Create manual tax record"
-        },
-        {
-          "method": "GET",
-          "path": "/tax-records/summary",
-          "description": "Aggregated totals",
-          "query_params": [
-            "period",
-            "jurisdiction"
-          ]
-        }
-      ]
-    },
-    "tax_exemptions": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/tax-exemptions",
-          "description": "List exemptions"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-exemptions",
-          "description": "Create exemption"
-        },
-        {
-          "method": "GET",
-          "path": "/tax-exemptions/:id",
-          "description": "Get exemption"
-        },
-        {
-          "method": "PATCH",
-          "path": "/tax-exemptions/:id",
-          "description": "Update exemption"
-        },
-        {
-          "method": "DELETE",
-          "path": "/tax-exemptions/:id",
-          "description": "Delete exemption"
-        },
-        {
-          "method": "GET",
-          "path": "/tax-exemptions/check",
-          "description": "Check if entity is exempt",
-          "query_params": [
-            "entity_type",
-            "entity_id",
-            "tax_rate_id"
-          ]
-        }
-      ]
-    },
-    "tax_payments": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/tax-payments",
-          "description": "List tax payments"
-        },
-        {
-          "method": "POST",
-          "path": "/tax-payments",
-          "description": "Record tax payment"
-        },
-        {
-          "method": "GET",
-          "path": "/tax-payments/:id",
-          "description": "Get tax payment"
-        }
-      ]
-    },
-    "reports": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/reports/tax-summary",
-          "query_params": [
-            "from",
-            "to",
-            "jurisdiction"
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/reports/tax-by-rate",
-          "query_params": [
-            "from",
-            "to"
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/reports/sales-tax-report",
-          "query_params": [
-            "from",
-            "to",
-            "state"
-          ]
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     }
-  },
-  "permissions": {
-    "roles": [
-      "admin",
-      "accountant",
-      "tax_manager",
-      "viewer"
-    ],
-    "matrix": {
-      "tax_rates.manage": [
-        "admin",
-        "tax_manager",
-        "accountant"
-      ],
-      "filings.create": [
-        "admin",
-        "tax_manager",
-        "accountant"
-      ],
-      "filings.edit": [
-        "admin",
-        "tax_manager",
-        "accountant"
-      ],
-      "filings.file": [
-        "admin",
-        "tax_manager"
-      ],
-      "exemptions.manage": [
-        "admin",
-        "tax_manager"
-      ],
-      "records.view": [
-        "admin",
-        "accountant",
-        "tax_manager",
-        "viewer"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      "authStore",
-      "uiStore",
-      "taxFilingStore"
-    ],
-    "taxFilingStore": {
-      "state_keys": [
-        "draftFiling",
-        "selectedRecords",
-        "computationState"
-      ]
-    },
-    "query_keys": [
-      "taxRates",
-      "taxFilings",
-      "taxRecords",
-      "taxExemptions",
-      "taxPayments"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "event": "filing.due_soon",
-        "description": "Emitted 7 days before filing due date"
-      },
-      {
-        "event": "filing.overdue",
-        "description": "Emitted when filing becomes overdue"
-      },
-      {
-        "event": "filing.filed",
-        "description": "Emitted when filing is submitted"
-      },
-      {
-        "event": "tax_record.created",
-        "description": "Emitted when a new tax record is created"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Calculate Taxes for Period",
-      "steps": [
-        "Select period and jurisdiction",
-        "GET /tax-records/summary?period=&jurisdiction= to retrieve aggregated collected/paid amounts by rate",
-        "Review aggregated amounts",
-        "POST /tax-filings to create TaxFiling",
-        "POST /tax-filings/:id/include-records to link records",
-        "Compute totals"
-      ],
-      "backend_mutations": [
-        "POST /tax-filings",
-        "POST /tax-filings/:id/include-records"
-      ],
-      "cross_entity_updates": [
-        "TaxRecord.filing_id set for all included records"
-      ]
-    },
-    {
-      "name": "Generate Filing",
-      "steps": [
-        "POST /tax-filings/:id/file",
-        "Validate all records included and all periods covered",
-        "Mark status=filed",
-        "Set filing_date and filing_reference",
-        "Generate PDF filing report",
-        "Store as attachment"
-      ],
-      "journal_entry_side_effects": [
-        "DR Tax Payable / CR Bank on tax payment"
-      ]
-    },
-    {
-      "name": "Record Tax Payment",
-      "steps": [
-        "POST /tax-payments with amount, payment_date, method",
-        "Update filing.amount_paid",
-        "If amount_paid >= total_due: set filing status to complete"
-      ]
-    },
-    {
-      "name": "Handle Tax Exemption",
-      "steps": [
-        "GET /tax-exemptions/check to verify exemption status",
-        "If exempt: zero out tax on invoice/bill",
-        "Create TaxRecord with tax_amount=0, note exemption certificate"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "entity": "TaxFiling",
-      "field": "total_due",
-      "formula": "tax_amount + penalties + interest"
-    },
-    {
-      "entity": "TaxFiling",
-      "field": "balance_due",
-      "formula": "total_due - amount_paid"
-    },
-    {
-      "entity": "TaxRecord",
-      "field": "tax_amount",
-      "formula": "taxable_amount * tax_rate.percentage / 100"
-    },
-    {
-      "entity": "TaxSummary",
-      "field": "net_tax_liability",
-      "formula": "total_collected - total_paid",
-      "level": "report"
-    }
-  ],
-  "domain_rules": [
-    {
-      "rule": "Filed filings cannot be edited; they must be amended",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Check status !== 'filed' before allowing PATCH; return 409 if filed",
-      "ui_behavior": "Disable all form fields and show Amend button when status=filed",
-      "db_constraint": null
-    },
-    {
-      "rule": "Tax records included in a filed filing cannot be removed from it",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Check filing.status !== 'filed' before allowing record removal",
-      "ui_behavior": null,
-      "db_constraint": null
-    },
-    {
-      "rule": "Tax exemption valid_from must be <= today to be considered active",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Filter exemptions where valid_from <= CURRENT_DATE when checking active status",
-      "ui_behavior": null,
-      "db_constraint": null
-    },
-    {
-      "rule": "Overdue filings get penalty and interest auto-calculated via background job",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Background job runs nightly; sets status=overdue and updates penalties/interest",
-      "ui_behavior": null,
-      "db_constraint": null
-    },
-    {
-      "rule": "Tax payment amount cannot exceed filing.balance_due",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Validate payment.amount <= filing.balance_due; return 422 if exceeded",
-      "ui_behavior": "Show warning and cap input at balance_due",
-      "db_constraint": null
-    },
-    {
-      "rule": "Tax rate code must be unique within org",
-      "enforced_at": [
-        "db"
-      ],
-      "api_guard": null,
-      "ui_behavior": null,
-      "db_constraint": "UNIQUE INDEX on (org_id, code)"
-    }
-  ],
-  "_meta": {
-    "title": "tax_management_spec.json",
-    "domain": "Operations",
-    "version": "1.0"
-  },
-  "design_system": {
-    "theme": "dark",
-    "bg": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber"
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, row-level security anchor"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null,
-      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
-    }
-  },
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {},
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  },
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total TaxRates",
-        "entity": "TaxRate",
-        "method": "count",
-        "icon": "Box",
-        "color": "blue"
-      }
-    ]
-  }
+  ]
 }

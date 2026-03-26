@@ -5,6 +5,314 @@
   },
   "entities": [
     {
+      "name": "Agent",
+      "table": "agents",
+      "description": "Insurance agent",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "license_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "specialization",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "life",
+            "health",
+            "auto",
+            "home",
+            "commercial",
+            "specialty"
+          ],
+          "badge_colors": {
+            "life": "blue",
+            "health": "green",
+            "auto": "orange",
+            "home": "purple",
+            "commercial": "teal",
+            "specialty": "pink"
+          }
+        },
+        {
+          "name": "commission_rate",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 10",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 10,
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "suspended"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "suspended": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialization",
+            "commission_rate"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Agents yet",
+            "subtext": "Create your first agent",
+            "action_label": "Add Agent"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialization",
+            "commission_rate",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialization",
+            "commission_rate",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialization",
+            "commission_rate",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "specialization",
+            "commission_rate",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/agents/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "license_number",
+                "specialization",
+                "commission_rate"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "license_number",
+                "specialization",
+                "commission_rate",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "Policy",
       "table": "policies",
       "description": "Insurance policy",
@@ -40,7 +348,25 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "agents",
+          "fk_display": "name"
         },
         {
           "name": "holder_name",
@@ -51,56 +377,103 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "type",
+          "name": "holder_email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "auto",
-            "home",
-            "health",
-            "life",
-            "business",
-            "travel"
-          ],
-          "badge_colors": {
-            "auto": "blue",
-            "home": "green",
-            "health": "pink",
-            "life": "purple",
-            "business": "amber",
-            "travel": "blue"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "premium",
+          "name": "policy_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "life",
+            "health",
+            "auto",
+            "home",
+            "renters",
+            "commercial",
+            "umbrella"
+          ],
+          "badge_colors": {
+            "life": "blue",
+            "health": "green",
+            "auto": "orange",
+            "home": "purple",
+            "renters": "teal",
+            "commercial": "yellow",
+            "umbrella": "pink"
+          }
+        },
+        {
+          "name": "premium_amount",
           "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
-          "name": "coverage",
+          "name": "coverage_amount",
           "db_type": "NUMERIC(14,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "deductible",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
           "name": "start_date",
@@ -110,8 +483,10 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "end_date",
@@ -121,30 +496,37 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
           "enum_values": [
             "active",
             "expired",
             "cancelled",
-            "suspended"
+            "suspended",
+            "pending"
           ],
           "badge_colors": {
             "active": "green",
-            "expired": "slate",
+            "expired": "gray",
             "cancelled": "red",
-            "suspended": "amber"
+            "suspended": "orange",
+            "pending": "yellow"
           }
         },
         {
@@ -197,11 +579,11 @@
           "layout": "table",
           "columns": [
             "policy_number",
+            "agent_id",
             "holder_name",
-            "type",
-            "premium",
-            "coverage",
-            "start_date"
+            "holder_email",
+            "policy_type",
+            "premium_amount"
           ],
           "filters": [],
           "empty_state": {
@@ -215,34 +597,58 @@
           "type": "SlideOverForm",
           "field_order": [
             "policy_number",
+            "agent_id",
             "holder_name",
-            "type",
-            "premium",
-            "coverage",
+            "holder_email",
+            "policy_type",
+            "premium_amount",
+            "coverage_amount",
+            "deductible",
             "start_date",
             "end_date",
             "status"
           ],
           "required_fields": [
             "policy_number",
-            "holder_name"
+            "agent_id",
+            "holder_name",
+            "holder_email",
+            "policy_type",
+            "premium_amount",
+            "coverage_amount",
+            "deductible",
+            "start_date",
+            "end_date",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "policy_number",
+            "agent_id",
             "holder_name",
-            "type",
-            "premium",
-            "coverage",
+            "holder_email",
+            "policy_type",
+            "premium_amount",
+            "coverage_amount",
+            "deductible",
             "start_date",
             "end_date",
             "status"
           ],
           "required_fields": [
             "policy_number",
-            "holder_name"
+            "agent_id",
+            "holder_name",
+            "holder_email",
+            "policy_type",
+            "premium_amount",
+            "coverage_amount",
+            "deductible",
+            "start_date",
+            "end_date",
+            "status"
           ],
           "prefilled": true
         },
@@ -257,19 +663,33 @@
           },
           "primary_fields": [
             "policy_number",
+            "agent_id",
             "holder_name",
-            "type",
-            "premium"
+            "holder_email"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "policy_number",
+                "agent_id",
                 "holder_name",
-                "type",
-                "premium",
-                "coverage",
+                "holder_email",
+                "policy_type",
+                "premium_amount"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "policy_number",
+                "agent_id",
+                "holder_name",
+                "holder_email",
+                "policy_type",
+                "premium_amount",
+                "coverage_amount",
+                "deductible",
                 "start_date",
                 "end_date",
                 "status"
@@ -277,7 +697,16 @@
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "agent_id",
+          "references": {
+            "table": "agents",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Claim",
@@ -315,51 +744,38 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "policy_number",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "policy_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "policies",
+          "fk_display": "policy_number"
         },
         {
-          "name": "claimant_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "date_of_incident",
+          "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "amount",
-          "db_type": "NUMERIC(12,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "date_filed",
@@ -369,19 +785,74 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "claimed_amount",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "approved_amount",
+          "db_type": "NUMERIC(14,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "approved",
+              "paid"
+            ]
+          }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'filed'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "filed",
           "enum_values": [
             "filed",
             "under_review",
@@ -392,11 +863,29 @@
           ],
           "badge_colors": {
             "filed": "blue",
-            "under_review": "amber",
+            "under_review": "yellow",
             "approved": "green",
             "denied": "red",
-            "paid": "green",
-            "appealed": "purple"
+            "paid": "teal",
+            "appealed": "orange"
+          }
+        },
+        {
+          "name": "denial_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "denied"
           }
         },
         {
@@ -449,11 +938,11 @@
           "layout": "table",
           "columns": [
             "claim_number",
-            "policy_number",
-            "claimant_name",
-            "description",
-            "amount",
-            "date_filed"
+            "policy_id",
+            "date_of_incident",
+            "date_filed",
+            "claimed_amount",
+            "approved_amount"
           ],
           "filters": [],
           "empty_state": {
@@ -467,32 +956,46 @@
           "type": "SlideOverForm",
           "field_order": [
             "claim_number",
-            "policy_number",
-            "claimant_name",
-            "description",
-            "amount",
+            "policy_id",
+            "date_of_incident",
             "date_filed",
-            "status"
+            "description",
+            "claimed_amount",
+            "approved_amount",
+            "status",
+            "denial_reason"
           ],
           "required_fields": [
             "claim_number",
-            "policy_number"
+            "policy_id",
+            "date_of_incident",
+            "date_filed",
+            "description",
+            "claimed_amount",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "claim_number",
-            "policy_number",
-            "claimant_name",
-            "description",
-            "amount",
+            "policy_id",
+            "date_of_incident",
             "date_filed",
-            "status"
+            "description",
+            "claimed_amount",
+            "approved_amount",
+            "status",
+            "denial_reason"
           ],
           "required_fields": [
             "claim_number",
-            "policy_number"
+            "policy_id",
+            "date_of_incident",
+            "date_filed",
+            "description",
+            "claimed_amount",
+            "status"
           ],
           "prefilled": true
         },
@@ -507,243 +1010,48 @@
           },
           "primary_fields": [
             "claim_number",
-            "policy_number",
-            "claimant_name",
-            "description"
+            "policy_id",
+            "date_of_incident",
+            "date_filed"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "claim_number",
-                "policy_number",
-                "claimant_name",
-                "description",
-                "amount",
+                "policy_id",
+                "date_of_incident",
                 "date_filed",
-                "status"
+                "claimed_amount",
+                "approved_amount"
               ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Agent",
-      "table": "agents",
-      "description": "Insurance agent",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "phone",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "license_number",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "region",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "policies_sold",
-          "db_type": "INTEGER NOT NULL DEFAULT 0",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "email",
-            "phone",
-            "license_number",
-            "region",
-            "policies_sold"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Agents yet",
-            "subtext": "Create your first agent",
-            "action_label": "Add Agent"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "email",
-            "phone",
-            "license_number",
-            "region"
-          ],
-          "required_fields": [
-            "name",
-            "email"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "email",
-            "phone",
-            "license_number",
-            "region"
-          ],
-          "required_fields": [
-            "name",
-            "email"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/agents/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "email",
-            "phone",
-            "license_number"
-          ],
-          "tabs": [
+            },
             {
-              "name": "Overview",
+              "name": "Details",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "license_number",
-                "region",
-                "policies_sold"
+                "claim_number",
+                "policy_id",
+                "date_of_incident",
+                "date_filed",
+                "description",
+                "claimed_amount",
+                "approved_amount",
+                "status",
+                "denial_reason"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "policy_id",
+          "references": {
+            "table": "policies",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Payment",
@@ -773,15 +1081,20 @@
           "display_component": "text"
         },
         {
-          "name": "policy_number",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "policy_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "policies",
+          "fk_display": "policy_number"
         },
         {
           "name": "amount",
@@ -791,64 +1104,112 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01
+          }
         },
         {
-          "name": "date",
+          "name": "payment_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "method",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "credit_card",
             "bank_transfer",
+            "credit_card",
             "check",
-            "auto_debit"
+            "auto_debit",
+            "cash"
           ],
           "badge_colors": {
-            "credit_card": "purple",
             "bank_transfer": "blue",
-            "check": "amber",
-            "auto_debit": "green"
+            "credit_card": "purple",
+            "check": "teal",
+            "auto_debit": "green",
+            "cash": "orange"
           }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'completed'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "completed",
           "enum_values": [
-            "paid",
             "pending",
+            "completed",
             "failed",
-            "refunded"
+            "refunded",
+            "late"
           ],
           "badge_colors": {
-            "paid": "green",
-            "pending": "amber",
+            "pending": "yellow",
+            "completed": "green",
             "failed": "red",
-            "refunded": "blue"
+            "refunded": "orange",
+            "late": "red"
+          }
+        },
+        {
+          "name": "late_fee",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "late"
           }
         },
         {
@@ -900,10 +1261,11 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "policy_number",
+            "policy_id",
             "amount",
-            "date",
-            "method",
+            "payment_date",
+            "due_date",
+            "payment_method",
             "status"
           ],
           "filters": [],
@@ -917,29 +1279,43 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "policy_number",
+            "policy_id",
             "amount",
-            "date",
-            "method",
-            "status"
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ],
           "required_fields": [
-            "policy_number",
-            "amount"
+            "policy_id",
+            "amount",
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "policy_number",
+            "policy_id",
             "amount",
-            "date",
-            "method",
-            "status"
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ],
           "required_fields": [
-            "policy_number",
-            "amount"
+            "policy_id",
+            "amount",
+            "payment_date",
+            "due_date",
+            "payment_method",
+            "status",
+            "late_fee"
           ],
           "prefilled": true
         },
@@ -948,125 +1324,1013 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "policy_number"
+              "policy_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "policy_number",
+            "policy_id",
             "amount",
-            "date",
-            "method"
+            "payment_date",
+            "due_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "policy_number",
+                "policy_id",
                 "amount",
-                "date",
-                "method",
+                "payment_date",
+                "due_date",
+                "payment_method",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "policy_id",
+                "amount",
+                "payment_date",
+                "due_date",
+                "payment_method",
+                "status",
+                "late_fee"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "policy_id",
+          "references": {
+            "table": "policies",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "table": "documents",
+      "description": "Policy or claim document",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "policy_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "policies",
+          "fk_display": "policy_number"
+        },
+        {
+          "name": "claim_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "claims",
+          "fk_display": "claim_number"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "document_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "policy_doc",
+            "claim_form",
+            "evidence",
+            "medical_report",
+            "police_report",
+            "estimate",
+            "correspondence"
+          ],
+          "badge_colors": {
+            "policy_doc": "blue",
+            "claim_form": "green",
+            "evidence": "orange",
+            "medical_report": "purple",
+            "police_report": "red",
+            "estimate": "teal",
+            "correspondence": "gray"
+          }
+        },
+        {
+          "name": "file_url",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "uploaded_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "archived",
+            "expired"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "archived": "gray",
+            "expired": "orange"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "policy_id",
+            "claim_id",
+            "title",
+            "document_type",
+            "uploaded_date",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Documents yet",
+            "subtext": "Create your first document",
+            "action_label": "Add Document"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "policy_id",
+            "claim_id",
+            "title",
+            "document_type",
+            "file_url",
+            "uploaded_date",
+            "status"
+          ],
+          "required_fields": [
+            "title",
+            "document_type",
+            "file_url",
+            "uploaded_date",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "policy_id",
+            "claim_id",
+            "title",
+            "document_type",
+            "file_url",
+            "uploaded_date",
+            "status"
+          ],
+          "required_fields": [
+            "title",
+            "document_type",
+            "file_url",
+            "uploaded_date",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/documents/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "policy_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "policy_id",
+            "claim_id",
+            "title",
+            "document_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "policy_id",
+                "claim_id",
+                "title",
+                "document_type",
+                "uploaded_date",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "policy_id",
+                "claim_id",
+                "title",
+                "document_type",
+                "file_url",
+                "uploaded_date",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "policy_id",
+          "references": {
+            "table": "policies",
+            "column": "id"
+          }
+        },
+        {
+          "column": "claim_id",
+          "references": {
+            "table": "claims",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Beneficiary",
+      "table": "beneficiaries",
+      "description": "Policy beneficiary",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "policy_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "policies",
+          "fk_display": "policy_number"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "relationship",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "spouse",
+            "child",
+            "parent",
+            "sibling",
+            "other",
+            "trust",
+            "estate"
+          ],
+          "badge_colors": {
+            "spouse": "pink",
+            "child": "blue",
+            "parent": "purple",
+            "sibling": "teal",
+            "other": "gray",
+            "trust": "green",
+            "estate": "orange"
+          }
+        },
+        {
+          "name": "percentage",
+          "db_type": "NUMERIC(5,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "is_primary",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "policy_id",
+            "name",
+            "relationship",
+            "percentage",
+            "phone",
+            "email"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Beneficiarys yet",
+            "subtext": "Create your first beneficiary",
+            "action_label": "Add Beneficiary"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "policy_id",
+            "name",
+            "relationship",
+            "percentage",
+            "phone",
+            "email",
+            "is_primary"
+          ],
+          "required_fields": [
+            "policy_id",
+            "name",
+            "relationship",
+            "percentage",
+            "is_primary"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "policy_id",
+            "name",
+            "relationship",
+            "percentage",
+            "phone",
+            "email",
+            "is_primary"
+          ],
+          "required_fields": [
+            "policy_id",
+            "name",
+            "relationship",
+            "percentage",
+            "is_primary"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/beneficiaries/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "policy_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "policy_id",
+            "name",
+            "relationship",
+            "percentage"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "policy_id",
+                "name",
+                "relationship",
+                "percentage",
+                "phone",
+                "email"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "policy_id",
+                "name",
+                "relationship",
+                "percentage",
+                "phone",
+                "email",
+                "is_primary"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "policy_id",
+          "references": {
+            "table": "policies",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Quote",
+      "table": "quotes",
+      "description": "Insurance quote",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "agents",
+          "fk_display": "name"
+        },
+        {
+          "name": "applicant_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "applicant_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "policy_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "life",
+            "health",
+            "auto",
+            "home",
+            "renters",
+            "commercial"
+          ],
+          "badge_colors": {
+            "life": "blue",
+            "health": "green",
+            "auto": "orange",
+            "home": "purple",
+            "renters": "teal",
+            "commercial": "yellow"
+          }
+        },
+        {
+          "name": "estimated_premium",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "coverage_amount",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "valid_until",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "sent",
+            "accepted",
+            "declined",
+            "expired"
+          ],
+          "badge_colors": {
+            "draft": "gray",
+            "sent": "blue",
+            "accepted": "green",
+            "declined": "red",
+            "expired": "orange"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "agent_id",
+            "applicant_name",
+            "applicant_email",
+            "policy_type",
+            "estimated_premium",
+            "coverage_amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Quotes yet",
+            "subtext": "Create your first quote",
+            "action_label": "Add Quote"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "agent_id",
+            "applicant_name",
+            "applicant_email",
+            "policy_type",
+            "estimated_premium",
+            "coverage_amount",
+            "valid_until",
+            "status"
+          ],
+          "required_fields": [
+            "agent_id",
+            "applicant_name",
+            "applicant_email",
+            "policy_type",
+            "estimated_premium",
+            "coverage_amount",
+            "valid_until",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "agent_id",
+            "applicant_name",
+            "applicant_email",
+            "policy_type",
+            "estimated_premium",
+            "coverage_amount",
+            "valid_until",
+            "status"
+          ],
+          "required_fields": [
+            "agent_id",
+            "applicant_name",
+            "applicant_email",
+            "policy_type",
+            "estimated_premium",
+            "coverage_amount",
+            "valid_until",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/quotes/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "agent_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "agent_id",
+            "applicant_name",
+            "applicant_email",
+            "policy_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "agent_id",
+                "applicant_name",
+                "applicant_email",
+                "policy_type",
+                "estimated_premium",
+                "coverage_amount"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "agent_id",
+                "applicant_name",
+                "applicant_email",
+                "policy_type",
+                "estimated_premium",
+                "coverage_amount",
+                "valid_until",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "agent_id",
+          "references": {
+            "table": "agents",
+            "column": "id"
+          }
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Policys",
-      "route": "/policies",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Shield",
-      "entity": "Policy"
-    },
-    {
-      "name": "Claims",
-      "route": "/claims",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "FileWarning",
-      "entity": "Claim"
-    },
-    {
-      "name": "Agents",
-      "route": "/agents",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "UserCheck",
-      "entity": "Agent"
-    },
-    {
-      "name": "Payments",
-      "route": "/payments",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "DollarSign",
-      "entity": "Payment"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Policys",
-        "entity": "Policy",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

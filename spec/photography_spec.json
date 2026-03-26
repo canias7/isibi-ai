@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "app_name": "Photography",
-    "description": "Photography studio"
+    "app_name": "Photography Business",
+    "description": "Photography studio and session management"
   },
   "entities": [
     {
@@ -40,29 +40,138 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
           "name": "phone",
-          "db_type": "VARCHAR(20)",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "client_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "individual",
+            "wedding",
+            "corporate",
+            "real_estate",
+            "event"
+          ],
+          "badge_colors": {
+            "individual": "blue",
+            "wedding": "pink",
+            "corporate": "green",
+            "real_estate": "orange",
+            "event": "purple"
+          }
+        },
+        {
+          "name": "address",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "referral_source",
+          "db_type": "VARCHAR(30)",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "website",
+            "instagram",
+            "referral",
+            "google",
+            "facebook",
+            "other"
+          ],
+          "badge_colors": {
+            "website": "blue",
+            "instagram": "pink",
+            "referral": "green",
+            "google": "orange",
+            "facebook": "blue",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "past",
+            "vip",
+            "lead"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "past": "gray",
+            "vip": "gold",
+            "lead": "yellow"
+          }
         },
         {
           "name": "created_at",
@@ -115,7 +224,10 @@
           "columns": [
             "name",
             "email",
-            "phone"
+            "phone",
+            "client_type",
+            "referral_source",
+            "status"
           ],
           "filters": [],
           "empty_state": {
@@ -130,11 +242,18 @@
           "field_order": [
             "name",
             "email",
-            "phone"
+            "phone",
+            "client_type",
+            "address",
+            "referral_source",
+            "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone",
+            "client_type",
+            "status"
           ]
         },
         "edit_form": {
@@ -142,11 +261,18 @@
           "field_order": [
             "name",
             "email",
-            "phone"
+            "phone",
+            "client_type",
+            "address",
+            "referral_source",
+            "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone",
+            "client_type",
+            "status"
           ],
           "prefilled": true
         },
@@ -162,7 +288,8 @@
           "primary_fields": [
             "name",
             "email",
-            "phone"
+            "phone",
+            "client_type"
           ],
           "tabs": [
             {
@@ -170,7 +297,22 @@
               "fields": [
                 "name",
                 "email",
-                "phone"
+                "phone",
+                "client_type",
+                "referral_source",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "client_type",
+                "address",
+                "referral_source",
+                "status"
               ]
             }
           ]
@@ -178,9 +320,9 @@
       }
     },
     {
-      "name": "Session",
-      "table": "sessions",
-      "description": "Photo session",
+      "name": "Location",
+      "table": "locations",
+      "description": "Shoot location",
       "fields": [
         {
           "name": "id",
@@ -205,7 +347,7 @@
           "display_component": "text"
         },
         {
-          "name": "client_name",
+          "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -213,94 +355,108 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "address",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "location_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "portrait",
-            "wedding",
-            "event",
-            "product",
-            "real_estate",
-            "family",
-            "newborn"
+            "studio",
+            "outdoor",
+            "venue",
+            "home",
+            "office",
+            "other"
           ],
           "badge_colors": {
-            "portrait": "blue",
-            "wedding": "pink",
-            "event": "purple",
-            "product": "amber",
-            "real_estate": "green",
-            "family": "blue",
-            "newborn": "pink"
+            "studio": "blue",
+            "outdoor": "green",
+            "venue": "purple",
+            "home": "orange",
+            "office": "teal",
+            "other": "gray"
           }
         },
         {
-          "name": "date",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "location",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "price",
-          "db_type": "NUMERIC(10,2)",
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
+          "name": "capacity",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "has_lighting",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "booked",
-            "shot",
-            "editing",
-            "delivered",
-            "cancelled"
-          ],
-          "badge_colors": {
-            "booked": "blue",
-            "shot": "amber",
-            "editing": "purple",
-            "delivered": "green",
-            "cancelled": "red"
-          }
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "created_at",
@@ -351,12 +507,355 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "client_name",
-            "type",
-            "date",
-            "location",
-            "price",
-            "status"
+            "name",
+            "address",
+            "location_type",
+            "hourly_rate",
+            "capacity",
+            "has_lighting"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Locations yet",
+            "subtext": "Create your first location",
+            "action_label": "Add Location"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "address",
+            "location_type",
+            "hourly_rate",
+            "capacity",
+            "has_lighting",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "address",
+            "location_type",
+            "hourly_rate",
+            "has_lighting"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "address",
+            "location_type",
+            "hourly_rate",
+            "capacity",
+            "has_lighting",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "address",
+            "location_type",
+            "hourly_rate",
+            "has_lighting"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/locations/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "address",
+            "location_type",
+            "hourly_rate"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "address",
+                "location_type",
+                "hourly_rate",
+                "capacity",
+                "has_lighting"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "address",
+                "location_type",
+                "hourly_rate",
+                "capacity",
+                "has_lighting",
+                "notes"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Session",
+      "table": "sessions",
+      "description": "Photography session / shoot",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "name"
+        },
+        {
+          "name": "location_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "locations",
+          "fk_display": "name"
+        },
+        {
+          "name": "session_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "duration_hours",
+          "db_type": "NUMERIC(4,1) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.5,
+            "max": 12
+          }
+        },
+        {
+          "name": "session_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "portrait",
+            "wedding",
+            "event",
+            "product",
+            "real_estate",
+            "headshot",
+            "family",
+            "newborn"
+          ],
+          "badge_colors": {
+            "portrait": "blue",
+            "wedding": "pink",
+            "event": "purple",
+            "product": "green",
+            "real_estate": "orange",
+            "headshot": "teal",
+            "family": "yellow",
+            "newborn": "red"
+          }
+        },
+        {
+          "name": "package_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'booked'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "booked",
+          "enum_values": [
+            "inquiry",
+            "booked",
+            "confirmed",
+            "completed",
+            "editing",
+            "delivered",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "inquiry": "gray",
+            "booked": "blue",
+            "confirmed": "green",
+            "completed": "teal",
+            "editing": "purple",
+            "delivered": "gold",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "num_photos_delivered",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "client_id",
+            "location_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "package_price"
           ],
           "filters": [],
           "empty_state": {
@@ -369,31 +868,43 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "client_name",
-            "type",
-            "date",
-            "location",
-            "price",
-            "status"
+            "client_id",
+            "location_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "package_price",
+            "status",
+            "notes"
           ],
           "required_fields": [
-            "client_name",
-            "type"
+            "client_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "package_price",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "client_name",
-            "type",
-            "date",
-            "location",
-            "price",
-            "status"
+            "client_id",
+            "location_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "package_price",
+            "status",
+            "notes"
           ],
           "required_fields": [
-            "client_name",
-            "type"
+            "client_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "package_price",
+            "status"
           ],
           "prefilled": true
         },
@@ -402,36 +913,65 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "client_name"
+              "client_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "client_name",
-            "type",
-            "date",
-            "location"
+            "client_id",
+            "location_id",
+            "session_date",
+            "duration_hours"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "client_name",
-                "type",
-                "date",
-                "location",
-                "price",
-                "status"
+                "client_id",
+                "location_id",
+                "session_date",
+                "duration_hours",
+                "session_type",
+                "package_price"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "client_id",
+                "location_id",
+                "session_date",
+                "duration_hours",
+                "session_type",
+                "package_price",
+                "status",
+                "notes"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        },
+        {
+          "column": "location_id",
+          "references": {
+            "table": "locations",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Gallery",
       "table": "galleries",
-      "description": "Photo gallery",
+      "description": "Photo gallery for client delivery",
       "fields": [
         {
           "name": "id",
@@ -456,18 +996,23 @@
           "display_component": "text"
         },
         {
-          "name": "session_ref",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "session_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "sessions",
+          "fk_display": "id"
         },
         {
-          "name": "client_name",
+          "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -475,40 +1020,101 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "gallery_url",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "password",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "photo_count",
-          "db_type": "INTEGER",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "download_enabled",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "expiry_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
           "enum_values": [
-            "processing",
-            "review",
-            "approved",
-            "delivered"
+            "draft",
+            "published",
+            "expired",
+            "archived"
           ],
           "badge_colors": {
-            "processing": "amber",
-            "review": "blue",
-            "approved": "green",
-            "delivered": "slate"
+            "draft": "gray",
+            "published": "green",
+            "expired": "orange",
+            "archived": "blue"
           }
         },
         {
@@ -560,9 +1166,11 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "session_ref",
-            "client_name",
+            "session_id",
+            "name",
             "photo_count",
+            "download_enabled",
+            "expiry_date",
             "status"
           ],
           "filters": [],
@@ -576,27 +1184,41 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "session_ref",
-            "client_name",
+            "session_id",
+            "name",
+            "gallery_url",
+            "password",
             "photo_count",
+            "download_enabled",
+            "expiry_date",
             "status"
           ],
           "required_fields": [
-            "session_ref",
-            "client_name"
+            "session_id",
+            "name",
+            "photo_count",
+            "download_enabled",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "session_ref",
-            "client_name",
+            "session_id",
+            "name",
+            "gallery_url",
+            "password",
             "photo_count",
+            "download_enabled",
+            "expiry_date",
             "status"
           ],
           "required_fields": [
-            "session_ref",
-            "client_name"
+            "session_id",
+            "name",
+            "photo_count",
+            "download_enabled",
+            "status"
           ],
           "prefilled": true
         },
@@ -605,115 +1227,1022 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "session_ref"
+              "session_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "session_ref",
-            "client_name",
+            "session_id",
+            "name",
             "photo_count",
-            "status"
+            "download_enabled"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "session_ref",
-                "client_name",
+                "session_id",
+                "name",
                 "photo_count",
+                "download_enabled",
+                "expiry_date",
                 "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "session_id",
+                "name",
+                "gallery_url",
+                "password",
+                "photo_count",
+                "download_enabled",
+                "expiry_date",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "session_id",
+          "references": {
+            "table": "sessions",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoice",
+      "table": "invoices",
+      "description": "Client invoice",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "session_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "sessions",
+          "fk_display": "id"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "name"
+        },
+        {
+          "name": "invoice_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "tax_amount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "deposit_paid",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'unpaid'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "unpaid",
+          "enum_values": [
+            "unpaid",
+            "partial",
+            "paid",
+            "overdue",
+            "void"
+          ],
+          "badge_colors": {
+            "unpaid": "red",
+            "partial": "yellow",
+            "paid": "green",
+            "overdue": "orange",
+            "void": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "session_id",
+            "client_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "deposit_paid"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Invoices yet",
+            "subtext": "Create your first invoice",
+            "action_label": "Add Invoice"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "session_id",
+            "client_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "deposit_paid",
+            "due_date",
+            "status"
+          ],
+          "required_fields": [
+            "session_id",
+            "client_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "deposit_paid",
+            "due_date",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "session_id",
+            "client_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "deposit_paid",
+            "due_date",
+            "status"
+          ],
+          "required_fields": [
+            "session_id",
+            "client_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "deposit_paid",
+            "due_date",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/invoices/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "session_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "session_id",
+            "client_id",
+            "invoice_number",
+            "amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "session_id",
+                "client_id",
+                "invoice_number",
+                "amount",
+                "tax_amount",
+                "deposit_paid"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "session_id",
+                "client_id",
+                "invoice_number",
+                "amount",
+                "tax_amount",
+                "deposit_paid",
+                "due_date",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "session_id",
+          "references": {
+            "table": "sessions",
+            "column": "id"
+          }
+        },
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total",
+          "expression": "amount + tax_amount",
+          "ts_expression": "amount + tax_amount"
+        },
+        {
+          "name": "balance_due",
+          "expression": "amount + tax_amount - deposit_paid",
+          "ts_expression": "amount + tax_amount - deposit_paid"
+        }
+      ]
+    },
+    {
+      "name": "Contract",
+      "table": "contracts",
+      "description": "Client service contract",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "name"
+        },
+        {
+          "name": "session_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "sessions",
+          "fk_display": "id"
+        },
+        {
+          "name": "contract_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "standard",
+            "wedding",
+            "commercial",
+            "event",
+            "custom"
+          ],
+          "badge_colors": {
+            "standard": "blue",
+            "wedding": "pink",
+            "commercial": "green",
+            "event": "purple",
+            "custom": "orange"
+          }
+        },
+        {
+          "name": "signed_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contract_url",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "sent",
+            "signed",
+            "expired",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "draft": "gray",
+            "sent": "blue",
+            "signed": "green",
+            "expired": "orange",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "client_id",
+            "session_id",
+            "contract_type",
+            "signed_date",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Contracts yet",
+            "subtext": "Create your first contract",
+            "action_label": "Add Contract"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client_id",
+            "session_id",
+            "contract_type",
+            "signed_date",
+            "contract_url",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "client_id",
+            "contract_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client_id",
+            "session_id",
+            "contract_type",
+            "signed_date",
+            "contract_url",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "client_id",
+            "contract_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/contracts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "client_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "client_id",
+            "session_id",
+            "contract_type",
+            "signed_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "client_id",
+                "session_id",
+                "contract_type",
+                "signed_date",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "client_id",
+                "session_id",
+                "contract_type",
+                "signed_date",
+                "contract_url",
+                "status",
+                "notes"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        },
+        {
+          "column": "session_id",
+          "references": {
+            "table": "sessions",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Equipment",
+      "table": "equipment",
+      "description": "Photography gear",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "camera",
+            "lens",
+            "lighting",
+            "tripod",
+            "backdrop",
+            "audio",
+            "drone",
+            "accessory"
+          ],
+          "badge_colors": {
+            "camera": "blue",
+            "lens": "green",
+            "lighting": "yellow",
+            "tripod": "gray",
+            "backdrop": "purple",
+            "audio": "orange",
+            "drone": "teal",
+            "accessory": "pink"
+          }
+        },
+        {
+          "name": "brand",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "serial_number",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "purchase_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "purchase_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "condition",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'good'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "good",
+          "enum_values": [
+            "new",
+            "good",
+            "fair",
+            "needs_repair",
+            "retired"
+          ],
+          "badge_colors": {
+            "new": "green",
+            "good": "blue",
+            "fair": "yellow",
+            "needs_repair": "orange",
+            "retired": "gray"
+          }
+        },
+        {
+          "name": "insurance_value",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "category",
+            "brand",
+            "purchase_price",
+            "purchase_date",
+            "condition"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Equipments yet",
+            "subtext": "Create your first equipment",
+            "action_label": "Add Equipment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category",
+            "brand",
+            "serial_number",
+            "purchase_price",
+            "purchase_date",
+            "condition",
+            "insurance_value"
+          ],
+          "required_fields": [
+            "name",
+            "category",
+            "brand",
+            "purchase_price",
+            "purchase_date",
+            "condition"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category",
+            "brand",
+            "serial_number",
+            "purchase_price",
+            "purchase_date",
+            "condition",
+            "insurance_value"
+          ],
+          "required_fields": [
+            "name",
+            "category",
+            "brand",
+            "purchase_price",
+            "purchase_date",
+            "condition"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/equipment/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "category",
+            "brand",
+            "purchase_price"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "category",
+                "brand",
+                "purchase_price",
+                "purchase_date",
+                "condition"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "category",
+                "brand",
+                "serial_number",
+                "purchase_price",
+                "purchase_date",
+                "condition",
+                "insurance_value"
               ]
             }
           ]
         }
       }
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Clients",
-      "route": "/clients",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Box",
-      "entity": "Client"
-    },
-    {
-      "name": "Sessions",
-      "route": "/sessions",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Box",
-      "entity": "Session"
-    },
-    {
-      "name": "Gallerys",
-      "route": "/galleries",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Box",
-      "entity": "Gallery"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Clients",
-        "entity": "Client",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

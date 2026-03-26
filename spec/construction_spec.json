@@ -1,9 +1,306 @@
 {
   "_meta": {
-    "app_name": "Construction",
-    "description": "Construction project management"
+    "app_name": "Construction Management",
+    "description": "Construction project and site management"
   },
   "entities": [
+    {
+      "name": "Client",
+      "table": "clients",
+      "description": "Construction client",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "company_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contact_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "address",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "client_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "residential",
+            "commercial",
+            "government",
+            "industrial"
+          ],
+          "badge_colors": {
+            "residential": "blue",
+            "commercial": "green",
+            "government": "purple",
+            "industrial": "orange"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "prospect"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "prospect": "yellow"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "client_type",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Clients yet",
+            "subtext": "Create your first client",
+            "action_label": "Add Client"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "address",
+            "client_type",
+            "status"
+          ],
+          "required_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "client_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "address",
+            "client_type",
+            "status"
+          ],
+          "required_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "client_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/clients/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "company_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "company_name",
+                "contact_name",
+                "email",
+                "phone",
+                "client_type",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "company_name",
+                "contact_name",
+                "email",
+                "phone",
+                "address",
+                "client_type",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
     {
       "name": "Project",
       "table": "projects",
@@ -40,73 +337,125 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "client_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "client_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "clients",
+          "fk_display": "company_name"
         },
         {
-          "name": "location",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "site_address",
+          "db_type": "TEXT NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "budget",
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "estimated_end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "actual_end_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "completed"
+          }
+        },
+        {
+          "name": "contract_value",
           "db_type": "NUMERIC(14,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "start_date",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "end_date",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'planning'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "planning",
           "enum_values": [
             "planning",
             "in_progress",
@@ -115,11 +464,38 @@
             "cancelled"
           ],
           "badge_colors": {
-            "planning": "blue",
-            "in_progress": "amber",
-            "on_hold": "red",
+            "planning": "yellow",
+            "in_progress": "blue",
+            "on_hold": "orange",
             "completed": "green",
-            "cancelled": "slate"
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "project_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "new_build",
+            "renovation",
+            "extension",
+            "demolition",
+            "maintenance"
+          ],
+          "badge_colors": {
+            "new_build": "blue",
+            "renovation": "green",
+            "extension": "purple",
+            "demolition": "red",
+            "maintenance": "teal"
           }
         },
         {
@@ -172,11 +548,11 @@
           "layout": "table",
           "columns": [
             "name",
-            "client_name",
-            "location",
-            "budget",
+            "client_id",
+            "site_address",
             "start_date",
-            "end_date"
+            "estimated_end_date",
+            "actual_end_date"
           ],
           "filters": [],
           "empty_state": {
@@ -190,32 +566,50 @@
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "client_name",
-            "location",
-            "budget",
+            "client_id",
+            "description",
+            "site_address",
             "start_date",
-            "end_date",
-            "status"
+            "estimated_end_date",
+            "actual_end_date",
+            "contract_value",
+            "status",
+            "project_type"
           ],
           "required_fields": [
             "name",
-            "client_name"
+            "client_id",
+            "site_address",
+            "start_date",
+            "estimated_end_date",
+            "contract_value",
+            "status",
+            "project_type"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "client_name",
-            "location",
-            "budget",
+            "client_id",
+            "description",
+            "site_address",
             "start_date",
-            "end_date",
-            "status"
+            "estimated_end_date",
+            "actual_end_date",
+            "contract_value",
+            "status",
+            "project_type"
           ],
           "required_fields": [
             "name",
-            "client_name"
+            "client_id",
+            "site_address",
+            "start_date",
+            "estimated_end_date",
+            "contract_value",
+            "status",
+            "project_type"
           ],
           "prefilled": true
         },
@@ -230,31 +624,54 @@
           },
           "primary_fields": [
             "name",
-            "client_name",
-            "location",
-            "budget"
+            "client_id",
+            "site_address",
+            "start_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "name",
-                "client_name",
-                "location",
-                "budget",
+                "client_id",
+                "site_address",
                 "start_date",
-                "end_date",
-                "status"
+                "estimated_end_date",
+                "actual_end_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "client_id",
+                "description",
+                "site_address",
+                "start_date",
+                "estimated_end_date",
+                "actual_end_date",
+                "contract_value",
+                "status",
+                "project_type"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "client_id",
+          "references": {
+            "table": "clients",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Worker",
       "table": "workers",
-      "description": "Construction worker",
+      "description": "Construction worker / laborer",
       "fields": [
         {
           "name": "id",
@@ -287,78 +704,129 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "phone",
-          "db_type": "VARCHAR(20)",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
         },
         {
-          "name": "role",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "project_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "projects",
+          "fk_display": "name"
+        },
+        {
+          "name": "trade",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "foreman",
+            "carpenter",
             "electrician",
             "plumber",
-            "carpenter",
+            "mason",
+            "welder",
+            "painter",
             "laborer",
-            "engineer",
-            "safety_officer"
+            "foreman"
           ],
           "badge_colors": {
-            "foreman": "purple",
-            "electrician": "amber",
+            "carpenter": "orange",
+            "electrician": "yellow",
             "plumber": "blue",
-            "carpenter": "green",
-            "laborer": "slate",
-            "engineer": "pink",
-            "safety_officer": "red"
+            "mason": "gray",
+            "welder": "red",
+            "painter": "green",
+            "laborer": "teal",
+            "foreman": "purple"
           }
         },
         {
-          "name": "daily_rate",
-          "db_type": "NUMERIC(10,2)",
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "certification",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
           "enum_values": [
             "active",
-            "on_leave",
-            "terminated"
+            "off_site",
+            "terminated",
+            "injured"
           ],
           "badge_colors": {
             "active": "green",
-            "on_leave": "amber",
-            "terminated": "red"
+            "off_site": "yellow",
+            "terminated": "gray",
+            "injured": "red"
           }
         },
         {
@@ -412,9 +880,10 @@
           "columns": [
             "name",
             "phone",
-            "role",
-            "daily_rate",
-            "status"
+            "project_id",
+            "trade",
+            "hourly_rate",
+            "certification"
           ],
           "filters": [],
           "empty_state": {
@@ -429,13 +898,19 @@
           "field_order": [
             "name",
             "phone",
-            "role",
-            "daily_rate",
+            "project_id",
+            "trade",
+            "hourly_rate",
+            "certification",
             "status"
           ],
           "required_fields": [
             "name",
-            "phone"
+            "phone",
+            "project_id",
+            "trade",
+            "hourly_rate",
+            "status"
           ]
         },
         "edit_form": {
@@ -443,13 +918,19 @@
           "field_order": [
             "name",
             "phone",
-            "role",
-            "daily_rate",
+            "project_id",
+            "trade",
+            "hourly_rate",
+            "certification",
             "status"
           ],
           "required_fields": [
             "name",
-            "phone"
+            "phone",
+            "project_id",
+            "trade",
+            "hourly_rate",
+            "status"
           ],
           "prefilled": true
         },
@@ -465,8 +946,8 @@
           "primary_fields": [
             "name",
             "phone",
-            "role",
-            "daily_rate"
+            "project_id",
+            "trade"
           ],
           "tabs": [
             {
@@ -474,19 +955,41 @@
               "fields": [
                 "name",
                 "phone",
-                "role",
-                "daily_rate",
+                "project_id",
+                "trade",
+                "hourly_rate",
+                "certification"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "phone",
+                "project_id",
+                "trade",
+                "hourly_rate",
+                "certification",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "project_id",
+          "references": {
+            "table": "projects",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Material",
       "table": "materials",
-      "description": "Building material",
+      "description": "Construction material",
       "fields": [
         {
           "name": "id",
@@ -519,29 +1022,107 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "unit",
-          "db_type": "VARCHAR(20)",
+          "name": "project_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "projects",
+          "fk_display": "name"
         },
         {
-          "name": "quantity",
+          "name": "category",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "concrete",
+            "lumber",
+            "steel",
+            "electrical",
+            "plumbing",
+            "finishing",
+            "hardware",
+            "safety"
+          ],
+          "badge_colors": {
+            "concrete": "gray",
+            "lumber": "orange",
+            "steel": "blue",
+            "electrical": "yellow",
+            "plumbing": "teal",
+            "finishing": "pink",
+            "hardware": "purple",
+            "safety": "red"
+          }
+        },
+        {
+          "name": "unit",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "each",
+            "kg",
+            "ton",
+            "meter",
+            "sqm",
+            "cubic_m",
+            "liter",
+            "bag"
+          ],
+          "badge_colors": {
+            "each": "gray",
+            "kg": "blue",
+            "ton": "purple",
+            "meter": "green",
+            "sqm": "teal",
+            "cubic_m": "orange",
+            "liter": "yellow",
+            "bag": "pink"
+          }
+        },
+        {
+          "name": "quantity_ordered",
           "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
           "name": "unit_cost",
@@ -551,42 +1132,40 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
-          "name": "supplier",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
+          "name": "quantity_used",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "supplier",
+          "db_type": "VARCHAR(255)",
           "ts_type": "string",
-          "nullable": false,
+          "nullable": true,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "ordered",
-            "received",
-            "in_use",
-            "depleted"
-          ],
-          "badge_colors": {
-            "ordered": "blue",
-            "received": "green",
-            "in_use": "amber",
-            "depleted": "red"
-          }
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "created_at",
@@ -638,11 +1217,11 @@
           "layout": "table",
           "columns": [
             "name",
+            "project_id",
+            "category",
             "unit",
-            "quantity",
-            "unit_cost",
-            "supplier",
-            "status"
+            "quantity_ordered",
+            "unit_cost"
           ],
           "filters": [],
           "empty_state": {
@@ -656,30 +1235,44 @@
           "type": "SlideOverForm",
           "field_order": [
             "name",
+            "project_id",
+            "category",
             "unit",
-            "quantity",
+            "quantity_ordered",
             "unit_cost",
-            "supplier",
-            "status"
+            "quantity_used",
+            "supplier"
           ],
           "required_fields": [
             "name",
-            "unit"
+            "project_id",
+            "category",
+            "unit",
+            "quantity_ordered",
+            "unit_cost",
+            "quantity_used"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
+            "project_id",
+            "category",
             "unit",
-            "quantity",
+            "quantity_ordered",
             "unit_cost",
-            "supplier",
-            "status"
+            "quantity_used",
+            "supplier"
           ],
           "required_fields": [
             "name",
-            "unit"
+            "project_id",
+            "category",
+            "unit",
+            "quantity_ordered",
+            "unit_cost",
+            "quantity_used"
           ],
           "prefilled": true
         },
@@ -694,30 +1287,64 @@
           },
           "primary_fields": [
             "name",
-            "unit",
-            "quantity",
-            "unit_cost"
+            "project_id",
+            "category",
+            "unit"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "name",
+                "project_id",
+                "category",
                 "unit",
-                "quantity",
+                "quantity_ordered",
+                "unit_cost"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "project_id",
+                "category",
+                "unit",
+                "quantity_ordered",
                 "unit_cost",
-                "supplier",
-                "status"
+                "quantity_used",
+                "supplier"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "project_id",
+          "references": {
+            "table": "projects",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total_cost",
+          "expression": "quantity_ordered * unit_cost",
+          "ts_expression": "quantity_ordered * unit_cost"
+        },
+        {
+          "name": "remaining_qty",
+          "expression": "quantity_ordered - quantity_used",
+          "ts_expression": "quantity_ordered - quantity_used"
+        }
+      ]
     },
     {
       "name": "Inspection",
       "table": "inspections",
-      "description": "Site inspection",
+      "description": "Site inspection record",
       "fields": [
         {
           "name": "id",
@@ -742,15 +1369,20 @@
           "display_component": "text"
         },
         {
-          "name": "project_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "project_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "projects",
+          "fk_display": "name"
         },
         {
           "name": "inspector_name",
@@ -761,65 +1393,111 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "date",
+          "name": "inspection_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "inspection_type",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "safety",
-            "quality",
+            "foundation",
+            "framing",
             "electrical",
             "plumbing",
-            "structural",
-            "final"
+            "fire",
+            "final",
+            "safety"
           ],
           "badge_colors": {
-            "safety": "red",
-            "quality": "blue",
-            "electrical": "amber",
+            "foundation": "gray",
+            "framing": "orange",
+            "electrical": "yellow",
             "plumbing": "blue",
-            "structural": "purple",
-            "final": "green"
+            "fire": "red",
+            "final": "green",
+            "safety": "purple"
           }
         },
         {
           "name": "result",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "passed",
-            "failed",
-            "conditional"
+            "pass",
+            "fail",
+            "conditional",
+            "pending"
           ],
           "badge_colors": {
-            "passed": "green",
-            "failed": "red",
-            "conditional": "amber"
+            "pass": "green",
+            "fail": "red",
+            "conditional": "yellow",
+            "pending": "blue"
+          }
+        },
+        {
+          "name": "findings",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "follow_up_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "result",
+            "operator": "in",
+            "value": [
+              "fail",
+              "conditional"
+            ]
           }
         },
         {
@@ -871,11 +1549,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "project_name",
+            "project_id",
             "inspector_name",
-            "date",
-            "type",
-            "result"
+            "inspection_date",
+            "inspection_type",
+            "result",
+            "follow_up_date"
           ],
           "filters": [],
           "empty_state": {
@@ -888,29 +1567,39 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "project_name",
+            "project_id",
             "inspector_name",
-            "date",
-            "type",
-            "result"
+            "inspection_date",
+            "inspection_type",
+            "result",
+            "findings",
+            "follow_up_date"
           ],
           "required_fields": [
-            "project_name",
-            "inspector_name"
+            "project_id",
+            "inspector_name",
+            "inspection_date",
+            "inspection_type",
+            "result"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "project_name",
+            "project_id",
             "inspector_name",
-            "date",
-            "type",
-            "result"
+            "inspection_date",
+            "inspection_type",
+            "result",
+            "findings",
+            "follow_up_date"
           ],
           "required_fields": [
-            "project_name",
-            "inspector_name"
+            "project_id",
+            "inspector_name",
+            "inspection_date",
+            "inspection_type",
+            "result"
           ],
           "prefilled": true
         },
@@ -919,125 +1608,692 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "project_name"
+              "project_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "project_name",
+            "project_id",
             "inspector_name",
-            "date",
-            "type"
+            "inspection_date",
+            "inspection_type"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "project_name",
+                "project_id",
                 "inspector_name",
-                "date",
-                "type",
-                "result"
+                "inspection_date",
+                "inspection_type",
+                "result",
+                "follow_up_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "project_id",
+                "inspector_name",
+                "inspection_date",
+                "inspection_type",
+                "result",
+                "findings",
+                "follow_up_date"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "project_id",
+          "references": {
+            "table": "projects",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budget",
+      "table": "budgets",
+      "description": "Project budget line",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "projects",
+          "fk_display": "name"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "budgeted_amount",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "actual_amount",
+          "db_type": "NUMERIC(14,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'on_track'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "on_track",
+          "enum_values": [
+            "on_track",
+            "over_budget",
+            "under_budget",
+            "pending"
+          ],
+          "badge_colors": {
+            "on_track": "green",
+            "over_budget": "red",
+            "under_budget": "blue",
+            "pending": "yellow"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "project_id",
+            "category",
+            "budgeted_amount",
+            "actual_amount",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Budgets yet",
+            "subtext": "Create your first budget",
+            "action_label": "Add Budget"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "project_id",
+            "category",
+            "budgeted_amount",
+            "actual_amount",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "project_id",
+            "category",
+            "budgeted_amount",
+            "actual_amount",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "project_id",
+            "category",
+            "budgeted_amount",
+            "actual_amount",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "project_id",
+            "category",
+            "budgeted_amount",
+            "actual_amount",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/budgets/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "project_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "project_id",
+            "category",
+            "budgeted_amount",
+            "actual_amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "project_id",
+                "category",
+                "budgeted_amount",
+                "actual_amount",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "project_id",
+                "category",
+                "budgeted_amount",
+                "actual_amount",
+                "status",
+                "notes"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "project_id",
+          "references": {
+            "table": "projects",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "variance",
+          "expression": "budgeted_amount - actual_amount",
+          "ts_expression": "budgeted_amount - actual_amount"
+        },
+        {
+          "name": "variance_pct",
+          "expression": "ROUND((budgeted_amount - actual_amount) / NULLIF(budgeted_amount,0) * 100, 2)",
+          "ts_expression": "((budgeted_amount - actual_amount) / budgeted_amount * 100).toFixed(2)"
+        }
+      ]
+    },
+    {
+      "name": "Task",
+      "table": "tasks",
+      "description": "Project task",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "projects",
+          "fk_display": "name"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "assigned_worker_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "workers",
+          "fk_display": "name"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(10) NOT NULL DEFAULT 'medium'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "medium",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "gray",
+            "medium": "blue",
+            "high": "orange",
+            "critical": "red"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'pending'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "pending",
+          "enum_values": [
+            "pending",
+            "in_progress",
+            "completed",
+            "blocked"
+          ],
+          "badge_colors": {
+            "pending": "yellow",
+            "in_progress": "blue",
+            "completed": "green",
+            "blocked": "red"
+          }
+        },
+        {
+          "name": "completion_pct",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "project_id",
+            "title",
+            "assigned_worker_id",
+            "start_date",
+            "due_date",
+            "priority"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Tasks yet",
+            "subtext": "Create your first task",
+            "action_label": "Add Task"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "project_id",
+            "title",
+            "description",
+            "assigned_worker_id",
+            "start_date",
+            "due_date",
+            "priority",
+            "status",
+            "completion_pct"
+          ],
+          "required_fields": [
+            "project_id",
+            "title",
+            "start_date",
+            "due_date",
+            "priority",
+            "status",
+            "completion_pct"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "project_id",
+            "title",
+            "description",
+            "assigned_worker_id",
+            "start_date",
+            "due_date",
+            "priority",
+            "status",
+            "completion_pct"
+          ],
+          "required_fields": [
+            "project_id",
+            "title",
+            "start_date",
+            "due_date",
+            "priority",
+            "status",
+            "completion_pct"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tasks/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "project_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "project_id",
+            "title",
+            "assigned_worker_id",
+            "start_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "project_id",
+                "title",
+                "assigned_worker_id",
+                "start_date",
+                "due_date",
+                "priority"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "project_id",
+                "title",
+                "description",
+                "assigned_worker_id",
+                "start_date",
+                "due_date",
+                "priority",
+                "status",
+                "completion_pct"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "project_id",
+          "references": {
+            "table": "projects",
+            "column": "id"
+          }
+        },
+        {
+          "column": "assigned_worker_id",
+          "references": {
+            "table": "workers",
+            "column": "id"
+          }
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Projects",
-      "route": "/projects",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "HardHat",
-      "entity": "Project"
-    },
-    {
-      "name": "Workers",
-      "route": "/workers",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Users",
-      "entity": "Worker"
-    },
-    {
-      "name": "Materials",
-      "route": "/materials",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Boxes",
-      "entity": "Material"
-    },
-    {
-      "name": "Inspections",
-      "route": "/inspections",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "ClipboardCheck",
-      "entity": "Inspection"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Projects",
-        "entity": "Project",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

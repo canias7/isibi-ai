@@ -1,2757 +1,916 @@
 {
   "_meta": {
-    "title": "Expense Tracking Application",
-    "domain": "Finance & Operations",
-    "version": "1.0"
+    "app_name": "Expense Tracking",
+    "description": "Complete expense tracking management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "violet",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "status_colors": {
-      "draft": "slate",
-      "submitted": "blue",
-      "under_review": "amber",
-      "approved": "green",
-      "rejected": "red",
-      "paid": "emerald",
-      "voided": "gray"
-    },
-    "category_colors": {
-      "travel": "sky",
-      "meals": "orange",
-      "software": "violet",
-      "equipment": "blue",
-      "marketing": "pink",
-      "training": "teal",
-      "other": "slate"
-    }
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
-  },
+  "spec_name": "expense_tracking_spec",
   "entities": [
     {
-      "name": "Expense",
-      "table": "expenses",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "submitter_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "expense_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "report_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "category"
-          ]
-        }
-      ],
+      "name": "Employee",
+      "table": "expense_employees",
+      "description": "Employee",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "expense_number",
-          "db_type": "VARCHAR(50)",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "auto-gen EXP-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "maxLength": 50
-          }
-        },
-        {
-          "name": "title",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/expenses/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "maxLength": 255
+            "rule": "email",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "amount",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "min": 0.01
+            "rule": "phone",
+            "message": "Valid phone number required"
           }
         },
         {
-          "name": "currency",
-          "db_type": "VARCHAR(3)",
+          "name": "department",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "USD",
-          "input_component": "CurrencySelect",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "employee_id_code",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "maxLength": 3
+            "rule": "unique",
+            "message": "Must be unique"
           }
         },
         {
-          "name": "amount_usd",
-          "db_type": "NUMERIC(15,2)",
+          "name": "spending_limit",
+          "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for amount_usd computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "notes": "Converted to USD using exchange rate at expense_date",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "exchange_rate",
-          "db_type": "NUMERIC(18,8)",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "input_component": "NumberInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
             "min": 0
           }
         },
         {
-          "name": "category",
-          "db_type": "ENUM('travel','meals','software','equipment','marketing','training','utilities','office_supplies','professional_services','other')",
-          "ts_type": "'travel' | 'meals' | 'software' | 'equipment' | 'marketing' | 'training' | 'utilities' | 'office_supplies' | 'professional_services' | 'other'",
-          "nullable": false,
-          "default": "other",
-          "input_component": "Select",
-          "display_component": "CategoryBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "expense_date",
-          "db_type": "DATE",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "on_leave",
+            "terminated"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "on_leave": "amber",
+            "terminated": "red"
           }
         },
         {
-          "name": "merchant_name",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "table": "expense_categories",
+      "description": "Category",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "maxLength": 255
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "code",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "expense_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "travel",
+            "meals",
+            "supplies",
+            "equipment",
+            "software",
+            "other"
+          ],
+          "badge_colors": {
+            "travel": "blue",
+            "meals": "green",
+            "supplies": "amber",
+            "equipment": "purple",
+            "software": "pink",
+            "other": "slate"
           }
+        },
+        {
+          "name": "budget_limit",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "receipt_required",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "table": "expense_reports",
+      "description": "Report",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "employee_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Employee"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "total_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(expenses.amount)",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "item_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(expenses)"
         },
         {
           "name": "status",
-          "db_type": "ENUM('draft','submitted','under_review','approved','rejected','paid','voided')",
-          "ts_type": "'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'paid' | 'voided'",
-          "nullable": false,
-          "default": "draft",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "submitter_id",
-          "db_type": "UUID",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "submitted",
+            "approved",
+            "rejected",
+            "paid"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "submitted": "amber",
+            "approved": "blue",
+            "rejected": "red",
+            "paid": "green"
           }
-        },
-        {
-          "name": "report_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "expense_reports",
-          "input_component": "ReportSelector",
-          "display_component": "ReportLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "project_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "projects",
-          "input_component": "ProjectSelector",
-          "display_component": "ProjectBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "is_billable",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": "Checkbox",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "is_reimbursable",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Checkbox",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "receipt_url",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "S3 URL for receipt image",
-          "input_component": "FileUpload",
-          "display_component": "ReceiptThumbnail",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "approved_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "approved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
         },
         {
           "name": "rejection_reason",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "paid_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "rejected"
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_expenses_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_expenses_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "ExpenseReport",
-      "table": "expense_reports",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "submitter_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "submitted_at"
-          ]
-        }
-      ],
+      "name": "Expense",
+      "table": "expenses",
+      "description": "Expense",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "report_number",
-          "db_type": "VARCHAR(50)",
+          "name": "employee_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "auto-gen RPT-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "title",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/expense-reports/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 255
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Employee"
+        },
+        {
+          "name": "category_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Category"
+        },
+        {
+          "name": "report_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Report"
         },
         {
           "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('draft','submitted','under_review','approved','rejected','paid')",
-          "ts_type": "'draft' | 'submitted' | 'under_review' | 'approved' | 'rejected' | 'paid'",
-          "nullable": false,
-          "default": "draft",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "submitter_id",
-          "db_type": "UUID",
+          "db_type": "VARCHAR(500) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true
+            "min": 0
           }
         },
         {
-          "name": "total_amount",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "lines",
-            "formula": "subtotal + tax_amount - discount_amount",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "notes": "SUM of approved expense amounts",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "expense_count",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for expense_count computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "period_start",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "period_end",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "submitted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "approved_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "approved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "name": "currency",
+          "db_type": "CHAR(3) NOT NULL DEFAULT 'USD'",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "name": "expense_date",
+          "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "name": "merchant",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
+          "name": "payment_method",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_expense_reports_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_expense_reports_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "corporate_card",
+            "personal",
+            "cash",
+            "other"
           ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "ExpensePolicy",
-      "table": "expense_policies",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "category"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
+          "badge_colors": {
+            "corporate_card": "blue",
+            "personal": "green",
+            "cash": "amber",
+            "other": "slate"
           }
         },
         {
-          "name": "name",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "category",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "null means applies to all categories",
-          "input_component": "Select",
-          "display_component": "CategoryBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "max_amount",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "requires_receipt_above",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": 25,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "requires_approval_above",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": 100,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN",
+          "name": "is_billable",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
           "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_expense_policies_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_expense_policies_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "ExpenseApproval",
-      "table": "expense_approvals",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "expense_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "approver_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        }
-      ],
+      "name": "Receipt",
+      "table": "expense_receipts",
+      "description": "Receipt",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "expense_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "expenses",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Expense"
         },
         {
-          "name": "approver_id",
-          "db_type": "UUID",
+          "name": "file_name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "status",
-          "db_type": "ENUM('pending','approved','rejected')",
-          "ts_type": "'pending' | 'approved' | 'rejected'",
+          "name": "file_url",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "pending",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "comment",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "file_upload",
+          "display_component": "file_link"
+        },
+        {
+          "name": "file_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "enum_values": [
+            "image",
+            "pdf",
+            "other"
+          ]
+        },
+        {
+          "name": "file_size_kb",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "receipt_amount",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "ocr_verified",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Approval",
+      "table": "expense_approvals",
+      "description": "Approval",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "report_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Report"
+        },
+        {
+          "name": "approver_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "approver_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "decision",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "approved",
+            "rejected",
+            "escalated"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "approved": "green",
+            "rejected": "red",
+            "escalated": "purple"
+          }
+        },
+        {
+          "name": "comments",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
           "name": "decided_at",
           "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "approval_level",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_expense_approvals_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_expense_approvals_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "ExpenseTag",
-      "table": "expense_tags",
-      "indexes": [
-        {
-          "columns": [
-            "org_id"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "expense_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "expenses",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "tag",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TagInput",
-          "display_component": "TagBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_expense_tags_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_expense_tags_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    }
-  ],
-  "components": [
-    {
-      "name": "ExpenseListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "expense_number",
-          "title",
-          "merchant_name",
-          "amount",
-          "currency",
-          "category",
-          "expense_date",
-          "status",
-          "submitter_id",
-          "report_id",
-          "receipt_url"
-        ],
-        "sortable": true,
-        "filterable": true,
-        "selectable": true,
-        "expandable": false
-      },
-      "features": [
-        "bulk_submit",
-        "bulk_approve",
-        "bulk_reject",
-        "export_csv",
-        "filter_by_status",
-        "filter_by_category",
-        "filter_by_date_range",
-        "filter_by_submitter"
-      ]
-    },
-    {
-      "name": "ExpenseForm",
-      "type": "Form",
-      "props": {
-        "fields": [
-          "title",
-          "description",
-          "amount",
-          "currency",
-          "exchange_rate",
-          "category",
-          "expense_date",
-          "merchant_name",
-          "report_id",
-          "project_id",
-          "is_billable",
-          "is_reimbursable",
-          "receipt_url",
-          "notes"
-        ],
-        "layout": "two_column"
-      },
-      "features": [
-        "receipt_upload",
-        "currency_conversion",
-        "policy_warning",
-        "auto_report_assignment"
-      ]
-    },
-    {
-      "name": "ExpenseDetailPanel",
-      "type": "SlideOver",
-      "props": {
-        "width": "lg"
-      },
-      "features": [
-        "approval_workflow",
-        "receipt_viewer",
-        "timeline",
-        "comments",
-        "edit_inline",
-        "status_change"
-      ]
-    },
-    {
-      "name": "ExpenseReportCard",
-      "type": "Card",
-      "props": {
-        "fields": [
-          "report_number",
-          "title",
-          "status",
-          "total_amount",
-          "expense_count",
-          "period_start",
-          "period_end",
-          "submitted_at"
-        ]
-      },
-      "features": [
-        "expand_expenses",
-        "submit_report",
-        "approve_report",
-        "export_pdf"
-      ]
-    },
-    {
-      "name": "ExpenseSummaryStats",
-      "type": "StatsGrid",
-      "metrics": [
-        {
-          "label": "Total This Month",
-          "field": "total_this_month",
-          "format": "currency"
-        },
-        {
-          "label": "Pending Approval",
-          "field": "pending_count",
-          "format": "number"
-        },
-        {
-          "label": "Avg per Expense",
-          "field": "avg_expense",
-          "format": "currency"
-        },
-        {
-          "label": "Policy Violations",
-          "field": "violation_count",
-          "format": "number",
-          "color": "red"
-        }
-      ]
-    },
-    {
-      "name": "SpendByCategoryChart",
-      "type": "DonutChart",
-      "library": "Recharts",
-      "props": {
-        "dataKey": "amount_usd",
-        "nameKey": "category",
-        "color_map": "category_colors"
-      }
-    },
-    {
-      "name": "SpendTrendChart",
-      "type": "LineChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "month",
-        "yAxis": "total_amount",
-        "series": [
-          "total",
-          "approved",
-          "reimbursed"
-        ]
-      }
-    },
-    {
-      "name": "ReceiptUploader",
-      "type": "FileUpload",
-      "props": {
-        "accept": "image/*,application/pdf",
-        "maxSize": "10MB",
-        "multiple": false
-      },
-      "features": [
-        "ocr_extraction",
-        "thumbnail_preview",
-        "delete"
-      ]
-    },
-    {
-      "name": "ApprovalWorkflowPanel",
-      "type": "Panel",
-      "features": [
-        "approve_button",
-        "reject_button",
-        "comment_field",
-        "approver_info",
-        "history"
-      ]
-    },
-    {
-      "name": "PolicyViolationBanner",
-      "type": "Alert",
-      "props": {
-        "variant": "warning"
-      },
-      "features": [
-        "violation_list",
-        "policy_link"
-      ]
-    },
-    {
-      "name": "ExpenseReportListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "report_number",
-          "title",
-          "status",
-          "total_amount",
-          "expense_count",
-          "period_start",
-          "period_end",
-          "submitted_at",
-          "approved_by"
-        ]
-      },
-      "features": [
-        "filter_by_status",
-        "filter_by_submitter",
-        "filter_by_date",
-        "export_csv"
-      ]
-    },
-    {
-      "name": "BulkExpenseActions",
-      "type": "ActionBar",
-      "actions": [
-        "add_to_report",
-        "submit",
-        "approve",
-        "reject",
-        "export",
-        "delete"
-      ]
-    },
-    {
-      "name": "ExpensePolicyTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "name",
-          "category",
-          "max_amount",
-          "requires_receipt_above",
-          "requires_approval_above",
-          "is_active"
-        ]
-      },
-      "features": [
-        "create_policy",
-        "edit_inline",
-        "toggle_active"
-      ]
-    },
-    {
-      "name": "OCRResultPreview",
-      "type": "Modal",
-      "features": [
-        "extracted_fields",
-        "confirm_apply",
-        "manual_override"
-      ]
-    },
-    {
-      "name": "MobileExpenseCapture",
-      "type": "MobileForm",
-      "features": [
-        "camera_receipt",
-        "gps_merchant",
-        "quick_submit"
-      ]
-    }
-  ],
-  "modules": [
-    {
-      "name": "MyExpenses",
-      "path": "/expenses/my",
-      "description": "Personal expense management for employees",
-      "components": [
-        "ExpenseListTable",
-        "ExpenseSummaryStats",
-        "ExpenseForm",
-        "ExpenseDetailPanel",
-        "BulkExpenseActions"
-      ],
-      "default_filters": {
-        "submitter_id": "current_user"
-      },
-      "tabs": [
-        "All",
-        "Draft",
-        "Submitted",
-        "Approved",
-        "Rejected",
-        "Paid"
-      ]
-    },
-    {
-      "name": "ExpenseReports",
-      "path": "/expense-reports",
-      "description": "Expense report management and submission",
-      "components": [
-        "ExpenseReportListTable",
-        "ExpenseReportCard",
-        "ExpenseSummaryStats"
-      ],
-      "features": [
-        "create_report",
-        "add_expenses_to_report",
-        "submit_report",
-        "download_pdf"
-      ]
-    },
-    {
-      "name": "ApprovalQueue",
-      "path": "/expenses/approvals",
-      "description": "Manager approval queue for pending expenses",
-      "components": [
-        "ExpenseListTable",
-        "ApprovalWorkflowPanel",
-        "ExpenseSummaryStats"
-      ],
-      "default_filters": {
-        "status": "submitted",
-        "approver_id": "current_user"
-      },
-      "features": [
-        "bulk_approve",
-        "bulk_reject",
-        "approval_history"
-      ]
-    },
-    {
-      "name": "ExpenseAnalytics",
-      "path": "/expenses/analytics",
-      "description": "Spend analytics and reporting dashboards",
-      "components": [
-        "SpendByCategoryChart",
-        "SpendTrendChart",
-        "ExpenseSummaryStats"
-      ],
-      "features": [
-        "date_range_filter",
-        "department_filter",
-        "export_report",
-        "top_spenders_table",
-        "budget_vs_actual"
-      ]
-    },
-    {
-      "name": "PolicyManager",
-      "path": "/settings/expense-policies",
-      "description": "Configure expense policies and spending limits",
-      "components": [
-        "ExpensePolicyTable"
-      ],
-      "features": [
-        "create_policy",
-        "edit_policy",
-        "delete_policy",
-        "toggle_active",
-        "policy_audit_log"
-      ]
-    }
-  ],
-  "api": {
-    "expenses": {
-      "GET /api/expenses": {
-        "description": "List expenses with filters",
-        "query_params": [
-          "status",
-          "category",
-          "submitter_id",
-          "report_id",
-          "date_from",
-          "date_to",
-          "is_billable",
-          "search",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedExpense[]",
-        "response_envelope": {
-          "data": "PaginatedExpense[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/expenses": {
-        "description": "Create expense",
-        "body": "CreateExpenseDto",
-        "response": "Expense"
-      },
-      "GET /api/expenses/:id": {
-        "description": "Get expense detail",
-        "response": "ExpenseWithRelations"
-      },
-      "PATCH /api/expenses/:id": {
-        "description": "Update expense",
-        "body": "UpdateExpenseDto",
-        "response": "Expense"
-      },
-      "DELETE /api/expenses/:id": {
-        "description": "Soft delete expense",
-        "response": "void"
-      },
-      "POST /api/expenses/:id/submit": {
-        "description": "Submit expense for approval",
-        "response": "Expense"
-      },
-      "POST /api/expenses/:id/approve": {
-        "description": "Approve expense",
-        "body": "ApproveExpenseDto",
-        "response": "Expense"
-      },
-      "POST /api/expenses/:id/reject": {
-        "description": "Reject expense with reason",
-        "body": "RejectExpenseDto",
-        "response": "Expense"
-      },
-      "POST /api/expenses/:id/upload-receipt": {
-        "description": "Upload receipt file",
-        "body": "FormData",
-        "response": "ReceiptUploadResult"
-      },
-      "POST /api/expenses/bulk-submit": {
-        "description": "Bulk submit expenses",
-        "body": "BulkExpenseDto",
-        "response": "BulkOperationResult"
-      },
-      "POST /api/expenses/bulk-approve": {
-        "description": "Bulk approve expenses",
-        "body": "BulkApproveDto",
-        "response": "BulkOperationResult"
-      }
-    },
-    "expense_reports": {
-      "GET /api/expense-reports": {
-        "description": "List expense reports",
-        "query_params": [
-          "status",
-          "submitter_id",
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedExpenseReport[]",
-        "response_envelope": {
-          "data": "PaginatedExpenseReport[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/expense-reports": {
-        "description": "Create expense report",
-        "body": "CreateExpenseReportDto",
-        "response": "ExpenseReport"
-      },
-      "GET /api/expense-reports/:id": {
-        "description": "Get report with expenses",
-        "response": "ExpenseReportWithExpenses"
-      },
-      "PATCH /api/expense-reports/:id": {
-        "description": "Update report",
-        "body": "UpdateExpenseReportDto",
-        "response": "ExpenseReport"
-      },
-      "POST /api/expense-reports/:id/submit": {
-        "description": "Submit report for approval",
-        "response": "ExpenseReport"
-      },
-      "POST /api/expense-reports/:id/approve": {
-        "description": "Approve report",
-        "response": "ExpenseReport"
-      },
-      "POST /api/expense-reports/:id/reject": {
-        "description": "Reject report",
-        "body": "RejectDto",
-        "response": "ExpenseReport"
-      },
-      "GET /api/expense-reports/:id/export-pdf": {
-        "description": "Export report as PDF",
-        "response": "Buffer"
-      }
-    },
-    "analytics": {
-      "GET /api/expenses/analytics/summary": {
-        "description": "Summary stats for dashboard",
-        "query_params": [
-          "date_from",
-          "date_to",
-          "user_id",
-          "department_id",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "ExpenseSummaryStats",
-        "response_envelope": {
-          "data": "ExpenseSummaryStats",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/expenses/analytics/by-category": {
-        "description": "Spend breakdown by category",
-        "query_params": [
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "CategoryBreakdown[]",
-        "response_envelope": {
-          "data": "CategoryBreakdown[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/expenses/analytics/trend": {
-        "description": "Monthly spend trend",
-        "query_params": [
-          "months",
-          "category",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "MonthlyTrend[]",
-        "response_envelope": {
-          "data": "MonthlyTrend[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/expenses/analytics/top-spenders": {
-        "description": "Top spenders by amount",
-        "query_params": [
-          "date_from",
-          "date_to",
-          "limit",
-          "page",
-          "sort",
-          "cursor"
-        ],
-        "response": "TopSpender[]",
-        "response_envelope": {
-          "data": "TopSpender[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "ocr": {
-      "POST /api/expenses/ocr": {
-        "description": "Extract expense data from receipt image",
-        "body": "FormData",
-        "response": "OCRExtractionResult"
-      }
-    }
-  },
-  "permissions": {
-    "roles": [
-      "owner",
-      "admin",
-      "manager",
-      "finance",
-      "employee",
-      "viewer"
-    ],
-    "matrix": {
-      "expense.create": [
-        "owner",
-        "admin",
-        "manager",
-        "finance",
-        "employee"
-      ],
-      "expense.edit_own": [
-        "owner",
-        "admin",
-        "manager",
-        "finance",
-        "employee"
-      ],
-      "expense.edit_any": [
-        "owner",
-        "admin",
-        "finance"
-      ],
-      "expense.delete_own": [
-        "owner",
-        "admin",
-        "finance",
-        "employee"
-      ],
-      "expense.delete_any": [
-        "owner",
-        "admin",
-        "finance"
-      ],
-      "expense.submit": [
-        "owner",
-        "admin",
-        "manager",
-        "finance",
-        "employee"
-      ],
-      "expense.approve": [
-        "owner",
-        "admin",
-        "manager",
-        "finance"
-      ],
-      "expense.reject": [
-        "owner",
-        "admin",
-        "manager",
-        "finance"
-      ],
-      "expense.mark_paid": [
-        "owner",
-        "admin",
-        "finance"
-      ],
-      "expense.view_all": [
-        "owner",
-        "admin",
-        "manager",
-        "finance"
-      ],
-      "expense.view_own": [
-        "employee",
-        "viewer"
-      ],
-      "report.create": [
-        "owner",
-        "admin",
-        "manager",
-        "finance",
-        "employee"
-      ],
-      "report.submit": [
-        "owner",
-        "admin",
-        "manager",
-        "finance",
-        "employee"
-      ],
-      "report.approve": [
-        "owner",
-        "admin",
-        "manager",
-        "finance"
-      ],
-      "analytics.view": [
-        "owner",
-        "admin",
-        "manager",
-        "finance"
-      ],
-      "policy.manage": [
-        "owner",
-        "admin",
-        "finance"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "expenseStore",
-        "state": [
-          "selectedExpenses",
-          "viewMode",
-          "activeFilters",
-          "sortConfig"
-        ],
-        "actions": [
-          "setSelectedExpenses",
-          "toggleExpenseSelection",
-          "setViewMode",
-          "setActiveFilters",
-          "setSortConfig",
-          "clearFilters"
-        ]
-      },
-      {
-        "name": "reportStore",
-        "state": [
-          "activeReport",
-          "reportDraft"
-        ],
-        "actions": [
-          "setActiveReport",
-          "updateReportDraft",
-          "clearReportDraft"
-        ]
-      }
-    ],
-    "query_keys": [
-      "expenses.list(filters)",
-      "expenses.detail(id)",
-      "expense-reports.list(filters)",
-      "expense-reports.detail(id)",
-      "analytics.summary(dateRange)",
-      "analytics.by-category(dateRange)",
-      "analytics.trend(months)",
-      "policies.list"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "expense:submitted",
-        "payload": "Expense",
-        "description": "Broadcast to approvers when expense submitted"
-      },
-      {
-        "name": "expense:approved",
-        "payload": "Expense",
-        "description": "Notify submitter when expense approved"
-      },
-      {
-        "name": "expense:rejected",
-        "payload": "Expense",
-        "description": "Notify submitter with rejection reason"
-      },
-      {
-        "name": "expense:paid",
-        "payload": "Expense",
-        "description": "Notify submitter when marked paid"
-      },
-      {
-        "name": "report:approved",
-        "payload": "ExpenseReport",
-        "description": "Notify submitter when report approved"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Submit Expense",
-      "trigger": "Employee submits expense",
-      "steps": [
-        "Validate against expense policy (amount, receipt requirement)",
-        "Check if amount exceeds approval threshold",
-        "If below threshold \u2192 auto-approve, notify finance",
-        "If above threshold \u2192 create approval request, notify manager",
-        "Send confirmation email to submitter"
-      ]
-    },
-    {
-      "name": "Approve Expense",
-      "trigger": "Manager clicks Approve",
-      "steps": [
-        "Validate approver has permission",
-        "Set expense status to approved",
-        "Log approval with timestamp",
-        "Notify submitter via email + in-app",
-        "If part of report \u2192 check if all expenses approved \u2192 auto-approve report"
-      ]
-    },
-    {
-      "name": "Receipt OCR",
-      "trigger": "User uploads receipt image",
-      "steps": [
-        "Upload file to S3",
-        "Trigger OCR processing (AWS Textract or similar)",
-        "Extract: merchant, date, amount, currency",
-        "Pre-fill expense form fields",
-        "Show OCR result preview for user confirmation"
-      ]
-    },
-    {
-      "name": "Export Expense Report",
-      "trigger": "User clicks Export PDF",
-      "steps": [
-        "Fetch report with all expenses and receipts",
-        "Generate PDF with itemized list, totals, receipts",
-        "Return download URL"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "name": "amount_usd",
-      "entity": "Expense",
-      "formula": "amount * exchange_rate",
-      "stored": true
-    },
-    {
-      "name": "total_amount",
-      "entity": "ExpenseReport",
-      "formula": "SUM(expenses.amount_usd) WHERE status != 'rejected'",
-      "stored": false
-    },
-    {
-      "name": "expense_count",
-      "entity": "ExpenseReport",
-      "formula": "COUNT(expenses) WHERE status != 'rejected' AND deleted_at IS NULL",
-      "stored": false
-    },
-    {
-      "name": "total_this_month",
-      "entity": "Analytics",
-      "formula": "SUM(amount_usd) WHERE expense_date >= first_day_of_month AND submitter_id = current_user",
-      "stored": false
-    },
-    {
-      "name": "policy_violation",
-      "entity": "Expense",
-      "formula": "amount > policy.max_amount OR (amount > policy.requires_receipt_above AND receipt_url IS NULL)",
-      "stored": false
-    }
-  ],
-  "domain_rules": [
-    "Expenses can only be edited when in draft status",
-    "Receipt required when amount exceeds policy.requires_receipt_above threshold",
-    "An expense can only belong to one report at a time",
-    "Reports can only be submitted when all contained expenses are in draft status",
-    "Approver cannot approve their own expenses",
-    "Deleted expenses are excluded from report totals and analytics",
-    "Currency conversion uses exchange rate stored at time of expense creation",
-    "Policy violations show warnings but do not block submission"
-  ],
-  "folder_structure": {
-    "src": {
-      "features": {
-        "expenses": {
-          "components": [
-            "ExpenseListTable.tsx",
-            "ExpenseForm.tsx",
-            "ExpenseDetailPanel.tsx",
-            "ReceiptUploader.tsx",
-            "ApprovalWorkflowPanel.tsx",
-            "PolicyViolationBanner.tsx",
-            "OCRResultPreview.tsx",
-            "BulkExpenseActions.tsx"
-          ],
-          "pages": [
-            "MyExpensesPage.tsx",
-            "ExpenseDetailPage.tsx",
-            "ExpenseReportsPage.tsx",
-            "ApprovalQueuePage.tsx",
-            "ExpenseAnalyticsPage.tsx",
-            "PolicyManagerPage.tsx"
-          ],
-          "hooks": [
-            "useExpenses.ts",
-            "useExpenseReport.ts",
-            "useExpensePolicy.ts",
-            "useOCR.ts",
-            "useExpenseAnalytics.ts"
-          ],
-          "store": [
-            "expenseStore.ts",
-            "reportStore.ts"
-          ],
-          "api": [
-            "expenseApi.ts",
-            "reportApi.ts",
-            "analyticsApi.ts"
-          ],
-          "types": [
-            "expense.types.ts"
-          ],
-          "utils": [
-            "currencyUtils.ts",
-            "policyUtils.ts"
-          ]
-        }
-      }
-    }
-  },
-  "generation_rules": [
-    "All monetary amounts stored as NUMERIC(15,2) in base currency + amount_usd for analytics",
-    "Receipt upload goes to S3 with presigned URLs; store only S3 key in DB",
-    "Policy violation checks run client-side on form change and server-side on submit",
-    "OCR is non-blocking: fire-and-forget then notify via websocket when done",
-    "Expense number auto-increments per org: EXP-0001, EXP-0002",
-    "Report number auto-increments per org: RPT-0001, RPT-0002",
-    "Soft delete only: filter deleted_at IS NULL on all queries",
-    "Approval notifications sent via both email and in-app notification",
-    "Analytics queries use materialized views refreshed every 15 minutes for performance"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "category_enum": {
-      "pg_type": "category_type",
-      "ts_type": "CategoryEnum",
-      "values": [
-        "travel",
-        "meals",
-        "software",
-        "equipment",
-        "marketing",
-        "training",
-        "utilities",
-        "office_supplies",
-        "professional_services",
-        "other"
-      ],
-      "pg_ddl": "CREATE TYPE category_type AS ENUM ('travel', 'meals', 'software', 'equipment', 'marketing', 'training', 'utilities', 'office_supplies', 'professional_services', 'other')"
-    },
-    "status_enum": {
-      "pg_type": "status_type",
-      "ts_type": "StatusEnum",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ],
-      "pg_ddl": "CREATE TYPE status_type AS ENUM ('pending', 'approved', 'rejected')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  },
-  "external_entity_refs": [
-    {
-      "name": "Project",
-      "defined_in": "project_management_spec.json",
-      "table": "projects",
-      "description": "Project the expense is attributed to.",
-      "fk_fields_in_this_spec": [
-        "Expense.project_id"
       ]
     }
   ]

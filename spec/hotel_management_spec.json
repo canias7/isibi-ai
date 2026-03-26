@@ -1,13 +1,13 @@
 {
   "_meta": {
-    "app_name": "Hotel Manager",
-    "description": "Hotel and hospitality management"
+    "app_name": "Hotel Management",
+    "description": "Hotel reservation and operations management"
   },
   "entities": [
     {
-      "name": "Room",
-      "table": "rooms",
-      "description": "Hotel room",
+      "name": "RoomType",
+      "table": "room_types",
+      "description": "Category of hotel room",
       "fields": [
         {
           "name": "id",
@@ -32,7 +32,272 @@
           "display_component": "text"
         },
         {
-          "name": "number",
+          "name": "name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "base_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "max_occupancy",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 20
+          }
+        },
+        {
+          "name": "bed_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "single",
+            "double",
+            "queen",
+            "king",
+            "twin",
+            "suite"
+          ],
+          "badge_colors": {
+            "single": "gray",
+            "double": "blue",
+            "queen": "purple",
+            "king": "gold",
+            "twin": "teal",
+            "suite": "pink"
+          }
+        },
+        {
+          "name": "amenities",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "base_rate",
+            "max_occupancy",
+            "bed_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No RoomTypes yet",
+            "subtext": "Create your first roomtype",
+            "action_label": "Add RoomType"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "base_rate",
+            "max_occupancy",
+            "bed_type",
+            "amenities"
+          ],
+          "required_fields": [
+            "name",
+            "base_rate",
+            "max_occupancy",
+            "bed_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "base_rate",
+            "max_occupancy",
+            "bed_type",
+            "amenities"
+          ],
+          "required_fields": [
+            "name",
+            "base_rate",
+            "max_occupancy",
+            "bed_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/room_types/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "base_rate",
+            "max_occupancy",
+            "bed_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "base_rate",
+                "max_occupancy",
+                "bed_type"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "description",
+                "base_rate",
+                "max_occupancy",
+                "bed_type",
+                "amenities"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Room",
+      "table": "rooms",
+      "description": "Individual hotel room",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "room_number",
           "db_type": "VARCHAR(10) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -40,76 +305,101 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "room_type_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "single",
-            "double",
-            "suite",
-            "penthouse",
-            "deluxe"
-          ],
-          "badge_colors": {
-            "single": "slate",
-            "double": "blue",
-            "suite": "purple",
-            "penthouse": "pink",
-            "deluxe": "amber"
-          }
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "room_types",
+          "fk_display": "name"
         },
         {
           "name": "floor",
-          "db_type": "INTEGER",
+          "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "price_per_night",
-          "db_type": "NUMERIC(10,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'available'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "available",
           "enum_values": [
             "available",
             "occupied",
             "maintenance",
-            "reserved"
+            "reserved",
+            "out_of_order"
           ],
           "badge_colors": {
             "available": "green",
             "occupied": "red",
-            "maintenance": "amber",
-            "reserved": "blue"
+            "maintenance": "yellow",
+            "reserved": "blue",
+            "out_of_order": "gray"
+          }
+        },
+        {
+          "name": "is_smoking",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "rate_override",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "not_equals",
+            "value": "out_of_order"
           }
         },
         {
@@ -161,11 +451,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "number",
-            "type",
+            "room_number",
+            "room_type_id",
             "floor",
-            "price_per_night",
-            "status"
+            "status",
+            "is_smoking",
+            "rate_override"
           ],
           "filters": [],
           "empty_state": {
@@ -178,29 +469,37 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "number",
-            "type",
+            "room_number",
+            "room_type_id",
             "floor",
-            "price_per_night",
-            "status"
+            "status",
+            "is_smoking",
+            "rate_override"
           ],
           "required_fields": [
-            "number",
-            "type"
+            "room_number",
+            "room_type_id",
+            "floor",
+            "status",
+            "is_smoking"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "number",
-            "type",
+            "room_number",
+            "room_type_id",
             "floor",
-            "price_per_night",
-            "status"
+            "status",
+            "is_smoking",
+            "rate_override"
           ],
           "required_fields": [
-            "number",
-            "type"
+            "room_number",
+            "room_type_id",
+            "floor",
+            "status",
+            "is_smoking"
           ],
           "prefilled": true
         },
@@ -209,35 +508,1449 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "number"
+              "room_number"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "number",
-            "type",
+            "room_number",
+            "room_type_id",
             "floor",
-            "price_per_night"
+            "status"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "number",
-                "type",
+                "room_number",
+                "room_type_id",
                 "floor",
-                "price_per_night",
-                "status"
+                "status",
+                "is_smoking",
+                "rate_override"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "room_number",
+                "room_type_id",
+                "floor",
+                "status",
+                "is_smoking",
+                "rate_override"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "room_type_id",
+          "references": {
+            "table": "room_types",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Guest",
       "table": "guests",
       "description": "Hotel guest",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "first_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "last_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "id_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "passport",
+            "drivers_license",
+            "national_id",
+            "other"
+          ],
+          "badge_colors": {
+            "passport": "blue",
+            "drivers_license": "green",
+            "national_id": "purple",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "id_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "nationality",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "vip_level",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'standard'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "standard",
+          "enum_values": [
+            "standard",
+            "silver",
+            "gold",
+            "platinum"
+          ],
+          "badge_colors": {
+            "standard": "gray",
+            "silver": "blue",
+            "gold": "yellow",
+            "platinum": "purple"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "id_type",
+            "nationality"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Guests yet",
+            "subtext": "Create your first guest",
+            "action_label": "Add Guest"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "id_type",
+            "id_number",
+            "nationality",
+            "vip_level",
+            "notes"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "id_type",
+            "id_number",
+            "vip_level"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "id_type",
+            "id_number",
+            "nationality",
+            "vip_level",
+            "notes"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "id_type",
+            "id_number",
+            "vip_level"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/guests/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "first_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "id_type",
+                "nationality"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "id_type",
+                "id_number",
+                "nationality",
+                "vip_level",
+                "notes"
+              ]
+            }
+          ]
+        }
+      },
+      "computed_fields": [
+        {
+          "name": "full_name",
+          "expression": "first_name || ' ' || last_name",
+          "ts_expression": "first_name + ' ' + last_name"
+        }
+      ]
+    },
+    {
+      "name": "Reservation",
+      "table": "reservations",
+      "description": "Room reservation",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "guest_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "guests",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "room_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "rooms",
+          "fk_display": "room_number"
+        },
+        {
+          "name": "check_in_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "check_out_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "num_guests",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 10
+          }
+        },
+        {
+          "name": "nightly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'confirmed'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "confirmed",
+          "enum_values": [
+            "pending",
+            "confirmed",
+            "checked_in",
+            "checked_out",
+            "cancelled",
+            "no_show"
+          ],
+          "badge_colors": {
+            "pending": "yellow",
+            "confirmed": "blue",
+            "checked_in": "green",
+            "checked_out": "teal",
+            "cancelled": "red",
+            "no_show": "gray"
+          }
+        },
+        {
+          "name": "special_requests",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "cancellation_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "cancelled"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "guest_id",
+            "room_id",
+            "check_in_date",
+            "check_out_date",
+            "num_guests",
+            "nightly_rate"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Reservations yet",
+            "subtext": "Create your first reservation",
+            "action_label": "Add Reservation"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "guest_id",
+            "room_id",
+            "check_in_date",
+            "check_out_date",
+            "num_guests",
+            "nightly_rate",
+            "status",
+            "special_requests",
+            "cancellation_reason"
+          ],
+          "required_fields": [
+            "guest_id",
+            "room_id",
+            "check_in_date",
+            "check_out_date",
+            "num_guests",
+            "nightly_rate",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "guest_id",
+            "room_id",
+            "check_in_date",
+            "check_out_date",
+            "num_guests",
+            "nightly_rate",
+            "status",
+            "special_requests",
+            "cancellation_reason"
+          ],
+          "required_fields": [
+            "guest_id",
+            "room_id",
+            "check_in_date",
+            "check_out_date",
+            "num_guests",
+            "nightly_rate",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/reservations/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "guest_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "guest_id",
+            "room_id",
+            "check_in_date",
+            "check_out_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "guest_id",
+                "room_id",
+                "check_in_date",
+                "check_out_date",
+                "num_guests",
+                "nightly_rate"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "guest_id",
+                "room_id",
+                "check_in_date",
+                "check_out_date",
+                "num_guests",
+                "nightly_rate",
+                "status",
+                "special_requests",
+                "cancellation_reason"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "guest_id",
+          "references": {
+            "table": "guests",
+            "column": "id"
+          }
+        },
+        {
+          "column": "room_id",
+          "references": {
+            "table": "rooms",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total_cost",
+          "expression": "nightly_rate * (check_out_date - check_in_date)",
+          "ts_expression": "nightly_rate * Math.ceil((new Date(check_out_date) - new Date(check_in_date)) / 86400000)"
+        }
+      ]
+    },
+    {
+      "name": "Housekeeping",
+      "table": "housekeeping_tasks",
+      "description": "Room housekeeping task",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "room_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "rooms",
+          "fk_display": "room_number"
+        },
+        {
+          "name": "staff_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "staff",
+          "fk_display": "name"
+        },
+        {
+          "name": "task_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "daily_clean",
+            "deep_clean",
+            "turnover",
+            "inspection",
+            "laundry"
+          ],
+          "badge_colors": {
+            "daily_clean": "blue",
+            "deep_clean": "purple",
+            "turnover": "green",
+            "inspection": "yellow",
+            "laundry": "teal"
+          }
+        },
+        {
+          "name": "scheduled_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'pending'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "pending",
+          "enum_values": [
+            "pending",
+            "in_progress",
+            "completed",
+            "skipped"
+          ],
+          "badge_colors": {
+            "pending": "yellow",
+            "in_progress": "blue",
+            "completed": "green",
+            "skipped": "gray"
+          }
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(10) NOT NULL DEFAULT 'normal'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "normal",
+          "enum_values": [
+            "low",
+            "normal",
+            "high",
+            "urgent"
+          ],
+          "badge_colors": {
+            "low": "gray",
+            "normal": "blue",
+            "high": "orange",
+            "urgent": "red"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "room_id",
+            "staff_id",
+            "task_type",
+            "scheduled_date",
+            "status",
+            "priority"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Housekeepings yet",
+            "subtext": "Create your first housekeeping",
+            "action_label": "Add Housekeeping"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "room_id",
+            "staff_id",
+            "task_type",
+            "scheduled_date",
+            "status",
+            "priority",
+            "notes"
+          ],
+          "required_fields": [
+            "room_id",
+            "task_type",
+            "scheduled_date",
+            "status",
+            "priority"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "room_id",
+            "staff_id",
+            "task_type",
+            "scheduled_date",
+            "status",
+            "priority",
+            "notes"
+          ],
+          "required_fields": [
+            "room_id",
+            "task_type",
+            "scheduled_date",
+            "status",
+            "priority"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/housekeeping_tasks/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "room_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "room_id",
+            "staff_id",
+            "task_type",
+            "scheduled_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "room_id",
+                "staff_id",
+                "task_type",
+                "scheduled_date",
+                "status",
+                "priority"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "room_id",
+                "staff_id",
+                "task_type",
+                "scheduled_date",
+                "status",
+                "priority",
+                "notes"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "room_id",
+          "references": {
+            "table": "rooms",
+            "column": "id"
+          }
+        },
+        {
+          "column": "staff_id",
+          "references": {
+            "table": "staff",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Billing",
+      "table": "billings",
+      "description": "Guest billing record",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "reservation_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "reservations",
+          "fk_display": "id"
+        },
+        {
+          "name": "guest_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "guests",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "item_description",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "room",
+            "food",
+            "beverage",
+            "spa",
+            "laundry",
+            "minibar",
+            "parking",
+            "other"
+          ],
+          "badge_colors": {
+            "room": "blue",
+            "food": "green",
+            "beverage": "orange",
+            "spa": "purple",
+            "laundry": "teal",
+            "minibar": "pink",
+            "parking": "gray",
+            "other": "yellow"
+          }
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "tax_amount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "payment_status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'unpaid'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "unpaid",
+          "enum_values": [
+            "unpaid",
+            "paid",
+            "partial",
+            "refunded"
+          ],
+          "badge_colors": {
+            "unpaid": "red",
+            "paid": "green",
+            "partial": "yellow",
+            "refunded": "orange"
+          }
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "cash",
+            "credit_card",
+            "debit_card",
+            "room_charge",
+            "comp"
+          ],
+          "badge_colors": {
+            "cash": "green",
+            "credit_card": "blue",
+            "debit_card": "purple",
+            "room_charge": "teal",
+            "comp": "gray"
+          },
+          "conditional_visibility": {
+            "field": "payment_status",
+            "operator": "not_equals",
+            "value": "unpaid"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "reservation_id",
+            "guest_id",
+            "item_description",
+            "category",
+            "amount",
+            "tax_amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Billings yet",
+            "subtext": "Create your first billing",
+            "action_label": "Add Billing"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "reservation_id",
+            "guest_id",
+            "item_description",
+            "category",
+            "amount",
+            "tax_amount",
+            "payment_status",
+            "payment_method"
+          ],
+          "required_fields": [
+            "reservation_id",
+            "guest_id",
+            "item_description",
+            "category",
+            "amount",
+            "tax_amount",
+            "payment_status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "reservation_id",
+            "guest_id",
+            "item_description",
+            "category",
+            "amount",
+            "tax_amount",
+            "payment_status",
+            "payment_method"
+          ],
+          "required_fields": [
+            "reservation_id",
+            "guest_id",
+            "item_description",
+            "category",
+            "amount",
+            "tax_amount",
+            "payment_status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/billings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "reservation_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "reservation_id",
+            "guest_id",
+            "item_description",
+            "category"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "reservation_id",
+                "guest_id",
+                "item_description",
+                "category",
+                "amount",
+                "tax_amount"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "reservation_id",
+                "guest_id",
+                "item_description",
+                "category",
+                "amount",
+                "tax_amount",
+                "payment_status",
+                "payment_method"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "reservation_id",
+          "references": {
+            "table": "reservations",
+            "column": "id"
+          }
+        },
+        {
+          "column": "guest_id",
+          "references": {
+            "table": "guests",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total_with_tax",
+          "expression": "amount + tax_amount",
+          "ts_expression": "amount + tax_amount"
+        }
+      ]
+    },
+    {
+      "name": "Staff",
+      "table": "staff",
+      "description": "Hotel staff member",
       "fields": [
         {
           "name": "id",
@@ -270,51 +1983,151 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
           "name": "phone",
-          "db_type": "VARCHAR(20)",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "id_number",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "vip",
-          "db_type": "BOOLEAN NOT NULL DEFAULT false",
-          "ts_type": "boolean",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "checkbox",
-          "display_component": "boolean_badge"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "department",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "front_desk",
+            "housekeeping",
+            "maintenance",
+            "food_beverage",
+            "management",
+            "security"
+          ],
+          "badge_colors": {
+            "front_desk": "blue",
+            "housekeeping": "green",
+            "maintenance": "yellow",
+            "food_beverage": "orange",
+            "management": "purple",
+            "security": "red"
+          }
+        },
+        {
+          "name": "role",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "shift",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'morning'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "morning",
+          "enum_values": [
+            "morning",
+            "afternoon",
+            "night",
+            "flexible"
+          ],
+          "badge_colors": {
+            "morning": "yellow",
+            "afternoon": "orange",
+            "night": "purple",
+            "flexible": "blue"
+          }
+        },
+        {
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "on_leave",
+            "terminated"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "on_leave": "yellow",
+            "terminated": "red"
+          }
         },
         {
           "name": "created_at",
@@ -368,15 +2181,16 @@
             "name",
             "email",
             "phone",
-            "id_number",
-            "vip"
+            "department",
+            "role",
+            "shift"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No Guests yet",
-            "subtext": "Create your first guest",
-            "action_label": "Add Guest"
+            "heading": "No Staffs yet",
+            "subtext": "Create your first staff",
+            "action_label": "Add Staff"
           }
         },
         "create_form": {
@@ -385,12 +2199,21 @@
             "name",
             "email",
             "phone",
-            "id_number",
-            "vip"
+            "department",
+            "role",
+            "shift",
+            "hourly_rate",
+            "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone",
+            "department",
+            "role",
+            "shift",
+            "hourly_rate",
+            "status"
           ]
         },
         "edit_form": {
@@ -399,17 +2222,26 @@
             "name",
             "email",
             "phone",
-            "id_number",
-            "vip"
+            "department",
+            "role",
+            "shift",
+            "hourly_rate",
+            "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone",
+            "department",
+            "role",
+            "shift",
+            "hourly_rate",
+            "status"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/guests/:id",
+          "route": "/staff/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
@@ -421,7 +2253,7 @@
             "name",
             "email",
             "phone",
-            "id_number"
+            "department"
           ],
           "tabs": [
             {
@@ -430,451 +2262,21 @@
                 "name",
                 "email",
                 "phone",
-                "id_number",
-                "vip"
+                "department",
+                "role",
+                "shift"
               ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Reservation",
-      "table": "reservations",
-      "description": "Room reservation",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "guest_name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "room_number",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "check_in",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "check_out",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "total",
-          "db_type": "NUMERIC(10,2)",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "confirmed",
-            "checked_in",
-            "checked_out",
-            "cancelled",
-            "no_show"
-          ],
-          "badge_colors": {
-            "confirmed": "blue",
-            "checked_in": "green",
-            "checked_out": "slate",
-            "cancelled": "red",
-            "no_show": "amber"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "guest_name",
-            "room_number",
-            "check_in",
-            "check_out",
-            "total",
-            "status"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Reservations yet",
-            "subtext": "Create your first reservation",
-            "action_label": "Add Reservation"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "guest_name",
-            "room_number",
-            "check_in",
-            "check_out",
-            "total",
-            "status"
-          ],
-          "required_fields": [
-            "guest_name",
-            "room_number"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "guest_name",
-            "room_number",
-            "check_in",
-            "check_out",
-            "total",
-            "status"
-          ],
-          "required_fields": [
-            "guest_name",
-            "room_number"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/reservations/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "guest_name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "guest_name",
-            "room_number",
-            "check_in",
-            "check_out"
-          ],
-          "tabs": [
+            },
             {
-              "name": "Overview",
+              "name": "Details",
               "fields": [
-                "guest_name",
-                "room_number",
-                "check_in",
-                "check_out",
-                "total",
-                "status"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Housekeeping",
-      "table": "housekeeping",
-      "description": "Housekeeping task",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "room_number",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "task_type",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "clean",
-            "deep_clean",
-            "turndown",
-            "maintenance"
-          ],
-          "badge_colors": {
-            "clean": "blue",
-            "deep_clean": "purple",
-            "turndown": "green",
-            "maintenance": "amber"
-          }
-        },
-        {
-          "name": "assigned_to",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "pending",
-            "in_progress",
-            "completed"
-          ],
-          "badge_colors": {
-            "pending": "amber",
-            "in_progress": "blue",
-            "completed": "green"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "room_number",
-            "task_type",
-            "assigned_to",
-            "status"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Housekeepings yet",
-            "subtext": "Create your first housekeeping",
-            "action_label": "Add Housekeeping"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "room_number",
-            "task_type",
-            "assigned_to",
-            "status"
-          ],
-          "required_fields": [
-            "room_number",
-            "task_type"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "room_number",
-            "task_type",
-            "assigned_to",
-            "status"
-          ],
-          "required_fields": [
-            "room_number",
-            "task_type"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/housekeeping/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "room_number"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "room_number",
-            "task_type",
-            "assigned_to",
-            "status"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "room_number",
-                "task_type",
-                "assigned_to",
+                "name",
+                "email",
+                "phone",
+                "department",
+                "role",
+                "shift",
+                "hourly_rate",
                 "status"
               ]
             }
@@ -882,100 +2284,5 @@
         }
       }
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Rooms",
-      "route": "/rooms",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "DoorOpen",
-      "entity": "Room"
-    },
-    {
-      "name": "Guests",
-      "route": "/guests",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Users",
-      "entity": "Guest"
-    },
-    {
-      "name": "Reservations",
-      "route": "/reservations",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "CalendarDays",
-      "entity": "Reservation"
-    },
-    {
-      "name": "Housekeepings",
-      "route": "/housekeeping",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Sparkles",
-      "entity": "Housekeeping"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Rooms",
-        "entity": "Room",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

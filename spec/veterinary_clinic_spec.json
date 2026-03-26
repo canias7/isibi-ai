@@ -1,246 +1,9 @@
 {
   "_meta": {
     "app_name": "Veterinary Clinic",
-    "description": "Pet and animal healthcare management"
+    "description": "Animal healthcare and veterinary practice management"
   },
   "entities": [
-    {
-      "name": "Pet",
-      "table": "pets",
-      "description": "Pet record",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "species",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "dog",
-            "cat",
-            "bird",
-            "rabbit",
-            "reptile",
-            "fish",
-            "other"
-          ],
-          "badge_colors": {
-            "dog": "blue",
-            "cat": "pink",
-            "bird": "green",
-            "rabbit": "purple",
-            "reptile": "amber",
-            "fish": "blue",
-            "other": "slate"
-          }
-        },
-        {
-          "name": "breed",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "age",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "weight_kg",
-          "db_type": "NUMERIC(5,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "owner_name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "species",
-            "breed",
-            "age",
-            "weight_kg",
-            "owner_name"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Pets yet",
-            "subtext": "Create your first pet",
-            "action_label": "Add Pet"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "species",
-            "breed",
-            "age",
-            "weight_kg",
-            "owner_name"
-          ],
-          "required_fields": [
-            "name",
-            "species"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "species",
-            "breed",
-            "age",
-            "weight_kg",
-            "owner_name"
-          ],
-          "required_fields": [
-            "name",
-            "species"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/pets/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "species",
-            "breed",
-            "age"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "species",
-                "breed",
-                "age",
-                "weight_kg",
-                "owner_name"
-              ]
-            }
-          ]
-        }
-      }
-    },
     {
       "name": "Owner",
       "table": "owners",
@@ -269,7 +32,33 @@
           "display_component": "text"
         },
         {
-          "name": "name",
+          "name": "first_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "last_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -277,29 +66,30 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
           "name": "phone",
-          "db_type": "VARCHAR(20)",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
         },
         {
           "name": "address",
@@ -309,8 +99,56 @@
           "editable": true,
           "show_in_table": false,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "preferred_contact",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'phone'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "phone",
+          "enum_values": [
+            "phone",
+            "email",
+            "text"
+          ],
+          "badge_colors": {
+            "phone": "blue",
+            "email": "green",
+            "text": "purple"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray"
+          }
         },
         {
           "name": "created_at",
@@ -361,9 +199,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
-            "phone"
+            "phone",
+            "preferred_contact",
+            "status"
           ],
           "filters": [],
           "empty_state": {
@@ -376,27 +217,41 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
             "phone",
-            "address"
+            "address",
+            "preferred_contact",
+            "status"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "preferred_contact",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
             "phone",
-            "address"
+            "address",
+            "preferred_contact",
+            "status"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "preferred_contact",
+            "status"
           ],
           "prefilled": true
         },
@@ -405,12 +260,13 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "first_name"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "name",
+            "first_name",
+            "last_name",
             "email",
             "phone"
           ],
@@ -418,19 +274,41 @@
             {
               "name": "Overview",
               "fields": [
-                "name",
+                "first_name",
+                "last_name",
                 "email",
-                "phone"
+                "phone",
+                "preferred_contact",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "address",
+                "preferred_contact",
+                "status"
               ]
             }
           ]
         }
-      }
+      },
+      "computed_fields": [
+        {
+          "name": "full_name",
+          "expression": "first_name || ' ' || last_name",
+          "ts_expression": "first_name + ' ' + last_name"
+        }
+      ]
     },
     {
-      "name": "Visit",
-      "table": "visits",
-      "description": "Vet visit",
+      "name": "Pet",
+      "table": "pets",
+      "description": "Patient animal",
       "fields": [
         {
           "name": "id",
@@ -455,37 +333,391 @@
           "display_component": "text"
         },
         {
-          "name": "pet_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "name",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "owner_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "owners",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "species",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "dog",
+            "cat",
+            "bird",
+            "rabbit",
+            "reptile",
+            "fish",
+            "hamster",
+            "other"
+          ],
+          "badge_colors": {
+            "dog": "blue",
+            "cat": "orange",
+            "bird": "green",
+            "rabbit": "pink",
+            "reptile": "teal",
+            "fish": "purple",
+            "hamster": "yellow",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "breed",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "date_of_birth",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "weight_kg",
+          "db_type": "NUMERIC(6,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01
+          }
+        },
+        {
+          "name": "gender",
+          "db_type": "VARCHAR(10) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "male",
+            "female",
+            "unknown"
+          ],
+          "badge_colors": {
+            "male": "blue",
+            "female": "pink",
+            "unknown": "gray"
+          }
+        },
+        {
+          "name": "is_neutered",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "microchip_id",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "allergies",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "owner_id",
+            "species",
+            "breed",
+            "date_of_birth",
+            "weight_kg"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Pets yet",
+            "subtext": "Create your first pet",
+            "action_label": "Add Pet"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "owner_id",
+            "species",
+            "breed",
+            "date_of_birth",
+            "weight_kg",
+            "gender",
+            "is_neutered",
+            "microchip_id",
+            "allergies"
+          ],
+          "required_fields": [
+            "name",
+            "owner_id",
+            "species",
+            "gender",
+            "is_neutered"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "owner_id",
+            "species",
+            "breed",
+            "date_of_birth",
+            "weight_kg",
+            "gender",
+            "is_neutered",
+            "microchip_id",
+            "allergies"
+          ],
+          "required_fields": [
+            "name",
+            "owner_id",
+            "species",
+            "gender",
+            "is_neutered"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/pets/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "owner_id",
+            "species",
+            "breed"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "owner_id",
+                "species",
+                "breed",
+                "date_of_birth",
+                "weight_kg"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "owner_id",
+                "species",
+                "breed",
+                "date_of_birth",
+                "weight_kg",
+                "gender",
+                "is_neutered",
+                "microchip_id",
+                "allergies"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "owner_id",
+          "references": {
+            "table": "owners",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Visit",
+      "table": "visits",
+      "description": "Veterinary visit / appointment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
           "display_component": "text"
         },
         {
-          "name": "owner_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
           "display_component": "text"
         },
         {
-          "name": "doctor_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "pet_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "pets",
+          "fk_display": "name"
+        },
+        {
+          "name": "visit_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "reason",
@@ -496,18 +728,38 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "date",
-          "db_type": "DATE NOT NULL",
+          "name": "visit_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "checkup",
+            "sick",
+            "emergency",
+            "surgery",
+            "vaccination",
+            "follow_up"
+          ],
+          "badge_colors": {
+            "checkup": "blue",
+            "sick": "orange",
+            "emergency": "red",
+            "surgery": "purple",
+            "vaccination": "green",
+            "follow_up": "teal"
+          }
         },
         {
           "name": "diagnosis",
@@ -517,30 +769,79 @@
           "editable": true,
           "show_in_table": false,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "status",
+          "name": "treatment",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "weight_kg",
+          "db_type": "NUMERIC(6,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01
+          }
+        },
+        {
+          "name": "vet_name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'scheduled'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "scheduled",
           "enum_values": [
             "scheduled",
             "in_progress",
             "completed",
-            "cancelled"
+            "cancelled",
+            "no_show"
           ],
           "badge_colors": {
             "scheduled": "blue",
-            "in_progress": "amber",
+            "in_progress": "yellow",
             "completed": "green",
-            "cancelled": "red"
+            "cancelled": "red",
+            "no_show": "gray"
           }
         },
         {
@@ -592,12 +893,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "pet_name",
-            "owner_name",
-            "doctor_name",
+            "pet_id",
+            "visit_date",
             "reason",
-            "date",
-            "status"
+            "visit_type",
+            "weight_kg",
+            "vet_name"
           ],
           "filters": [],
           "empty_state": {
@@ -610,33 +911,45 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "pet_name",
-            "owner_name",
-            "doctor_name",
+            "pet_id",
+            "visit_date",
             "reason",
-            "date",
+            "visit_type",
             "diagnosis",
+            "treatment",
+            "weight_kg",
+            "vet_name",
             "status"
           ],
           "required_fields": [
-            "pet_name",
-            "owner_name"
+            "pet_id",
+            "visit_date",
+            "reason",
+            "visit_type",
+            "vet_name",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "pet_name",
-            "owner_name",
-            "doctor_name",
+            "pet_id",
+            "visit_date",
             "reason",
-            "date",
+            "visit_type",
             "diagnosis",
+            "treatment",
+            "weight_kg",
+            "vet_name",
             "status"
           ],
           "required_fields": [
-            "pet_name",
-            "owner_name"
+            "pet_id",
+            "visit_date",
+            "reason",
+            "visit_type",
+            "vet_name",
+            "status"
           ],
           "prefilled": true
         },
@@ -645,36 +958,59 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "pet_name"
+              "pet_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "pet_name",
-            "owner_name",
-            "doctor_name",
-            "reason"
+            "pet_id",
+            "visit_date",
+            "reason",
+            "visit_type"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "pet_name",
-                "owner_name",
-                "doctor_name",
+                "pet_id",
+                "visit_date",
                 "reason",
-                "date",
+                "visit_type",
+                "weight_kg",
+                "vet_name"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "pet_id",
+                "visit_date",
+                "reason",
+                "visit_type",
+                "diagnosis",
+                "treatment",
+                "weight_kg",
+                "vet_name",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "pet_id",
+          "references": {
+            "table": "pets",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Vaccination",
       "table": "vaccinations",
-      "description": "Vaccination record",
+      "description": "Pet vaccination record",
       "fields": [
         {
           "name": "id",
@@ -699,48 +1035,72 @@
           "display_component": "text"
         },
         {
-          "name": "pet_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "pet_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "pets",
+          "fk_display": "name"
         },
         {
           "name": "vaccine_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "date_given",
+          "name": "date_administered",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "next_due",
+          "name": "next_due_date",
           "db_type": "DATE",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "batch_number",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "administered_by",
@@ -751,7 +1111,47 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'current'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "current",
+            "overdue",
+            "upcoming",
+            "expired"
+          ],
+          "badge_colors": {
+            "current": "green",
+            "overdue": "red",
+            "upcoming": "yellow",
+            "expired": "gray"
+          }
+        },
+        {
+          "name": "reaction_notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "created_at",
@@ -802,11 +1202,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "pet_name",
+            "pet_id",
             "vaccine_name",
-            "date_given",
-            "next_due",
-            "administered_by"
+            "date_administered",
+            "next_due_date",
+            "administered_by",
+            "status"
           ],
           "filters": [],
           "empty_state": {
@@ -819,29 +1220,41 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "pet_name",
+            "pet_id",
             "vaccine_name",
-            "date_given",
-            "next_due",
-            "administered_by"
+            "date_administered",
+            "next_due_date",
+            "batch_number",
+            "administered_by",
+            "status",
+            "reaction_notes"
           ],
           "required_fields": [
-            "pet_name",
-            "vaccine_name"
+            "pet_id",
+            "vaccine_name",
+            "date_administered",
+            "administered_by",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "pet_name",
+            "pet_id",
             "vaccine_name",
-            "date_given",
-            "next_due",
-            "administered_by"
+            "date_administered",
+            "next_due_date",
+            "batch_number",
+            "administered_by",
+            "status",
+            "reaction_notes"
           ],
           "required_fields": [
-            "pet_name",
-            "vaccine_name"
+            "pet_id",
+            "vaccine_name",
+            "date_administered",
+            "administered_by",
+            "status"
           ],
           "prefilled": true
         },
@@ -850,125 +1263,1126 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "pet_name"
+              "pet_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "pet_name",
+            "pet_id",
             "vaccine_name",
-            "date_given",
-            "next_due"
+            "date_administered",
+            "next_due_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "pet_name",
+                "pet_id",
                 "vaccine_name",
-                "date_given",
-                "next_due",
-                "administered_by"
+                "date_administered",
+                "next_due_date",
+                "administered_by",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "pet_id",
+                "vaccine_name",
+                "date_administered",
+                "next_due_date",
+                "batch_number",
+                "administered_by",
+                "status",
+                "reaction_notes"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "pet_id",
+          "references": {
+            "table": "pets",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Prescription",
+      "table": "prescriptions",
+      "description": "Medication prescription",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "visit_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "visits",
+          "fk_display": "reason"
+        },
+        {
+          "name": "pet_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "pets",
+          "fk_display": "name"
+        },
+        {
+          "name": "medication_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "dosage",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "frequency",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "refills_remaining",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "completed",
+            "discontinued",
+            "expired"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "completed": "blue",
+            "discontinued": "red",
+            "expired": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "visit_id",
+            "pet_id",
+            "medication_name",
+            "dosage",
+            "frequency",
+            "start_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Prescriptions yet",
+            "subtext": "Create your first prescription",
+            "action_label": "Add Prescription"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "visit_id",
+            "pet_id",
+            "medication_name",
+            "dosage",
+            "frequency",
+            "start_date",
+            "end_date",
+            "refills_remaining",
+            "status"
+          ],
+          "required_fields": [
+            "visit_id",
+            "pet_id",
+            "medication_name",
+            "dosage",
+            "frequency",
+            "start_date",
+            "refills_remaining",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "visit_id",
+            "pet_id",
+            "medication_name",
+            "dosage",
+            "frequency",
+            "start_date",
+            "end_date",
+            "refills_remaining",
+            "status"
+          ],
+          "required_fields": [
+            "visit_id",
+            "pet_id",
+            "medication_name",
+            "dosage",
+            "frequency",
+            "start_date",
+            "refills_remaining",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/prescriptions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "visit_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "visit_id",
+            "pet_id",
+            "medication_name",
+            "dosage"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "visit_id",
+                "pet_id",
+                "medication_name",
+                "dosage",
+                "frequency",
+                "start_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "visit_id",
+                "pet_id",
+                "medication_name",
+                "dosage",
+                "frequency",
+                "start_date",
+                "end_date",
+                "refills_remaining",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "visit_id",
+          "references": {
+            "table": "visits",
+            "column": "id"
+          }
+        },
+        {
+          "column": "pet_id",
+          "references": {
+            "table": "pets",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Surgery",
+      "table": "surgeries",
+      "description": "Surgical procedure",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "pet_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "pets",
+          "fk_display": "name"
+        },
+        {
+          "name": "visit_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "visits",
+          "fk_display": "reason"
+        },
+        {
+          "name": "procedure_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "scheduled_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "surgeon_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "anesthesia_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "general",
+            "local",
+            "sedation",
+            "none"
+          ],
+          "badge_colors": {
+            "general": "red",
+            "local": "blue",
+            "sedation": "yellow",
+            "none": "gray"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'scheduled'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "scheduled",
+          "enum_values": [
+            "scheduled",
+            "in_progress",
+            "completed",
+            "cancelled",
+            "post_op"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "in_progress": "yellow",
+            "completed": "green",
+            "cancelled": "red",
+            "post_op": "purple"
+          }
+        },
+        {
+          "name": "cost",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "complications",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "equals",
+            "value": "completed"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "pet_id",
+            "visit_id",
+            "procedure_name",
+            "scheduled_date",
+            "surgeon_name",
+            "anesthesia_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Surgerys yet",
+            "subtext": "Create your first surgery",
+            "action_label": "Add Surgery"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "pet_id",
+            "visit_id",
+            "procedure_name",
+            "scheduled_date",
+            "surgeon_name",
+            "anesthesia_type",
+            "status",
+            "cost",
+            "complications"
+          ],
+          "required_fields": [
+            "pet_id",
+            "visit_id",
+            "procedure_name",
+            "scheduled_date",
+            "surgeon_name",
+            "anesthesia_type",
+            "status",
+            "cost"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "pet_id",
+            "visit_id",
+            "procedure_name",
+            "scheduled_date",
+            "surgeon_name",
+            "anesthesia_type",
+            "status",
+            "cost",
+            "complications"
+          ],
+          "required_fields": [
+            "pet_id",
+            "visit_id",
+            "procedure_name",
+            "scheduled_date",
+            "surgeon_name",
+            "anesthesia_type",
+            "status",
+            "cost"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/surgeries/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "pet_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "pet_id",
+            "visit_id",
+            "procedure_name",
+            "scheduled_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "pet_id",
+                "visit_id",
+                "procedure_name",
+                "scheduled_date",
+                "surgeon_name",
+                "anesthesia_type"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "pet_id",
+                "visit_id",
+                "procedure_name",
+                "scheduled_date",
+                "surgeon_name",
+                "anesthesia_type",
+                "status",
+                "cost",
+                "complications"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "pet_id",
+          "references": {
+            "table": "pets",
+            "column": "id"
+          }
+        },
+        {
+          "column": "visit_id",
+          "references": {
+            "table": "visits",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Invoice",
+      "table": "invoices",
+      "description": "Billing invoice",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "visit_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "visits",
+          "fk_display": "reason"
+        },
+        {
+          "name": "owner_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "owners",
+          "fk_display": "first_name"
+        },
+        {
+          "name": "invoice_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "issue_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "subtotal",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "tax_amount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "discount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'unpaid'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "unpaid",
+          "enum_values": [
+            "unpaid",
+            "paid",
+            "partial",
+            "overdue",
+            "void"
+          ],
+          "badge_colors": {
+            "unpaid": "red",
+            "paid": "green",
+            "partial": "yellow",
+            "overdue": "orange",
+            "void": "gray"
+          }
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "cash",
+            "credit_card",
+            "check",
+            "insurance",
+            "payment_plan"
+          ],
+          "badge_colors": {
+            "cash": "green",
+            "credit_card": "blue",
+            "check": "teal",
+            "insurance": "purple",
+            "payment_plan": "orange"
+          },
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "paid",
+              "partial"
+            ]
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "visit_id",
+            "owner_id",
+            "invoice_number",
+            "issue_date",
+            "subtotal",
+            "tax_amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Invoices yet",
+            "subtext": "Create your first invoice",
+            "action_label": "Add Invoice"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "visit_id",
+            "owner_id",
+            "invoice_number",
+            "issue_date",
+            "subtotal",
+            "tax_amount",
+            "discount",
+            "status",
+            "payment_method"
+          ],
+          "required_fields": [
+            "visit_id",
+            "owner_id",
+            "invoice_number",
+            "issue_date",
+            "subtotal",
+            "tax_amount",
+            "discount",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "visit_id",
+            "owner_id",
+            "invoice_number",
+            "issue_date",
+            "subtotal",
+            "tax_amount",
+            "discount",
+            "status",
+            "payment_method"
+          ],
+          "required_fields": [
+            "visit_id",
+            "owner_id",
+            "invoice_number",
+            "issue_date",
+            "subtotal",
+            "tax_amount",
+            "discount",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/invoices/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "visit_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "visit_id",
+            "owner_id",
+            "invoice_number",
+            "issue_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "visit_id",
+                "owner_id",
+                "invoice_number",
+                "issue_date",
+                "subtotal",
+                "tax_amount"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "visit_id",
+                "owner_id",
+                "invoice_number",
+                "issue_date",
+                "subtotal",
+                "tax_amount",
+                "discount",
+                "status",
+                "payment_method"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "visit_id",
+          "references": {
+            "table": "visits",
+            "column": "id"
+          }
+        },
+        {
+          "column": "owner_id",
+          "references": {
+            "table": "owners",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total",
+          "expression": "subtotal + tax_amount - discount",
+          "ts_expression": "subtotal + tax_amount - discount"
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Pets",
-      "route": "/pets",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "PawPrint",
-      "entity": "Pet"
-    },
-    {
-      "name": "Owners",
-      "route": "/owners",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Users",
-      "entity": "Owner"
-    },
-    {
-      "name": "Visits",
-      "route": "/visits",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Stethoscope",
-      "entity": "Visit"
-    },
-    {
-      "name": "Vaccinations",
-      "route": "/vaccinations",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Syringe",
-      "entity": "Vaccination"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Pets",
-        "entity": "Pet",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

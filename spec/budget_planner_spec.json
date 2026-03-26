@@ -1,1048 +1,884 @@
 {
+  "_meta": {
+    "app_name": "Budget Planner",
+    "description": "Complete budget planner management"
+  },
   "spec_name": "budget_planner_spec",
-  "version": "1.0.0",
-  "tech_stack": {
-    "frontend": [
-      "React 18",
-      "TypeScript strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form v7",
-      "Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node.js",
-      "Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber"
-  },
   "entities": [
     {
+      "name": "Budget",
       "table": "budgets",
+      "description": "Budget",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "iso8601"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "minLength": 1,
-            "maxLength": 255
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "fiscal_year",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": "NumberInput",
-          "display_component": "NumberDisplay",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
             "min": 2000,
             "max": 2100
           }
         },
         {
-          "name": "period_type",
-          "db_type": "VARCHAR(10) NOT NULL",
-          "ts_type": "'annual' | 'quarterly' | 'monthly'",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "annual",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "annual",
-              "quarterly",
-              "monthly"
-            ]
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "active",
+            "closed",
+            "archived"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "active": "green",
+            "closed": "blue",
+            "archived": "amber"
           }
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(10) NOT NULL",
-          "ts_type": "'draft' | 'active' | 'archived'",
+          "name": "period_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "draft",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "enum": [
-              "draft",
-              "active",
-              "archived"
-            ]
-          }
-        },
-        {
-          "name": "total_budgeted",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
-          }
-        },
-        {
-          "name": "total_spent",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
-          }
-        },
-        {
-          "name": "total_variance",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "monthly",
+            "quarterly",
+            "annual"
+          ],
+          "badge_colors": {
+            "monthly": "blue",
+            "quarterly": "purple",
+            "annual": "green"
           }
         },
         {
           "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
+          "db_type": "CHAR(3) NOT NULL DEFAULT 'USD'",
           "ts_type": "string",
           "nullable": false,
-          "default": "USD",
-          "input_component": "Select",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "USD",
+            "EUR",
+            "GBP",
+            "CAD",
+            "AUD"
+          ]
+        },
+        {
+          "name": "total_budgeted",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(budget_entries.budgeted_amount)",
           "validation": {
-            "required": true,
-            "length": 3
+            "min": 0
+          }
+        },
+        {
+          "name": "total_spent",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(budget_entries.actual_amount)",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "variance",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "total_budgeted - total_spent",
+          "validation": {
+            "min": 0
           }
         },
         {
           "name": "description",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {
-            "required": false
-          }
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "approved_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "name": "approved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "iso8601"
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Category",
+      "table": "budget_categories",
+      "description": "Category",
+      "fields": [
         {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "budgets_org_fiscal_year_idx",
-          "columns": [
-            "org_id",
-            "fiscal_year"
-          ]
-        },
-        {
-          "name": "budgets_org_status_idx",
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        }
-      ],
-      "name": "Budget",
-      "description": "Budget entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "fiscal_year",
-            "period_type",
-            "status",
-            "total_budgeted",
-            "total_spent"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Budgets yet",
-            "subtext": "Create your first budget",
-            "action_label": "Add Budget"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "fiscal_year",
-            "period_type",
-            "currency",
-            "description"
-          ],
-          "required_fields": [
-            "name",
-            "fiscal_year"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "fiscal_year",
-            "period_type",
-            "currency",
-            "description"
-          ],
-          "required_fields": [
-            "name",
-            "fiscal_year"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/budgets/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "fiscal_year",
-            "period_type",
-            "status"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "fiscal_year",
-                "period_type",
-                "status",
-                "total_budgeted",
-                "total_spent",
-                "total_variance"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "budget_categories",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "budget_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "minLength": 1,
-            "maxLength": 255
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "account_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "AccountSelector",
-          "display_component": "AccountLink",
+          "name": "type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "parent_category_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TextLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "uuid",
-            "notSelf": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "income",
+            "expense",
+            "transfer"
+          ],
+          "badge_colors": {
+            "income": "green",
+            "expense": "red",
+            "transfer": "blue"
           }
         },
         {
           "name": "color",
           "db_type": "VARCHAR(7)",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "ColorPicker",
-          "display_component": "ColorSwatch",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "color_picker",
+          "display_component": "color_swatch",
           "validation": {
-            "required": false,
-            "pattern": "^#[0-9A-Fa-f]{6}$"
+            "rule": "hex_color",
+            "message": "Must be #RRGGBB"
           }
         },
         {
           "name": "icon",
           "db_type": "VARCHAR(50)",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "IconSelect",
-          "display_component": "IconDisplay",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 50
-          }
+          "input_component": "icon_select",
+          "display_component": "icon"
         },
         {
           "name": "sort_order",
-          "db_type": "INTEGER NOT NULL",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "total_budgeted",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
-          }
-        },
-        {
-          "name": "total_spent",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
-          }
-        },
-        {
-          "name": "variance",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
-          }
-        },
-        {
-          "name": "variance_pct",
-          "db_type": "NUMERIC(8,4)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
-          }
-        },
-        {
-          "name": "is_revenue",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "description": "true for revenue categories, false for expense"
-          }
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Entry",
+      "table": "budget_entries",
+      "description": "Entry",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "budget_categories_org_budget_id_idx",
-          "columns": [
-            "org_id",
-            "budget_id"
-          ]
-        },
-        {
-          "name": "budget_categories_org_account_id_idx",
-          "columns": [
-            "org_id",
-            "account_id"
-          ]
-        },
-        {
-          "name": "budget_categories_org_parent_category_id_idx",
-          "columns": [
-            "org_id",
-            "parent_category_id"
-          ]
-        }
-      ],
-      "name": "BudgetCategory",
-      "description": "BudgetCategory entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "color",
-            "icon",
-            "total_budgeted",
-            "total_spent",
-            "variance"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No BudgetCategorys yet",
-            "subtext": "Create your first budgetcategory",
-            "action_label": "Add BudgetCategory"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "account_id",
-            "parent_category_id",
-            "color",
-            "icon",
-            "is_revenue"
-          ],
-          "required_fields": [
-            "name",
-            "account_id"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "account_id",
-            "parent_category_id",
-            "color",
-            "icon",
-            "is_revenue"
-          ],
-          "required_fields": [
-            "name",
-            "account_id"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/budget_categories/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "color",
-            "icon",
-            "total_budgeted"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "color",
-                "icon",
-                "total_budgeted",
-                "total_spent",
-                "variance",
-                "variance_pct",
-                "is_revenue"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "budget_entries",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "iso8601"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "budget_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Budget"
         },
         {
           "name": "category_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Category"
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "budgeted_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true,
-            "format": "uuid"
+            "min": 0
           }
         },
         {
-          "name": "period_label",
+          "name": "actual_amount",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "variance",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "budgeted_amount - actual_amount",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "variance_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "(budgeted_amount - actual_amount) / budgeted_amount * 100"
+        },
+        {
+          "name": "entry_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "type",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "planned",
+            "actual",
+            "forecast"
+          ],
+          "badge_colors": {
+            "planned": "blue",
+            "actual": "green",
+            "forecast": "purple"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
           "editable": false,
-          "sortable": true,
-          "filterable": true,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Goal",
+      "table": "budget_goals",
+      "description": "Goal",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "budget_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Budget"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "target_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "current_amount",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "progress_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "maxLength": 20,
-            "examples": [
-              "2024-Q1",
-              "2024-01"
-            ]
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "current_amount / target_amount * 100"
+        },
+        {
+          "name": "deadline",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "on_track",
+            "at_risk",
+            "behind",
+            "completed"
+          ],
+          "badge_colors": {
+            "on_track": "green",
+            "at_risk": "amber",
+            "behind": "red",
+            "completed": "blue"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Alert",
+      "table": "budget_alerts",
+      "description": "Alert",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "budget_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Budget"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "overspend",
+            "threshold",
+            "deadline",
+            "anomaly"
+          ],
+          "badge_colors": {
+            "overspend": "red",
+            "threshold": "amber",
+            "deadline": "blue",
+            "anomaly": "purple"
+          }
+        },
+        {
+          "name": "message",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "threshold_amount",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "threshold_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "is_read",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "triggered_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "severity",
+          "db_type": "VARCHAR(10) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "info",
+            "warning",
+            "critical"
+          ],
+          "badge_colors": {
+            "info": "blue",
+            "warning": "amber",
+            "critical": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Report",
+      "table": "budget_reports",
+      "description": "Report",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "budget_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Budget"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "report_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "summary",
+            "variance",
+            "trend",
+            "forecast"
+          ],
+          "badge_colors": {
+            "summary": "blue",
+            "variance": "amber",
+            "trend": "green",
+            "forecast": "purple"
           }
         },
         {
@@ -1050,1947 +886,102 @@
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "period_end",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "date",
-            "greaterThan": "period_start"
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
-          "name": "budgeted_amount",
+          "name": "total_income",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
+          "editable": false,
           "show_in_table": true,
-          "show_in_form": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(entries.actual WHERE type=income)",
           "validation": {
-            "required": true,
             "min": 0
           }
         },
         {
-          "name": "actual_amount",
+          "name": "total_expense",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(entries.actual WHERE type=expense)",
           "validation": {
-            "required": true,
-            "min": 0,
-            "description": "synced from GL"
+            "min": 0
           }
         },
         {
-          "name": "variance",
-          "db_type": "NUMERIC(15,2)",
+          "name": "net_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
+          "nullable": false,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "total_income - total_expense",
           "validation": {
-            "required": false,
-            "computed": true
-          }
-        },
-        {
-          "name": "variance_pct",
-          "db_type": "NUMERIC(8,4)",
-          "ts_type": "number",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "computed": true
+            "min": 0
           }
         },
         {
           "name": "notes",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "last_synced_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
+          "input_component": "textarea",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "budget_entries_org_budget_category_period_unique",
-          "columns": [
-            "org_id",
-            "budget_id",
-            "category_id",
-            "period_label"
-          ],
-          "unique": true
-        },
-        {
-          "name": "budget_entries_org_period_start_idx",
-          "columns": [
-            "org_id",
-            "period_start"
-          ]
-        }
-      ],
-      "name": "BudgetEntry",
-      "description": "BudgetEntry entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "category_id",
-            "period_label",
-            "budgeted_amount",
-            "actual_amount",
-            "variance",
-            "variance_pct"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No BudgetEntrys yet",
-            "subtext": "Create your first budgetentry",
-            "action_label": "Add BudgetEntry"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "budgeted_amount",
-            "notes"
-          ],
-          "required_fields": [
-            "budgeted_amount",
-            "notes"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "budgeted_amount",
-            "notes"
-          ],
-          "required_fields": [
-            "budgeted_amount",
-            "notes"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/budget_entries/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "budgeted_amount"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "category_id",
-            "period_label",
-            "budgeted_amount",
-            "actual_amount"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "category_id",
-                "period_label",
-                "budgeted_amount",
-                "actual_amount",
-                "variance",
-                "variance_pct"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "budget_alerts",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "budget_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "category_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TextLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "alert_type",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'threshold_50' | 'threshold_75' | 'threshold_90' | 'threshold_100' | 'exceeded'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "threshold_50",
-              "threshold_75",
-              "threshold_90",
-              "threshold_100",
-              "exceeded"
-            ]
-          }
-        },
-        {
-          "name": "threshold_pct",
-          "db_type": "NUMERIC(6,4) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "AlertThresholdSlider",
-          "display_component": "PercentageDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 1,
-            "max": 200,
-            "description": "percentage of budgeted amount"
-          }
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "last_triggered_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "iso8601"
-          }
-        },
-        {
-          "name": "notification_recipients",
-          "db_type": "JSONB NOT NULL",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "[]",
-          "input_component": "MultiSelect",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "description": "array of user UUIDs"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "budget_alerts_org_budget_id_idx",
-          "columns": [
-            "org_id",
-            "budget_id"
-          ]
+          "display_component": "date"
         },
         {
-          "name": "budget_alerts_org_is_active_idx",
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
-      ],
-      "name": "BudgetAlert",
-      "description": "BudgetAlert entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "category_id",
-            "alert_type",
-            "threshold_pct",
-            "is_active",
-            "last_triggered_at"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No BudgetAlerts yet",
-            "subtext": "Create your first budgetalert",
-            "action_label": "Add BudgetAlert"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "category_id",
-            "alert_type",
-            "threshold_pct",
-            "is_active",
-            "notification_recipients"
-          ],
-          "required_fields": [
-            "category_id",
-            "alert_type"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "category_id",
-            "alert_type",
-            "threshold_pct",
-            "is_active",
-            "notification_recipients"
-          ],
-          "required_fields": [
-            "category_id",
-            "alert_type"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/budget_alerts/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "category_id"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "category_id",
-            "alert_type",
-            "threshold_pct",
-            "is_active"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "category_id",
-                "alert_type",
-                "threshold_pct",
-                "is_active",
-                "last_triggered_at"
-              ]
-            }
-          ]
-        }
-      }
-    }
-  ],
-  "computed_fields": {
-    "BudgetEntry.variance": "budgeted_amount - actual_amount (positive = under budget, negative = over)",
-    "BudgetEntry.variance_pct": "(variance / budgeted_amount) * 100",
-    "BudgetCategory.total_budgeted": "SUM(budget_entries.budgeted_amount WHERE category_id = id)",
-    "BudgetCategory.total_spent": "SUM(budget_entries.actual_amount WHERE category_id = id)",
-    "BudgetCategory.variance": "total_budgeted - total_spent",
-    "BudgetCategory.variance_pct": "(variance / total_budgeted) * 100 IF total_budgeted != 0",
-    "Budget.total_budgeted": "SUM(budget_categories.total_budgeted WHERE budget_id = id AND is_revenue = false)",
-    "Budget.total_spent": "SUM(budget_categories.total_spent WHERE budget_id = id AND is_revenue = false)",
-    "Budget.total_variance": "total_budgeted - total_spent"
-  },
-  "domain_rules": [
-    {
-      "rule": "Budget entries must belong to categories of the same budget",
-      "enforced_at": [
-        "db",
-        "api"
-      ],
-      "api_guard": "validate that budget_entry.budget_id matches budget_entry.category.budget_id on create/update",
-      "ui_behavior": "category selector filters only categories belonging to the current budget",
-      "db_constraint": "FK budget_entries.category_id -> budget_categories(id) combined with budget_id match check via trigger"
-    },
-    {
-      "rule": "Active budget's entries are read-only after period has passed",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "reject PATCH on budget_entry if budget.status = 'active' AND budget_entry.period_end < CURRENT_DATE",
-      "ui_behavior": "disable budgeted_amount input for past periods; show lock icon with tooltip",
-      "db_constraint": null
-    },
-    {
-      "rule": "Only one active budget per fiscal_year per org",
-      "enforced_at": [
-        "db",
-        "api"
-      ],
-      "api_guard": "check for existing active budget with same fiscal_year and org_id before activating",
-      "ui_behavior": "show warning if attempting to activate when another active budget exists for same year",
-      "db_constraint": "CREATE UNIQUE INDEX budgets_org_fiscal_year_active_unique ON budgets(org_id, fiscal_year) WHERE status = 'active'"
-    },
-    {
-      "rule": "Sync-actuals only available for active budgets",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "return 422 if budget.status != 'active' on POST /budgets/:id/sync-actuals",
-      "ui_behavior": "hide sync button on non-active budgets",
-      "db_constraint": null
-    },
-    {
-      "rule": "Alert thresholds must be between 1 and 200",
-      "enforced_at": [
-        "db",
-        "api"
-      ],
-      "api_guard": "Zod validation: threshold_pct must be in [1, 200]",
-      "ui_behavior": "AlertThresholdSlider clamped to min=1 max=200",
-      "db_constraint": "ALTER TABLE budget_alerts ADD CONSTRAINT budget_alerts_threshold_pct_check CHECK (threshold_pct >= 1 AND threshold_pct <= 200)"
-    },
-    {
-      "rule": "Budget approval requires at least one category with entries",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "reject POST /budgets/:id/approve if COUNT(budget_entries WHERE budget_id = id) = 0",
-      "ui_behavior": "disable approve button with tooltip 'Add at least one budget entry before approving'",
-      "db_constraint": null
-    }
-  ],
-  "components": [
-    {
-      "name": "DataTable",
-      "type": "organism",
-      "description": "Sortable, filterable, paginated data table with column visibility controls",
-      "props": {
-        "columns": "ColumnDef[]",
-        "data": "T[]",
-        "isLoading": "boolean",
-        "onRowClick": "(row: T) => void",
-        "pagination": "PaginationState",
-        "sorting": "SortingState"
-      },
-      "behavior": "Sticky header; empty state; skeleton rows during load",
-      "variants": [
-        "default",
-        "compact",
-        "striped"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 overflow-hidden"
-    },
-    {
-      "name": "SlideOverForm",
-      "type": "organism",
-      "description": "Right-side slide-over panel with React Hook Form",
-      "props": {
-        "open": "boolean",
-        "onClose": "() => void",
-        "title": "string",
-        "onSubmit": "(data: T) => void",
-        "isSubmitting": "boolean",
-        "children": "ReactNode"
-      },
-      "behavior": "Focus trap; Escape closes; spinner on submit",
-      "variants": [
-        "narrow",
-        "wide"
-      ],
-      "tailwind": "fixed inset-y-0 right-0 w-full max-w-md bg-slate-900 shadow-2xl border-l border-slate-800 flex flex-col"
-    },
-    {
-      "name": "StatusBadge",
-      "type": "atom",
-      "description": "Colored pill badge for status enums",
-      "props": {
-        "status": "string",
-        "size": "'sm' | 'md'"
-      },
-      "behavior": "Maps status to color class",
-      "variants": [
-        "draft",
-        "active",
-        "archived"
-      ],
-      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-    },
-    {
-      "name": "CurrencyDisplay",
-      "type": "atom",
-      "description": "Formatted currency display",
-      "props": {
-        "value": "number | null",
-        "currency": "string"
-      },
-      "behavior": "Intl.NumberFormat; null shows dash",
-      "variants": [
-        "default",
-        "positive",
-        "negative"
-      ],
-      "tailwind": "tabular-nums text-right font-medium text-slate-100"
-    },
-    {
-      "name": "CurrencyInput",
-      "type": "molecule",
-      "description": "Controlled currency input",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "disabled": "boolean"
-      },
-      "behavior": "Strips non-numeric; formats on blur; React Hook Form Controller",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "relative flex items-center rounded-lg border border-slate-700 bg-slate-800 focus-within:ring-2 focus-within:ring-blue-500"
-    },
-    {
-      "name": "NumberDisplay",
-      "type": "atom",
-      "description": "Formatted numeric display",
-      "props": {
-        "value": "number | null",
-        "decimals": "number"
-      },
-      "behavior": "Locale-aware format; dash for null",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "tabular-nums text-slate-100"
-    },
-    {
-      "name": "PercentageDisplay",
-      "type": "atom",
-      "description": "Displays a percentage value with % suffix",
-      "props": {
-        "value": "number | null",
-        "decimals": "number",
-        "colorCode": "boolean"
-      },
-      "behavior": "If colorCode=true: positive = green, negative = red; null = dash",
-      "variants": [
-        "default",
-        "color-coded"
-      ],
-      "tailwind": "tabular-nums text-sm font-medium"
-    },
-    {
-      "name": "Select",
-      "type": "molecule",
-      "description": "Radix UI dropdown select",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "options": "{ label: string; value: string }[]",
-        "disabled": "boolean"
-      },
-      "behavior": "Keyboard navigable; accessible",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
-    },
-    {
-      "name": "MultiSelect",
-      "type": "molecule",
-      "description": "Multi-value select with tag chips",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "options": "{ label: string; value: string }[]"
-      },
-      "behavior": "Removable chips; searchable dropdown",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 min-h-[42px] px-2 py-1 flex flex-wrap gap-1"
-    },
-    {
-      "name": "Toggle",
-      "type": "atom",
-      "description": "Boolean toggle switch",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "disabled": "boolean"
-      },
-      "behavior": "role=switch; React Hook Form",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative inline-flex h-6 w-11 items-center rounded-full bg-slate-700 data-[checked]:bg-blue-600"
-    },
-    {
-      "name": "DatePicker",
-      "type": "molecule",
-      "description": "Date picker with calendar popover",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "disabled": "boolean"
-      },
-      "behavior": "date-fns formatting; Radix Popover calendar",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100"
-    },
-    {
-      "name": "TextInput",
-      "type": "molecule",
-      "description": "Standard text input",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "placeholder": "string",
-        "maxLength": "number",
-        "disabled": "boolean"
-      },
-      "behavior": "React Hook Form; character count if maxLength set",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 placeholder:text-slate-500"
-    },
-    {
-      "name": "Textarea",
-      "type": "molecule",
-      "description": "Multi-line text area",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "rows": "number"
-      },
-      "behavior": "React Hook Form; auto-resize optional",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-slate-100 resize-y"
-    },
-    {
-      "name": "ColorPicker",
-      "type": "molecule",
-      "description": "Hex color picker with preview swatch",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string"
-      },
-      "behavior": "Native color input + manual hex entry; validates #RRGGBB format",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "flex items-center gap-2"
-    },
-    {
-      "name": "ColorSwatch",
-      "type": "atom",
-      "description": "Small colored circle swatch",
-      "props": {
-        "color": "string | null",
-        "size": "'sm' | 'md'"
-      },
-      "behavior": "Renders inline block with background color; gray if null",
-      "variants": [
-        "sm",
-        "md"
-      ],
-      "tailwind": "rounded-full inline-block flex-shrink-0"
-    },
-    {
-      "name": "IconSelect",
-      "type": "molecule",
-      "description": "Icon picker from Lucide React icon set",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string"
-      },
-      "behavior": "Searchable grid of icons; previews selected icon",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 p-2"
-    },
-    {
-      "name": "IconDisplay",
-      "type": "atom",
-      "description": "Renders a Lucide icon by name",
-      "props": {
-        "iconName": "string | null",
-        "size": "number",
-        "className": "string"
-      },
-      "behavior": "Dynamic import from lucide-react; fallback circle if unknown",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-slate-400"
-    },
-    {
-      "name": "AccountSelector",
-      "type": "molecule",
-      "description": "Searchable GL account picker",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "disabled": "boolean"
-      },
-      "behavior": "Combobox with account number + name display",
-      "variants": [
-        "default",
-        "error"
-      ],
-      "tailwind": "rounded-lg border border-slate-700 bg-slate-800 px-3 py-2"
-    },
-    {
-      "name": "AccountLink",
-      "type": "atom",
-      "description": "Link to a GL account detail page",
-      "props": {
-        "accountId": "string | null",
-        "accountName": "string | null"
-      },
-      "behavior": "React Router Link; dash if null",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-blue-400 hover:text-blue-300 hover:underline text-sm"
-    },
-    {
-      "name": "PlainText",
-      "type": "atom",
-      "description": "Plain text display",
-      "props": {
-        "value": "string | null",
-        "fallback": "string"
-      },
-      "behavior": "Dash fallback on null",
-      "variants": [
-        "default",
-        "muted"
-      ],
-      "tailwind": "text-slate-100 text-sm"
-    },
-    {
-      "name": "MonospaceText",
-      "type": "atom",
-      "description": "Monospace text for codes",
-      "props": {
-        "value": "string | null"
-      },
-      "behavior": "font-mono; truncate if long",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "font-mono text-slate-300 text-sm"
-    },
-    {
-      "name": "TruncatedText",
-      "type": "atom",
-      "description": "Text with tooltip on overflow",
-      "props": {
-        "value": "string | null",
-        "maxLength": "number"
-      },
-      "behavior": "Radix Tooltip on hover for full text",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-slate-300 text-sm truncate max-w-xs"
-    },
-    {
-      "name": "TextLink",
-      "type": "atom",
-      "description": "Navigational text link",
-      "props": {
-        "value": "string",
-        "href": "string"
-      },
-      "behavior": "React Router Link",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-blue-400 hover:text-blue-300 hover:underline text-sm"
-    },
-    {
-      "name": "AbsoluteDate",
-      "type": "atom",
-      "description": "Formatted absolute date display",
-      "props": {
-        "value": "string | null",
-        "showTime": "boolean"
-      },
-      "behavior": "date-fns format; dash for null",
-      "variants": [
-        "date-only",
-        "datetime"
-      ],
-      "tailwind": "text-slate-300 text-sm tabular-nums"
-    },
-    {
-      "name": "YesNoBadge",
-      "type": "atom",
-      "description": "Green Yes / Red No badge",
-      "props": {
-        "value": "boolean | null"
-      },
-      "behavior": "true=green, false=red, null=gray",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-    },
-    {
-      "name": "PageHeader",
-      "type": "organism",
-      "description": "Page header with title, breadcrumbs, actions",
-      "props": {
-        "title": "string",
-        "breadcrumbs": "{ label: string; href?: string }[]",
-        "actions": "ReactNode"
-      },
-      "behavior": "Sticky; responsive",
-      "variants": [
-        "default",
-        "with-tabs"
-      ],
-      "tailwind": "bg-slate-950 border-b border-slate-800 px-6 py-4 flex items-center justify-between"
-    },
-    {
-      "name": "FilterPanel",
-      "type": "organism",
-      "description": "Filter controls panel above table",
-      "props": {
-        "filters": "FilterConfig[]",
-        "values": "FilterValues",
-        "onChange": "(values: FilterValues) => void",
-        "onReset": "() => void"
-      },
-      "behavior": "Debounced text search; active filter count badge",
-      "variants": [
-        "horizontal",
-        "vertical"
-      ],
-      "tailwind": "bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-wrap gap-4"
-    },
-    {
-      "name": "TabPanel",
-      "type": "molecule",
-      "description": "Horizontal tab navigation",
-      "props": {
-        "tabs": "{ id: string; label: string; count?: number }[]",
-        "activeTab": "string",
-        "onChange": "(id: string) => void"
-      },
-      "behavior": "Radix Tabs; animated indicator; count badges",
-      "variants": [
-        "default",
-        "pills"
-      ],
-      "tailwind": "border-b border-slate-800"
-    },
-    {
-      "name": "EmptyState",
-      "type": "molecule",
-      "description": "Empty placeholder with icon and CTA",
-      "props": {
-        "icon": "LucideIcon",
-        "title": "string",
-        "description": "string",
-        "action": "ReactNode"
-      },
-      "behavior": "Centered layout",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "flex flex-col items-center justify-center py-16 text-center"
-    },
-    {
-      "name": "LoadingSkeleton",
-      "type": "atom",
-      "description": "Shimmer loading placeholder",
-      "props": {
-        "rows": "number",
-        "columns": "number"
-      },
-      "behavior": "Animated shimmer",
-      "variants": [
-        "table",
-        "card",
-        "list"
-      ],
-      "tailwind": "animate-pulse bg-slate-800 rounded"
-    },
-    {
-      "name": "ConfirmationDialog",
-      "type": "organism",
-      "description": "Destructive action confirmation modal",
-      "props": {
-        "open": "boolean",
-        "onClose": "() => void",
-        "onConfirm": "() => void",
-        "title": "string",
-        "description": "string",
-        "variant": "'danger' | 'warning'"
-      },
-      "behavior": "Radix AlertDialog; Enter confirms",
-      "variants": [
-        "danger",
-        "warning"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-6 shadow-2xl max-w-md w-full"
-    },
-    {
-      "name": "StatCard",
-      "type": "molecule",
-      "description": "KPI stat card with value and trend",
-      "props": {
-        "label": "string",
-        "value": "string | number",
-        "trend": "number",
-        "icon": "LucideIcon"
-      },
-      "behavior": "Green up / red down trend arrow",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-5 flex flex-col gap-2"
-    },
-    {
-      "name": "ActivityTimeline",
-      "type": "organism",
-      "description": "Audit event timeline",
-      "props": {
-        "events": "ActivityEvent[]",
-        "isLoading": "boolean"
-      },
-      "behavior": "Vertical timeline; relative timestamps",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative pl-6 border-l border-slate-800 space-y-4"
-    },
-    {
-      "name": "AuthGuard",
-      "type": "utility",
-      "description": "Permission-based route guard",
-      "props": {
-        "permission": "string",
-        "fallback": "ReactNode",
-        "children": "ReactNode"
-      },
-      "behavior": "Reads authStore; renders fallback if denied",
-      "variants": [
-        "default"
-      ],
-      "tailwind": null
-    },
-    {
-      "name": "BudgetProgressBar",
-      "type": "molecule",
-      "description": "Horizontal progress bar showing actual vs budgeted spend",
-      "props": {
-        "budgeted": "number",
-        "actual": "number",
-        "currency": "string"
-      },
-      "behavior": "Bar fills proportionally; color transitions: green < 75%, amber 75-99%, red >= 100%",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "h-2 rounded-full bg-slate-700 overflow-hidden"
-    },
-    {
-      "name": "BudgetVarianceBadge",
-      "type": "atom",
-      "description": "Badge showing budget variance status",
-      "props": {
-        "variance": "number",
-        "variancePct": "number"
-      },
-      "behavior": "positive = green Under Budget, negative = red Over Budget",
-      "variants": [
-        "under",
-        "over",
-        "on-track"
-      ],
-      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-    },
-    {
-      "name": "BudgetSummaryCard",
-      "type": "molecule",
-      "description": "Card with budget totals and progress bar",
-      "props": {
-        "budget": "Budget"
-      },
-      "behavior": "Shows total_budgeted, total_spent, total_variance, and overall BudgetProgressBar",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-5"
-    },
-    {
-      "name": "SpendingPaceChart",
-      "type": "organism",
-      "description": "Line chart comparing daily actual spend vs projected pace",
-      "props": {
-        "entries": "BudgetEntry[]",
-        "periodStart": "string",
-        "periodEnd": "string"
-      },
-      "behavior": "Recharts LineChart; two lines: actual cumulative, projected linear pace; highlight over-budget zone",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
-    },
-    {
-      "name": "BudgetVsActualChart",
-      "type": "organism",
-      "description": "Bar chart comparing budgeted vs actual per category or period",
-      "props": {
-        "data": "{ name: string; budgeted: number; actual: number }[]",
-        "currency": "string",
-        "groupBy": "'category' | 'period'"
-      },
-      "behavior": "Recharts BarChart; grouped bars; tooltips with variance; legend",
-      "variants": [
-        "by-category",
-        "by-period"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4"
-    },
-    {
-      "name": "BudgetCategoryTree",
-      "type": "organism",
-      "description": "Collapsible tree view of budget categories with drill-down",
-      "props": {
-        "categories": "BudgetCategory[]",
-        "onSelect": "(id: string) => void",
-        "selectedId": "string | null"
-      },
-      "behavior": "Indented tree; expand/collapse parent nodes; shows BudgetProgressBar per row",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 divide-y divide-slate-800"
-    },
-    {
-      "name": "PeriodNavigator",
-      "type": "molecule",
-      "description": "Navigation controls for switching budget periods",
-      "props": {
-        "periods": "string[]",
-        "activePeriod": "string",
-        "onChange": "(period: string) => void"
-      },
-      "behavior": "Prev/next arrow buttons; period label in center; keyboard navigable",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-1"
-    },
-    {
-      "name": "AlertThresholdSlider",
-      "type": "molecule",
-      "description": "Range slider for setting budget alert threshold percentage",
-      "props": {
-        "name": "string",
-        "control": "Control",
-        "label": "string",
-        "min": "number",
-        "max": "number"
-      },
-      "behavior": "Radix Slider; clamped 1-200; shows current value label above thumb",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative w-full h-5 flex items-center"
-    },
-    {
-      "name": "BudgetHeatmap",
-      "type": "organism",
-      "description": "Grid heatmap of budget utilization across categories and periods",
-      "props": {
-        "categories": "BudgetCategory[]",
-        "entries": "BudgetEntry[]",
-        "periods": "string[]"
-      },
-      "behavior": "Matrix grid; color intensity by variance_pct; hover tooltip with details",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl border border-slate-800 p-4 overflow-x-auto"
-    }
-  ],
-  "modules": [
-    {
-      "name": "BudgetList",
-      "route": "/budgets",
-      "tabs": [
-        "Active",
-        "Draft",
-        "Archived"
-      ],
-      "description": "List all budgets by status with create button"
-    },
-    {
-      "name": "BudgetDetail",
-      "route": "/budgets/:id",
-      "tabs": [
-        "Overview",
-        "Categories",
-        "Monthly View",
-        "Alerts"
-      ],
-      "description": "Full budget detail with category tree, entry grid, and alert configuration"
-    },
-    {
-      "name": "BudgetCreate",
-      "route": "/budgets/new",
-      "tabs": [],
-      "description": "Wizard to create a new budget with categories and entries"
-    },
-    {
-      "name": "BudgetAnalytics",
-      "route": "/analytics/budget",
-      "tabs": [],
-      "description": "Budget vs actual charts, period comparison, and category drill-down analytics"
-    },
-    {
-      "name": "BudgetSettings",
-      "route": "/settings/budgets",
-      "tabs": [],
-      "description": "Configure fiscal year settings and default budget categories"
-    }
-  ],
-  "api": {
-    "budgets": [
-      {
-        "method": "GET",
-        "path": "/budgets",
-        "description": "List budgets with pagination and status filter"
-      },
-      {
-        "method": "POST",
-        "path": "/budgets",
-        "description": "Create new budget"
-      },
-      {
-        "method": "GET",
-        "path": "/budgets/:id",
-        "description": "Get budget detail"
-      },
-      {
-        "method": "PATCH",
-        "path": "/budgets/:id",
-        "description": "Update budget"
-      },
-      {
-        "method": "DELETE",
-        "path": "/budgets/:id",
-        "description": "Soft delete budget"
-      },
-      {
-        "method": "POST",
-        "path": "/budgets/:id/approve",
-        "description": "Approve and activate budget"
-      },
-      {
-        "method": "POST",
-        "path": "/budgets/:id/duplicate",
-        "description": "Duplicate budget to new fiscal year"
-      },
-      {
-        "method": "POST",
-        "path": "/budgets/:id/sync-actuals",
-        "description": "Pull actual spend from GL into budget entries"
-      }
-    ],
-    "budget_categories": [
-      {
-        "method": "GET",
-        "path": "/budgets/:id/categories",
-        "description": "List categories for a budget"
-      },
-      {
-        "method": "POST",
-        "path": "/budgets/:id/categories",
-        "description": "Add category to budget"
-      },
-      {
-        "method": "PATCH",
-        "path": "/budget-categories/:id",
-        "description": "Update category"
-      },
-      {
-        "method": "DELETE",
-        "path": "/budget-categories/:id",
-        "description": "Delete category"
-      },
-      {
-        "method": "PUT",
-        "path": "/budgets/:id/categories/reorder",
-        "description": "Bulk update sort_order for categories"
-      }
-    ],
-    "budget_entries": [
-      {
-        "method": "GET",
-        "path": "/budgets/:id/entries",
-        "description": "List entries for a budget"
-      },
-      {
-        "method": "PUT",
-        "path": "/budgets/:id/entries",
-        "description": "Bulk upsert budget entries"
-      },
-      {
-        "method": "PATCH",
-        "path": "/budget-entries/:id",
-        "description": "Update single budget entry"
-      },
-      {
-        "method": "POST",
-        "path": "/budgets/:id/entries/sync-actuals",
-        "description": "Sync actual amounts from GL for entries"
-      }
-    ],
-    "budget_alerts": [
-      {
-        "method": "GET",
-        "path": "/budgets/:id/alerts",
-        "description": "List alerts for a budget"
-      },
-      {
-        "method": "POST",
-        "path": "/budgets/:id/alerts",
-        "description": "Create alert"
-      },
-      {
-        "method": "PATCH",
-        "path": "/budget-alerts/:id",
-        "description": "Update alert"
-      },
-      {
-        "method": "DELETE",
-        "path": "/budget-alerts/:id",
-        "description": "Delete alert"
-      }
-    ]
-  },
-  "permissions": {
-    "roles": [
-      "admin",
-      "financial_manager",
-      "department_head",
-      "viewer"
-    ],
-    "matrix": {
-      "budgets.create": [
-        "admin",
-        "financial_manager"
-      ],
-      "budgets.edit": [
-        "admin",
-        "financial_manager"
-      ],
-      "budgets.approve": [
-        "admin",
-        "financial_manager"
-      ],
-      "categories.manage_own": [
-        "admin",
-        "financial_manager",
-        "department_head"
-      ],
-      "entries.edit": [
-        "admin",
-        "financial_manager",
-        "department_head"
-      ],
-      "alerts.manage": [
-        "admin",
-        "financial_manager"
       ]
     }
-  },
-  "state": {
-    "stores": [
-      "authStore",
-      "uiStore",
-      "budgetEditorStore"
-    ],
-    "budgetEditorStore": {
-      "state": [
-        "currentBudgetId",
-        "unsavedChanges",
-        "activePeriod",
-        "selectedCategoryId",
-        "editMode"
-      ],
-      "actions": [
-        "setBudget",
-        "setActivePeriod",
-        "markDirty",
-        "resetEditor",
-        "selectCategory"
-      ]
-    },
-    "query_keys": [
-      "budgets",
-      "budgetCategories",
-      "budgetEntries",
-      "budgetAlerts"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "event": "budget.alert_triggered",
-        "payload": {
-          "budget_id": "string",
-          "category_id": "string",
-          "alert_type": "string",
-          "threshold_pct": "number",
-          "actual_pct": "number"
-        }
-      },
-      {
-        "event": "budget_entry.synced",
-        "payload": {
-          "budget_id": "string",
-          "entries_updated": "number",
-          "synced_at": "string"
-        }
-      },
-      {
-        "event": "budget.approved",
-        "payload": {
-          "budget_id": "string",
-          "approved_by": "string",
-          "approved_at": "string"
-        }
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Create Budget",
-      "steps": [
-        "POST /budgets with name, fiscal_year, period_type, currency",
-        "Add categories: POST /budgets/:id/categories, supports parent_category_id for hierarchy",
-        "Set budget entries per period: PUT /budgets/:id/entries (bulk upsert with budgeted_amount per category+period)",
-        "Configure alerts: POST /budgets/:id/alerts with threshold_pct and notification_recipients",
-        "Approve: POST /budgets/:id/approve \u2014 status changes to active"
-      ]
-    },
-    {
-      "name": "Track Spending vs Budget",
-      "steps": [
-        "POST /budgets/:id/sync-actuals is called (manually or scheduled)",
-        "For each BudgetCategory with account_id, query GL journal_lines for linked account in period range",
-        "Compute actual_amount per period and update budget_entries.actual_amount",
-        "Recompute variance and variance_pct for each entry",
-        "For each active BudgetAlert, check if (actual_amount / budgeted_amount * 100) >= threshold_pct",
-        "If threshold crossed, update last_triggered_at, emit budget.alert_triggered websocket event, notify recipients"
-      ],
-      "cross_entity_updates": [
-        "BudgetEntry.actual_amount updated",
-        "BudgetEntry.last_synced_at updated",
-        "BudgetCategory.total_spent recomputed",
-        "BudgetAlert.last_triggered_at updated if threshold crossed"
-      ]
-    },
-    {
-      "name": "Budget vs Actual Dashboard",
-      "steps": [
-        "Fetch active budget entries for current period via GET /budgets/:id/entries",
-        "Display BudgetVsActualChart grouped by category",
-        "Drill into a category to see period-by-period SpendingPaceChart",
-        "BudgetCategoryTree shows live BudgetProgressBar per row"
-      ]
-    }
-  ],
-  "_meta": {
-    "title": "budget_planner_spec",
-    "domain": "Operations",
-    "version": "1.0.0"
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, row-level security anchor"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null,
-      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
-    }
-  },
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {},
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  },
-  "external_entity_refs": [
-    {
-      "name": "RevenueAccount",
-      "defined_in": "invoice_billing_spec.json",
-      "table": "revenue_accounts",
-      "description": "GL account code tied to a budget category.",
-      "fk_fields_in_this_spec": [
-        "BudgetCategory.account_id"
-      ]
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Budgets",
-        "entity": "Budget",
-        "method": "count",
-        "icon": "Box",
-        "color": "blue"
-      }
-    ]
-  }
+  ]
 }

@@ -1,2531 +1,960 @@
 {
   "_meta": {
-    "title": "Meeting Scheduler Application",
-    "domain": "Operations & Internal Tools",
-    "version": "1.0"
+    "app_name": "Meeting Scheduler",
+    "description": "Complete meeting scheduler management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "cyan",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "meeting_type_colors": {
-      "one_on_one": "cyan",
-      "team": "blue",
-      "external": "violet",
-      "interview": "amber",
-      "standup": "green",
-      "retrospective": "pink",
-      "planning": "indigo",
-      "other": "slate"
-    },
-    "status_colors": {
-      "scheduled": "cyan",
-      "confirmed": "green",
-      "cancelled": "red",
-      "completed": "slate",
-      "no_show": "amber",
-      "rescheduled": "blue"
-    },
-    "rsvp_colors": {
-      "accepted": "green",
-      "declined": "red",
-      "tentative": "amber",
-      "pending": "slate"
-    }
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
-  },
+  "spec_name": "meeting_scheduler_spec",
   "entities": [
     {
-      "name": "Meeting",
-      "table": "meetings",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "organizer_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "starts_at"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "meeting_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "recurring_series_id"
-          ]
-        }
-      ],
+      "name": "Room",
+      "table": "meeting_rooms",
+      "description": "Room",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "location",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "capacity",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "floor",
+          "db_type": "VARCHAR(10)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "amenities",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "has_video_conf",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "has_whiteboard",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "available",
+            "occupied",
+            "maintenance",
+            "retired"
+          ],
+          "badge_colors": {
+            "available": "green",
+            "occupied": "red",
+            "maintenance": "amber",
+            "retired": "slate"
           }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Meeting",
+      "table": "meetings",
+      "description": "Meeting",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "room_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Room"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(500)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/meetings/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "meeting_type",
-          "db_type": "ENUM('one_on_one','team','external','interview','standup','retrospective','planning','other')",
-          "ts_type": "'one_on_one' | 'team' | 'external' | 'interview' | 'standup' | 'retrospective' | 'planning' | 'other'",
+          "name": "start_time",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "team",
-          "input_component": "Select",
-          "display_component": "MeetingTypeBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "duration_minutes",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "EXTRACT(EPOCH FROM end_time - start_time) / 60"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "standup",
+            "planning",
+            "review",
+            "one_on_one",
+            "all_hands",
+            "external"
+          ],
+          "badge_colors": {
+            "standup": "blue",
+            "planning": "purple",
+            "review": "green",
+            "one_on_one": "amber",
+            "all_hands": "pink",
+            "external": "slate"
           }
         },
         {
           "name": "status",
-          "db_type": "ENUM('scheduled','confirmed','cancelled','completed','no_show','rescheduled')",
-          "ts_type": "'scheduled' | 'confirmed' | 'cancelled' | 'completed' | 'no_show' | 'rescheduled'",
-          "nullable": false,
-          "default": "scheduled",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "starts_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DateTimePicker",
-          "display_component": "AbsoluteDateTime",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "in_progress",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "in_progress": "green",
+            "completed": "slate",
+            "cancelled": "red"
           }
         },
         {
-          "name": "ends_at",
-          "db_type": "TIMESTAMPTZ",
+          "name": "meeting_url",
+          "db_type": "VARCHAR(500)",
           "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DateTimePicker",
-          "display_component": "AbsoluteDateTime",
+          "nullable": true,
           "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "duration_minutes",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 30,
-          "computed": {
-            "source": "self",
-            "formula": "EXTRACT(EPOCH FROM ends_at - starts_at) / 60",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "formula": "EXTRACT(EPOCH FROM ends_at - starts_at) / 60",
-          "input_component": "DurationSelect",
-          "display_component": "DurationDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 5,
-            "max": 480
-          }
-        },
-        {
-          "name": "timezone",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "UTC",
-          "input_component": "TimezoneSelect",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "link",
           "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "location",
-          "db_type": "VARCHAR(500)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Physical address or virtual meeting URL",
-          "input_component": "TextInput",
-          "display_component": "LocationDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "video_link",
-          "db_type": "VARCHAR(500)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "VideoLinkButton",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "url": true,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "organizer_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
+            "rule": "url",
+            "message": "Valid URL required"
           }
         },
         {
           "name": "agenda",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "meeting_notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "recording_url",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "RecordingLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "is_private",
-          "db_type": "BOOLEAN",
+          "name": "is_recurring",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
           "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "recurring_series_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "recurring_series",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "project_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "projects",
-          "input_component": "ProjectSelector",
-          "display_component": "ProjectBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "cancelled_reason",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_meetings_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_meetings_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "MeetingAttendee",
+      "name": "Attendee",
       "table": "meeting_attendees",
-      "indexes": [
-        {
-          "columns": [
-            "meeting_id",
-            "user_id"
-          ],
-          "unique": true
-        },
-        {
-          "columns": [
-            "org_id",
-            "user_id"
-          ]
-        },
-        {
-          "columns": [
-            "meeting_id",
-            "rsvp_status"
-          ]
-        }
-      ],
+      "description": "Attendee",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "meeting_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "meetings",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "user_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "notes": "null for external guests",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "external_email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "For external guests not in the system",
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "email": true
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Meeting"
         },
         {
-          "name": "external_name",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "maxLength": 255
+            "rule": "email",
+            "message": "Valid email required"
           }
         },
         {
           "name": "role",
-          "db_type": "ENUM('required','optional','organizer')",
-          "ts_type": "'required' | 'optional' | 'organizer'",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "required",
-          "input_component": "Select",
-          "display_component": "RoleBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "organizer",
+            "required",
+            "optional",
+            "presenter"
+          ],
+          "badge_colors": {
+            "organizer": "purple",
+            "required": "blue",
+            "optional": "slate",
+            "presenter": "green"
           }
         },
         {
           "name": "rsvp_status",
-          "db_type": "ENUM('pending','accepted','declined','tentative')",
-          "ts_type": "'pending' | 'accepted' | 'declined' | 'tentative'",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "pending",
-          "input_component": "RSVPButtons",
-          "display_component": "RSVPBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "accepted",
+            "declined",
+            "tentative"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "accepted": "green",
+            "declined": "red",
+            "tentative": "blue"
+          }
         },
         {
-          "name": "rsvp_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "attended",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Set after meeting completes",
-          "input_component": "Checkbox",
-          "display_component": "BooleanBadge",
+          "name": "is_external",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_meeting_attendees_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_meeting_attendees_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "RecurringSeries",
-      "table": "recurring_series",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "organizer_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        }
-      ],
+      "name": "RecurringMeeting",
+      "table": "recurring_meetings",
+      "description": "RecurringMeeting",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "room_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Room"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(500)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "recurrence",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "daily",
+            "weekly",
+            "biweekly",
+            "monthly"
+          ],
+          "badge_colors": {
+            "daily": "blue",
+            "weekly": "green",
+            "biweekly": "purple",
+            "monthly": "amber"
           }
         },
         {
-          "name": "rrule",
-          "db_type": "TEXT",
+          "name": "day_of_week",
+          "db_type": "VARCHAR(10)",
           "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "notes": "RFC 5545 RRULE string e.g. FREQ=WEEKLY;BYDAY=MO",
-          "input_component": "RecurrenceBuilder",
-          "display_component": "RecurrenceDisplay",
+          "nullable": true,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "monday",
+            "tuesday",
+            "wednesday",
+            "thursday",
+            "friday"
+          ],
+          "visible_when": {
+            "field": "recurrence",
+            "operator": "in",
+            "value": [
+              "weekly",
+              "biweekly"
+            ]
           }
         },
         {
-          "name": "organizer_id",
-          "db_type": "UUID",
+          "name": "time_slot",
+          "db_type": "VARCHAR(5) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "duration_minutes",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "series_start",
-          "db_type": "DATE",
+          "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "series_end",
           "db_type": "DATE",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "is_active",
-          "db_type": "BOOLEAN",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
           "ts_type": "boolean",
           "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_recurring_series_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_recurring_series_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "MeetingActionItem",
-      "table": "meeting_action_items",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "meeting_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "assignee_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        }
-      ],
+      "name": "Note",
+      "table": "meeting_notes",
+      "description": "Note",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "meeting_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "meetings",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Meeting"
         },
         {
-          "name": "description",
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "content",
           "db_type": "TEXT",
           "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "assignee_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
           "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('open','in_progress','done','cancelled')",
-          "ts_type": "'open' | 'in_progress' | 'done' | 'cancelled'",
-          "nullable": false,
-          "default": "open",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "completed_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "author",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "visibility",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "public",
+            "private",
+            "team_only"
+          ],
+          "badge_colors": {
+            "public": "green",
+            "private": "red",
+            "team_only": "blue"
+          }
+        },
+        {
+          "name": "is_pinned",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_meeting_action_items_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_meeting_action_items_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "AvailabilityBlock",
-      "table": "availability_blocks",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "user_id",
-            "starts_at"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "user_id",
-            "block_type"
-          ]
-        }
-      ],
+      "name": "Action",
+      "table": "meeting_actions",
+      "description": "Action",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "user_id",
-          "db_type": "UUID",
+          "name": "meeting_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Meeting"
         },
         {
-          "name": "starts_at",
-          "db_type": "TIMESTAMPTZ",
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DateTimePicker",
-          "display_component": "AbsoluteDateTime",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "ends_at",
-          "db_type": "TIMESTAMPTZ",
+          "name": "assignee",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DateTimePicker",
-          "display_component": "AbsoluteDateTime",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "block_type",
-          "db_type": "ENUM('unavailable','focus_time','out_of_office','preferred')",
-          "ts_type": "'unavailable' | 'focus_time' | 'out_of_office' | 'preferred'",
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "unavailable",
-          "input_component": "Select",
-          "display_component": "BlockTypeBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
           }
         },
         {
-          "name": "note",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "open",
+            "in_progress",
+            "done",
+            "overdue"
+          ],
+          "badge_colors": {
+            "open": "blue",
+            "in_progress": "amber",
+            "done": "green",
+            "overdue": "red"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_availability_blocks_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_availability_blocks_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     }
-  ],
-  "components": [
-    {
-      "name": "MeetingCalendar",
-      "type": "Calendar",
-      "props": {
-        "views": [
-          "day",
-          "week",
-          "month",
-          "agenda"
-        ],
-        "defaultView": "week"
-      },
-      "features": [
-        "drag_to_create",
-        "drag_to_move",
-        "resize",
-        "color_by_type",
-        "show_attendees",
-        "click_to_detail",
-        "mini_calendar_sidebar"
-      ]
-    },
-    {
-      "name": "MeetingForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "title",
-          "meeting_type",
-          "starts_at",
-          "ends_at",
-          "duration_minutes",
-          "timezone",
-          "location",
-          "video_link",
-          "attendees",
-          "agenda",
-          "project_id",
-          "is_private",
-          "recurring_settings"
-        ]
-      },
-      "features": [
-        "find_time",
-        "availability_check",
-        "video_link_auto_generate",
-        "recurrence_builder",
-        "external_invite"
-      ]
-    },
-    {
-      "name": "MeetingDetailDrawer",
-      "type": "Drawer",
-      "props": {
-        "width": "lg"
-      },
-      "features": [
-        "rsvp_buttons",
-        "attendee_list",
-        "agenda_view",
-        "notes_editor",
-        "action_items",
-        "recording_link",
-        "cancel_meeting",
-        "reschedule",
-        "edit_meeting"
-      ]
-    },
-    {
-      "name": "AttendeeList",
-      "type": "List",
-      "features": [
-        "rsvp_status_per_user",
-        "add_attendee",
-        "remove_attendee",
-        "external_guest_support",
-        "role_assignment"
-      ]
-    },
-    {
-      "name": "FindTimeWidget",
-      "type": "AvailabilityGrid",
-      "features": [
-        "overlay_attendee_availability",
-        "suggest_slots",
-        "timezone_conversion",
-        "highlight_conflicts"
-      ]
-    },
-    {
-      "name": "MeetingListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "title",
-          "meeting_type",
-          "starts_at",
-          "duration_minutes",
-          "status",
-          "organizer_id",
-          "attendee_count",
-          "video_link"
-        ]
-      },
-      "features": [
-        "filter_by_type",
-        "filter_by_status",
-        "filter_by_date",
-        "search",
-        "export_csv"
-      ]
-    },
-    {
-      "name": "ActionItemList",
-      "type": "List",
-      "features": [
-        "inline_add",
-        "inline_edit",
-        "assign",
-        "set_due_date",
-        "status_toggle",
-        "sort_by_due_date",
-        "filter_by_assignee"
-      ]
-    },
-    {
-      "name": "MeetingNotesEditor",
-      "type": "RichTextEditor",
-      "features": [
-        "auto_save",
-        "collaborative_editing",
-        "action_item_extraction",
-        "ai_summarize"
-      ]
-    },
-    {
-      "name": "RecurrenceBuilder",
-      "type": "FormSection",
-      "features": [
-        "frequency_select",
-        "interval_input",
-        "days_of_week_select",
-        "end_condition",
-        "rrule_preview"
-      ]
-    },
-    {
-      "name": "UpcomingMeetingsWidget",
-      "type": "Widget",
-      "features": [
-        "next_3_meetings",
-        "join_button",
-        "add_notes_quick_access",
-        "countdown_timer"
-      ]
-    },
-    {
-      "name": "MeetingStatsCards",
-      "type": "StatsGrid",
-      "metrics": [
-        {
-          "label": "Meetings This Week",
-          "field": "meetings_this_week",
-          "format": "number"
-        },
-        {
-          "label": "Total Meeting Hours",
-          "field": "meeting_hours_this_week",
-          "format": "decimal"
-        },
-        {
-          "label": "Acceptance Rate",
-          "field": "rsvp_acceptance_rate",
-          "format": "percent"
-        },
-        {
-          "label": "Action Items Open",
-          "field": "open_action_items",
-          "format": "number"
-        }
-      ]
-    },
-    {
-      "name": "AvailabilitySettingsForm",
-      "type": "Form",
-      "features": [
-        "working_hours_config",
-        "focus_time_blocks",
-        "out_of_office",
-        "timezone_preference"
-      ]
-    }
-  ],
-  "modules": [
-    {
-      "name": "Calendar",
-      "path": "/meetings/calendar",
-      "description": "Main calendar view for scheduling and viewing meetings",
-      "components": [
-        "MeetingCalendar",
-        "UpcomingMeetingsWidget",
-        "MeetingForm",
-        "MeetingDetailDrawer"
-      ],
-      "features": [
-        "create_meeting",
-        "view_team_calendar",
-        "filter_by_calendar"
-      ]
-    },
-    {
-      "name": "MeetingsList",
-      "path": "/meetings",
-      "description": "List view of all meetings with filters",
-      "components": [
-        "MeetingListTable",
-        "MeetingStatsCards"
-      ],
-      "tabs": [
-        "Upcoming",
-        "Past",
-        "Cancelled",
-        "All"
-      ]
-    },
-    {
-      "name": "ActionItems",
-      "path": "/meetings/action-items",
-      "description": "Track and manage action items from all meetings",
-      "components": [
-        "ActionItemList"
-      ],
-      "default_filters": {
-        "assignee_id": "current_user"
-      },
-      "tabs": [
-        "My Actions",
-        "Team Actions"
-      ]
-    },
-    {
-      "name": "MeetingDetail",
-      "path": "/meetings/:id",
-      "description": "Full meeting detail with notes, action items, attendees",
-      "components": [
-        "MeetingDetailDrawer",
-        "MeetingNotesEditor",
-        "ActionItemList",
-        "AttendeeList"
-      ]
-    },
-    {
-      "name": "AvailabilitySettings",
-      "path": "/settings/availability",
-      "description": "Configure personal availability and working hours",
-      "components": [
-        "AvailabilitySettingsForm"
-      ],
-      "features": [
-        "sync_google_calendar",
-        "sync_outlook_calendar"
-      ]
-    }
-  ],
-  "api": {
-    "meetings": {
-      "GET /api/meetings": {
-        "description": "List meetings",
-        "query_params": [
-          "organizer_id",
-          "attendee_id",
-          "meeting_type",
-          "status",
-          "date_from",
-          "date_to",
-          "project_id",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedMeeting[]",
-        "response_envelope": {
-          "data": "PaginatedMeeting[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/meetings": {
-        "description": "Create meeting",
-        "body": "CreateMeetingDto",
-        "response": "MeetingWithAttendees"
-      },
-      "GET /api/meetings/:id": {
-        "description": "Get meeting detail",
-        "response": "MeetingWithRelations"
-      },
-      "PATCH /api/meetings/:id": {
-        "description": "Update meeting",
-        "body": "UpdateMeetingDto",
-        "response": "Meeting"
-      },
-      "DELETE /api/meetings/:id": {
-        "description": "Cancel / soft delete meeting",
-        "body": "{reason}",
-        "response": "void"
-      },
-      "POST /api/meetings/:id/cancel": {
-        "description": "Cancel with notification",
-        "body": "CancelMeetingDto",
-        "response": "Meeting"
-      },
-      "POST /api/meetings/:id/complete": {
-        "description": "Mark meeting as completed",
-        "response": "Meeting"
-      },
-      "POST /api/meetings/:id/rsvp": {
-        "description": "Update RSVP status",
-        "body": "RSVPDto",
-        "response": "MeetingAttendee"
-      }
-    },
-    "action_items": {
-      "GET /api/meetings/:id/action-items": {
-        "description": "List action items for meeting",
-        "response": "MeetingActionItem[]"
-      },
-      "POST /api/meetings/:id/action-items": {
-        "description": "Create action item",
-        "body": "CreateActionItemDto",
-        "response": "MeetingActionItem"
-      },
-      "PATCH /api/action-items/:id": {
-        "description": "Update action item",
-        "body": "UpdateActionItemDto",
-        "response": "MeetingActionItem"
-      },
-      "DELETE /api/action-items/:id": {
-        "description": "Delete action item",
-        "response": "void"
-      },
-      "GET /api/action-items": {
-        "description": "List all action items",
-        "query_params": [
-          "assignee_id",
-          "status",
-          "due_date_before",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedActionItem[]",
-        "response_envelope": {
-          "data": "PaginatedActionItem[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "availability": {
-      "GET /api/availability": {
-        "description": "Get free/busy slots for users",
-        "query_params": [
-          "user_ids",
-          "date_from",
-          "date_to",
-          "duration_minutes",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "AvailabilitySlots",
-        "response_envelope": {
-          "data": "AvailabilitySlots",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/availability/find-time": {
-        "description": "Suggest meeting slots for attendees",
-        "body": "FindTimeDto",
-        "response": "SuggestedSlot[]"
-      },
-      "GET /api/availability/blocks": {
-        "description": "Get user availability blocks",
-        "query_params": [
-          "user_id",
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "AvailabilityBlock[]",
-        "response_envelope": {
-          "data": "AvailabilityBlock[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/availability/blocks": {
-        "description": "Create availability block",
-        "body": "CreateBlockDto",
-        "response": "AvailabilityBlock"
-      },
-      "DELETE /api/availability/blocks/:id": {
-        "description": "Remove availability block",
-        "response": "void"
-      }
-    },
-    "recurring": {
-      "POST /api/meetings/recurring": {
-        "description": "Create recurring series",
-        "body": "CreateRecurringDto",
-        "response": "RecurringSeries"
-      },
-      "PATCH /api/meetings/recurring/:series_id": {
-        "description": "Update series (this/this+future/all)",
-        "body": "UpdateRecurringDto",
-        "response": "RecurringSeries"
-      },
-      "DELETE /api/meetings/recurring/:series_id": {
-        "description": "Cancel series",
-        "body": "{scope: 'all'|'future'}",
-        "response": "void"
-      }
-    }
-  },
-  "permissions": {
-    "roles": [
-      "owner",
-      "admin",
-      "manager",
-      "employee",
-      "viewer"
-    ],
-    "matrix": {
-      "meeting.create": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "meeting.edit_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "meeting.edit_any": [
-        "owner",
-        "admin"
-      ],
-      "meeting.cancel_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "meeting.cancel_any": [
-        "owner",
-        "admin"
-      ],
-      "meeting.view_all": [
-        "owner",
-        "admin",
-        "manager"
-      ],
-      "meeting.view_own": [
-        "employee",
-        "viewer"
-      ],
-      "meeting.edit_notes": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "action_item.create": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "action_item.edit_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "action_item.edit_any": [
-        "owner",
-        "admin",
-        "manager"
-      ],
-      "availability.view_team": [
-        "owner",
-        "admin",
-        "manager"
-      ],
-      "availability.manage_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "calendarStore",
-        "state": [
-          "currentView",
-          "currentDate",
-          "selectedCalendars",
-          "visibleRange"
-        ],
-        "actions": [
-          "setView",
-          "setDate",
-          "toggleCalendar",
-          "setVisibleRange"
-        ]
-      },
-      {
-        "name": "meetingStore",
-        "state": [
-          "activeMeeting",
-          "draftMeeting",
-          "showCreateModal"
-        ],
-        "actions": [
-          "setActiveMeeting",
-          "updateDraftMeeting",
-          "openCreateModal",
-          "closeCreateModal"
-        ]
-      }
-    ],
-    "query_keys": [
-      "meetings.list(filters)",
-      "meetings.detail(id)",
-      "meetings.calendar(dateRange)",
-      "action-items.list(filters)",
-      "action-items.by-meeting(meetingId)",
-      "availability.slots(userIds,dateRange)",
-      "availability.blocks(userId,dateRange)",
-      "recurring.series(seriesId)"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "meeting:created",
-        "payload": "Meeting",
-        "description": "Notify attendees of new meeting invite"
-      },
-      {
-        "name": "meeting:updated",
-        "payload": "Meeting",
-        "description": "Notify attendees of meeting changes"
-      },
-      {
-        "name": "meeting:cancelled",
-        "payload": "Meeting",
-        "description": "Notify attendees of cancellation"
-      },
-      {
-        "name": "meeting:rsvp_updated",
-        "payload": "MeetingAttendee",
-        "description": "Broadcast RSVP changes to organizer and attendees"
-      },
-      {
-        "name": "meeting:notes_updated",
-        "payload": "{meetingId, notes}",
-        "description": "Real-time notes sync for concurrent editors"
-      },
-      {
-        "name": "action_item:created",
-        "payload": "MeetingActionItem",
-        "description": "Notify assignee of new action item"
-      },
-      {
-        "name": "action_item:completed",
-        "payload": "MeetingActionItem",
-        "description": "Notify meeting organizer of completion"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Schedule Meeting",
-      "trigger": "Organizer fills meeting form and clicks Save",
-      "steps": [
-        "Check attendee availability via free/busy API",
-        "Warn organizer of conflicts but allow override",
-        "Create meeting record with status = scheduled",
-        "Create MeetingAttendee rows for each attendee",
-        "Send calendar invites via email with ICS attachment",
-        "Broadcast meeting:created to attendees via websocket",
-        "If recurring \u2192 generate meetings for next 90 days, schedule job to generate more"
-      ]
-    },
-    {
-      "name": "RSVP to Meeting",
-      "trigger": "Attendee clicks Accept / Decline / Tentative",
-      "steps": [
-        "Update MeetingAttendee.rsvp_status",
-        "Set rsvp_at = NOW()",
-        "Notify organizer via websocket",
-        "If all required attendees accepted \u2192 set meeting status = confirmed"
-      ]
-    },
-    {
-      "name": "Complete Meeting",
-      "trigger": "Organizer marks meeting as completed",
-      "steps": [
-        "Set meeting status = completed",
-        "Prompt to add meeting notes and action items",
-        "Send post-meeting summary email with notes + action items",
-        "Mark action items with due dates as tracked"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "name": "duration_minutes",
-      "entity": "Meeting",
-      "formula": "EXTRACT(EPOCH FROM ends_at - starts_at) / 60",
-      "stored": true
-    },
-    {
-      "name": "attendee_count",
-      "entity": "Meeting",
-      "formula": "COUNT(meeting_attendees) WHERE meeting_id = meetings.id",
-      "stored": false
-    },
-    {
-      "name": "accepted_count",
-      "entity": "Meeting",
-      "formula": "COUNT(meeting_attendees) WHERE rsvp_status = 'accepted'",
-      "stored": false
-    },
-    {
-      "name": "rsvp_acceptance_rate",
-      "entity": "Analytics",
-      "formula": "accepted_count / attendee_count * 100",
-      "stored": false
-    },
-    {
-      "name": "open_action_items",
-      "entity": "Meeting",
-      "formula": "COUNT(meeting_action_items) WHERE status IN ('open','in_progress') AND meeting_id = meetings.id",
-      "stored": false
-    }
-  ],
-  "domain_rules": [
-    "Meeting end time must be after start time",
-    "Recurring meeting instances store individual meeting records linked via recurring_series_id",
-    "Cancelling a recurring meeting: options are 'this only', 'this and following', 'all'",
-    "RSVP status defaults to pending; organizer automatically accepted",
-    "Availability check is advisory only; organizer can override conflicts",
-    "Meeting notes are editable by all attendees until 24 hours after meeting ends",
-    "Action items created in notes editor are auto-parsed and saved as MeetingActionItem rows",
-    "External guests invited via email with unique token-based RSVP links"
-  ],
-  "folder_structure": {
-    "src": {
-      "features": {
-        "meetings": {
-          "components": [
-            "MeetingCalendar.tsx",
-            "MeetingForm.tsx",
-            "MeetingDetailDrawer.tsx",
-            "AttendeeList.tsx",
-            "FindTimeWidget.tsx",
-            "ActionItemList.tsx",
-            "MeetingNotesEditor.tsx",
-            "RecurrenceBuilder.tsx",
-            "UpcomingMeetingsWidget.tsx"
-          ],
-          "pages": [
-            "CalendarPage.tsx",
-            "MeetingsListPage.tsx",
-            "MeetingDetailPage.tsx",
-            "ActionItemsPage.tsx",
-            "AvailabilitySettingsPage.tsx"
-          ],
-          "hooks": [
-            "useMeetings.ts",
-            "useMeetingDetail.ts",
-            "useAvailability.ts",
-            "useActionItems.ts",
-            "useRecurring.ts"
-          ],
-          "store": [
-            "calendarStore.ts",
-            "meetingStore.ts"
-          ],
-          "api": [
-            "meetingsApi.ts",
-            "actionItemsApi.ts",
-            "availabilityApi.ts",
-            "recurringApi.ts"
-          ],
-          "types": [
-            "meeting.types.ts"
-          ],
-          "utils": [
-            "calendarUtils.ts",
-            "rruleUtils.ts",
-            "availabilityUtils.ts",
-            "icsUtils.ts"
-          ]
-        }
-      }
-    }
-  },
-  "generation_rules": [
-    "Use FullCalendar or custom calendar grid for the CalendarView; do not use a date picker library",
-    "ICS file generation for calendar invite emails using ical-generator npm package",
-    "Recurring series uses rrule npm package for RRULE parsing and occurrence generation",
-    "Availability check overlays all attendees' calendars including external calendar sync",
-    "Meeting notes use collaborative rich text (TipTap or similar) with websocket sync",
-    "Action item extraction: detect lines starting with [] or AI-identify tasks in notes",
-    "Free/busy query aggregates: org meetings + external calendar events (if synced)",
-    "All times stored in UTC; timezone field for display conversion in UI"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "meeting_type_enum": {
-      "pg_type": "meeting_type_type",
-      "ts_type": "MeetingTypeEnum",
-      "values": [
-        "one_on_one",
-        "team",
-        "external",
-        "interview",
-        "standup",
-        "retrospective",
-        "planning",
-        "other"
-      ],
-      "pg_ddl": "CREATE TYPE meeting_type_type AS ENUM ('one_on_one', 'team', 'external', 'interview', 'standup', 'retrospective', 'planning', 'other')"
-    },
-    "status_enum": {
-      "pg_type": "status_type",
-      "ts_type": "StatusEnum",
-      "values": [
-        "open",
-        "in_progress",
-        "done",
-        "cancelled"
-      ],
-      "pg_ddl": "CREATE TYPE status_type AS ENUM ('open', 'in_progress', 'done', 'cancelled')"
-    },
-    "role_enum": {
-      "pg_type": "role_type",
-      "ts_type": "RoleEnum",
-      "values": [
-        "required",
-        "optional",
-        "organizer"
-      ],
-      "pg_ddl": "CREATE TYPE role_type AS ENUM ('required', 'optional', 'organizer')"
-    },
-    "rsvp_status_enum": {
-      "pg_type": "rsvp_status_type",
-      "ts_type": "RsvpStatusEnum",
-      "values": [
-        "pending",
-        "accepted",
-        "declined",
-        "tentative"
-      ],
-      "pg_ddl": "CREATE TYPE rsvp_status_type AS ENUM ('pending', 'accepted', 'declined', 'tentative')"
-    },
-    "block_type_enum": {
-      "pg_type": "block_type_type",
-      "ts_type": "BlockTypeEnum",
-      "values": [
-        "unavailable",
-        "focus_time",
-        "out_of_office",
-        "preferred"
-      ],
-      "pg_ddl": "CREATE TYPE block_type_type AS ENUM ('unavailable', 'focus_time', 'out_of_office', 'preferred')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  }
+  ]
 }

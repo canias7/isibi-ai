@@ -1,2950 +1,1133 @@
 {
   "_meta": {
-    "title": "Audit Management Application",
-    "domain": "Operations & Governance",
-    "version": "1.0"
+    "app_name": "Audit Management",
+    "description": "Complete audit management management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "sky",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "status_colors": {
-      "planned": "slate",
-      "in_progress": "sky",
-      "fieldwork": "blue",
-      "review": "violet",
-      "draft_report": "amber",
-      "final_report": "green",
-      "closed": "gray",
-      "cancelled": "red"
-    },
-    "finding_severity_colors": {
-      "critical": "red",
-      "high": "orange",
-      "medium": "amber",
-      "low": "yellow",
-      "informational": "sky"
-    },
-    "finding_status_colors": {
-      "open": "red",
-      "in_remediation": "amber",
-      "remediated": "blue",
-      "verified": "green",
-      "accepted": "slate",
-      "overdue": "orange"
-    },
-    "audit_type_colors": {
-      "internal": "sky",
-      "external": "violet",
-      "regulatory": "orange",
-      "it": "blue",
-      "financial": "emerald",
-      "operational": "cyan",
-      "compliance": "teal"
-    }
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
-  },
+  "spec_name": "audit_management_spec",
   "entities": [
     {
-      "name": "Audit",
-      "table": "audits",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "audit_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "lead_auditor_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "start_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "end_date"
-          ]
-        }
-      ],
+      "name": "AuditPlan",
+      "table": "audit_plans",
+      "description": "AuditPlan",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "audit_number",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "auto-gen AUD-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(500)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/audits/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "plan_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "annual",
+            "quarterly",
+            "special",
+            "follow_up"
+          ],
+          "badge_colors": {
+            "annual": "blue",
+            "quarterly": "green",
+            "special": "purple",
+            "follow_up": "amber"
+          }
+        },
+        {
+          "name": "fiscal_year",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "plan_owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total_audits",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(audits)"
+        },
+        {
+          "name": "completed_audits",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(audits WHERE status=completed)"
+        },
+        {
+          "name": "completion_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "completed_audits / total_audits * 100"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "approved",
+            "in_progress",
+            "completed"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "approved": "blue",
+            "in_progress": "amber",
+            "completed": "green"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Checklist",
+      "table": "audit_checklists",
+      "description": "Checklist",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "financial",
+            "operational",
+            "compliance",
+            "it",
+            "hr",
+            "safety"
+          ],
+          "badge_colors": {
+            "financial": "blue",
+            "operational": "green",
+            "compliance": "red",
+            "it": "purple",
+            "hr": "amber",
+            "safety": "pink"
           }
         },
         {
           "name": "description",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "item_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "frequency",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "one_time",
+            "monthly",
+            "quarterly",
+            "annual"
+          ]
+        },
+        {
+          "name": "is_template",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "table": "audits",
+      "description": "Audit",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "audit_plan_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "AuditPlan"
+        },
+        {
+          "name": "checklist_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Checklist"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "audit_type",
-          "db_type": "ENUM('internal','external','regulatory','it','financial','operational','compliance')",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "internal",
-          "input_component": "Select",
-          "display_component": "AuditTypeBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('planned','in_progress','fieldwork','review','draft_report','final_report','closed','cancelled')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "planned",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "internal",
+            "external",
+            "regulatory",
+            "surprise",
+            "follow_up"
+          ],
+          "badge_colors": {
+            "internal": "blue",
+            "external": "purple",
+            "regulatory": "red",
+            "surprise": "amber",
+            "follow_up": "green"
           }
         },
         {
           "name": "scope",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "objectives",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "lead_auditor_id",
-          "db_type": "UUID",
+          "name": "lead_auditor",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "department",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DepartmentSelector",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "start_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "end_date",
           "db_type": "DATE",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "fieldwork_start",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "fieldwork_end",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "report_due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "finding_count",
-          "db_type": "INTEGER",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "audit_findings",
-            "formula": "COUNT(*) WHERE audit_id = audits.id AND deleted_at IS NULL",
-            "trigger": [
-              "insert",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "PlainText",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(findings)"
         },
         {
-          "name": "open_finding_count",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "audit_findings",
-            "formula": "COUNT(*) WHERE audit_id = audits.id AND status IN ('open','in_remediation','overdue') AND deleted_at IS NULL",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "report_url",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "S3 URL for final audit report PDF",
-          "input_component": "FileUpload",
-          "display_component": "FileDownloadLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "executive_summary",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "overall_rating",
-          "db_type": "ENUM('satisfactory','needs_improvement','unsatisfactory','critical','not_rated')",
+          "name": "risk_rating",
+          "db_type": "VARCHAR(20)",
           "ts_type": "string",
-          "nullable": false,
-          "default": "not_rated",
-          "input_component": "Select",
-          "display_component": "RatingBadge",
+          "nullable": true,
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "tags",
-          "db_type": "TEXT[]",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "ARRAY[]::TEXT[]",
-          "input_component": "TagInput",
-          "display_component": "TagList",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_audits_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_audits_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
           ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "AuditTeamMember",
-      "table": "audit_team_members",
-      "indexes": [
-        {
-          "columns": [
-            "audit_id",
-            "user_id"
-          ],
-          "unique": true
-        },
-        {
-          "columns": [
-            "org_id",
-            "user_id"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "audit_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "audits",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "user_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "role",
-          "db_type": "ENUM('lead','auditor','reviewer','observer')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "auditor",
-          "input_component": "Select",
-          "display_component": "RoleBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_audit_team_members_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_audit_team_members_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "AuditFinding",
-      "table": "audit_findings",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "audit_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "severity"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "owner_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "audit_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "audits",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "finding_number",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "auto-gen FND-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "title",
-          "db_type": "VARCHAR(500)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/findings/:id"
-          },
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "condition",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "What was found / observed",
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "criteria",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Standard or requirement the finding is measured against",
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "cause",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Root cause analysis",
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "effect",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Business impact / risk of the finding",
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "recommendation",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "management_response",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "severity",
-          "db_type": "ENUM('informational','low','medium','high','critical')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "medium",
-          "input_component": "Select",
-          "display_component": "SeverityBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
+          "badge_colors": {
+            "low": "green",
+            "medium": "amber",
+            "high": "red",
+            "critical": "purple"
           }
         },
         {
           "name": "status",
-          "db_type": "ENUM('open','in_remediation','remediated','verified','accepted','overdue')",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "open",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "planning",
+            "fieldwork",
+            "reporting",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "planning": "slate",
+            "fieldwork": "blue",
+            "reporting": "amber",
+            "completed": "green",
+            "cancelled": "red"
           }
         },
         {
-          "name": "owner_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "verified_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "verified_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "repeat_finding",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "notes": "True if same finding appeared in prior audit",
-          "input_component": "Checkbox",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "prior_finding_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "audit_findings",
-          "notes": "Link to the finding from the prior audit",
-          "input_component": "FindingSelector",
-          "display_component": "FindingLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "category",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_audit_findings_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_audit_findings_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "RemediationAction",
-      "table": "remediation_actions",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "finding_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "assignee_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        }
-      ],
+      "name": "Finding",
+      "table": "audit_findings",
+      "description": "Finding",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "finding_id",
-          "db_type": "UUID",
+          "name": "audit_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "audit_findings",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Audit"
+        },
+        {
+          "name": "finding_number",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "assignee_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
           "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "status",
-          "db_type": "ENUM('open','in_progress','completed','cancelled')",
+          "name": "finding_type",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "open",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "deficiency",
+            "material_weakness",
+            "significant_deficiency",
+            "observation",
+            "best_practice"
+          ],
+          "badge_colors": {
+            "deficiency": "amber",
+            "material_weakness": "red",
+            "significant_deficiency": "purple",
+            "observation": "blue",
+            "best_practice": "green"
           }
+        },
+        {
+          "name": "severity",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ],
+          "badge_colors": {
+            "critical": "red",
+            "high": "amber",
+            "medium": "blue",
+            "low": "green"
+          }
+        },
+        {
+          "name": "root_cause",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
           "name": "due_date",
           "db_type": "DATE",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
-          "name": "completed_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "evidence_url",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "FileUpload",
-          "display_component": "FileDownloadLink",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "open",
+            "in_remediation",
+            "resolved",
+            "accepted",
+            "reopened"
+          ],
+          "badge_colors": {
+            "open": "red",
+            "in_remediation": "amber",
+            "resolved": "green",
+            "accepted": "blue",
+            "reopened": "purple"
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_remediation_actions_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_remediation_actions_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "AuditDocument",
-      "table": "audit_documents",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "audit_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "document_type"
-          ]
-        }
-      ],
+      "name": "Recommendation",
+      "table": "audit_recommendations",
+      "description": "Recommendation",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "audit_id",
-          "db_type": "UUID",
+          "name": "finding_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "audits",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Finding"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(500)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
           }
         },
         {
-          "name": "document_type",
-          "db_type": "ENUM('audit_plan','working_paper','evidence','draft_report','final_report','correspondence','other')",
+          "name": "assignee",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "working_paper",
-          "input_component": "Select",
-          "display_component": "DocumentTypeBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "completed_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "implemented"
+          }
+        },
+        {
+          "name": "estimated_cost",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "actual_cost",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "implemented"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "proposed",
+            "accepted",
+            "in_progress",
+            "implemented",
+            "rejected",
+            "deferred"
+          ],
+          "badge_colors": {
+            "proposed": "slate",
+            "accepted": "blue",
+            "in_progress": "amber",
+            "implemented": "green",
+            "rejected": "red",
+            "deferred": "purple"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Evidence",
+      "table": "audit_evidence",
+      "description": "Evidence",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "audit_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Audit"
+        },
+        {
+          "name": "finding_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Finding"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "evidence_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "document",
+            "interview",
+            "observation",
+            "test_result",
+            "sample",
+            "photo"
+          ],
+          "badge_colors": {
+            "document": "blue",
+            "interview": "green",
+            "observation": "purple",
+            "test_result": "amber",
+            "sample": "pink",
+            "photo": "slate"
           }
         },
         {
           "name": "file_url",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "FileUpload",
-          "display_component": "FileDownloadLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "file_name",
           "db_type": "VARCHAR(500)",
           "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "file_size_bytes",
-          "db_type": "BIGINT",
-          "ts_type": "number | null",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "FileSizeDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "uploaded_by",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "1.0",
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "file_upload",
+          "display_component": "file_link"
+        },
+        {
+          "name": "collected_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "collection_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "notes",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "collected",
+            "reviewed",
+            "accepted",
+            "rejected"
+          ],
+          "badge_colors": {
+            "collected": "amber",
+            "reviewed": "blue",
+            "accepted": "green",
+            "rejected": "red"
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_audit_documents_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "name": "idx_audit_documents_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     }
-  ],
-  "components": [
-    {
-      "name": "AuditListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "audit_number",
-          "title",
-          "audit_type",
-          "status",
-          "lead_auditor_id",
-          "department",
-          "start_date",
-          "end_date",
-          "finding_count",
-          "open_finding_count",
-          "overall_rating",
-          "report_due_date"
-        ]
-      },
-      "features": [
-        "filter_by_type",
-        "filter_by_status",
-        "filter_by_auditor",
-        "filter_by_department",
-        "search",
-        "export_csv",
-        "bulk_actions"
-      ]
-    },
-    {
-      "name": "AuditForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "title",
-          "description",
-          "audit_type",
-          "scope",
-          "objectives",
-          "lead_auditor_id",
-          "department",
-          "start_date",
-          "end_date",
-          "fieldwork_start",
-          "fieldwork_end",
-          "report_due_date",
-          "tags"
-        ]
-      },
-      "features": [
-        "team_assignment_inline",
-        "audit_plan_template"
-      ]
-    },
-    {
-      "name": "AuditDetailPage",
-      "type": "Page",
-      "features": [
-        "audit_info",
-        "status_stepper",
-        "team_members",
-        "findings_list",
-        "documents",
-        "activity_log",
-        "executive_summary",
-        "overall_rating",
-        "generate_report"
-      ]
-    },
-    {
-      "name": "AuditStatusStepper",
-      "type": "Stepper",
-      "steps": [
-        "planned",
-        "in_progress",
-        "fieldwork",
-        "review",
-        "draft_report",
-        "final_report",
-        "closed"
-      ],
-      "features": [
-        "click_to_advance",
-        "confirm_modal",
-        "date_stamps"
-      ]
-    },
-    {
-      "name": "FindingListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "finding_number",
-          "title",
-          "severity",
-          "status",
-          "owner_id",
-          "due_date",
-          "repeat_finding",
-          "category",
-          "audit_id"
-        ]
-      },
-      "features": [
-        "filter_by_severity",
-        "filter_by_status",
-        "filter_by_audit",
-        "filter_by_owner",
-        "search",
-        "export_csv",
-        "bulk_assign"
-      ]
-    },
-    {
-      "name": "FindingForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "title",
-          "severity",
-          "category",
-          "condition",
-          "criteria",
-          "cause",
-          "effect",
-          "recommendation",
-          "owner_id",
-          "due_date",
-          "repeat_finding",
-          "prior_finding_id"
-        ]
-      },
-      "features": [
-        "4C_structure",
-        "severity_guide",
-        "prior_finding_search"
-      ]
-    },
-    {
-      "name": "FindingDetailDrawer",
-      "type": "Drawer",
-      "props": {
-        "width": "xl"
-      },
-      "features": [
-        "finding_info",
-        "management_response",
-        "remediation_actions",
-        "evidence_upload",
-        "status_change",
-        "verify_remediation",
-        "comments",
-        "activity_log"
-      ]
-    },
-    {
-      "name": "RemediationActionList",
-      "type": "List",
-      "features": [
-        "add_action",
-        "inline_edit",
-        "assign",
-        "due_date",
-        "status_toggle",
-        "evidence_upload",
-        "overdue_highlight"
-      ]
-    },
-    {
-      "name": "AuditDocumentsPanel",
-      "type": "Panel",
-      "features": [
-        "upload_document",
-        "version_management",
-        "document_type_filter",
-        "download",
-        "delete",
-        "preview_pdf"
-      ]
-    },
-    {
-      "name": "AuditSummaryStats",
-      "type": "StatsGrid",
-      "metrics": [
-        {
-          "label": "Total Audits",
-          "field": "total_count",
-          "format": "number"
-        },
-        {
-          "label": "In Progress",
-          "field": "in_progress_count",
-          "format": "number",
-          "color": "sky"
-        },
-        {
-          "label": "Open Findings",
-          "field": "open_findings",
-          "format": "number",
-          "color": "red"
-        },
-        {
-          "label": "Overdue Findings",
-          "field": "overdue_findings",
-          "format": "number",
-          "color": "amber"
-        },
-        {
-          "label": "Closed This Year",
-          "field": "closed_this_year",
-          "format": "number"
-        }
-      ]
-    },
-    {
-      "name": "FindingsBySeverityChart",
-      "type": "BarChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "severity",
-        "yAxis": "count",
-        "stacked": true,
-        "color_by": "status"
-      }
-    },
-    {
-      "name": "AuditCalendarView",
-      "type": "GanttChart",
-      "features": [
-        "audit_bars",
-        "fieldwork_phases",
-        "drag_resize",
-        "milestone_markers",
-        "today_line"
-      ]
-    },
-    {
-      "name": "RepeatFindingsWidget",
-      "type": "Widget",
-      "features": [
-        "repeat_findings_list",
-        "trend_indicator",
-        "click_to_finding"
-      ]
-    },
-    {
-      "name": "ReportGeneratorModal",
-      "type": "Modal",
-      "features": [
-        "template_select",
-        "executive_summary_editor",
-        "include_findings_toggle",
-        "export_pdf",
-        "export_docx"
-      ]
-    },
-    {
-      "name": "ManagementResponseForm",
-      "type": "Form",
-      "props": {
-        "fields": [
-          "management_response",
-          "agreed_due_date"
-        ]
-      },
-      "features": [
-        "auditee_portal_access",
-        "response_deadline"
-      ]
-    }
-  ],
-  "modules": [
-    {
-      "name": "AuditDashboard",
-      "path": "/audits",
-      "description": "Audit program overview with stats and calendar",
-      "components": [
-        "AuditSummaryStats",
-        "AuditCalendarView",
-        "FindingsBySeverityChart",
-        "RepeatFindingsWidget"
-      ],
-      "views": [
-        "Dashboard",
-        "Calendar"
-      ]
-    },
-    {
-      "name": "AuditRegister",
-      "path": "/audits/register",
-      "description": "Full list of all audits with filtering",
-      "components": [
-        "AuditListTable",
-        "AuditForm"
-      ],
-      "tabs": [
-        "Active",
-        "Planned",
-        "Completed",
-        "All"
-      ]
-    },
-    {
-      "name": "AuditDetail",
-      "path": "/audits/:id",
-      "description": "Full audit workspace: planning, fieldwork, findings, reports",
-      "components": [
-        "AuditDetailPage",
-        "AuditStatusStepper",
-        "FindingListTable",
-        "AuditDocumentsPanel"
-      ]
-    },
-    {
-      "name": "FindingsTracker",
-      "path": "/audits/findings",
-      "description": "Cross-audit findings tracker and remediation management",
-      "components": [
-        "FindingListTable",
-        "FindingDetailDrawer",
-        "AuditSummaryStats"
-      ],
-      "tabs": [
-        "Open",
-        "In Remediation",
-        "Overdue",
-        "Verified",
-        "All"
-      ]
-    },
-    {
-      "name": "MyActions",
-      "path": "/audits/my-actions",
-      "description": "Remediation actions assigned to current user",
-      "components": [
-        "RemediationActionList"
-      ],
-      "default_filters": {
-        "assignee_id": "current_user"
-      }
-    }
-  ],
-  "api": {
-    "audits": {
-      "GET /api/audits": {
-        "description": "List audits",
-        "query_params": [
-          "status",
-          "audit_type",
-          "lead_auditor_id",
-          "department",
-          "date_from",
-          "date_to",
-          "search",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedAudit[]",
-        "response_envelope": {
-          "data": "PaginatedAudit[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/audits": {
-        "description": "Create audit",
-        "body": "CreateAuditDto",
-        "response": "Audit"
-      },
-      "GET /api/audits/:id": {
-        "description": "Get audit with full relations",
-        "response": "AuditWithRelations"
-      },
-      "PATCH /api/audits/:id": {
-        "description": "Update audit",
-        "body": "UpdateAuditDto",
-        "response": "Audit"
-      },
-      "DELETE /api/audits/:id": {
-        "description": "Soft delete audit",
-        "response": "void"
-      },
-      "POST /api/audits/:id/advance-status": {
-        "description": "Advance audit to next status",
-        "body": "AdvanceStatusDto",
-        "response": "Audit"
-      },
-      "POST /api/audits/:id/generate-report": {
-        "description": "Generate audit report PDF/DOCX",
-        "body": "GenerateReportDto",
-        "response": "GeneratedReport"
-      }
-    },
-    "findings": {
-      "GET /api/audits/:auditId/findings": {
-        "description": "List findings for audit",
-        "response": "AuditFinding[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "AuditFinding[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/audits/:auditId/findings": {
-        "description": "Create finding",
-        "body": "CreateFindingDto",
-        "response": "AuditFinding"
-      },
-      "GET /api/findings": {
-        "description": "List all findings cross-audit",
-        "query_params": [
-          "severity",
-          "status",
-          "owner_id",
-          "audit_id",
-          "repeat_finding",
-          "due_date_before",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedFinding[]",
-        "response_envelope": {
-          "data": "PaginatedFinding[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/findings/:id": {
-        "description": "Get finding detail",
-        "response": "FindingWithRelations"
-      },
-      "PATCH /api/findings/:id": {
-        "description": "Update finding",
-        "body": "UpdateFindingDto",
-        "response": "AuditFinding"
-      },
-      "DELETE /api/findings/:id": {
-        "description": "Soft delete finding",
-        "response": "void"
-      },
-      "POST /api/findings/:id/verify": {
-        "description": "Mark finding as verified/remediated",
-        "body": "VerifyFindingDto",
-        "response": "AuditFinding"
-      },
-      "POST /api/findings/:id/management-response": {
-        "description": "Submit management response",
-        "body": "ManagementResponseDto",
-        "response": "AuditFinding"
-      }
-    },
-    "remediation": {
-      "GET /api/findings/:findingId/remediation-actions": {
-        "description": "List remediation actions",
-        "response": "RemediationAction[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "RemediationAction[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/findings/:findingId/remediation-actions": {
-        "description": "Create action",
-        "body": "CreateRemediationDto",
-        "response": "RemediationAction"
-      },
-      "PATCH /api/remediation-actions/:id": {
-        "description": "Update action",
-        "body": "UpdateRemediationDto",
-        "response": "RemediationAction"
-      },
-      "DELETE /api/remediation-actions/:id": {
-        "description": "Delete action",
-        "response": "void"
-      }
-    },
-    "documents": {
-      "GET /api/audits/:auditId/documents": {
-        "description": "List documents",
-        "response": "AuditDocument[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "AuditDocument[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/audits/:auditId/documents": {
-        "description": "Upload document",
-        "body": "FormData",
-        "response": "AuditDocument"
-      },
-      "DELETE /api/audit-documents/:id": {
-        "description": "Delete document",
-        "response": "void"
-      }
-    },
-    "analytics": {
-      "GET /api/audits/analytics/summary": {
-        "description": "Audit program summary stats",
-        "response": "AuditSummaryStats",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "AuditSummaryStats",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/audits/analytics/findings-by-severity": {
-        "description": "Finding distribution by severity",
-        "query_params": [
-          "audit_type",
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "FindingSeverityBreakdown[]",
-        "response_envelope": {
-          "data": "FindingSeverityBreakdown[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/audits/analytics/repeat-findings": {
-        "description": "Repeat findings analysis",
-        "response": "RepeatFindingTrend[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "RepeatFindingTrend[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/audits/analytics/remediation-aging": {
-        "description": "Aging analysis of open findings",
-        "response": "RemediationAging[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "RemediationAging[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    }
-  },
-  "permissions": {
-    "roles": [
-      "owner",
-      "admin",
-      "audit_manager",
-      "auditor",
-      "auditee",
-      "viewer"
-    ],
-    "matrix": {
-      "audit.create": [
-        "owner",
-        "admin",
-        "audit_manager"
-      ],
-      "audit.edit": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor"
-      ],
-      "audit.delete": [
-        "owner",
-        "admin"
-      ],
-      "audit.view_all": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor"
-      ],
-      "audit.view_assigned": [
-        "auditee",
-        "viewer"
-      ],
-      "finding.create": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor"
-      ],
-      "finding.edit": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor"
-      ],
-      "finding.delete": [
-        "owner",
-        "admin",
-        "audit_manager"
-      ],
-      "finding.verify": [
-        "owner",
-        "admin",
-        "audit_manager"
-      ],
-      "finding.respond": [
-        "owner",
-        "admin",
-        "auditee"
-      ],
-      "finding.view_all": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor"
-      ],
-      "finding.view_assigned": [
-        "auditee",
-        "viewer"
-      ],
-      "remediation.create": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor",
-        "auditee"
-      ],
-      "remediation.edit_own": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor",
-        "auditee"
-      ],
-      "document.upload": [
-        "owner",
-        "admin",
-        "audit_manager",
-        "auditor"
-      ],
-      "document.delete": [
-        "owner",
-        "admin",
-        "audit_manager"
-      ],
-      "report.generate": [
-        "owner",
-        "admin",
-        "audit_manager"
-      ],
-      "analytics.view": [
-        "owner",
-        "admin",
-        "audit_manager"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "auditStore",
-        "state": [
-          "activeAudit",
-          "viewMode",
-          "activeFilters",
-          "selectedFindings"
-        ],
-        "actions": [
-          "setActiveAudit",
-          "setViewMode",
-          "setActiveFilters",
-          "setSelectedFindings",
-          "clearFilters"
-        ]
-      }
-    ],
-    "query_keys": [
-      "audits.list(filters)",
-      "audits.detail(id)",
-      "findings.by-audit(auditId)",
-      "findings.list(filters)",
-      "findings.detail(id)",
-      "remediation.by-finding(findingId)",
-      "documents.by-audit(auditId)",
-      "analytics.summary",
-      "analytics.findings-by-severity"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "finding:created",
-        "payload": "AuditFinding",
-        "description": "Notify finding owner and auditee of new finding"
-      },
-      {
-        "name": "finding:remediated",
-        "payload": "AuditFinding",
-        "description": "Notify auditor when management marks finding remediated"
-      },
-      {
-        "name": "finding:verified",
-        "payload": "AuditFinding",
-        "description": "Notify owner when auditor verifies remediation"
-      },
-      {
-        "name": "audit:status_changed",
-        "payload": "Audit",
-        "description": "Notify team members when audit advances stage"
-      },
-      {
-        "name": "remediation:overdue",
-        "payload": "RemediationAction",
-        "description": "Notify assignee when action becomes overdue"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Conduct Audit",
-      "trigger": "Audit manager creates and kicks off audit",
-      "steps": [
-        "Create audit with status = planned, assign lead auditor and team",
-        "Upload audit plan document",
-        "Advance to in_progress \u2192 notify auditees",
-        "Advance to fieldwork \u2192 conduct interviews, gather evidence",
-        "Create AuditFindings as issues are identified",
-        "Advance to review \u2192 internal team review of findings",
-        "Advance to draft_report \u2192 share findings with management for response",
-        "Management submits responses via ManagementResponseForm",
-        "Advance to final_report \u2192 generate and upload final report",
-        "Advance to closed \u2192 all findings must have due dates set"
-      ]
-    },
-    {
-      "name": "Remediate Finding",
-      "trigger": "Finding owner creates remediation actions",
-      "steps": [
-        "Owner creates one or more RemediationActions with assignees and due dates",
-        "Assignees complete actions, upload evidence",
-        "Owner marks finding status = remediated",
-        "Auditor verifies remediation (reviews evidence, sets verified_at)",
-        "If verified \u2192 set finding status = verified",
-        "If not accepted \u2192 send back with comments"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "name": "finding_count",
-      "entity": "Audit",
-      "formula": "COUNT(audit_findings) WHERE audit_id = audits.id AND deleted_at IS NULL",
-      "stored": false
-    },
-    {
-      "name": "open_finding_count",
-      "entity": "Audit",
-      "formula": "COUNT(audit_findings) WHERE audit_id = audits.id AND status IN ('open','in_remediation','overdue')",
-      "stored": false
-    },
-    {
-      "name": "overdue_findings",
-      "entity": "Analytics",
-      "formula": "COUNT findings WHERE due_date < TODAY AND status NOT IN ('verified','accepted')",
-      "stored": false
-    }
-  ],
-  "domain_rules": [
-    "Audit number auto-increments per org: AUD-0001, AUD-0002",
-    "Finding number auto-increments per org: FND-0001, FND-0002",
-    "Audit status follows a linear pipeline; cannot skip stages without admin override",
-    "Findings cannot be deleted after audit reaches final_report status",
-    "Repeat findings require a link to the prior finding for tracking",
-    "Management response must be submitted before audit can advance to final_report",
-    "Finding verification can only be done by audit team members, not by the auditee",
-    "Closed audits are read-only; require admin to reopen",
-    "Documents are versioned; uploading a new version of same type increments version number"
-  ],
-  "folder_structure": {
-    "src": {
-      "features": {
-        "audit-management": {
-          "components": [
-            "AuditListTable.tsx",
-            "AuditForm.tsx",
-            "AuditDetailPage.tsx",
-            "AuditStatusStepper.tsx",
-            "FindingListTable.tsx",
-            "FindingForm.tsx",
-            "FindingDetailDrawer.tsx",
-            "RemediationActionList.tsx",
-            "AuditDocumentsPanel.tsx",
-            "AuditCalendarView.tsx",
-            "ReportGeneratorModal.tsx",
-            "ManagementResponseForm.tsx",
-            "AuditSummaryStats.tsx"
-          ],
-          "pages": [
-            "AuditDashboardPage.tsx",
-            "AuditRegisterPage.tsx",
-            "AuditDetailRoutePage.tsx",
-            "FindingsTrackerPage.tsx",
-            "MyActionsPage.tsx"
-          ],
-          "hooks": [
-            "useAudits.ts",
-            "useAuditDetail.ts",
-            "useFindings.ts",
-            "useRemediationActions.ts",
-            "useAuditDocuments.ts",
-            "useAuditAnalytics.ts"
-          ],
-          "store": [
-            "auditStore.ts"
-          ],
-          "api": [
-            "auditsApi.ts",
-            "findingsApi.ts",
-            "remediationApi.ts",
-            "auditDocumentsApi.ts",
-            "auditAnalyticsApi.ts"
-          ],
-          "types": [
-            "audit.types.ts"
-          ],
-          "utils": [
-            "auditStatusUtils.ts",
-            "reportGeneratorUtils.ts",
-            "findingUtils.ts"
-          ]
-        }
-      }
-    }
-  },
-  "generation_rules": [
-    "Audit status machine enforces linear progression: planned\u2192in_progress\u2192fieldwork\u2192review\u2192draft_report\u2192final_report\u2192closed",
-    "Report generation uses PDF template with org logo, findings table, severity heatmap, and executive summary",
-    "Finding 4C structure (condition, criteria, cause, effect) renders as labeled sections in detail view",
-    "Overdue detection cron job runs daily: marks findings where due_date < TODAY and status not verified/accepted",
-    "Auditee portal: limited-permission view to see their findings and submit management responses",
-    "Document versioning: when same document_type is uploaded again, increment version and keep history",
-    "AuditCalendarView uses Gantt-style bars per audit with fieldwork phase highlighted differently",
-    "Soft delete only on all entities; audit archive preserves full historical record"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "audit_type_enum": {
-      "pg_type": "audit_type_type",
-      "ts_type": "AuditTypeEnum",
-      "values": [
-        "internal",
-        "external",
-        "regulatory",
-        "it",
-        "financial",
-        "operational",
-        "compliance"
-      ],
-      "pg_ddl": "CREATE TYPE audit_type_type AS ENUM ('internal', 'external', 'regulatory', 'it', 'financial', 'operational', 'compliance')"
-    },
-    "status_enum": {
-      "pg_type": "status_type",
-      "ts_type": "StatusEnum",
-      "values": [
-        "open",
-        "in_progress",
-        "completed",
-        "cancelled"
-      ],
-      "pg_ddl": "CREATE TYPE status_type AS ENUM ('open', 'in_progress', 'completed', 'cancelled')"
-    },
-    "overall_rating_enum": {
-      "pg_type": "overall_rating_type",
-      "ts_type": "OverallRatingEnum",
-      "values": [
-        "satisfactory",
-        "needs_improvement",
-        "unsatisfactory",
-        "critical",
-        "not_rated"
-      ],
-      "pg_ddl": "CREATE TYPE overall_rating_type AS ENUM ('satisfactory', 'needs_improvement', 'unsatisfactory', 'critical', 'not_rated')"
-    },
-    "role_enum": {
-      "pg_type": "role_type",
-      "ts_type": "RoleEnum",
-      "values": [
-        "lead",
-        "auditor",
-        "reviewer",
-        "observer"
-      ],
-      "pg_ddl": "CREATE TYPE role_type AS ENUM ('lead', 'auditor', 'reviewer', 'observer')"
-    },
-    "severity_enum": {
-      "pg_type": "severity_type",
-      "ts_type": "SeverityEnum",
-      "values": [
-        "informational",
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ],
-      "pg_ddl": "CREATE TYPE severity_type AS ENUM ('informational', 'low', 'medium', 'high', 'critical')"
-    },
-    "document_type_enum": {
-      "pg_type": "document_type_type",
-      "ts_type": "DocumentTypeEnum",
-      "values": [
-        "audit_plan",
-        "working_paper",
-        "evidence",
-        "draft_report",
-        "final_report",
-        "correspondence",
-        "other"
-      ],
-      "pg_ddl": "CREATE TYPE document_type_type AS ENUM ('audit_plan', 'working_paper', 'evidence', 'draft_report', 'final_report', 'correspondence', 'other')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  }
+  ]
 }

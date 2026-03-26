@@ -1,1501 +1,633 @@
 {
-  "spec_version": "1.0.0",
-  "file": "commission_tracking_spec.json",
-  "tech_stack": {
-    "frontend": [
-      "React 18",
-      "TypeScript strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form v7",
-      "Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node.js",
-      "Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
+  "_meta": {
+    "app_name": "Commission Tracking",
+    "description": "Complete commission tracking management"
   },
-  "design": {
-    "theme": "dark",
-    "bg": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber"
-  },
+  "spec_name": "commission_tracking_spec",
   "entities": [
     {
-      "table": "commission_plans",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "plan_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "effective_date"
-          ]
-        }
-      ],
+      "name": "Agent",
+      "table": "agents",
+      "description": "Agent",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "plan_type",
-          "db_type": "VARCHAR(30) NOT NULL",
-          "ts_type": "'percentage_of_revenue' | 'flat_per_deal' | 'tiered' | 'milestone' | 'custom'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "CommissionPlanBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "percentage_of_revenue",
-              "flat_per_deal",
-              "tiered",
-              "milestone",
-              "custom"
-            ]
-          }
-        },
-        {
-          "name": "base_rate",
-          "db_type": "NUMERIC(8,4)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "PercentageInput",
-          "display_component": "PercentageDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0,
-            "max": 100
-          }
-        },
-        {
-          "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "USD",
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "length": 3
-          }
-        },
-        {
-          "name": "calculation_basis",
-          "db_type": "VARCHAR(30) NOT NULL",
-          "ts_type": "'invoice_paid' | 'subscription_revenue' | 'deal_closed' | 'manual'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "invoice_paid",
-              "subscription_revenue",
-              "deal_closed",
-              "manual"
-            ]
-          }
-        },
-        {
-          "name": "payout_frequency",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'monthly' | 'quarterly' | 'on_payment'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "monthly",
-              "quarterly",
-              "on_payment"
-            ]
-          }
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "effective_date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "expiry_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "date",
-            "afterField": "effective_date"
-          }
-        },
-        {
-          "name": "clawback_period_days",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 90,
-          "input_component": "TextInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
+          "input_component": "text_input",
           "display_component": "text"
-        }
-      ],
-      "name": "CommissionPlan",
-      "description": "CommissionPlan entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "plan_type",
-            "base_rate",
-            "calculation_basis",
-            "payout_frequency",
-            "is_active"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No CommissionPlans yet",
-            "subtext": "Create your first commissionplan",
-            "action_label": "Add CommissionPlan"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "description",
-            "plan_type",
-            "base_rate",
-            "currency",
-            "calculation_basis",
-            "payout_frequency",
-            "is_active",
-            "effective_date",
-            "expiry_date",
-            "clawback_period_days"
-          ],
-          "required_fields": [
-            "name",
-            "description"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "description",
-            "plan_type",
-            "base_rate",
-            "currency",
-            "calculation_basis",
-            "payout_frequency",
-            "is_active",
-            "effective_date",
-            "expiry_date",
-            "clawback_period_days"
-          ],
-          "required_fields": [
-            "name",
-            "description"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/commission_plans/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "plan_type",
-            "base_rate",
-            "calculation_basis"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "plan_type",
-                "base_rate",
-                "calculation_basis",
-                "payout_frequency",
-                "is_active",
-                "effective_date"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "commission_tiers",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "plan_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "plan_id",
-            "tier_number"
-          ],
-          "unique": true
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "plan_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "tier_number",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 1
-          }
-        },
-        {
-          "name": "threshold_from",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "threshold_to",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "rate",
-          "db_type": "NUMERIC(8,4) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": "PercentageInput",
-          "display_component": "PercentageDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0,
-            "max": 100
-          }
-        },
-        {
-          "name": "flat_amount",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "name": "CommissionTier",
-      "description": "CommissionTier entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "tier_number",
-            "threshold_from",
-            "threshold_to",
-            "rate"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No CommissionTiers yet",
-            "subtext": "Create your first commissiontier",
-            "action_label": "Add CommissionTier"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "tier_number",
-            "threshold_from",
-            "threshold_to",
-            "rate",
-            "flat_amount"
-          ],
-          "required_fields": [
-            "tier_number",
-            "threshold_from"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "tier_number",
-            "threshold_from",
-            "threshold_to",
-            "rate",
-            "flat_amount"
-          ],
-          "required_fields": [
-            "tier_number",
-            "threshold_from"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/commission_tiers/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "tier_number"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "tier_number",
-            "threshold_from",
-            "threshold_to",
-            "rate"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "tier_number",
-                "threshold_from",
-                "threshold_to",
-                "rate"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "agents",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "agent_number"
-          ],
-          "unique": true
-        },
-        {
-          "columns": [
-            "org_id",
-            "email"
-          ],
-          "unique": true
-        },
-        {
-          "columns": [
-            "org_id",
-            "commission_plan_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "user_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TextLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "agent_number",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "maxLength": 50
-          }
-        },
-        {
-          "name": "first_name",
-          "db_type": "VARCHAR(100) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "last_name",
-          "db_type": "VARCHAR(100) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 100
-          }
         },
         {
           "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "format": "email",
-            "maxLength": 255
+            "rule": "email",
+            "message": "Valid email required"
           }
         },
         {
           "name": "phone",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string | null",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": false,
-            "maxLength": 50
+            "rule": "phone",
+            "message": "Valid phone number required"
           }
         },
         {
-          "name": "agent_type",
+          "name": "tier",
           "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'employee' | 'contractor' | 'affiliate' | 'reseller'",
+          "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "employee",
-              "contractor",
-              "affiliate",
-              "reseller"
-            ]
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "junior",
+            "senior",
+            "lead",
+            "director"
+          ],
+          "badge_colors": {
+            "junior": "slate",
+            "senior": "blue",
+            "lead": "purple",
+            "director": "green"
           }
         },
         {
-          "name": "commission_plan_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
+          "name": "commission_rate",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
           "nullable": true,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "CommissionPlanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "territory",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "ytd_earnings",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(commissions.amount WHERE year=current)",
           "validation": {
-            "required": false,
-            "format": "uuid"
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "suspended",
+            "terminated"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "suspended": "amber",
+            "terminated": "red"
           }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Client",
+      "table": "commission_clients",
+      "description": "Client",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "name": "Agent",
-      "description": "Agent entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "agent_number",
-            "first_name",
-            "last_name",
-            "email",
-            "agent_type",
-            "commission_plan_id"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Agents yet",
-            "subtext": "Create your first agent",
-            "action_label": "Add Agent"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "user_id",
-            "first_name",
-            "last_name",
-            "email",
-            "phone",
-            "agent_type",
-            "commission_plan_id",
-            "territory",
-            "is_active",
-            "notes"
-          ],
-          "required_fields": [
-            "user_id",
-            "first_name"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "user_id",
-            "first_name",
-            "last_name",
-            "email",
-            "phone",
-            "agent_type",
-            "commission_plan_id",
-            "territory",
-            "is_active",
-            "notes"
-          ],
-          "required_fields": [
-            "user_id",
-            "first_name"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/agents/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "user_id"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "agent_number",
-            "first_name",
-            "last_name",
-            "email"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "agent_number",
-                "first_name",
-                "last_name",
-                "email",
-                "agent_type",
-                "commission_plan_id",
-                "is_active"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "commissions",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "agent_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "plan_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "earned_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "payout_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "source_entity_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "agent_id",
-            "source_entity_id"
-          ],
-          "unique": true
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "contact_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "format": "uuid"
+            "rule": "email",
+            "message": "Valid email required"
           }
+        },
+        {
+          "name": "contact_phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "phone",
+            "message": "Valid phone number required"
+          }
+        },
+        {
+          "name": "company",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "industry",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "technology",
+            "finance",
+            "healthcare",
+            "retail",
+            "manufacturing",
+            "other"
+          ]
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "churned",
+            "prospect"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "churned": "red",
+            "prospect": "blue"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Sale",
+      "table": "sales",
+      "description": "Sale",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "agent_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
         },
         {
-          "name": "plan_id",
+          "name": "client_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "CommissionPlanBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "source_entity_type",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 50
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Client"
         },
         {
-          "name": "source_entity_id",
-          "db_type": "UUID NOT NULL",
+          "name": "deal_name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "customer_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "deal_value",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true,
             "min": 0
           }
         },
         {
-          "name": "commission_rate",
-          "db_type": "NUMERIC(8,4) NOT NULL",
+          "name": "cost",
+          "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "nullable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
         },
         {
-          "name": "commission_amount",
+          "name": "profit",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "deal_value - cost",
           "validation": {
-            "required": true
+            "min": 0
           }
         },
         {
-          "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
+          "name": "margin_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "(deal_value - cost) / deal_value * 100"
+        },
+        {
+          "name": "close_date",
+          "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "USD",
-          "input_component": null,
-          "display_component": "PlainText",
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "won",
+            "lost",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "won": "green",
+            "lost": "red",
+            "cancelled": "slate"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Commission",
+      "table": "commissions",
+      "description": "Commission",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "sale_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Sale"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "base_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true,
-            "length": 3
+            "min": 0
+          }
+        },
+        {
+          "name": "rate",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "base_amount * rate / 100",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "standard",
+            "bonus",
+            "override",
+            "spiff"
+          ],
+          "badge_colors": {
+            "standard": "blue",
+            "bonus": "green",
+            "override": "purple",
+            "spiff": "amber"
           }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'pending' | 'approved' | 'paid' | 'clawed_back' | 'voided'",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "pending",
-          "input_component": null,
-          "display_component": "CommissionStatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "enum": [
-              "pending",
-              "approved",
-              "paid",
-              "clawed_back",
-              "voided"
-            ]
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "approved",
+            "paid",
+            "reversed"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "approved": "blue",
+            "paid": "green",
+            "reversed": "red"
           }
         },
         {
@@ -1503,1567 +635,368 @@
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "approved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "approved_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "payout_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "clawback_deadline",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "PayoutRequest",
+      "table": "payout_requests",
+      "description": "PayoutRequest",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "name": "Commission",
-      "description": "Commission entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "agent_id",
-            "plan_id",
-            "source_entity_type",
-            "source_entity_id",
-            "deal_value",
-            "commission_rate"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Commissions yet",
-            "subtext": "Create your first commission",
-            "action_label": "Add Commission"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "agent_id",
-            "source_entity_type",
-            "notes"
-          ],
-          "required_fields": [
-            "agent_id",
-            "source_entity_type"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "agent_id",
-            "source_entity_type",
-            "notes"
-          ],
-          "required_fields": [
-            "agent_id",
-            "source_entity_type"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/commissions/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "agent_id"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "agent_id",
-            "plan_id",
-            "source_entity_type",
-            "source_entity_id"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "agent_id",
-                "plan_id",
-                "source_entity_type",
-                "source_entity_id",
-                "deal_value",
-                "commission_rate",
-                "commission_amount",
-                "status",
-                "earned_date"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "commission_payouts",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "agent_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "period_start"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "payout_number"
-          ],
-          "unique": true
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "payout_number",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "maxLength": 50
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "agent_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
         },
         {
-          "name": "period_start",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "period_end",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date",
-            "afterField": "period_start"
-          }
-        },
-        {
-          "name": "total_amount",
+          "name": "requested_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": false
+            "min": 0
           }
         },
         {
-          "name": "commission_count",
-          "db_type": "INTEGER NOT NULL",
+          "name": "approved_amount",
+          "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "nullable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'draft' | 'approved' | 'paid'",
-          "nullable": false,
-          "default": "draft",
-          "input_component": null,
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "enum": [
-              "draft",
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "visible_when": {
+            "field": "status",
+            "operator": "in",
+            "value": [
               "approved",
               "paid"
             ]
           }
         },
         {
-          "name": "payment_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "date"
-          }
-        },
-        {
-          "name": "payment_method",
+          "name": "payout_method",
           "db_type": "VARCHAR(30) NOT NULL",
-          "ts_type": "'bank_transfer' | 'check' | 'payroll' | 'other'",
+          "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "PaymentMethodBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "bank_transfer",
-              "check",
-              "payroll",
-              "other"
-            ]
-          }
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "bank_transfer",
+            "check",
+            "paypal",
+            "wire"
+          ]
         },
         {
-          "name": "reference",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 255
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "submitted",
+            "approved",
+            "paid",
+            "rejected"
+          ],
+          "badge_colors": {
+            "submitted": "amber",
+            "approved": "blue",
+            "paid": "green",
+            "rejected": "red"
           }
         },
         {
-          "name": "notes",
+          "name": "rejection_reason",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {
-            "required": false
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "rejected"
           }
         },
         {
-          "name": "approved_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
+          "name": "paid_date",
+          "db_type": "DATE",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "approved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Target",
+      "table": "sales_targets",
+      "description": "Target",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "name": "CommissionPayout",
-      "description": "CommissionPayout entity",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "payout_number",
-            "agent_id",
-            "period_start",
-            "period_end",
-            "total_amount",
-            "commission_count"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "period",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "monthly",
+            "quarterly",
+            "annual"
           ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No CommissionPayouts yet",
-            "subtext": "Create your first commissionpayout",
-            "action_label": "Add CommissionPayout"
+          "badge_colors": {
+            "monthly": "blue",
+            "quarterly": "purple",
+            "annual": "green"
           }
         },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "agent_id",
-            "period_start",
-            "period_end",
-            "payment_date",
-            "payment_method",
-            "reference",
-            "notes"
+        {
+          "name": "target_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "achieved_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(sales.deal_value WHERE agent)",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "achievement_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "achieved_amount / target_amount * 100"
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "in_progress",
+            "met",
+            "exceeded",
+            "missed"
           ],
-          "required_fields": [
-            "agent_id",
-            "period_start"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "agent_id",
-            "period_start",
-            "period_end",
-            "payment_date",
-            "payment_method",
-            "reference",
-            "notes"
-          ],
-          "required_fields": [
-            "agent_id",
-            "period_start"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/commission_payouts/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "agent_id"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "payout_number",
-            "agent_id",
-            "period_start",
-            "period_end"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "payout_number",
-                "agent_id",
-                "period_start",
-                "period_end",
-                "total_amount",
-                "commission_count",
-                "status",
-                "payment_method"
-              ]
-            }
-          ]
-        }
-      }
-    }
-  ],
-  "components": [
-    "DataTable",
-    "SlideOverForm",
-    "StatusBadge",
-    "CurrencyDisplay",
-    "CurrencyInput",
-    "NumberDisplay",
-    "PercentageDisplay",
-    "PercentageInput",
-    "Select",
-    "MultiSelect",
-    "Toggle",
-    "DatePicker",
-    "TextInput",
-    "Textarea",
-    "PlainText",
-    "MonospaceText",
-    "TruncatedText",
-    "TextLink",
-    "AbsoluteDate",
-    "RelativeDate",
-    "YesNoBadge",
-    "PageHeader",
-    "FilterPanel",
-    "TabPanel",
-    "EmptyState",
-    "LoadingSkeleton",
-    "ConfirmationDialog",
-    "StatCard",
-    "ActivityTimeline",
-    "AuthGuard",
-    "NotificationBell",
-    "AgentSelector",
-    "AgentCard",
-    "CommissionPlanBadge",
-    "TierTable",
-    "CommissionStatusBadge",
-    "PayoutSummaryCard",
-    "CommissionLedgerTable",
-    "TierProgressBar",
-    "ClawbackWarningBadge",
-    "PaymentMethodBadge",
-    "CommissionBreakdownChart",
-    "AgentLeaderboard",
-    "CommissionCalendarWidget"
-  ],
-  "modules": [
-    {
-      "name": "CommissionOverview",
-      "route": "/commissions",
-      "tabs": []
-    },
-    {
-      "name": "CommissionList",
-      "route": "/commissions/records",
-      "tabs": [
-        "Pending",
-        "Approved",
-        "Paid",
-        "Clawed Back"
-      ]
-    },
-    {
-      "name": "CommissionPlanList",
-      "route": "/commission-plans",
-      "tabs": []
-    },
-    {
-      "name": "CommissionPlanDetail",
-      "route": "/commission-plans/:id",
-      "tabs": [
-        "Overview",
-        "Tiers",
-        "Agents",
-        "History"
-      ]
-    },
-    {
-      "name": "AgentList",
-      "route": "/agents",
-      "tabs": [
-        "Active",
-        "Inactive"
-      ]
-    },
-    {
-      "name": "AgentDetail",
-      "route": "/agents/:id",
-      "tabs": [
-        "Overview",
-        "Commissions",
-        "Payouts",
-        "Activity"
-      ]
-    },
-    {
-      "name": "PayoutList",
-      "route": "/commission-payouts",
-      "tabs": [
-        "Draft",
-        "Approved",
-        "Paid"
-      ]
-    },
-    {
-      "name": "PayoutDetail",
-      "route": "/commission-payouts/:id",
-      "tabs": []
-    },
-    {
-      "name": "CommissionAnalytics",
-      "route": "/analytics/commissions",
-      "tabs": []
-    }
-  ],
-  "api": {
-    "commission_plans": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/commission-plans",
-          "description": "List plans"
+          "badge_colors": {
+            "in_progress": "blue",
+            "met": "green",
+            "exceeded": "purple",
+            "missed": "red"
+          }
         },
         {
-          "method": "POST",
-          "path": "/commission-plans",
-          "description": "Create plan"
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "method": "GET",
-          "path": "/commission-plans/:id",
-          "description": "Get plan"
-        },
-        {
-          "method": "PATCH",
-          "path": "/commission-plans/:id",
-          "description": "Update plan"
-        },
-        {
-          "method": "DELETE",
-          "path": "/commission-plans/:id",
-          "description": "Delete plan"
-        },
-        {
-          "method": "GET",
-          "path": "/commission-plans/:id/tiers",
-          "description": "Get tiers for plan"
-        },
-        {
-          "method": "POST",
-          "path": "/commission-plans/:id/tiers",
-          "description": "Bulk replace tiers for plan"
-        }
-      ]
-    },
-    "agents": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/agents",
-          "description": "List agents"
-        },
-        {
-          "method": "POST",
-          "path": "/agents",
-          "description": "Create agent"
-        },
-        {
-          "method": "GET",
-          "path": "/agents/:id",
-          "description": "Get agent"
-        },
-        {
-          "method": "PATCH",
-          "path": "/agents/:id",
-          "description": "Update agent"
-        },
-        {
-          "method": "DELETE",
-          "path": "/agents/:id",
-          "description": "Delete agent"
-        },
-        {
-          "method": "POST",
-          "path": "/agents/:id/assign-plan",
-          "description": "Assign commission plan to agent"
-        },
-        {
-          "method": "GET",
-          "path": "/agents/:id/commissions",
-          "description": "List commissions for agent"
-        },
-        {
-          "method": "GET",
-          "path": "/agents/:id/payouts",
-          "description": "List payouts for agent"
-        }
-      ]
-    },
-    "commissions": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/commissions",
-          "description": "List commissions with filters"
-        },
-        {
-          "method": "POST",
-          "path": "/commissions",
-          "description": "Create manual commission"
-        },
-        {
-          "method": "GET",
-          "path": "/commissions/:id",
-          "description": "Get commission"
-        },
-        {
-          "method": "PATCH",
-          "path": "/commissions/:id",
-          "description": "Update commission"
-        },
-        {
-          "method": "POST",
-          "path": "/commissions/:id/approve",
-          "description": "Approve commission"
-        },
-        {
-          "method": "POST",
-          "path": "/commissions/:id/void",
-          "description": "Void commission"
-        },
-        {
-          "method": "POST",
-          "path": "/commissions/:id/claw-back",
-          "description": "Claw back commission"
-        },
-        {
-          "method": "POST",
-          "path": "/commissions/calculate",
-          "description": "Batch calculate commissions for a payroll period or invoice set"
-        }
-      ]
-    },
-    "commission_payouts": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/commission-payouts",
-          "description": "List payouts"
-        },
-        {
-          "method": "POST",
-          "path": "/commission-payouts",
-          "description": "Generate payout batch for agent and period"
-        },
-        {
-          "method": "GET",
-          "path": "/commission-payouts/:id",
-          "description": "Get payout"
-        },
-        {
-          "method": "PATCH",
-          "path": "/commission-payouts/:id",
-          "description": "Update payout"
-        },
-        {
-          "method": "POST",
-          "path": "/commission-payouts/:id/approve",
-          "description": "Approve payout"
-        },
-        {
-          "method": "POST",
-          "path": "/commission-payouts/:id/mark-paid",
-          "description": "Mark payout as paid"
-        }
-      ]
-    },
-    "analytics": {
-      "endpoints": [
-        {
-          "method": "GET",
-          "path": "/analytics/commissions/by-agent",
-          "query_params": [
-            "from",
-            "to"
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/analytics/commissions/by-plan",
-          "query_params": [
-            "from",
-            "to"
-          ]
-        },
-        {
-          "method": "GET",
-          "path": "/analytics/commissions/leaderboard",
-          "query_params": [
-            "period"
-          ]
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     }
-  },
-  "permissions": {
-    "roles": [
-      "admin",
-      "sales_manager",
-      "agent",
-      "finance",
-      "viewer"
-    ],
-    "matrix": {
-      "plans.manage": [
-        "admin",
-        "sales_manager"
-      ],
-      "agents.manage": [
-        "admin",
-        "sales_manager"
-      ],
-      "commissions.approve": [
-        "admin",
-        "sales_manager",
-        "finance"
-      ],
-      "payouts.approve": [
-        "admin",
-        "finance"
-      ],
-      "payouts.pay": [
-        "admin",
-        "finance"
-      ],
-      "commissions.view_own": [
-        "agent"
-      ],
-      "all.view": [
-        "admin",
-        "sales_manager",
-        "finance",
-        "viewer"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      "authStore",
-      "uiStore",
-      "commissionCalculatorStore",
-      "payoutBuilderStore"
-    ],
-    "commissionCalculatorStore": {
-      "state_keys": [
-        "pendingCalculationInputs"
-      ]
-    },
-    "payoutBuilderStore": {
-      "state_keys": [
-        "draftPayoutSelection"
-      ]
-    },
-    "query_keys": [
-      "commissionPlans",
-      "commissionTiers",
-      "agents",
-      "commissions",
-      "commissionPayouts"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "event": "commission.earned",
-        "description": "Emitted when a new commission is calculated and created"
-      },
-      {
-        "event": "commission.approved",
-        "description": "Emitted when a commission is approved"
-      },
-      {
-        "event": "commission.claw_back",
-        "description": "Emitted when a commission is clawed back"
-      },
-      {
-        "event": "payout.approved",
-        "description": "Emitted when a payout batch is approved"
-      },
-      {
-        "event": "payout.paid",
-        "description": "Emitted when a payout is marked as paid"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Calculate Commission",
-      "steps": [
-        "Trigger: invoice paid (source_entity_type=invoice) or subscription payment received",
-        "POST /commissions/calculate with source_entity_type and source_entity_id",
-        "Server finds agent linked to customer or deal",
-        "Fetch agent.commission_plan",
-        "Apply plan formula: if percentage_of_revenue: commission_amount = deal_value * base_rate / 100; if tiered: find tier by cumulative revenue, apply tier.rate; if flat_per_deal: commission_amount = plan.base_rate as flat amount",
-        "Create Commission record with status=pending"
-      ],
-      "cross_entity_updates": [
-        "Agent performance metrics updated"
-      ]
-    },
-    {
-      "name": "Approve and Payout",
-      "steps": [
-        "Sales manager reviews pending commissions",
-        "Approve individually or in bulk via POST /commissions/:id/approve",
-        "POST /commission-payouts with agent_id, period_start, period_end",
-        "Server bundles all approved unpaid commissions for the period",
-        "Set Commission.payout_id for bundled commissions",
-        "POST /commission-payouts/:id/approve to approve payout",
-        "POST /commission-payouts/:id/mark-paid to finalize; commissions.status set to paid"
-      ],
-      "journal_entry_side_effects": [
-        "DR Commission Expense / CR Commissions Payable on approval",
-        "DR Commissions Payable / CR Bank on payment"
-      ]
-    },
-    {
-      "name": "Clawback",
-      "steps": [
-        "Trigger: invoice refunded within clawback_period_days",
-        "POST /commissions/:id/claw-back",
-        "Set commission status to clawed_back",
-        "If commission was already in a paid payout: generate negative commission to be deducted from next payout"
-      ],
-      "cross_entity_updates": [
-        "Payout total adjusted",
-        "Agent commission balance adjusted"
-      ]
-    },
-    {
-      "name": "Tiered Commission Calculation",
-      "steps": [
-        "Calculate cumulative deal_value for agent within plan period",
-        "Find applicable tier based on cumulative value",
-        "Apply tier.rate to compute commission_amount",
-        "If tier.flat_amount exists: add flat bonus to commission_amount",
-        "Store commission_rate and final commission_amount on Commission record"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "entity": "Commission",
-      "field": "commission_amount",
-      "formula": "Server-side: if plan_type=percentage_of_revenue: deal_value * base_rate / 100; if plan_type=tiered: find tier by cumulative revenue, apply tier.rate, optionally add tier.flat_amount; if plan_type=flat_per_deal: plan.base_rate as flat amount"
-    },
-    {
-      "entity": "CommissionPayout",
-      "field": "total_amount",
-      "formula": "SUM(commissions.commission_amount WHERE payout_id = id AND status != 'voided')"
-    },
-    {
-      "entity": "CommissionPayout",
-      "field": "commission_count",
-      "formula": "COUNT(commissions WHERE payout_id = id)"
-    },
-    {
-      "entity": "Agent",
-      "field": "ytd_commissions",
-      "formula": "SUM(commissions.commission_amount WHERE agent_id = id AND status NOT IN ['voided','clawed_back'] AND earned_date >= start_of_current_year)"
-    },
-    {
-      "entity": "Agent",
-      "field": "pending_commissions",
-      "formula": "SUM(commissions.commission_amount WHERE agent_id = id AND status = 'approved' AND payout_id IS NULL)"
-    }
-  ],
-  "domain_rules": [
-    {
-      "rule": "Commission cannot be paid without an approved payout",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Validate payout exists and status=approved before allowing commissions to transition to paid",
-      "ui_behavior": null,
-      "db_constraint": null
-    },
-    {
-      "rule": "Clawback is only possible within clawback_period_days of the earned_date",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Validate CURRENT_DATE <= commission.clawback_deadline; return 422 if deadline passed",
-      "ui_behavior": "Show ClawbackWarningBadge when approaching deadline; disable Claw Back action after deadline",
-      "db_constraint": null
-    },
-    {
-      "rule": "Payout cannot be approved if it has 0 commissions",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Validate commission_count > 0 before allowing approval; return 422 otherwise",
-      "ui_behavior": "Disable Approve button when commission_count = 0",
-      "db_constraint": null
-    },
-    {
-      "rule": "Agent must have an active commission_plan to have commissions auto-calculated",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Check agent.commission_plan_id is set and plan is_active = true; return 422 if not",
-      "ui_behavior": null,
-      "db_constraint": null
-    },
-    {
-      "rule": "Voided commissions cannot be reinstated",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Reject any status transition from voided; return 409",
-      "ui_behavior": "Hide all action buttons on voided commissions",
-      "db_constraint": null
-    },
-    {
-      "rule": "Same source_entity_id cannot generate duplicate commissions for the same agent",
-      "enforced_at": [
-        "db"
-      ],
-      "api_guard": null,
-      "ui_behavior": null,
-      "db_constraint": "UNIQUE INDEX on (org_id, agent_id, source_entity_id)"
-    }
-  ],
-  "_meta": {
-    "title": "commission_tracking_spec.json",
-    "domain": "Operations",
-    "version": "1.0"
-  },
-  "design_system": {
-    "theme": "dark",
-    "bg": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber"
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, row-level security anchor"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null,
-      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
-    }
-  },
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {},
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  },
-  "external_entity_refs": [
-    {
-      "name": "Invoice",
-      "defined_in": "invoice_billing_spec.json",
-      "table": "invoices",
-      "description": "Invoice that triggered the commission calculation.",
-      "fk_fields_in_this_spec": [
-        "Commission.invoice_id"
-      ]
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total CommissionPlans",
-        "entity": "CommissionPlan",
-        "method": "count",
-        "icon": "Box",
-        "color": "blue"
-      }
-    ]
-  }
+  ]
 }

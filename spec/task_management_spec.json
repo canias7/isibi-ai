@@ -1,4698 +1,1995 @@
 {
   "_meta": {
-    "title": "Task Management Application",
-    "domain": "Operations & Internal Tools",
-    "version": "1.0"
-  },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "priority_colors": {
-      "none": "slate",
-      "low": "sky",
-      "medium": "blue",
-      "high": "amber",
-      "urgent": "red"
-    },
-    "kanban_column_bg": "bg-slate-900"
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK→organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
+    "app_name": "Task Management",
+    "description": "Project task tracking and collaboration"
   },
   "entities": [
     {
-      "name": "Task",
-      "table": "tasks",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "list_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "is_archived"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "parent_task_id"
-          ]
-        }
-      ],
+      "name": "TaskList",
+      "table": "task_lists",
+      "description": "Group of related tasks",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "task_number",
-          "db_type": "VARCHAR(50)",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "auto-gen TASK-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "maxLength": 50
-          }
-        },
-        {
-          "name": "title",
-          "db_type": "VARCHAR(500)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/tasks/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "description",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "status",
-          "db_type": "ENUM('todo','in_progress','review','done','archived')",
-          "ts_type": "'todo' | 'in_progress' | 'review' | 'done' | 'archived'",
+          "name": "color",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'blue'",
+          "ts_type": "string",
           "nullable": false,
-          "default": "todo",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "display_component_props": {
-            "badge_colors": {
-              "todo": "slate",
-              "in_progress": "blue",
-              "review": "amber",
-              "done": "green",
-              "archived": "gray"
-            }
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "todo",
-              "in_progress",
-              "review",
-              "done",
-              "archived"
-            ]
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "blue",
+          "enum_values": [
+            "blue",
+            "green",
+            "red",
+            "yellow",
+            "purple",
+            "orange",
+            "teal",
+            "pink"
+          ],
+          "badge_colors": {
+            "blue": "blue",
+            "green": "green",
+            "red": "red",
+            "yellow": "yellow",
+            "purple": "purple",
+            "orange": "orange",
+            "teal": "teal",
+            "pink": "pink"
           }
         },
         {
-          "name": "priority",
-          "db_type": "ENUM('none','low','medium','high','urgent')",
-          "ts_type": "'none' | 'low' | 'medium' | 'high' | 'urgent'",
+          "name": "sort_order",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
           "nullable": false,
-          "default": "none",
-          "input_component": "Select",
-          "display_component": "PriorityBadge",
           "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "sortable": true,
           "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "is_archived",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "none",
-              "low",
-              "medium",
-              "high",
-              "urgent"
-            ]
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "completed",
+            "archived"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "completed": "blue",
+            "archived": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "color",
+            "is_archived",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaskLists yet",
+            "subtext": "Create your first tasklist",
+            "action_label": "Add TaskList"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "color",
+            "sort_order",
+            "is_archived",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "color",
+            "sort_order",
+            "is_archived",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "color",
+            "sort_order",
+            "is_archived",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "color",
+            "sort_order",
+            "is_archived",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/task_lists/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "color",
+            "is_archived",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "color",
+                "is_archived",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "description",
+                "color",
+                "sort_order",
+                "is_archived",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Task",
+      "table": "tasks",
+      "description": "Individual task item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "task_list_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "task_lists",
+          "fk_display": "name"
+        },
+        {
+          "name": "assignee_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "assignees",
+          "fk_display": "name"
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(10) NOT NULL DEFAULT 'medium'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "medium",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "urgent"
+          ],
+          "badge_colors": {
+            "low": "gray",
+            "medium": "blue",
+            "high": "orange",
+            "urgent": "red"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'todo'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "todo",
+          "enum_values": [
+            "todo",
+            "in_progress",
+            "review",
+            "done",
+            "blocked"
+          ],
+          "badge_colors": {
+            "todo": "gray",
+            "in_progress": "blue",
+            "review": "purple",
+            "done": "green",
+            "blocked": "red"
           }
         },
         {
           "name": "due_date",
           "db_type": "DATE",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "start_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
+          "input_component": "date_picker",
+          "display_component": "date",
           "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
+          "filterable": true
         },
         {
-          "name": "list_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "task_lists",
-          "input_component": "ListSelector",
-          "display_component": "ListBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "parent_task_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "tasks",
-          "notes": "For subtask support",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "is_archived",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "task_order",
-          "db_type": "NUMERIC(10,5)",
+          "name": "estimated_hours",
+          "db_type": "NUMERIC(5,2)",
           "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "notes": "Fractional for reordering without renumbering",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "estimated_minutes",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
           "nullable": true,
-          "default": null,
-          "input_component": "NumberInput",
-          "display_component": "DurationDisplay",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "validation": {
             "min": 0
           }
         },
         {
-          "name": "actual_minutes",
-          "db_type": "INTEGER",
+          "name": "actual_hours",
+          "db_type": "NUMERIC(5,2)",
           "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "time_entries",
-            "formula": "SUM(time_entries.duration_minutes WHERE task_id = tasks.id)",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
           },
-          "input_component": null,
-          "display_component": "DurationDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "cover_color",
-          "db_type": "VARCHAR(7)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "ColorPicker",
-          "display_component": "ColorSwatch",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version — incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_tasks_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_tasks_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "TaskList",
-      "table": "task_lists",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "owner_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "is_archived"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "color",
-          "db_type": "VARCHAR(7)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "#3b82f6",
-          "input_component": "ColorPicker",
-          "display_component": "ColorSwatch",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          }
-        },
-        {
-          "name": "icon",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "IconSelect",
-          "display_component": "IconDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "list_order",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "is_archived",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "owner_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "shared_with",
-          "db_type": "JSONB",
-          "ts_type": "Array<{user_id: string, role: string}>",
-          "nullable": false,
-          "default": "[]",
-          "notes": "Array of {user_id, role}",
-          "input_component": null,
-          "display_component": "AvatarGroup",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "task_count",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for task_count computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "completed_count",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for completed_count computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version — incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_task_lists_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_task_lists_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "Label",
-      "table": "task_labels",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "name"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "LabelBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "color",
-          "db_type": "VARCHAR(7)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "ColorPicker",
-          "display_component": "ColorSwatch",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version — incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_task_labels_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_task_labels_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "ChecklistItem",
-      "table": "checklist_items",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "task_id"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "task_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "tasks",
-          "on_delete": "CASCADE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "content",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "is_completed",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "CheckIcon",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "completed_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "completed_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "item_order",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "assignee_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version — incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_checklist_items_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_checklist_items_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "Comment",
-      "table": "task_comments",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "task_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "author_id"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "task_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "tasks",
-          "on_delete": "CASCADE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "content",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "author_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "is_edited",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "edited_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "mentioned_user_ids",
-          "db_type": "UUID[]",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "[]",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "reactions",
-          "db_type": "JSONB",
-          "ts_type": "Record<string, string[]>",
-          "nullable": false,
-          "default": "{}",
-          "notes": "Map of emoji to user_id array",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version — incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_task_comments_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_task_comments_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "Reminder",
-      "table": "task_reminders",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "task_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "user_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "remind_at"
-          ],
-          "condition": "WHERE is_sent=false"
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "task_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "tasks",
-          "on_delete": "CASCADE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "user_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "remind_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DateTimePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "type",
-          "db_type": "ENUM('email','push','in_app')",
-          "ts_type": "'email' | 'push' | 'in_app'",
-          "nullable": false,
-          "default": "in_app",
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "email",
-              "push",
-              "in_app"
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "review",
+              "done"
             ]
           }
         },
         {
-          "name": "is_sent",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
+          "name": "completion_pct",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
           "nullable": false,
-          "default": false,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "sent_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "message",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0,
+          "validation": {
+            "min": 0,
+            "max": 100
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "datetime"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "datetime"
         },
         {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "datetime"
         },
         {
           "name": "version",
-          "db_type": "INTEGER",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
           "ts_type": "number",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version — incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         }
       ],
-      "db_constraints": [
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "title",
+            "task_list_id",
+            "assignee_id",
+            "priority",
+            "status",
+            "due_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Tasks yet",
+            "subtext": "Create your first task",
+            "action_label": "Add Task"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "description",
+            "task_list_id",
+            "assignee_id",
+            "priority",
+            "status",
+            "due_date",
+            "estimated_hours",
+            "actual_hours",
+            "completion_pct"
+          ],
+          "required_fields": [
+            "title",
+            "task_list_id",
+            "priority",
+            "status",
+            "completion_pct"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "description",
+            "task_list_id",
+            "assignee_id",
+            "priority",
+            "status",
+            "due_date",
+            "estimated_hours",
+            "actual_hours",
+            "completion_pct"
+          ],
+          "required_fields": [
+            "title",
+            "task_list_id",
+            "priority",
+            "status",
+            "completion_pct"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tasks/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "title"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "title",
+            "task_list_id",
+            "assignee_id",
+            "priority"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "title",
+                "task_list_id",
+                "assignee_id",
+                "priority",
+                "status",
+                "due_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "title",
+                "description",
+                "task_list_id",
+                "assignee_id",
+                "priority",
+                "status",
+                "due_date",
+                "estimated_hours",
+                "actual_hours",
+                "completion_pct"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
         {
-          "name": "chk_task_reminders_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+          "column": "task_list_id",
+          "references": {
+            "table": "task_lists",
+            "column": "id"
+          }
         },
         {
-          "name": "idx_task_reminders_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "column": "assignee_id",
+          "references": {
+            "table": "assignees",
+            "column": "id"
+          }
         }
       ]
     },
     {
       "name": "Assignee",
-      "table": "task_assignees",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "task_id"
-          ]
-        },
-        {
-          "type": "UNIQUE",
-          "columns": [
-            "org_id",
-            "task_id",
-            "user_id"
-          ]
-        }
-      ],
+      "table": "assignees",
+      "description": "Team member who can be assigned tasks",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "task_id",
-          "db_type": "UUID",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "tasks",
-          "on_delete": "CASCADE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "user_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "validation": {
-            "required": true
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "assigned_at",
-          "db_type": "TIMESTAMPTZ",
+          "name": "avatar_url",
+          "db_type": "TEXT",
           "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "nullable": true,
+          "editable": true,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "assigned_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "name": "role",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'member'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "member",
+          "enum_values": [
+            "admin",
+            "manager",
+            "member",
+            "viewer"
+          ],
+          "badge_colors": {
+            "admin": "red",
+            "manager": "purple",
+            "member": "blue",
+            "viewer": "gray"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "away",
+            "offline"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "away": "yellow",
+            "offline": "gray"
+          }
+        },
+        {
+          "name": "capacity_hours_weekly",
+          "db_type": "INTEGER NOT NULL DEFAULT 40",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 40,
+          "validation": {
+            "min": 0,
+            "max": 80
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "datetime"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "datetime"
         },
         {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "datetime"
         },
         {
           "name": "version",
-          "db_type": "INTEGER",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
           "ts_type": "number",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version — incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         }
       ],
-      "db_constraints": [
-        {
-          "name": "chk_task_assignees_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_task_assignees_org_deleted",
-          "type": "INDEX",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
           "columns": [
-            "org_id",
-            "deleted_at"
+            "name",
+            "email",
+            "role",
+            "status"
           ],
-          "note": "Covers global filter"
-        }
-      ]
-    }
-  ],
-  "components": [
-    {
-      "name": "DataTable",
-      "type": "organism",
-      "description": "Sortable, filterable, paginated data table",
-      "props": [
-        "columns",
-        "data",
-        "isLoading",
-        "onSort",
-        "onFilter",
-        "pagination",
-        "rowActions"
-      ],
-      "behavior": "Renders rows with hover state, supports bulk selection, sticky headers",
-      "variants": [
-        "default",
-        "compact",
-        "borderless"
-      ],
-      "tailwind": "bg-slate-900 border border-slate-800 rounded-lg"
-    },
-    {
-      "name": "KanbanBoard",
-      "type": "organism",
-      "description": "Drag-and-drop kanban board with columns by status",
-      "props": [
-        "columns",
-        "cards",
-        "onDragEnd",
-        "onCardClick",
-        "isLoading"
-      ],
-      "behavior": "Uses boardStore for drag state, DnD Kit for interactions, fractional task_order for reordering",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "flex gap-4 overflow-x-auto p-4"
-    },
-    {
-      "name": "CalendarView",
-      "type": "organism",
-      "description": "Month/week/day calendar showing tasks",
-      "props": [
-        "events",
-        "view",
-        "onViewChange",
-        "onDateClick",
-        "onEventClick"
-      ],
-      "behavior": "Uses calendarStore for view state and selected date",
-      "variants": [
-        "month",
-        "week",
-        "day"
-      ],
-      "tailwind": "bg-slate-900 rounded-lg border border-slate-800"
-    },
-    {
-      "name": "ProgressBar",
-      "type": "atom",
-      "description": "Horizontal progress indicator",
-      "props": [
-        "value",
-        "max",
-        "color",
-        "showLabel",
-        "size"
-      ],
-      "behavior": "Animated fill, label shows percentage",
-      "variants": [
-        "default",
-        "slim",
-        "labeled"
-      ],
-      "tailwind": "h-2 bg-slate-700 rounded-full overflow-hidden"
-    },
-    {
-      "name": "SlideOverForm",
-      "type": "organism",
-      "description": "Right-side panel form for create/edit",
-      "props": [
-        "isOpen",
-        "onClose",
-        "title",
-        "children",
-        "onSubmit",
-        "isSubmitting"
-      ],
-      "behavior": "Traps focus, ESC to close, backdrop click to close",
-      "variants": [
-        "default",
-        "wide"
-      ],
-      "tailwind": "fixed inset-y-0 right-0 w-96 bg-slate-900 shadow-xl"
-    },
-    {
-      "name": "Modal",
-      "type": "organism",
-      "description": "Centered dialog overlay",
-      "props": [
-        "isOpen",
-        "onClose",
-        "title",
-        "children",
-        "size"
-      ],
-      "behavior": "Focus trap, backdrop blur, ESC to close",
-      "variants": [
-        "sm",
-        "md",
-        "lg",
-        "xl"
-      ],
-      "tailwind": "fixed inset-0 z-50 flex items-center justify-center"
-    },
-    {
-      "name": "StatusBadge",
-      "type": "atom",
-      "description": "Pill badge for status display",
-      "props": [
-        "status",
-        "badgeColors",
-        "size"
-      ],
-      "behavior": "Maps status to color variant",
-      "variants": [
-        "default",
-        "sm",
-        "lg"
-      ],
-      "tailwind": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-    },
-    {
-      "name": "PriorityBadge",
-      "type": "atom",
-      "description": "Badge with icon for priority",
-      "props": [
-        "priority",
-        "showLabel"
-      ],
-      "behavior": "Shows colored dot + label",
-      "variants": [
-        "default",
-        "icon-only"
-      ],
-      "tailwind": "inline-flex items-center gap-1 text-xs font-medium"
-    },
-    {
-      "name": "LabelBadge",
-      "type": "atom",
-      "description": "Colored label chip",
-      "props": [
-        "label",
-        "onRemove"
-      ],
-      "behavior": "Shows label name with custom background",
-      "variants": [
-        "default",
-        "removable"
-      ],
-      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-    },
-    {
-      "name": "LabelList",
-      "type": "molecule",
-      "description": "Horizontal list of LabelBadge components",
-      "props": [
-        "labels",
-        "maxVisible"
-      ],
-      "behavior": "Shows up to maxVisible labels then +N overflow badge",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "flex flex-wrap gap-1"
-    },
-    {
-      "name": "ListBadge",
-      "type": "atom",
-      "description": "Badge displaying a task list name and color",
-      "props": [
-        "list",
-        "size"
-      ],
-      "behavior": "Colored dot + list name",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs"
-    },
-    {
-      "name": "ListSelector",
-      "type": "molecule",
-      "description": "Searchable dropdown to select a task list",
-      "props": [
-        "value",
-        "onChange",
-        "lists",
-        "placeholder"
-      ],
-      "behavior": "Debounced search, shows icon+name",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "UserSelector",
-      "type": "molecule",
-      "description": "Searchable dropdown to select a user",
-      "props": [
-        "value",
-        "onChange",
-        "placeholder",
-        "users",
-        "isLoading",
-        "multi"
-      ],
-      "behavior": "Debounced search, shows avatar + name",
-      "variants": [
-        "default",
-        "multi"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "UserAvatar",
-      "type": "atom",
-      "description": "Circular user avatar with fallback initials",
-      "props": [
-        "user",
-        "size",
-        "showTooltip"
-      ],
-      "behavior": "Shows image or initials, tooltip on hover",
-      "variants": [
-        "xs",
-        "sm",
-        "md",
-        "lg"
-      ],
-      "tailwind": "rounded-full bg-slate-700 flex items-center justify-center"
-    },
-    {
-      "name": "AvatarGroup",
-      "type": "molecule",
-      "description": "Overlapping group of UserAvatars",
-      "props": [
-        "users",
-        "max",
-        "size"
-      ],
-      "behavior": "Stacks avatars, shows +N for overflow",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "flex -space-x-2"
-    },
-    {
-      "name": "ColorPicker",
-      "type": "atom",
-      "description": "Color selection input with hex input",
-      "props": [
-        "value",
-        "onChange",
-        "presets"
-      ],
-      "behavior": "Popover with color swatches and manual hex input",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "ColorSwatch",
-      "type": "atom",
-      "description": "Circular color preview dot",
-      "props": [
-        "color",
-        "size"
-      ],
-      "behavior": "Shows filled circle in given color",
-      "variants": [
-        "sm",
-        "md"
-      ],
-      "tailwind": "rounded-full border border-slate-600"
-    },
-    {
-      "name": "IconSelect",
-      "type": "molecule",
-      "description": "Icon selection dropdown from Lucide icons",
-      "props": [
-        "value",
-        "onChange",
-        "placeholder"
-      ],
-      "behavior": "Grid of icon options with search",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "IconDisplay",
-      "type": "atom",
-      "description": "Renders a Lucide icon by name",
-      "props": [
-        "icon",
-        "size",
-        "className"
-      ],
-      "behavior": "Dynamically loads Lucide icon component",
-      "variants": [
-        "sm",
-        "md",
-        "lg"
-      ],
-      "tailwind": "text-slate-400"
-    },
-    {
-      "name": "RichTextEditor",
-      "type": "organism",
-      "description": "WYSIWYG rich text editor",
-      "props": [
-        "value",
-        "onChange",
-        "placeholder",
-        "toolbar",
-        "readOnly"
-      ],
-      "behavior": "Supports bold, italic, lists, mentions, links",
-      "variants": [
-        "default",
-        "minimal"
-      ],
-      "tailwind": "border border-slate-700 rounded-lg bg-slate-900 p-3"
-    },
-    {
-      "name": "RichTextDisplay",
-      "type": "atom",
-      "description": "Renders sanitized rich text HTML",
-      "props": [
-        "content",
-        "className"
-      ],
-      "behavior": "Sanitizes HTML, applies prose styles",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "prose prose-invert max-w-none"
-    },
-    {
-      "name": "ChecklistEditor",
-      "type": "organism",
-      "description": "Interactive checklist with add/reorder/complete",
-      "props": [
-        "items",
-        "onAdd",
-        "onToggle",
-        "onDelete",
-        "onReorder"
-      ],
-      "behavior": "Shows completion percentage in header, drag-to-reorder, inline add",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "space-y-2"
-    },
-    {
-      "name": "CheckIcon",
-      "type": "atom",
-      "description": "Checkmark icon for checklist items",
-      "props": [
-        "checked",
-        "onClick"
-      ],
-      "behavior": "Toggles between empty circle and checked state",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "w-4 h-4 rounded-full border border-slate-500"
-    },
-    {
-      "name": "DurationDisplay",
-      "type": "atom",
-      "description": "Human-readable duration from minutes",
-      "props": [
-        "minutes",
-        "format"
-      ],
-      "behavior": "Converts minutes to Xh Ym format",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "text-sm text-slate-300 font-mono"
-    },
-    {
-      "name": "DurationInput",
-      "type": "molecule",
-      "description": "Input for duration in hours and minutes",
-      "props": [
-        "value",
-        "onChange",
-        "label"
-      ],
-      "behavior": "Separate inputs for hours and minutes, converts to total minutes",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "flex gap-2"
-    },
-    {
-      "name": "DateTimePicker",
-      "type": "molecule",
-      "description": "Combined date and time picker",
-      "props": [
-        "value",
-        "onChange",
-        "placeholder",
-        "label",
-        "minDate"
-      ],
-      "behavior": "DatePicker + TimePicker combo, returns ISO timestamp",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "EmptyState",
-      "type": "molecule",
-      "description": "Empty content placeholder with CTA",
-      "props": [
-        "icon",
-        "title",
-        "description",
-        "action"
-      ],
-      "behavior": "Centered layout with icon, text, optional button",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "flex flex-col items-center justify-center py-16 text-center"
-    },
-    {
-      "name": "LoadingSkeleton",
-      "type": "atom",
-      "description": "Animated placeholder for loading states",
-      "props": [
-        "variant",
-        "count"
-      ],
-      "behavior": "Pulse animation, matches layout of actual content",
-      "variants": [
-        "table",
-        "card",
-        "list",
-        "text"
-      ],
-      "tailwind": "animate-pulse bg-slate-800 rounded"
-    },
-    {
-      "name": "ConfirmationDialog",
-      "type": "organism",
-      "description": "Modal for destructive action confirmation",
-      "props": [
-        "isOpen",
-        "onConfirm",
-        "onCancel",
-        "title",
-        "description",
-        "confirmLabel",
-        "variant"
-      ],
-      "behavior": "Shows warning, requires explicit confirm",
-      "variants": [
-        "danger",
-        "warning",
-        "neutral"
-      ],
-      "tailwind": "bg-slate-900 rounded-xl p-6 max-w-md"
-    },
-    {
-      "name": "PageHeader",
-      "type": "molecule",
-      "description": "Page title with breadcrumbs and actions",
-      "props": [
-        "title",
-        "breadcrumbs",
-        "actions",
-        "tabs"
-      ],
-      "behavior": "Sticky on scroll, responsive collapse",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "flex items-center justify-between py-6"
-    },
-    {
-      "name": "FilterPanel",
-      "type": "organism",
-      "description": "Sidebar filter panel",
-      "props": [
-        "filters",
-        "values",
-        "onChange",
-        "onReset"
-      ],
-      "behavior": "Collapsible sections per filter group",
-      "variants": [
-        "sidebar",
-        "inline"
-      ],
-      "tailwind": "bg-slate-900 border-r border-slate-800 p-4"
-    },
-    {
-      "name": "FilterBar",
-      "type": "molecule",
-      "description": "Horizontal filter chips row",
-      "props": [
-        "activeFilters",
-        "onRemove",
-        "onClear"
-      ],
-      "behavior": "Shows active filters as removable chips",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "flex flex-wrap gap-2 py-2"
-    },
-    {
-      "name": "TabPanel",
-      "type": "molecule",
-      "description": "Tab content container",
-      "props": [
-        "activeTab",
-        "children"
-      ],
-      "behavior": "Renders only active tab content",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "mt-4"
-    },
-    {
-      "name": "TextInput",
-      "type": "atom",
-      "description": "Standard text input field",
-      "props": [
-        "value",
-        "onChange",
-        "placeholder",
-        "label",
-        "error",
-        "disabled"
-      ],
-      "behavior": "Controlled input with label and error",
-      "variants": [
-        "default",
-        "sm",
-        "lg"
-      ],
-      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
-    },
-    {
-      "name": "Textarea",
-      "type": "atom",
-      "description": "Multi-line text input",
-      "props": [
-        "value",
-        "onChange",
-        "placeholder",
-        "rows",
-        "label",
-        "error"
-      ],
-      "behavior": "Auto-resize option, character count",
-      "variants": [
-        "default",
-        "auto-resize"
-      ],
-      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
-    },
-    {
-      "name": "NumberInput",
-      "type": "atom",
-      "description": "Numeric input with increment/decrement",
-      "props": [
-        "value",
-        "onChange",
-        "min",
-        "max",
-        "step",
-        "label"
-      ],
-      "behavior": "Prevents non-numeric input",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
-    },
-    {
-      "name": "Select",
-      "type": "atom",
-      "description": "Dropdown select using Radix UI",
-      "props": [
-        "value",
-        "onChange",
-        "options",
-        "placeholder",
-        "label",
-        "error"
-      ],
-      "behavior": "Accessible dropdown with search",
-      "variants": [
-        "default",
-        "sm"
-      ],
-      "tailwind": "bg-slate-900 border border-slate-700 rounded-lg"
-    },
-    {
-      "name": "MultiSelect",
-      "type": "molecule",
-      "description": "Multiple selection dropdown",
-      "props": [
-        "value",
-        "onChange",
-        "options",
-        "placeholder",
-        "label"
-      ],
-      "behavior": "Shows selected as chips, searchable dropdown",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "Toggle",
-      "type": "atom",
-      "description": "Boolean toggle switch",
-      "props": [
-        "checked",
-        "onChange",
-        "label",
-        "disabled"
-      ],
-      "behavior": "Accessible switch component",
-      "variants": [
-        "default",
-        "sm"
-      ],
-      "tailwind": "relative inline-flex h-6 w-11 items-center rounded-full"
-    },
-    {
-      "name": "DatePicker",
-      "type": "molecule",
-      "description": "Calendar date picker",
-      "props": [
-        "value",
-        "onChange",
-        "placeholder",
-        "minDate",
-        "maxDate",
-        "label"
-      ],
-      "behavior": "Popover calendar, keyboard navigation",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "YesNoBadge",
-      "type": "atom",
-      "description": "Boolean value as badge",
-      "props": [
-        "value"
-      ],
-      "behavior": "Green Yes or slate No",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "inline-flex items-center px-2 py-0.5 rounded text-xs"
-    },
-    {
-      "name": "AbsoluteDate",
-      "type": "atom",
-      "description": "Formatted absolute date display",
-      "props": [
-        "date",
-        "format",
-        "showTime"
-      ],
-      "behavior": "date-fns format, tooltip with full datetime",
-      "variants": [
-        "date-only",
-        "with-time"
-      ],
-      "tailwind": "text-sm text-slate-300"
-    },
-    {
-      "name": "RelativeDate",
-      "type": "atom",
-      "description": "Relative time display",
-      "props": [
-        "date"
-      ],
-      "behavior": "date-fns formatDistanceToNow, tooltip with absolute",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-sm text-slate-400"
-    },
-    {
-      "name": "MonospaceText",
-      "type": "atom",
-      "description": "Monospace font text for IDs/codes",
-      "props": [
-        "text",
-        "copyable"
-      ],
-      "behavior": "Optional copy-to-clipboard",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "font-mono text-sm text-slate-300"
-    },
-    {
-      "name": "PlainText",
-      "type": "atom",
-      "description": "Simple text display",
-      "props": [
-        "text",
-        "className"
-      ],
-      "behavior": "Renders text with optional truncation",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "text-sm text-slate-200"
-    },
-    {
-      "name": "TruncatedText",
-      "type": "atom",
-      "description": "Text truncated with ellipsis and tooltip",
-      "props": [
-        "text",
-        "maxLength",
-        "lines"
-      ],
-      "behavior": "Tooltip with full text on hover",
-      "variants": [
-        "single-line",
-        "multi-line"
-      ],
-      "tailwind": "overflow-hidden text-ellipsis"
-    },
-    {
-      "name": "TextLink",
-      "type": "atom",
-      "description": "Styled router link",
-      "props": [
-        "to",
-        "children",
-        "className"
-      ],
-      "behavior": "React Router Link with blue color",
-      "variants": [
-        "default",
-        "subtle"
-      ],
-      "tailwind": "text-blue-400 hover:text-blue-300"
-    },
-    {
-      "name": "StatCard",
-      "type": "molecule",
-      "description": "KPI metric card",
-      "props": [
-        "title",
-        "value",
-        "change",
-        "icon",
-        "trend"
-      ],
-      "behavior": "Shows metric with optional trend indicator",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "bg-slate-900 rounded-lg border border-slate-800 p-4"
-    },
-    {
-      "name": "ActivityTimeline",
-      "type": "organism",
-      "description": "Chronological activity feed",
-      "props": [
-        "activities",
-        "isLoading",
-        "onLoadMore"
-      ],
-      "behavior": "Vertical timeline with user avatar and timestamp",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "space-y-4"
-    },
-    {
-      "name": "NotificationBell",
-      "type": "molecule",
-      "description": "Header notification icon with dropdown",
-      "props": [
-        "count",
-        "notifications",
-        "onMarkRead"
-      ],
-      "behavior": "Badge with count, dropdown list",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "AuthGuard",
-      "type": "organism",
-      "description": "Route-level permission guard",
-      "props": [
-        "requiredRoles",
-        "children",
-        "fallback"
-      ],
-      "behavior": "Checks authStore for role",
-      "variants": [
-        "default"
-      ],
-      "tailwind": ""
-    },
-    {
-      "name": "TaskCard",
-      "type": "molecule",
-      "description": "Card for Kanban task representation",
-      "props": [
-        "task",
-        "onClick",
-        "onDrag",
-        "isDragging"
-      ],
-      "behavior": "Shows title, priority badge, assignees, due date, checklist progress",
-      "variants": [
-        "default",
-        "compact"
-      ],
-      "tailwind": "bg-slate-800 rounded-lg border border-slate-700 p-3 cursor-pointer"
-    },
-    {
-      "name": "SubtaskList",
-      "type": "organism",
-      "description": "Nested list of subtasks with inline add",
-      "props": [
-        "parentTaskId",
-        "subtasks",
-        "onAdd",
-        "onStatusChange"
-      ],
-      "behavior": "Collapsible, supports adding inline, max depth 3",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "mt-4 space-y-2 pl-4 border-l border-slate-700"
-    },
-    {
-      "name": "ReactionPicker",
-      "type": "molecule",
-      "description": "Emoji reaction picker for comments",
-      "props": [
-        "onSelect",
-        "existingReactions",
-        "currentUserId"
-      ],
-      "behavior": "Popover with common emojis, shows reaction counts",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "MentionInput",
-      "type": "molecule",
-      "description": "Text input with @ mention autocomplete",
-      "props": [
-        "value",
-        "onChange",
-        "users",
-        "placeholder"
-      ],
-      "behavior": "@ triggers user autocomplete dropdown",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "relative"
-    },
-    {
-      "name": "BoardColumnHeader",
-      "type": "molecule",
-      "description": "Kanban column header with status and task count",
-      "props": [
-        "status",
-        "count",
-        "color",
-        "onAddTask"
-      ],
-      "behavior": "Shows status badge, task count, add button",
-      "variants": [
-        "default"
-      ],
-      "tailwind": "flex items-center justify-between mb-3"
-    }
-  ],
-  "modules": [
-    {
-      "name": "MyTasks",
-      "route": "/my-tasks",
-      "sidebar_label": "My Tasks",
-      "icon": "CheckSquare",
-      "page_component": "MyTasksPage",
-      "layout": "AppLayout",
-      "permissions": [
-        "admin",
-        "manager",
-        "member",
-        "viewer"
-      ],
-      "data_sources": [
-        "useMyTasks"
-      ],
-      "query_keys": [
-        "tasks.myTasks"
-      ],
-      "primary_actions": [
-        {
-          "label": "New Task",
-          "hook": "useCreateTask",
-          "variant": "primary"
-        }
-      ],
-      "tabs": [
-        "Today",
-        "Upcoming",
-        "Overdue",
-        "Completed"
-      ],
-      "child_routes": []
-    },
-    {
-      "name": "BoardView",
-      "route": "/boards",
-      "sidebar_label": "Boards",
-      "icon": "LayoutKanban",
-      "page_component": "BoardViewPage",
-      "layout": "AppLayout",
-      "permissions": [
-        "admin",
-        "manager",
-        "member",
-        "viewer"
-      ],
-      "data_sources": [
-        "useTasks",
-        "useTaskLists"
-      ],
-      "query_keys": [
-        "tasks.list",
-        "taskLists.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "New Task",
-          "hook": "useCreateTask",
-          "variant": "primary"
-        }
-      ],
-      "views": [
-        "Kanban",
-        "List",
-        "Calendar"
-      ],
-      "child_routes": []
-    },
-    {
-      "name": "ListsView",
-      "route": "/lists",
-      "sidebar_label": "Lists",
-      "icon": "List",
-      "page_component": "ListsViewPage",
-      "layout": "AppLayout",
-      "permissions": [
-        "admin",
-        "manager",
-        "member",
-        "viewer"
-      ],
-      "data_sources": [
-        "useTaskLists"
-      ],
-      "query_keys": [
-        "taskLists.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "New List",
-          "hook": "useCreateTaskList",
-          "variant": "primary"
-        }
-      ],
-      "child_routes": [
-        {
-          "route": "/lists/:id",
-          "page_component": "ListDetailPage"
-        }
-      ]
-    },
-    {
-      "name": "CalendarModule",
-      "route": "/calendar",
-      "sidebar_label": "Calendar",
-      "icon": "Calendar",
-      "page_component": "CalendarPage",
-      "layout": "AppLayout",
-      "permissions": [
-        "admin",
-        "manager",
-        "member",
-        "viewer"
-      ],
-      "data_sources": [
-        "useCalendarTasks"
-      ],
-      "query_keys": [
-        "tasks.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "New Task",
-          "hook": "useCreateTask",
-          "variant": "primary"
-        }
-      ],
-      "child_routes": []
-    },
-    {
-      "name": "TaskReports",
-      "route": "/reports/tasks",
-      "sidebar_label": "Reports",
-      "icon": "BarChart2",
-      "page_component": "TaskReportsPage",
-      "layout": "AppLayout",
-      "permissions": [
-        "admin",
-        "manager",
-        "member",
-        "viewer"
-      ],
-      "data_sources": [
-        "useTaskReports"
-      ],
-      "query_keys": [
-        "tasks.list",
-        "taskLists.list"
-      ],
-      "primary_actions": [
-        {
-          "label": "Export",
-          "hook": "useExportReport",
-          "variant": "secondary"
-        }
-      ],
-      "child_routes": []
-    },
-    {
-      "name": "TaskSettings",
-      "route": "/settings/tasks",
-      "sidebar_label": "Settings",
-      "icon": "Settings",
-      "page_component": "TaskSettingsPage",
-      "layout": "AppLayout",
-      "permissions": [
-        "admin",
-        "manager"
-      ],
-      "data_sources": [
-        "useLabels"
-      ],
-      "query_keys": [
-        "labels.all"
-      ],
-      "primary_actions": [],
-      "child_routes": []
-    }
-  ],
-  "api": {
-    "tasks": [
-      {
-        "method": "GET",
-        "path": "/tasks",
-        "description": "List tasks with filters",
-        "request_schema": {
-          "query": {
-            "status": "string?",
-            "assignee": "string?",
-            "list_id": "string?",
-            "due_before": "string?",
-            "due_after": "string?",
-            "label_ids": "string?",
-            "q": "string?",
-            "page": "number?",
-            "limit": "number?"
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Assignees yet",
+            "subtext": "Create your first assignee",
+            "action_label": "Add Assignee"
           }
         },
-        "response_schema": {
-          "data": "Task[]",
-          "total": "number"
-        },
-        "react_query_hook": "useTasks",
-        "query_key": "tasks.list",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks",
-        "description": "Create a new task",
-        "request_schema": {
-          "body": {
-            "title": "string",
-            "list_id": "string?",
-            "priority": "string?",
-            "status": "string?",
-            "due_date": "string?",
-            "start_date": "string?",
-            "description": "string?",
-            "parent_task_id": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Task"
-        },
-        "react_query_hook": "useCreateTask",
-        "query_key": null,
-        "invalidates": [
-          "tasks.list",
-          "tasks.myTasks",
-          "taskLists.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/tasks/:id",
-        "description": "Get task by ID",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Task"
-        },
-        "react_query_hook": "useTask",
-        "query_key": "tasks.detail",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/tasks/:id",
-        "description": "Update task fields",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": "Partial<Task>"
-        },
-        "response_schema": {
-          "data": "Task"
-        },
-        "react_query_hook": "useUpdateTask",
-        "query_key": null,
-        "invalidates": [
-          "tasks.detail",
-          "tasks.list",
-          "tasks.myTasks"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "DELETE",
-        "path": "/tasks/:id",
-        "description": "Soft delete task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteTask",
-        "query_key": null,
-        "invalidates": [
-          "tasks.list"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks/:id/complete",
-        "description": "Mark task as done",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Task"
-        },
-        "react_query_hook": "useCompleteTask",
-        "query_key": null,
-        "invalidates": [
-          "tasks.detail",
-          "tasks.list",
-          "tasks.myTasks"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks/:id/archive",
-        "description": "Archive task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Task"
-        },
-        "react_query_hook": "useArchiveTask",
-        "query_key": null,
-        "invalidates": [
-          "tasks.list",
-          "tasks.myTasks"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks/:id/duplicate",
-        "description": "Duplicate a task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Task"
-        },
-        "react_query_hook": "useDuplicateTask",
-        "query_key": null,
-        "invalidates": [
-          "tasks.list"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/tasks/:id/subtasks",
-        "description": "List subtasks",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Task[]"
-        },
-        "react_query_hook": "useSubtasks",
-        "query_key": "tasks.subtasks",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/tasks/reorder",
-        "description": "Bulk reorder tasks using fractional index",
-        "request_schema": {
-          "body": {
-            "updates": "Array<{id: string, task_order: number, list_id?: string, status?: string}>"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useReorderTasks",
-        "query_key": null,
-        "invalidates": [
-          "tasks.list"
-        ],
-        "optimistic_updates": true
-      }
-    ],
-    "task_lists": [
-      {
-        "method": "GET",
-        "path": "/task-lists",
-        "description": "List all task lists",
-        "request_schema": {
-          "query": {
-            "is_archived": "boolean?"
-          }
-        },
-        "response_schema": {
-          "data": "TaskList[]"
-        },
-        "react_query_hook": "useTaskLists",
-        "query_key": "taskLists.list",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/task-lists",
-        "description": "Create a task list",
-        "request_schema": {
-          "body": {
-            "name": "string",
-            "description": "string?",
-            "color": "string?",
-            "icon": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "TaskList"
-        },
-        "react_query_hook": "useCreateTaskList",
-        "query_key": null,
-        "invalidates": [
-          "taskLists.list"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/task-lists/:id",
-        "description": "Get task list by ID",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "TaskList"
-        },
-        "react_query_hook": "useTaskList",
-        "query_key": "taskLists.detail",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/task-lists/:id",
-        "description": "Update task list",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": "Partial<TaskList>"
-        },
-        "response_schema": {
-          "data": "TaskList"
-        },
-        "react_query_hook": "useUpdateTaskList",
-        "query_key": null,
-        "invalidates": [
-          "taskLists.detail",
-          "taskLists.list"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "DELETE",
-        "path": "/task-lists/:id",
-        "description": "Delete task list",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteTaskList",
-        "query_key": null,
-        "invalidates": [
-          "taskLists.list"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/task-lists/:id/archive",
-        "description": "Archive task list",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "TaskList"
-        },
-        "react_query_hook": "useArchiveTaskList",
-        "query_key": null,
-        "invalidates": [
-          "taskLists.list"
-        ],
-        "optimistic_updates": false
-      }
-    ],
-    "labels": [
-      {
-        "method": "GET",
-        "path": "/labels",
-        "description": "List all labels",
-        "request_schema": {},
-        "response_schema": {
-          "data": "Label[]"
-        },
-        "react_query_hook": "useLabels",
-        "query_key": "labels.all",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/labels",
-        "description": "Create label",
-        "request_schema": {
-          "body": {
-            "name": "string",
-            "color": "string",
-            "description": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Label"
-        },
-        "react_query_hook": "useCreateLabel",
-        "query_key": null,
-        "invalidates": [
-          "labels.all"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/labels/:id",
-        "description": "Update label",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": "Partial<Label>"
-        },
-        "response_schema": {
-          "data": "Label"
-        },
-        "react_query_hook": "useUpdateLabel",
-        "query_key": null,
-        "invalidates": [
-          "labels.all"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "DELETE",
-        "path": "/labels/:id",
-        "description": "Delete label",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteLabel",
-        "query_key": null,
-        "invalidates": [
-          "labels.all"
-        ],
-        "optimistic_updates": false
-      }
-    ],
-    "checklist_items": [
-      {
-        "method": "GET",
-        "path": "/tasks/:id/checklist",
-        "description": "List checklist items for task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "ChecklistItem[]"
-        },
-        "react_query_hook": "useChecklistItems",
-        "query_key": "checklistItems.byTask",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks/:id/checklist",
-        "description": "Add checklist item",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "content": "string",
-            "assignee_id": "string?",
-            "due_date": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "ChecklistItem"
-        },
-        "react_query_hook": "useAddChecklistItem",
-        "query_key": null,
-        "invalidates": [
-          "checklistItems.byTask",
-          "tasks.detail"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "PATCH",
-        "path": "/checklist-items/:id",
-        "description": "Update checklist item",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": "Partial<ChecklistItem>"
-        },
-        "response_schema": {
-          "data": "ChecklistItem"
-        },
-        "react_query_hook": "useUpdateChecklistItem",
-        "query_key": null,
-        "invalidates": [
-          "checklistItems.byTask",
-          "tasks.detail"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "DELETE",
-        "path": "/checklist-items/:id",
-        "description": "Delete checklist item",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteChecklistItem",
-        "query_key": null,
-        "invalidates": [
-          "checklistItems.byTask"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PUT",
-        "path": "/tasks/:id/checklist/reorder",
-        "description": "Reorder checklist items",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "item_ids": "string[]"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useReorderChecklistItems",
-        "query_key": null,
-        "invalidates": [
-          "checklistItems.byTask"
-        ],
-        "optimistic_updates": true
-      }
-    ],
-    "comments": [
-      {
-        "method": "GET",
-        "path": "/tasks/:id/comments",
-        "description": "List comments for task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Comment[]"
-        },
-        "react_query_hook": "useComments",
-        "query_key": "comments.byTask",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks/:id/comments",
-        "description": "Add comment to task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "content": "string",
-            "mentioned_user_ids": "string[]?"
-          }
-        },
-        "response_schema": {
-          "data": "Comment"
-        },
-        "react_query_hook": "useCreateComment",
-        "query_key": null,
-        "invalidates": [
-          "comments.byTask"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "PATCH",
-        "path": "/comments/:id",
-        "description": "Edit comment",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "content": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Comment"
-        },
-        "react_query_hook": "useUpdateComment",
-        "query_key": null,
-        "invalidates": [
-          "comments.byTask"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "DELETE",
-        "path": "/comments/:id",
-        "description": "Delete comment",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteComment",
-        "query_key": null,
-        "invalidates": [
-          "comments.byTask"
-        ],
-        "optimistic_updates": false
-      }
-    ],
-    "reminders": [
-      {
-        "method": "GET",
-        "path": "/tasks/:id/reminders",
-        "description": "List reminders for task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Reminder[]"
-        },
-        "react_query_hook": "useReminders",
-        "query_key": "reminders.byTask",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks/:id/reminders",
-        "description": "Create reminder",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "remind_at": "string",
-            "type": "string",
-            "message": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Reminder"
-        },
-        "react_query_hook": "useCreateReminder",
-        "query_key": null,
-        "invalidates": [
-          "reminders.byTask"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/reminders/:id",
-        "description": "Update reminder",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "remind_at": "string?",
-            "type": "string?",
-            "message": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Reminder"
-        },
-        "react_query_hook": "useUpdateReminder",
-        "query_key": null,
-        "invalidates": [
-          "reminders.byTask"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "DELETE",
-        "path": "/reminders/:id",
-        "description": "Delete reminder",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteReminder",
-        "query_key": null,
-        "invalidates": [
-          "reminders.byTask"
-        ],
-        "optimistic_updates": false
-      }
-    ],
-    "assignees": [
-      {
-        "method": "GET",
-        "path": "/tasks/:id/assignees",
-        "description": "List assignees for task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Assignee[]"
-        },
-        "react_query_hook": "useAssignees",
-        "query_key": "assignees.byTask",
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/tasks/:id/assignees",
-        "description": "Add assignee to task",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "user_id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Assignee"
-        },
-        "react_query_hook": "useAddAssignee",
-        "query_key": null,
-        "invalidates": [
-          "assignees.byTask",
-          "tasks.detail"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "DELETE",
-        "path": "/tasks/:taskId/assignees/:userId",
-        "description": "Remove assignee from task",
-        "request_schema": {
-          "params": {
-            "taskId": "string",
-            "userId": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useRemoveAssignee",
-        "query_key": null,
-        "invalidates": [
-          "assignees.byTask",
-          "tasks.detail"
-        ],
-        "optimistic_updates": false
-      }
-    ]
-  },
-  "permissions": {
-    "roles": [
-      "admin",
-      "manager",
-      "member",
-      "viewer"
-    ],
-    "matrix": {
-      "tasks.create": [
-        "admin",
-        "manager",
-        "member"
-      ],
-      "tasks.edit_own": [
-        "member"
-      ],
-      "tasks.edit_any": [
-        "admin",
-        "manager"
-      ],
-      "tasks.assign": [
-        "admin",
-        "manager"
-      ],
-      "tasks.delete": [
-        "admin",
-        "manager"
-      ],
-      "lists.manage": [
-        "admin",
-        "manager",
-        "list_owner"
-      ],
-      "labels.manage": [
-        "admin",
-        "manager"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "authStore",
-        "fields": [
-          "user",
-          "token",
-          "org",
-          "roles"
-        ]
-      },
-      {
-        "name": "uiStore",
-        "fields": [
-          "sidebarOpen",
-          "theme",
-          "notifications"
-        ]
-      },
-      {
-        "name": "boardStore",
-        "fields": [
-          "boardLayout",
-          "columnOrder",
-          "isDragging",
-          "activeCardId",
-          "overColumnId"
-        ]
-      },
-      {
-        "name": "calendarStore",
-        "fields": [
-          "selectedDate",
-          "view"
-        ],
-        "view_values": [
-          "month",
-          "week",
-          "day"
-        ]
-      },
-      {
-        "name": "filterStore",
-        "fields": [
-          "filters"
-        ],
-        "notes": "keyed by module name"
-      },
-      {
-        "name": "editorStore",
-        "fields": [
-          "activeEditorId",
-          "editorContent",
-          "isDirty"
-        ]
-      }
-    ],
-    "query_keys": {
-      "tasks": [
-        "tasks.all",
-        "tasks.list",
-        "tasks.detail",
-        "tasks.byList",
-        "tasks.myTasks",
-        "tasks.byAssignee"
-      ],
-      "taskLists": [
-        "taskLists.all",
-        "taskLists.list",
-        "taskLists.detail"
-      ],
-      "labels": [
-        "labels.all"
-      ],
-      "checklistItems": [
-        "checklistItems.byTask"
-      ],
-      "comments": [
-        "comments.byTask"
-      ],
-      "reminders": [
-        "reminders.byTask"
-      ],
-      "assignees": [
-        "assignees.byTask"
-      ]
-    }
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "task.created",
-        "payload": {
-          "task_id": "string",
-          "list_id": "string?",
-          "created_by": "string"
-        },
-        "client_action": "invalidate tasks.list, tasks.myTasks, taskLists.detail"
-      },
-      {
-        "name": "task.updated",
-        "payload": {
-          "task_id": "string",
-          "changes": "object"
-        },
-        "client_action": "invalidate tasks.detail, tasks.list"
-      },
-      {
-        "name": "task.assigned",
-        "payload": {
-          "task_id": "string",
-          "user_id": "string",
-          "assigned_by": "string"
-        },
-        "client_action": "invalidate assignees.byTask, notify user if assigned to self"
-      },
-      {
-        "name": "task.completed",
-        "payload": {
-          "task_id": "string",
-          "completed_by": "string"
-        },
-        "client_action": "invalidate tasks.detail, tasks.list, tasks.myTasks"
-      },
-      {
-        "name": "task.archived",
-        "payload": {
-          "task_id": "string"
-        },
-        "client_action": "invalidate tasks.list, remove from board"
-      },
-      {
-        "name": "comment.added",
-        "payload": {
-          "comment_id": "string",
-          "task_id": "string",
-          "author_id": "string"
-        },
-        "client_action": "invalidate comments.byTask, notify mentioned users"
-      },
-      {
-        "name": "checklist_item.completed",
-        "payload": {
-          "item_id": "string",
-          "task_id": "string",
-          "completed_by": "string"
-        },
-        "client_action": "invalidate checklistItems.byTask, tasks.detail"
-      },
-      {
-        "name": "reminder.triggered",
-        "payload": {
-          "reminder_id": "string",
-          "task_id": "string",
-          "user_id": "string"
-        },
-        "client_action": "show in-app notification to user_id"
-      },
-      {
-        "name": "ws.reconnected",
-        "payload": {},
-        "client_action": "invalidate all active query keys"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Create Task",
-      "steps": [
-        "POST /tasks with title/list_id/priority",
-        "POST /tasks/:id/assignees (optionally add assignees)",
-        "PATCH /tasks/:id with due_date",
-        "POST /tasks/:id/checklist (add checklist items)",
-        "POST /tasks/:id/reminders (set reminders)",
-        "WebSocket task.created emitted to all assignees"
-      ],
-      "backend_mutations": [
-        "POST /tasks",
-        "POST /tasks/:id/assignees",
-        "PATCH /tasks/:id",
-        "POST /tasks/:id/checklist",
-        "POST /tasks/:id/reminders"
-      ],
-      "cross_entity_updates": [
-        "TaskList.task_count incremented"
-      ]
-    },
-    {
-      "name": "Assign Task",
-      "steps": [
-        "POST /tasks/:id/assignees with user_id",
-        "WebSocket task.assigned emitted",
-        "Notification created for assignee"
-      ],
-      "backend_mutations": [
-        "POST /tasks/:id/assignees"
-      ],
-      "cross_entity_updates": [
-        "Notification created for assignee"
-      ]
-    },
-    {
-      "name": "Set Due Date",
-      "steps": [
-        "PATCH /tasks/:id with due_date",
-        "If due_date in past: overdue_status=true computed",
-        "Schedule reminder via Redis if none set"
-      ],
-      "backend_mutations": [
-        "PATCH /tasks/:id"
-      ],
-      "cross_entity_updates": [
-        "Task.overdue_status recomputed"
-      ]
-    },
-    {
-      "name": "Complete Task",
-      "steps": [
-        "POST /tasks/:id/complete",
-        "status→done, completed_at=NOW()",
-        "Check if all checklist items done (warn if incomplete checklist)",
-        "WebSocket task.completed emitted"
-      ],
-      "backend_mutations": [
-        "POST /tasks/:id/complete"
-      ],
-      "cross_entity_updates": [
-        "TaskList.completed_count incremented",
-        "Org.active_task_count decremented"
-      ]
-    },
-    {
-      "name": "Archive Task",
-      "steps": [
-        "POST /tasks/:id/archive",
-        "is_archived=true",
-        "Removed from active board/list views"
-      ],
-      "backend_mutations": [
-        "POST /tasks/:id/archive"
-      ],
-      "cross_entity_updates": [
-        "TaskList.task_count decremented"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "entity": "Task",
-      "field": "completion_percentage",
-      "formula": "COUNT(checklist_items WHERE is_completed=true) / COUNT(checklist_items) * 100",
-      "triggers": [
-        "ChecklistItem.is_completed"
-      ],
-      "display_precision": 0
-    },
-    {
-      "entity": "Task",
-      "field": "overdue_status",
-      "formula": "due_date < TODAY() AND status NOT IN [done, archived]",
-      "triggers": [
-        "due_date",
-        "status",
-        "time"
-      ],
-      "ts_type": "boolean"
-    },
-    {
-      "entity": "Task",
-      "field": "actual_minutes",
-      "formula": "SUM(time_entries.duration_minutes WHERE task_id=id)",
-      "triggers": [
-        "TimeEntry mutated"
-      ]
-    },
-    {
-      "entity": "TaskList",
-      "field": "task_count",
-      "formula": "COUNT(tasks WHERE list_id=id AND is_archived=false)",
-      "triggers": [
-        "Task mutated"
-      ]
-    },
-    {
-      "entity": "TaskList",
-      "field": "completed_count",
-      "formula": "COUNT(tasks WHERE list_id=id AND status=done)",
-      "triggers": [
-        "Task.status"
-      ]
-    },
-    {
-      "entity": "Org",
-      "field": "active_task_count",
-      "formula": "COUNT(tasks WHERE status IN [todo, in_progress, review] AND is_archived=false)",
-      "triggers": [
-        "Task.status",
-        "Task.is_archived"
-      ]
-    }
-  ],
-  "domain_rules": [
-    {
-      "rule": "Subtask depth limited to 3 levels",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Count parent chain depth, reject if >= 3",
-      "ui_behavior": "Disable 'Add subtask' button when at max depth",
-      "db_constraint": null
-    },
-    {
-      "rule": "Completed tasks cannot be re-opened without explicit action",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Return 409 if status→todo/in_progress from done without re-open flag",
-      "ui_behavior": "Show 'Re-open task' CTA instead of status dropdown",
-      "db_constraint": null
-    },
-    {
-      "rule": "Reminder must be in future at time of creation",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Validate remind_at > NOW() before insert",
-      "ui_behavior": "Disable past dates in DateTimePicker",
-      "db_constraint": "CHECK (remind_at > NOW())"
-    },
-    {
-      "rule": "Task order uses fractional index for O(1) reordering",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Use midpoint algorithm for new positions, renormalize when gap < epsilon",
-      "ui_behavior": "Optimistic reorder on drag-drop via boardStore",
-      "db_constraint": null
-    },
-    {
-      "rule": "task_number unique within org",
-      "enforced_at": [
-        "db"
-      ],
-      "api_guard": null,
-      "ui_behavior": null,
-      "db_constraint": "UNIQUE INDEX on (org_id, task_number)"
-    },
-    {
-      "rule": "Archived lists cannot receive new tasks",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Return 409 if list.is_archived=true on POST /tasks",
-      "ui_behavior": "Filter out archived lists from ListSelector",
-      "db_constraint": null
-    }
-  ],
-  "folder_structure": {
-    "src": {
-      "domains": {
-        "task_management": {
-          "api": [
-            "tasksApi.ts",
-            "taskListsApi.ts",
-            "labelsApi.ts",
-            "checklistApi.ts",
-            "commentsApi.ts",
-            "remindersApi.ts",
-            "assigneesApi.ts"
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "avatar_url",
+            "role",
+            "status",
+            "capacity_hours_weekly"
           ],
-          "hooks": [
-            "useTasks.ts",
-            "useTask.ts",
-            "useCreateTask.ts",
-            "useUpdateTask.ts",
-            "useDeleteTask.ts",
-            "useCompleteTask.ts",
-            "useArchiveTask.ts",
-            "useDuplicateTask.ts",
-            "useReorderTasks.ts",
-            "useSubtasks.ts",
-            "useMyTasks.ts",
-            "useTaskLists.ts",
-            "useTaskList.ts",
-            "useCreateTaskList.ts",
-            "useUpdateTaskList.ts",
-            "useArchiveTaskList.ts",
-            "useLabels.ts",
-            "useCreateLabel.ts",
-            "useChecklistItems.ts",
-            "useAddChecklistItem.ts",
-            "useUpdateChecklistItem.ts",
-            "useReorderChecklistItems.ts",
-            "useComments.ts",
-            "useCreateComment.ts",
-            "useUpdateComment.ts",
-            "useReminders.ts",
-            "useCreateReminder.ts",
-            "useAssignees.ts",
-            "useAddAssignee.ts",
-            "useRemoveAssignee.ts"
+          "required_fields": [
+            "name",
+            "email",
+            "role",
+            "status",
+            "capacity_hours_weekly"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "avatar_url",
+            "role",
+            "status",
+            "capacity_hours_weekly"
           ],
-          "stores": [
-            "boardStore.ts"
+          "required_fields": [
+            "name",
+            "email",
+            "role",
+            "status",
+            "capacity_hours_weekly"
           ],
-          "components": {
-            "tasks": [
-              "TaskCard.tsx",
-              "TaskList.tsx",
-              "TaskTable.tsx",
-              "TaskForm.tsx",
-              "TaskDetail.tsx",
-              "SubtaskList.tsx"
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/assignees/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
             ],
-            "board": [
-              "KanbanBoard.tsx",
-              "BoardColumn.tsx",
-              "BoardColumnHeader.tsx",
-              "BoardCard.tsx"
-            ],
-            "lists": [
-              "ListsView.tsx",
-              "ListDetail.tsx",
-              "ListCard.tsx",
-              "ListForm.tsx"
-            ],
-            "checklist": [
-              "ChecklistEditor.tsx",
-              "ChecklistItem.tsx"
-            ],
-            "comments": [
-              "CommentThread.tsx",
-              "CommentForm.tsx",
-              "ReactionPicker.tsx"
-            ],
-            "reminders": [
-              "ReminderList.tsx",
-              "ReminderForm.tsx"
-            ],
-            "labels": [
-              "LabelManager.tsx",
-              "LabelBadge.tsx",
-              "LabelList.tsx"
-            ],
-            "assignees": [
-              "AssigneeList.tsx"
-            ],
-            "reports": [
-              "TaskReportsPage.tsx"
-            ]
+            "badge_fields": []
           },
-          "pages": [
-            "MyTasksPage.tsx",
-            "BoardViewPage.tsx",
-            "ListsViewPage.tsx",
-            "ListDetailPage.tsx",
-            "CalendarPage.tsx",
-            "TaskReportsPage.tsx",
-            "TaskSettingsPage.tsx"
+          "primary_fields": [
+            "name",
+            "email",
+            "role",
+            "status"
           ],
-          "types": [
-            "task.types.ts",
-            "taskList.types.ts",
-            "label.types.ts",
-            "checklist.types.ts",
-            "comment.types.ts"
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "role",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "email",
+                "avatar_url",
+                "role",
+                "status",
+                "capacity_hours_weekly"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Label",
+      "table": "labels",
+      "description": "Task label / tag",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "color",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "red",
+            "orange",
+            "yellow",
+            "green",
+            "blue",
+            "purple",
+            "pink",
+            "gray"
           ],
-          "constants": [
-            "statusColors.ts",
-            "priorityColors.ts"
+          "badge_colors": {
+            "red": "red",
+            "orange": "orange",
+            "yellow": "yellow",
+            "green": "green",
+            "blue": "blue",
+            "purple": "purple",
+            "pink": "pink",
+            "gray": "gray"
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT TRUE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "color",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Labels yet",
+            "subtext": "Create your first label",
+            "action_label": "Add Label"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "color",
+            "description",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "color",
+            "is_active"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "color",
+            "description",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "color",
+            "is_active"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/labels/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "color",
+            "is_active"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "color",
+                "is_active"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "color",
+                "description",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ChecklistItem",
+      "table": "checklist_items",
+      "description": "Sub-task checklist item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "task_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tasks",
+          "fk_display": "title"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "is_completed",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "sort_order",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "assigned_to_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "assignees",
+          "fk_display": "name"
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "task_id",
+            "title",
+            "is_completed",
+            "sort_order",
+            "assigned_to_id",
+            "due_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No ChecklistItems yet",
+            "subtext": "Create your first checklistitem",
+            "action_label": "Add ChecklistItem"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "task_id",
+            "title",
+            "is_completed",
+            "sort_order",
+            "assigned_to_id",
+            "due_date"
+          ],
+          "required_fields": [
+            "task_id",
+            "title",
+            "is_completed",
+            "sort_order"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "task_id",
+            "title",
+            "is_completed",
+            "sort_order",
+            "assigned_to_id",
+            "due_date"
+          ],
+          "required_fields": [
+            "task_id",
+            "title",
+            "is_completed",
+            "sort_order"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/checklist_items/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "task_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "task_id",
+            "title",
+            "is_completed",
+            "sort_order"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "task_id",
+                "title",
+                "is_completed",
+                "sort_order",
+                "assigned_to_id",
+                "due_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "task_id",
+                "title",
+                "is_completed",
+                "sort_order",
+                "assigned_to_id",
+                "due_date"
+              ]
+            }
           ]
         }
       },
-      "components": {
-        "ui": [
-          "DataTable.tsx",
-          "Modal.tsx",
-          "SlideOverForm.tsx",
-          "ProgressBar.tsx",
-          "StatusBadge.tsx",
-          "PriorityBadge.tsx",
-          "UserAvatar.tsx",
-          "AvatarGroup.tsx",
-          "UserSelector.tsx",
-          "ColorPicker.tsx",
-          "ColorSwatch.tsx",
-          "IconSelect.tsx",
-          "IconDisplay.tsx",
-          "RichTextEditor.tsx",
-          "RichTextDisplay.tsx",
-          "DurationDisplay.tsx",
-          "DurationInput.tsx",
-          "DateTimePicker.tsx",
-          "DatePicker.tsx",
-          "TextInput.tsx",
-          "Textarea.tsx",
-          "NumberInput.tsx",
-          "Select.tsx",
-          "MultiSelect.tsx",
-          "Toggle.tsx",
-          "CheckIcon.tsx",
-          "EmptyState.tsx",
-          "LoadingSkeleton.tsx",
-          "ConfirmationDialog.tsx",
-          "PageHeader.tsx",
-          "FilterPanel.tsx",
-          "FilterBar.tsx",
-          "TabPanel.tsx",
-          "StatCard.tsx",
-          "ActivityTimeline.tsx",
-          "NotificationBell.tsx",
-          "AuthGuard.tsx",
-          "MentionInput.tsx",
-          "MonospaceText.tsx",
-          "TruncatedText.tsx",
-          "TextLink.tsx",
-          "AbsoluteDate.tsx",
-          "RelativeDate.tsx",
-          "YesNoBadge.tsx",
-          "ListBadge.tsx",
-          "ListSelector.tsx"
-        ]
-      },
-      "lib": [
-        "queryClient.ts",
-        "axiosInstance.ts",
-        "socket.ts",
-        "fractionOrder.ts"
-      ],
-      "router": [
-        "AppRouter.tsx",
-        "routes.ts"
-      ],
-      "stores": [
-        "authStore.ts",
-        "uiStore.ts",
-        "calendarStore.ts",
-        "filterStore.ts",
-        "editorStore.ts"
-      ]
-    }
-  },
-  "generation_rules": [
-    "KanbanBoard uses boardStore drag state via DnD Kit with fractional task_order for reordering",
-    "Fractional task_order uses midpoint algorithm; renormalize when gap < 0.001",
-    "ChecklistEditor shows completion percentage in header using computed Task.completion_percentage",
-    "Reminders scheduled via Redis queue (bull/bullmq), processed by background worker",
-    "All forms use React Hook Form with Zod schema validation",
-    "Every mutation hook implements onMutate (optimistic), onError (rollback), onSettled (invalidate)",
-    "Authenticated requests attach JWT from authStore via Axios interceptor",
-    "WebSocket events handled in global SocketProvider with per-event invalidation",
-    "CalendarView uses calendarStore for view mode and selected date"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
+      "foreign_keys": [
+        {
+          "column": "task_id",
+          "references": {
+            "table": "tasks",
+            "column": "id"
+          }
+        },
+        {
+          "column": "assigned_to_id",
+          "references": {
+            "table": "assignees",
+            "column": "id"
+          }
+        }
       ]
     },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
+    {
+      "name": "Comment",
+      "table": "comments",
+      "description": "Task comment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "task_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tasks",
+          "fk_display": "title"
+        },
+        {
+          "name": "author_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "assignees",
+          "fk_display": "name"
+        },
+        {
+          "name": "body",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "is_edited",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "comment_type",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'comment'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "comment",
+          "enum_values": [
+            "comment",
+            "status_change",
+            "assignment",
+            "mention"
+          ],
+          "badge_colors": {
+            "comment": "blue",
+            "status_change": "purple",
+            "assignment": "green",
+            "mention": "orange"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
       ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "task_id",
+            "author_id",
+            "body",
+            "is_edited",
+            "comment_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Comments yet",
+            "subtext": "Create your first comment",
+            "action_label": "Add Comment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "task_id",
+            "author_id",
+            "body",
+            "comment_type"
+          ],
+          "required_fields": [
+            "task_id",
+            "author_id",
+            "body",
+            "comment_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "task_id",
+            "author_id",
+            "body",
+            "comment_type"
+          ],
+          "required_fields": [
+            "task_id",
+            "author_id",
+            "body",
+            "comment_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/comments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "task_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "task_id",
+            "author_id",
+            "body",
+            "is_edited"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "task_id",
+                "author_id",
+                "body",
+                "is_edited",
+                "comment_type"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "task_id",
+                "author_id",
+                "body",
+                "comment_type"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "task_id",
+          "references": {
+            "table": "tasks",
+            "column": "id"
+          }
+        },
+        {
+          "column": "author_id",
+          "references": {
+            "table": "assignees",
+            "column": "id"
+          }
+        }
       ]
     },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
+    {
+      "name": "Reminder",
+      "table": "reminders",
+      "description": "Task reminder / notification",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "task_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tasks",
+          "fk_display": "title"
+        },
+        {
+          "name": "assignee_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "assignees",
+          "fk_display": "name"
+        },
+        {
+          "name": "remind_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "reminder_type",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'once'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "once",
+          "enum_values": [
+            "once",
+            "daily",
+            "weekly"
+          ],
+          "badge_colors": {
+            "once": "blue",
+            "daily": "green",
+            "weekly": "purple"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "triggered",
+            "dismissed",
+            "expired"
+          ],
+          "badge_colors": {
+            "active": "blue",
+            "triggered": "green",
+            "dismissed": "gray",
+            "expired": "orange"
+          }
+        },
+        {
+          "name": "message",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
       ],
-      "on_exhaustion": "Return 503 with Retry-After header"
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "task_id",
+            "assignee_id",
+            "remind_at",
+            "reminder_type",
+            "status",
+            "message"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Reminders yet",
+            "subtext": "Create your first reminder",
+            "action_label": "Add Reminder"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "task_id",
+            "assignee_id",
+            "remind_at",
+            "reminder_type",
+            "status",
+            "message"
+          ],
+          "required_fields": [
+            "task_id",
+            "assignee_id",
+            "remind_at",
+            "reminder_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "task_id",
+            "assignee_id",
+            "remind_at",
+            "reminder_type",
+            "status",
+            "message"
+          ],
+          "required_fields": [
+            "task_id",
+            "assignee_id",
+            "remind_at",
+            "reminder_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/reminders/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "task_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "task_id",
+            "assignee_id",
+            "remind_at",
+            "reminder_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "task_id",
+                "assignee_id",
+                "remind_at",
+                "reminder_type",
+                "status",
+                "message"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "task_id",
+                "assignee_id",
+                "remind_at",
+                "reminder_type",
+                "status",
+                "message"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "task_id",
+          "references": {
+            "table": "tasks",
+            "column": "id"
+          }
+        },
+        {
+          "column": "assignee_id",
+          "references": {
+            "table": "assignees",
+            "column": "id"
+          }
+        }
+      ]
     }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "status_enum": {
-      "pg_type": "status_type",
-      "ts_type": "StatusEnum",
-      "values": [
-        "todo",
-        "in_progress",
-        "review",
-        "done",
-        "archived"
-      ],
-      "pg_ddl": "CREATE TYPE status_type AS ENUM ('todo', 'in_progress', 'review', 'done', 'archived')"
-    },
-    "priority_enum": {
-      "pg_type": "priority_type",
-      "ts_type": "PriorityEnum",
-      "values": [
-        "none",
-        "low",
-        "medium",
-        "high",
-        "urgent"
-      ],
-      "pg_ddl": "CREATE TYPE priority_type AS ENUM ('none', 'low', 'medium', 'high', 'urgent')"
-    },
-    "type_enum": {
-      "pg_type": "type_type",
-      "ts_type": "TypeEnum",
-      "values": [
-        "email",
-        "push",
-        "in_app"
-      ],
-      "pg_ddl": "CREATE TYPE type_type AS ENUM ('email', 'push', 'in_app')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  }
+  ]
 }

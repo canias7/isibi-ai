@@ -1,2583 +1,1040 @@
 {
   "_meta": {
-    "title": "Risk Management Application",
-    "domain": "Operations & Governance",
-    "version": "1.0"
+    "app_name": "Risk Management",
+    "description": "Complete risk management management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "orange",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "risk_level_colors": {
-      "critical": "red",
-      "high": "orange",
-      "medium": "amber",
-      "low": "yellow",
-      "informational": "sky"
-    },
-    "status_colors": {
-      "identified": "blue",
-      "assessing": "amber",
-      "mitigating": "orange",
-      "monitoring": "cyan",
-      "closed": "slate",
-      "escalated": "red",
-      "accepted": "green"
-    },
-    "likelihood_colors": {
-      "almost_certain": "red",
-      "likely": "orange",
-      "possible": "amber",
-      "unlikely": "yellow",
-      "rare": "green"
-    }
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
-  },
+  "spec_name": "risk_management_spec",
   "entities": [
     {
       "name": "Risk",
       "table": "risks",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "risk_level"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "owner_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "category"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "project_id"
-          ]
-        }
-      ],
+      "description": "Risk",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "risk_id",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "auto-gen RSK-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(500)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/risks/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "description",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
           "name": "category",
-          "db_type": "ENUM('operational','financial','strategic','compliance','technology','reputational','legal','environmental','human_resources','other')",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "operational",
-          "input_component": "Select",
-          "display_component": "CategoryBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('identified','assessing','mitigating','monitoring','closed','escalated','accepted')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "identified",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "operational",
+            "financial",
+            "strategic",
+            "compliance",
+            "reputational",
+            "technical"
+          ],
+          "badge_colors": {
+            "operational": "blue",
+            "financial": "green",
+            "strategic": "purple",
+            "compliance": "amber",
+            "reputational": "pink",
+            "technical": "slate"
           }
         },
         {
           "name": "likelihood",
-          "db_type": "ENUM('rare','unlikely','possible','likely','almost_certain')",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "possible",
-          "input_component": "Select",
-          "display_component": "LikelihoodBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "rare",
+            "unlikely",
+            "possible",
+            "likely",
+            "almost_certain"
+          ],
+          "badge_colors": {
+            "rare": "green",
+            "unlikely": "blue",
+            "possible": "amber",
+            "likely": "red",
+            "almost_certain": "purple"
           }
         },
         {
           "name": "impact",
-          "db_type": "ENUM('negligible','minor','moderate','major','severe')",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "moderate",
-          "input_component": "Select",
-          "display_component": "ImpactBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "negligible",
+            "minor",
+            "moderate",
+            "major",
+            "catastrophic"
+          ],
+          "badge_colors": {
+            "negligible": "green",
+            "minor": "blue",
+            "moderate": "amber",
+            "major": "red",
+            "catastrophic": "purple"
           }
-        },
-        {
-          "name": "likelihood_score",
-          "db_type": "SMALLINT",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 3,
-          "notes": "1-5 scale mapped from likelihood enum",
-          "computed": {
-            "source": "self",
-            "formula": "MAP(likelihood, {rare:1, unlikely:2, possible:3, likely:4, almost_certain:5})",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "impact_score",
-          "db_type": "SMALLINT",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 3,
-          "notes": "1-5 scale mapped from impact enum",
-          "computed": {
-            "source": "self",
-            "formula": "MAP(impact, {negligible:1, minor:2, moderate:3, major:4, severe:5})",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
         },
         {
           "name": "risk_score",
-          "db_type": "SMALLINT",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 9,
-          "computed": {
-            "source": "self",
-            "formula": "likelihood_score * impact_score",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "formula": "likelihood_score * impact_score",
-          "notes": "1-25 inherent risk score",
-          "input_component": null,
-          "display_component": "RiskScoreDisplay",
           "editable": false,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "likelihood_rank * impact_rank"
         },
         {
-          "name": "risk_level",
-          "db_type": "ENUM('informational','low','medium','high','critical')",
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "medium",
-          "computed": {
-            "source": "self",
-            "formula": "CASE WHEN risk_score<=4 THEN 'low' WHEN risk_score<=9 THEN 'medium' WHEN risk_score<=16 THEN 'high' ELSE 'critical' END",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "notes": "Derived from risk_score: 1-4=low, 5-9=medium, 10-16=high, 17-25=critical",
-          "input_component": null,
-          "display_component": "RiskLevelBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "residual_likelihood",
-          "db_type": "ENUM('rare','unlikely','possible','likely','almost_certain')",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Post-mitigation likelihood estimate",
-          "input_component": "Select",
-          "display_component": "LikelihoodBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "residual_impact",
-          "db_type": "ENUM('negligible','minor','moderate','major','severe')",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Post-mitigation impact estimate",
-          "input_component": "Select",
-          "display_component": "ImpactBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "residual_risk_score",
-          "db_type": "SMALLINT",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "computed": {
-            "source": "self",
-            "formula": "residual_likelihood_score * residual_impact_score",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "formula": "residual_likelihood_score * residual_impact_score",
-          "input_component": null,
-          "display_component": "RiskScoreDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "owner_id",
-          "db_type": "UUID",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "identified",
+            "analyzing",
+            "mitigating",
+            "accepted",
+            "closed"
+          ],
+          "badge_colors": {
+            "identified": "blue",
+            "analyzing": "amber",
+            "mitigating": "purple",
+            "accepted": "green",
+            "closed": "slate"
           }
-        },
-        {
-          "name": "reporter_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "project_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "projects",
-          "input_component": "ProjectSelector",
-          "display_component": "ProjectBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "department",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DepartmentSelector",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Date by which mitigation should be complete",
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "identified_date",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "CURRENT_DATE",
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "review_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Next scheduled review date",
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "potential_financial_impact",
-          "db_type": "NUMERIC(15,2)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "tags",
-          "db_type": "TEXT[]",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "ARRAY[]::TEXT[]",
-          "input_component": "TagInput",
-          "display_component": "TagList",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "is_escalated",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": null,
-          "display_component": "BooleanBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_risks_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_risks_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "MitigationAction",
-      "table": "mitigation_actions",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "risk_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "assignee_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        }
-      ],
+      "name": "Assessment",
+      "table": "risk_assessments",
+      "description": "Assessment",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
+        },
+        {
+          "name": "assessor",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "assessment_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "likelihood_score",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "impact_score",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_rating",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "likelihood_score * impact_score"
+        },
+        {
+          "name": "methodology",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "qualitative",
+            "quantitative",
+            "semi_quantitative"
+          ]
+        },
+        {
+          "name": "findings",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "recommendations",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Mitigation",
+      "table": "risk_mitigations",
+      "description": "Mitigation",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "strategy",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "avoid",
+            "transfer",
+            "reduce",
+            "accept"
+          ],
+          "badge_colors": {
+            "avoid": "red",
+            "transfer": "blue",
+            "reduce": "amber",
+            "accept": "green"
+          }
+        },
+        {
+          "name": "estimated_cost",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "actual_cost",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "target_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "planned",
+            "in_progress",
+            "completed",
+            "deferred"
+          ],
+          "badge_colors": {
+            "planned": "blue",
+            "in_progress": "amber",
+            "completed": "green",
+            "deferred": "slate"
+          }
+        },
+        {
+          "name": "effectiveness_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Control",
+      "table": "risk_controls",
+      "description": "Control",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "risk_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "control_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "preventive",
+            "detective",
+            "corrective",
+            "compensating"
+          ],
+          "badge_colors": {
+            "preventive": "green",
+            "detective": "blue",
+            "corrective": "amber",
+            "compensating": "purple"
+          }
+        },
+        {
+          "name": "frequency",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "continuous",
+            "daily",
+            "weekly",
+            "monthly",
+            "quarterly",
+            "annual"
+          ]
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "effective",
+            "partially_effective",
+            "ineffective",
+            "not_tested"
+          ],
+          "badge_colors": {
+            "effective": "green",
+            "partially_effective": "amber",
+            "ineffective": "red",
+            "not_tested": "slate"
+          }
+        },
+        {
+          "name": "last_tested",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "evidence",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Incident",
+      "table": "risk_incidents",
+      "description": "Incident",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "risk_id",
           "db_type": "UUID",
           "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "risks",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Risk"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(500)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "description",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "action_type",
-          "db_type": "ENUM('avoid','reduce','transfer','accept','contingency')",
+          "name": "occurred_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "reduce",
-          "input_component": "Select",
-          "display_component": "ActionTypeBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "severity",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "amber",
+            "high": "red",
+            "critical": "purple"
           }
+        },
+        {
+          "name": "financial_impact",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "reported_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "status",
-          "db_type": "ENUM('planned','in_progress','completed','cancelled')",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "planned",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "reported",
+            "investigating",
+            "resolved",
+            "closed"
+          ],
+          "badge_colors": {
+            "reported": "amber",
+            "investigating": "blue",
+            "resolved": "green",
+            "closed": "slate"
           }
         },
         {
-          "name": "assignee_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "completed_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_mitigation_actions_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_mitigation_actions_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "RiskReview",
-      "table": "risk_reviews",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "risk_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "reviewer_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "reviewed_at"
-          ]
-        }
-      ],
+      "name": "Report",
+      "table": "risk_reports",
+      "description": "Report",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "risk_id",
-          "db_type": "UUID",
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "risks",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "reviewer_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "snapshot_risk_score",
-          "db_type": "SMALLINT",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "notes": "Risk score at time of review",
-          "input_component": null,
-          "display_component": "RiskScoreDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "snapshot_status",
-          "db_type": "VARCHAR(50)",
+          "name": "report_type",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "notes": "Status at time of review",
-          "input_component": null,
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "reviewed_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_risk_reviews_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_risk_reviews_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "risk_register",
+            "heat_map",
+            "trend_analysis",
+            "executive_summary"
           ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "RiskComment",
-      "table": "risk_comments",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "risk_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "author_id"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "risk_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "risks",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
+          "badge_colors": {
+            "risk_register": "blue",
+            "heat_map": "red",
+            "trend_analysis": "green",
+            "executive_summary": "purple"
           }
         },
         {
-          "name": "author_id",
-          "db_type": "UUID",
+          "name": "period_start",
+          "db_type": "DATE NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "body",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "RichTextDisplay",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "period_end",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "total_risks",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(risks)"
+        },
+        {
+          "name": "high_risks",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(risks WHERE risk_score >= 15)"
+        },
+        {
+          "name": "mitigated_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(risks WHERE status=mitigating)"
+        },
+        {
+          "name": "summary",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "prepared_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_risk_comments_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_risk_comments_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     }
-  ],
-  "components": [
-    {
-      "name": "RiskRegisterTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "risk_id",
-          "title",
-          "category",
-          "status",
-          "likelihood",
-          "impact",
-          "risk_score",
-          "risk_level",
-          "owner_id",
-          "due_date",
-          "identified_date",
-          "review_date"
-        ]
-      },
-      "features": [
-        "sort",
-        "filter_by_level",
-        "filter_by_category",
-        "filter_by_status",
-        "filter_by_owner",
-        "search",
-        "export_csv",
-        "bulk_actions"
-      ]
-    },
-    {
-      "name": "RiskHeatmap",
-      "type": "Matrix",
-      "props": {
-        "xAxis": "impact",
-        "yAxis": "likelihood",
-        "cell_size": "lg",
-        "color_gradient": true
-      },
-      "features": [
-        "click_to_filter",
-        "hover_risk_count",
-        "drill_down_to_list",
-        "residual_overlay"
-      ]
-    },
-    {
-      "name": "RiskForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "title",
-          "description",
-          "category",
-          "status",
-          "likelihood",
-          "impact",
-          "residual_likelihood",
-          "residual_impact",
-          "owner_id",
-          "project_id",
-          "department",
-          "due_date",
-          "identified_date",
-          "review_date",
-          "potential_financial_impact",
-          "tags"
-        ]
-      },
-      "features": [
-        "risk_score_preview",
-        "residual_score_preview",
-        "similar_risks_suggestion"
-      ]
-    },
-    {
-      "name": "RiskDetailDrawer",
-      "type": "Drawer",
-      "props": {
-        "width": "xl"
-      },
-      "features": [
-        "risk_info",
-        "mitigation_actions",
-        "review_history",
-        "comments",
-        "activity_log",
-        "risk_score_trend",
-        "edit",
-        "close_risk",
-        "escalate"
-      ]
-    },
-    {
-      "name": "MitigationActionList",
-      "type": "List",
-      "features": [
-        "add_action",
-        "inline_edit",
-        "assign",
-        "set_due_date",
-        "status_toggle",
-        "progress_indicator",
-        "overdue_highlight"
-      ]
-    },
-    {
-      "name": "RiskSummaryStats",
-      "type": "StatsGrid",
-      "metrics": [
-        {
-          "label": "Total Risks",
-          "field": "total_count",
-          "format": "number"
-        },
-        {
-          "label": "Critical",
-          "field": "critical_count",
-          "format": "number",
-          "color": "red"
-        },
-        {
-          "label": "High",
-          "field": "high_count",
-          "format": "number",
-          "color": "orange"
-        },
-        {
-          "label": "Open Actions",
-          "field": "open_actions",
-          "format": "number"
-        },
-        {
-          "label": "Overdue",
-          "field": "overdue_count",
-          "format": "number",
-          "color": "amber"
-        }
-      ]
-    },
-    {
-      "name": "RiskByCategory",
-      "type": "BarChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "category",
-        "yAxis": "count",
-        "stacked": true,
-        "color_by": "risk_level"
-      }
-    },
-    {
-      "name": "RiskTrendChart",
-      "type": "LineChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "month",
-        "yAxis": "count",
-        "series": [
-          "open",
-          "critical",
-          "high",
-          "closed"
-        ]
-      }
-    },
-    {
-      "name": "RiskScoreDisplay",
-      "type": "Badge",
-      "props": {
-        "size": "sm"
-      },
-      "features": [
-        "color_by_score",
-        "tooltip_breakdown"
-      ]
-    },
-    {
-      "name": "RiskReviewForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "notes",
-          "snapshot_risk_score",
-          "snapshot_status"
-        ]
-      },
-      "features": [
-        "status_update_inline",
-        "schedule_next_review"
-      ]
-    },
-    {
-      "name": "RiskCommentThread",
-      "type": "Thread",
-      "features": [
-        "add_comment",
-        "edit_own",
-        "delete_own",
-        "@mention",
-        "markdown_support"
-      ]
-    },
-    {
-      "name": "EscalationModal",
-      "type": "Modal",
-      "features": [
-        "escalation_reason",
-        "notify_stakeholders",
-        "set_escalated_flag"
-      ]
-    },
-    {
-      "name": "RiskExportModal",
-      "type": "Modal",
-      "features": [
-        "export_csv",
-        "export_pdf",
-        "select_columns",
-        "filter_scope"
-      ]
-    }
-  ],
-  "modules": [
-    {
-      "name": "RiskRegister",
-      "path": "/risks",
-      "description": "Complete risk register with list and heatmap views",
-      "components": [
-        "RiskRegisterTable",
-        "RiskHeatmap",
-        "RiskSummaryStats",
-        "RiskForm",
-        "RiskDetailDrawer"
-      ],
-      "views": [
-        "Register",
-        "Heatmap"
-      ]
-    },
-    {
-      "name": "RiskDashboard",
-      "path": "/risks/dashboard",
-      "description": "Executive risk dashboard with analytics",
-      "components": [
-        "RiskSummaryStats",
-        "RiskHeatmap",
-        "RiskByCategory",
-        "RiskTrendChart"
-      ]
-    },
-    {
-      "name": "MyRisks",
-      "path": "/risks/my",
-      "description": "Risks and mitigation actions assigned to current user",
-      "components": [
-        "RiskRegisterTable",
-        "MitigationActionList"
-      ],
-      "default_filters": {
-        "owner_id": "current_user"
-      }
-    },
-    {
-      "name": "MitigationTracker",
-      "path": "/risks/mitigations",
-      "description": "All mitigation actions across risks",
-      "components": [
-        "MitigationActionList"
-      ],
-      "tabs": [
-        "Open",
-        "In Progress",
-        "Completed",
-        "Overdue"
-      ]
-    },
-    {
-      "name": "RiskDetail",
-      "path": "/risks/:id",
-      "description": "Full risk detail page",
-      "components": [
-        "RiskDetailDrawer",
-        "MitigationActionList",
-        "RiskCommentThread"
-      ]
-    }
-  ],
-  "api": {
-    "risks": {
-      "GET /api/risks": {
-        "description": "List risks with filters",
-        "query_params": [
-          "status",
-          "risk_level",
-          "category",
-          "owner_id",
-          "project_id",
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "search",
-          "cursor"
-        ],
-        "response": "PaginatedRisk[]",
-        "response_envelope": {
-          "data": "PaginatedRisk[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/risks": {
-        "description": "Create risk",
-        "body": "CreateRiskDto",
-        "response": "Risk"
-      },
-      "GET /api/risks/:id": {
-        "description": "Get risk with relations",
-        "response": "RiskWithRelations"
-      },
-      "PATCH /api/risks/:id": {
-        "description": "Update risk",
-        "body": "UpdateRiskDto",
-        "response": "Risk"
-      },
-      "DELETE /api/risks/:id": {
-        "description": "Soft delete risk",
-        "response": "void"
-      },
-      "POST /api/risks/:id/escalate": {
-        "description": "Escalate risk with notification",
-        "body": "EscalateDto",
-        "response": "Risk"
-      },
-      "POST /api/risks/:id/close": {
-        "description": "Close risk",
-        "body": "CloseRiskDto",
-        "response": "Risk"
-      },
-      "POST /api/risks/:id/review": {
-        "description": "Log risk review",
-        "body": "RiskReviewDto",
-        "response": "RiskReview"
-      },
-      "GET /api/risks/heatmap": {
-        "description": "Risk data for heatmap matrix",
-        "query_params": [
-          "project_id",
-          "department",
-          "status",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "HeatmapData",
-        "response_envelope": {
-          "data": "HeatmapData",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "mitigation_actions": {
-      "GET /api/risks/:riskId/mitigations": {
-        "description": "List mitigation actions for risk",
-        "response": "MitigationAction[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "MitigationAction[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/risks/:riskId/mitigations": {
-        "description": "Create mitigation action",
-        "body": "CreateMitigationDto",
-        "response": "MitigationAction"
-      },
-      "PATCH /api/mitigations/:id": {
-        "description": "Update mitigation action",
-        "body": "UpdateMitigationDto",
-        "response": "MitigationAction"
-      },
-      "DELETE /api/mitigations/:id": {
-        "description": "Delete mitigation action",
-        "response": "void"
-      },
-      "GET /api/mitigations": {
-        "description": "List all mitigations across risks",
-        "query_params": [
-          "assignee_id",
-          "status",
-          "due_date_before",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedMitigation[]",
-        "response_envelope": {
-          "data": "PaginatedMitigation[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "comments": {
-      "GET /api/risks/:riskId/comments": {
-        "description": "List comments",
-        "response": "RiskComment[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "RiskComment[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/risks/:riskId/comments": {
-        "description": "Add comment",
-        "body": "CreateCommentDto",
-        "response": "RiskComment"
-      },
-      "PATCH /api/risk-comments/:id": {
-        "description": "Edit comment",
-        "body": "UpdateCommentDto",
-        "response": "RiskComment"
-      },
-      "DELETE /api/risk-comments/:id": {
-        "description": "Delete comment",
-        "response": "void"
-      }
-    },
-    "analytics": {
-      "GET /api/risks/analytics/summary": {
-        "description": "Risk summary stats",
-        "query_params": [
-          "project_id",
-          "department",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "RiskSummaryStats",
-        "response_envelope": {
-          "data": "RiskSummaryStats",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/risks/analytics/by-category": {
-        "description": "Risk count by category and level",
-        "response": "CategoryBreakdown[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "CategoryBreakdown[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/risks/analytics/trend": {
-        "description": "Monthly risk trend",
-        "query_params": [
-          "months",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "MonthlyTrend[]",
-        "response_envelope": {
-          "data": "MonthlyTrend[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/risks/analytics/overdue": {
-        "description": "Overdue risks and mitigations",
-        "response": "OverdueItems",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "OverdueItems",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    }
-  },
-  "permissions": {
-    "roles": [
-      "owner",
-      "admin",
-      "risk_manager",
-      "manager",
-      "employee",
-      "viewer"
-    ],
-    "matrix": {
-      "risk.create": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager",
-        "employee"
-      ],
-      "risk.edit_own": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager",
-        "employee"
-      ],
-      "risk.edit_any": [
-        "owner",
-        "admin",
-        "risk_manager"
-      ],
-      "risk.delete_own": [
-        "owner",
-        "admin",
-        "risk_manager"
-      ],
-      "risk.delete_any": [
-        "owner",
-        "admin"
-      ],
-      "risk.escalate": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager"
-      ],
-      "risk.close": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager"
-      ],
-      "risk.view_all": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager"
-      ],
-      "risk.view_own": [
-        "employee",
-        "viewer"
-      ],
-      "mitigation.create": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager",
-        "employee"
-      ],
-      "mitigation.edit_own": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager",
-        "employee"
-      ],
-      "mitigation.edit_any": [
-        "owner",
-        "admin",
-        "risk_manager"
-      ],
-      "review.create": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager"
-      ],
-      "analytics.view": [
-        "owner",
-        "admin",
-        "risk_manager",
-        "manager"
-      ],
-      "analytics.export": [
-        "owner",
-        "admin",
-        "risk_manager"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "riskStore",
-        "state": [
-          "viewMode",
-          "activeFilters",
-          "selectedRisks",
-          "heatmapMode"
-        ],
-        "actions": [
-          "setViewMode",
-          "setActiveFilters",
-          "setSelectedRisks",
-          "toggleHeatmapMode",
-          "clearFilters"
-        ]
-      }
-    ],
-    "query_keys": [
-      "risks.list(filters)",
-      "risks.detail(id)",
-      "risks.heatmap(filters)",
-      "mitigations.by-risk(riskId)",
-      "mitigations.list(filters)",
-      "reviews.by-risk(riskId)",
-      "comments.by-risk(riskId)",
-      "analytics.summary",
-      "analytics.by-category",
-      "analytics.trend"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "risk:created",
-        "payload": "Risk",
-        "description": "Notify risk managers of new high/critical risk"
-      },
-      {
-        "name": "risk:escalated",
-        "payload": "Risk",
-        "description": "Notify stakeholders when risk is escalated"
-      },
-      {
-        "name": "risk:level_changed",
-        "payload": "Risk",
-        "description": "Alert owner when risk level increases"
-      },
-      {
-        "name": "mitigation:overdue",
-        "payload": "MitigationAction",
-        "description": "Notify assignee when action becomes overdue"
-      },
-      {
-        "name": "risk:comment_added",
-        "payload": "RiskComment",
-        "description": "Notify watchers of new comments"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Identify Risk",
-      "trigger": "User fills risk form and clicks Save",
-      "steps": [
-        "Validate required fields",
-        "Calculate risk_score = likelihood_score * impact_score",
-        "Derive risk_level from risk_score thresholds",
-        "Auto-generate risk_id (RSK-NNNN)",
-        "Set status = identified",
-        "If risk_level = critical \u2192 immediately notify risk managers",
-        "Send notification to assigned owner"
-      ]
-    },
-    {
-      "name": "Review Risk",
-      "trigger": "Risk review_date reached \u2192 cron reminder sent",
-      "steps": [
-        "Send reminder email to risk owner",
-        "Owner opens risk, reviews current state",
-        "Owner can update likelihood, impact, status",
-        "Owner submits review with notes",
-        "Create RiskReview snapshot record",
-        "Update risk.review_date to next review date",
-        "Recalculate risk_score and risk_level"
-      ]
-    },
-    {
-      "name": "Escalate Risk",
-      "trigger": "Manager clicks Escalate",
-      "steps": [
-        "Open EscalationModal for reason and stakeholder selection",
-        "Set risk.is_escalated = true, status = escalated",
-        "Send escalation notifications to selected stakeholders",
-        "Broadcast risk:escalated via websocket",
-        "Log escalation in activity log"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "name": "likelihood_score",
-      "entity": "Risk",
-      "formula": "MAP likelihood \u2192 {rare:1, unlikely:2, possible:3, likely:4, almost_certain:5}",
-      "stored": true
-    },
-    {
-      "name": "impact_score",
-      "entity": "Risk",
-      "formula": "MAP impact \u2192 {negligible:1, minor:2, moderate:3, major:4, severe:5}",
-      "stored": true
-    },
-    {
-      "name": "risk_score",
-      "entity": "Risk",
-      "formula": "likelihood_score * impact_score",
-      "stored": true
-    },
-    {
-      "name": "risk_level",
-      "entity": "Risk",
-      "formula": "CASE WHEN risk_score<=4 THEN low WHEN risk_score<=9 THEN medium WHEN risk_score<=16 THEN high ELSE critical END",
-      "stored": true
-    },
-    {
-      "name": "residual_risk_score",
-      "entity": "Risk",
-      "formula": "residual_likelihood_score * residual_impact_score (nullable)",
-      "stored": true
-    },
-    {
-      "name": "open_actions",
-      "entity": "Risk",
-      "formula": "COUNT(mitigation_actions) WHERE status IN ('planned','in_progress')",
-      "stored": false
-    },
-    {
-      "name": "overdue_count",
-      "entity": "Analytics",
-      "formula": "COUNT risks WHERE due_date < TODAY AND status NOT IN ('closed','accepted')",
-      "stored": false
-    }
-  ],
-  "domain_rules": [
-    "Risk score = likelihood_score (1-5) \u00d7 impact_score (1-5); range 1-25",
-    "Risk level thresholds: 1-4=low, 5-9=medium, 10-16=high, 17-25=critical",
-    "Critical and high risks require owner assignment before saving",
-    "Closed risks are read-only; require admin to reopen",
-    "Risk reviews must be logged at least as frequently as review_date interval",
-    "Escalated risks trigger immediate notifications to risk_manager role users",
-    "Mitigation action types: avoid (remove risk source), reduce (lower likelihood/impact), transfer (insurance/contract), accept (document acceptance), contingency (response plan if risk occurs)",
-    "Soft delete preserves risk audit history; risk_id sequence never reused"
-  ],
-  "folder_structure": {
-    "src": {
-      "features": {
-        "risk-management": {
-          "components": [
-            "RiskRegisterTable.tsx",
-            "RiskHeatmap.tsx",
-            "RiskForm.tsx",
-            "RiskDetailDrawer.tsx",
-            "MitigationActionList.tsx",
-            "RiskReviewForm.tsx",
-            "RiskCommentThread.tsx",
-            "EscalationModal.tsx",
-            "RiskSummaryStats.tsx",
-            "RiskTrendChart.tsx"
-          ],
-          "pages": [
-            "RiskRegisterPage.tsx",
-            "RiskDashboardPage.tsx",
-            "MyRisksPage.tsx",
-            "MitigationTrackerPage.tsx",
-            "RiskDetailPage.tsx"
-          ],
-          "hooks": [
-            "useRisks.ts",
-            "useRiskDetail.ts",
-            "useMitigations.ts",
-            "useRiskReviews.ts",
-            "useRiskAnalytics.ts"
-          ],
-          "store": [
-            "riskStore.ts"
-          ],
-          "api": [
-            "risksApi.ts",
-            "mitigationsApi.ts",
-            "riskCommentsApi.ts",
-            "riskAnalyticsApi.ts"
-          ],
-          "types": [
-            "risk.types.ts"
-          ],
-          "utils": [
-            "riskScoreUtils.ts",
-            "heatmapUtils.ts"
-          ]
-        }
-      }
-    }
-  },
-  "generation_rules": [
-    "Risk heatmap is a 5x5 matrix grid rendered with CSS grid; each cell is a button showing risk count",
-    "likelihood_score and impact_score stored in DB for performance; recalculated on enum change",
-    "Risk ID auto-increments per org starting from RSK-0001",
-    "Review reminders sent via server cron 7 days before review_date",
-    "Overdue mitigation actions highlighted in red; overdue detection runs daily",
-    "Soft delete only \u2014 filter deleted_at IS NULL on all queries",
-    "Risk exports include all fields + mitigation actions in a single CSV/PDF",
-    "Heatmap color gradient: green (low-left) to red (high-right), matching ISO 31000 standard"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "category_enum": {
-      "pg_type": "category_type",
-      "ts_type": "CategoryEnum",
-      "values": [
-        "operational",
-        "financial",
-        "strategic",
-        "compliance",
-        "technology",
-        "reputational",
-        "legal",
-        "environmental",
-        "human_resources",
-        "other"
-      ],
-      "pg_ddl": "CREATE TYPE category_type AS ENUM ('operational', 'financial', 'strategic', 'compliance', 'technology', 'reputational', 'legal', 'environmental', 'human_resources', 'other')"
-    },
-    "status_enum": {
-      "pg_type": "status_type",
-      "ts_type": "StatusEnum",
-      "values": [
-        "planned",
-        "in_progress",
-        "completed",
-        "cancelled"
-      ],
-      "pg_ddl": "CREATE TYPE status_type AS ENUM ('planned', 'in_progress', 'completed', 'cancelled')"
-    },
-    "likelihood_enum": {
-      "pg_type": "likelihood_type",
-      "ts_type": "LikelihoodEnum",
-      "values": [
-        "rare",
-        "unlikely",
-        "possible",
-        "likely",
-        "almost_certain"
-      ],
-      "pg_ddl": "CREATE TYPE likelihood_type AS ENUM ('rare', 'unlikely', 'possible', 'likely', 'almost_certain')"
-    },
-    "impact_enum": {
-      "pg_type": "impact_type",
-      "ts_type": "ImpactEnum",
-      "values": [
-        "negligible",
-        "minor",
-        "moderate",
-        "major",
-        "severe"
-      ],
-      "pg_ddl": "CREATE TYPE impact_type AS ENUM ('negligible', 'minor', 'moderate', 'major', 'severe')"
-    },
-    "risk_level_enum": {
-      "pg_type": "risk_level_type",
-      "ts_type": "RiskLevelEnum",
-      "values": [
-        "informational",
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ],
-      "pg_ddl": "CREATE TYPE risk_level_type AS ENUM ('informational', 'low', 'medium', 'high', 'critical')"
-    },
-    "residual_likelihood_enum": {
-      "pg_type": "residual_likelihood_type",
-      "ts_type": "ResidualLikelihoodEnum",
-      "values": [
-        "rare",
-        "unlikely",
-        "possible",
-        "likely",
-        "almost_certain"
-      ],
-      "pg_ddl": "CREATE TYPE residual_likelihood_type AS ENUM ('rare', 'unlikely', 'possible', 'likely', 'almost_certain')"
-    },
-    "residual_impact_enum": {
-      "pg_type": "residual_impact_type",
-      "ts_type": "ResidualImpactEnum",
-      "values": [
-        "negligible",
-        "minor",
-        "moderate",
-        "major",
-        "severe"
-      ],
-      "pg_ddl": "CREATE TYPE residual_impact_type AS ENUM ('negligible', 'minor', 'moderate', 'major', 'severe')"
-    },
-    "action_type_enum": {
-      "pg_type": "action_type_type",
-      "ts_type": "ActionTypeEnum",
-      "values": [
-        "avoid",
-        "reduce",
-        "transfer",
-        "accept",
-        "contingency"
-      ],
-      "pg_ddl": "CREATE TYPE action_type_type AS ENUM ('avoid', 'reduce', 'transfer', 'accept', 'contingency')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  }
+  ]
 }

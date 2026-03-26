@@ -1,7 +1,7 @@
 {
   "_meta": {
     "app_name": "Wedding Planner",
-    "description": "Wedding planning"
+    "description": "Wedding event planning and coordination"
   },
   "entities": [
     {
@@ -40,21 +40,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "label": "Couple Names"
         },
         {
-          "name": "date",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "venue",
+          "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -62,65 +54,146 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "wedding_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "guest_count",
-          "db_type": "INTEGER",
+          "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 2000
+          }
         },
         {
-          "name": "budget",
-          "db_type": "NUMERIC(14,2)",
+          "name": "total_budget",
+          "db_type": "NUMERIC(14,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
           "name": "theme",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(50)",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "wedding_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
+            "traditional",
+            "destination",
+            "elopement",
+            "micro",
+            "virtual",
+            "cultural"
+          ],
+          "badge_colors": {
+            "traditional": "blue",
+            "destination": "green",
+            "elopement": "pink",
+            "micro": "teal",
+            "virtual": "purple",
+            "cultural": "gold"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'planning'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "planning",
+          "enum_values": [
+            "inquiry",
             "planning",
-            "booked",
-            "final_prep",
+            "confirmed",
             "day_of",
             "completed",
             "cancelled"
           ],
           "badge_colors": {
-            "planning": "blue",
-            "booked": "purple",
-            "final_prep": "amber",
+            "inquiry": "gray",
+            "planning": "yellow",
+            "confirmed": "blue",
             "day_of": "green",
-            "completed": "slate",
+            "completed": "teal",
             "cancelled": "red"
           }
         },
@@ -174,11 +247,11 @@
           "layout": "table",
           "columns": [
             "couple_names",
-            "date",
-            "venue",
+            "email",
+            "phone",
+            "wedding_date",
             "guest_count",
-            "budget",
-            "theme"
+            "total_budget"
           ],
           "filters": [],
           "empty_state": {
@@ -192,32 +265,48 @@
           "type": "SlideOverForm",
           "field_order": [
             "couple_names",
-            "date",
-            "venue",
+            "email",
+            "phone",
+            "wedding_date",
             "guest_count",
-            "budget",
+            "total_budget",
             "theme",
+            "wedding_type",
             "status"
           ],
           "required_fields": [
             "couple_names",
-            "date"
+            "email",
+            "phone",
+            "wedding_date",
+            "guest_count",
+            "total_budget",
+            "wedding_type",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "couple_names",
-            "date",
-            "venue",
+            "email",
+            "phone",
+            "wedding_date",
             "guest_count",
-            "budget",
+            "total_budget",
             "theme",
+            "wedding_type",
             "status"
           ],
           "required_fields": [
             "couple_names",
-            "date"
+            "email",
+            "phone",
+            "wedding_date",
+            "guest_count",
+            "total_budget",
+            "wedding_type",
+            "status"
           ],
           "prefilled": true
         },
@@ -232,20 +321,33 @@
           },
           "primary_fields": [
             "couple_names",
-            "date",
-            "venue",
-            "guest_count"
+            "email",
+            "phone",
+            "wedding_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "couple_names",
-                "date",
-                "venue",
+                "email",
+                "phone",
+                "wedding_date",
                 "guest_count",
-                "budget",
+                "total_budget"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "couple_names",
+                "email",
+                "phone",
+                "wedding_date",
+                "guest_count",
+                "total_budget",
                 "theme",
+                "wedding_type",
                 "status"
               ]
             }
@@ -254,9 +356,9 @@
       }
     },
     {
-      "name": "Vendor",
-      "table": "vendors",
-      "description": "Wedding vendor",
+      "name": "Venue",
+      "table": "venues",
+      "description": "Wedding venue",
       "fields": [
         {
           "name": "id",
@@ -289,73 +391,152 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "category",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "address",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "wedding_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "weddings",
+          "fk_display": "couple_names"
+        },
+        {
+          "name": "venue_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "venue",
-            "catering",
-            "photography",
-            "flowers",
-            "music",
-            "cake",
-            "attire",
-            "decor",
-            "officiant"
+            "ceremony",
+            "reception",
+            "both",
+            "rehearsal_dinner",
+            "after_party"
           ],
           "badge_colors": {
-            "venue": "blue",
-            "catering": "green",
-            "photography": "purple",
-            "flowers": "pink",
-            "music": "amber",
-            "cake": "pink",
-            "attire": "purple",
-            "decor": "blue",
-            "officiant": "slate"
+            "ceremony": "blue",
+            "reception": "green",
+            "both": "purple",
+            "rehearsal_dinner": "orange",
+            "after_party": "pink"
           }
         },
         {
-          "name": "price",
-          "db_type": "NUMERIC(12,2)",
+          "name": "capacity",
+          "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "cost",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "contact_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contact_phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'considering'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "considering",
           "enum_values": [
-            "contacted",
+            "considering",
             "booked",
-            "deposit_paid",
-            "paid_in_full"
+            "confirmed",
+            "cancelled"
           ],
           "badge_colors": {
-            "contacted": "slate",
+            "considering": "yellow",
             "booked": "blue",
-            "deposit_paid": "amber",
-            "paid_in_full": "green"
+            "confirmed": "green",
+            "cancelled": "red"
           }
         },
         {
@@ -408,9 +589,380 @@
           "layout": "table",
           "columns": [
             "name",
-            "category",
-            "price",
+            "address",
+            "wedding_id",
+            "venue_type",
+            "capacity",
+            "cost"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Venues yet",
+            "subtext": "Create your first venue",
+            "action_label": "Add Venue"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "address",
+            "wedding_id",
+            "venue_type",
+            "capacity",
+            "cost",
+            "contact_name",
+            "contact_phone",
             "status"
+          ],
+          "required_fields": [
+            "name",
+            "address",
+            "wedding_id",
+            "venue_type",
+            "capacity",
+            "cost",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "address",
+            "wedding_id",
+            "venue_type",
+            "capacity",
+            "cost",
+            "contact_name",
+            "contact_phone",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "address",
+            "wedding_id",
+            "venue_type",
+            "capacity",
+            "cost",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/venues/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "address",
+            "wedding_id",
+            "venue_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "address",
+                "wedding_id",
+                "venue_type",
+                "capacity",
+                "cost"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "address",
+                "wedding_id",
+                "venue_type",
+                "capacity",
+                "cost",
+                "contact_name",
+                "contact_phone",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "wedding_id",
+          "references": {
+            "table": "weddings",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Vendor",
+      "table": "vendors",
+      "description": "Wedding vendor / supplier",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "wedding_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "weddings",
+          "fk_display": "couple_names"
+        },
+        {
+          "name": "company_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contact_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "vendor_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "photographer",
+            "videographer",
+            "florist",
+            "caterer",
+            "dj",
+            "band",
+            "cake",
+            "officiant",
+            "hair_makeup",
+            "planner",
+            "rentals",
+            "transportation"
+          ],
+          "badge_colors": {
+            "photographer": "blue",
+            "videographer": "green",
+            "florist": "pink",
+            "caterer": "orange",
+            "dj": "purple",
+            "band": "red",
+            "cake": "yellow",
+            "officiant": "teal",
+            "hair_makeup": "pink",
+            "planner": "gold",
+            "rentals": "gray",
+            "transportation": "blue"
+          }
+        },
+        {
+          "name": "quoted_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "deposit_paid",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'contacted'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "contacted",
+          "enum_values": [
+            "contacted",
+            "quoted",
+            "booked",
+            "confirmed",
+            "paid",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "contacted": "gray",
+            "quoted": "yellow",
+            "booked": "blue",
+            "confirmed": "green",
+            "paid": "teal",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "wedding_id",
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "vendor_type"
           ],
           "filters": [],
           "empty_state": {
@@ -423,27 +975,51 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "category",
-            "price",
+            "wedding_id",
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "vendor_type",
+            "quoted_price",
+            "deposit_paid",
             "status"
           ],
           "required_fields": [
-            "name",
-            "category"
+            "wedding_id",
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "vendor_type",
+            "quoted_price",
+            "deposit_paid",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "category",
-            "price",
+            "wedding_id",
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "vendor_type",
+            "quoted_price",
+            "deposit_paid",
             "status"
           ],
           "required_fields": [
-            "name",
-            "category"
+            "wedding_id",
+            "company_name",
+            "contact_name",
+            "email",
+            "phone",
+            "vendor_type",
+            "quoted_price",
+            "deposit_paid",
+            "status"
           ],
           "prefilled": true
         },
@@ -452,29 +1028,61 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "wedding_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "name",
-            "category",
-            "price",
-            "status"
+            "wedding_id",
+            "company_name",
+            "contact_name",
+            "email"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "name",
-                "category",
-                "price",
+                "wedding_id",
+                "company_name",
+                "contact_name",
+                "email",
+                "phone",
+                "vendor_type"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "wedding_id",
+                "company_name",
+                "contact_name",
+                "email",
+                "phone",
+                "vendor_type",
+                "quoted_price",
+                "deposit_paid",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "wedding_id",
+          "references": {
+            "table": "weddings",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "balance_due",
+          "expression": "quoted_price - deposit_paid",
+          "ts_expression": "quoted_price - deposit_paid"
+        }
+      ]
     },
     {
       "name": "Guest",
@@ -504,6 +1112,22 @@
           "display_component": "text"
         },
         {
+          "name": "wedding_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "weddings",
+          "fk_display": "couple_names"
+        },
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -512,7 +1136,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "email",
@@ -523,65 +1149,135 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "party_size",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "meal_choice",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "chicken",
-            "beef",
-            "fish",
-            "vegetarian",
-            "vegan",
-            "kids"
-          ],
-          "badge_colors": {
-            "chicken": "amber",
-            "beef": "red",
-            "fish": "blue",
-            "vegetarian": "green",
-            "vegan": "green",
-            "kids": "pink"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "rsvp",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "plus_one",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "rsvp_status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'pending'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "pending",
           "enum_values": [
             "pending",
-            "attending",
-            "declined"
+            "accepted",
+            "declined",
+            "tentative"
           ],
           "badge_colors": {
-            "pending": "amber",
-            "attending": "green",
-            "declined": "red"
+            "pending": "yellow",
+            "accepted": "green",
+            "declined": "red",
+            "tentative": "blue"
+          }
+        },
+        {
+          "name": "dietary_restrictions",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "none",
+            "vegetarian",
+            "vegan",
+            "gluten_free",
+            "kosher",
+            "halal",
+            "other"
+          ],
+          "badge_colors": {
+            "none": "gray",
+            "vegetarian": "green",
+            "vegan": "teal",
+            "gluten_free": "yellow",
+            "kosher": "blue",
+            "halal": "purple",
+            "other": "orange"
+          },
+          "conditional_visibility": {
+            "field": "rsvp_status",
+            "operator": "equals",
+            "value": "accepted"
+          }
+        },
+        {
+          "name": "table_number",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "rsvp_status",
+            "operator": "equals",
+            "value": "accepted"
+          }
+        },
+        {
+          "name": "group_name",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "bride_family",
+            "groom_family",
+            "bride_friends",
+            "groom_friends",
+            "work",
+            "other"
+          ],
+          "badge_colors": {
+            "bride_family": "pink",
+            "groom_family": "blue",
+            "bride_friends": "purple",
+            "groom_friends": "teal",
+            "work": "green",
+            "other": "gray"
           }
         },
         {
@@ -633,11 +1329,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
+            "wedding_id",
             "name",
             "email",
-            "party_size",
-            "meal_choice",
-            "rsvp"
+            "plus_one",
+            "rsvp_status",
+            "dietary_restrictions"
           ],
           "filters": [],
           "empty_state": {
@@ -650,29 +1347,39 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
+            "wedding_id",
             "name",
             "email",
-            "party_size",
-            "meal_choice",
-            "rsvp"
+            "plus_one",
+            "rsvp_status",
+            "dietary_restrictions",
+            "table_number",
+            "group_name"
           ],
           "required_fields": [
+            "wedding_id",
             "name",
-            "email"
+            "plus_one",
+            "rsvp_status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
+            "wedding_id",
             "name",
             "email",
-            "party_size",
-            "meal_choice",
-            "rsvp"
+            "plus_one",
+            "rsvp_status",
+            "dietary_restrictions",
+            "table_number",
+            "group_name"
           ],
           "required_fields": [
+            "wedding_id",
             "name",
-            "email"
+            "plus_one",
+            "rsvp_status"
           ],
           "prefilled": true
         },
@@ -681,30 +1388,53 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "wedding_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
+            "wedding_id",
             "name",
             "email",
-            "party_size",
-            "meal_choice"
+            "plus_one"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
+                "wedding_id",
                 "name",
                 "email",
-                "party_size",
-                "meal_choice",
-                "rsvp"
+                "plus_one",
+                "rsvp_status",
+                "dietary_restrictions"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "wedding_id",
+                "name",
+                "email",
+                "plus_one",
+                "rsvp_status",
+                "dietary_restrictions",
+                "table_number",
+                "group_name"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "wedding_id",
+          "references": {
+            "table": "weddings",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Task",
@@ -734,6 +1464,22 @@
           "display_component": "text"
         },
         {
+          "name": "wedding_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "weddings",
+          "fk_display": "couple_names"
+        },
+        {
           "name": "title",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -742,60 +1488,439 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "wedding_couple",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "due_date",
-          "db_type": "DATE",
+          "name": "description",
+          "db_type": "TEXT",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "assigned_to",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "category",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "venue",
+            "attire",
+            "food",
+            "decor",
+            "entertainment",
+            "photography",
+            "invitations",
+            "legal",
+            "beauty",
+            "transportation",
+            "other"
+          ],
+          "badge_colors": {
+            "venue": "blue",
+            "attire": "pink",
+            "food": "orange",
+            "decor": "purple",
+            "entertainment": "green",
+            "photography": "teal",
+            "invitations": "yellow",
+            "legal": "gray",
+            "beauty": "red",
+            "transportation": "blue",
+            "other": "gray"
+          }
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(10) NOT NULL DEFAULT 'medium'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "medium",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "gray",
+            "medium": "blue",
+            "high": "orange",
+            "critical": "red"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'todo'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "todo",
           "enum_values": [
             "todo",
             "in_progress",
-            "done"
+            "done",
+            "deferred"
           ],
           "badge_colors": {
-            "todo": "slate",
-            "in_progress": "amber",
-            "done": "green"
+            "todo": "gray",
+            "in_progress": "blue",
+            "done": "green",
+            "deferred": "yellow"
+          }
+        },
+        {
+          "name": "assigned_to",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "wedding_id",
+            "title",
+            "category",
+            "due_date",
+            "priority",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Tasks yet",
+            "subtext": "Create your first task",
+            "action_label": "Add Task"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "wedding_id",
+            "title",
+            "description",
+            "category",
+            "due_date",
+            "priority",
+            "status",
+            "assigned_to"
+          ],
+          "required_fields": [
+            "wedding_id",
+            "title",
+            "category",
+            "due_date",
+            "priority",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "wedding_id",
+            "title",
+            "description",
+            "category",
+            "due_date",
+            "priority",
+            "status",
+            "assigned_to"
+          ],
+          "required_fields": [
+            "wedding_id",
+            "title",
+            "category",
+            "due_date",
+            "priority",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tasks/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "wedding_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "wedding_id",
+            "title",
+            "category",
+            "due_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "wedding_id",
+                "title",
+                "category",
+                "due_date",
+                "priority",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "wedding_id",
+                "title",
+                "description",
+                "category",
+                "due_date",
+                "priority",
+                "status",
+                "assigned_to"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "wedding_id",
+          "references": {
+            "table": "weddings",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Budget",
+      "table": "budget_items",
+      "description": "Budget line item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "wedding_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "weddings",
+          "fk_display": "couple_names"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "estimated_cost",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "actual_cost",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "paid_amount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'estimated'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "estimated",
+          "enum_values": [
+            "estimated",
+            "quoted",
+            "booked",
+            "paid",
+            "over_budget"
+          ],
+          "badge_colors": {
+            "estimated": "gray",
+            "quoted": "yellow",
+            "booked": "blue",
+            "paid": "green",
+            "over_budget": "red"
           }
         },
         {
@@ -847,173 +1972,468 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "title",
-            "wedding_couple",
-            "due_date",
-            "assigned_to",
-            "status"
+            "wedding_id",
+            "category",
+            "description",
+            "estimated_cost",
+            "actual_cost",
+            "paid_amount"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No Tasks yet",
-            "subtext": "Create your first task",
-            "action_label": "Add Task"
+            "heading": "No Budgets yet",
+            "subtext": "Create your first budget",
+            "action_label": "Add Budget"
           }
         },
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "title",
-            "wedding_couple",
-            "due_date",
-            "assigned_to",
+            "wedding_id",
+            "category",
+            "description",
+            "estimated_cost",
+            "actual_cost",
+            "paid_amount",
             "status"
           ],
           "required_fields": [
-            "title",
-            "wedding_couple"
+            "wedding_id",
+            "category",
+            "description",
+            "estimated_cost",
+            "actual_cost",
+            "paid_amount",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "title",
-            "wedding_couple",
-            "due_date",
-            "assigned_to",
+            "wedding_id",
+            "category",
+            "description",
+            "estimated_cost",
+            "actual_cost",
+            "paid_amount",
             "status"
           ],
           "required_fields": [
-            "title",
-            "wedding_couple"
+            "wedding_id",
+            "category",
+            "description",
+            "estimated_cost",
+            "actual_cost",
+            "paid_amount",
+            "status"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/tasks/:id",
+          "route": "/budget_items/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "title"
+              "wedding_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "title",
-            "wedding_couple",
-            "due_date",
-            "assigned_to"
+            "wedding_id",
+            "category",
+            "description",
+            "estimated_cost"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "title",
-                "wedding_couple",
-                "due_date",
-                "assigned_to",
+                "wedding_id",
+                "category",
+                "description",
+                "estimated_cost",
+                "actual_cost",
+                "paid_amount"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "wedding_id",
+                "category",
+                "description",
+                "estimated_cost",
+                "actual_cost",
+                "paid_amount",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "wedding_id",
+          "references": {
+            "table": "weddings",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "variance",
+          "expression": "estimated_cost - actual_cost",
+          "ts_expression": "estimated_cost - actual_cost"
+        },
+        {
+          "name": "balance_due",
+          "expression": "actual_cost - paid_amount",
+          "ts_expression": "actual_cost - paid_amount"
+        }
+      ]
+    },
+    {
+      "name": "Timeline",
+      "table": "timeline_items",
+      "description": "Wedding day timeline event",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "wedding_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "weddings",
+          "fk_display": "couple_names"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "time_picker",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "time_picker",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "location",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "responsible_person",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "prep",
+            "ceremony",
+            "photos",
+            "cocktail",
+            "reception",
+            "entertainment",
+            "departure"
+          ],
+          "badge_colors": {
+            "prep": "yellow",
+            "ceremony": "blue",
+            "photos": "green",
+            "cocktail": "orange",
+            "reception": "purple",
+            "entertainment": "red",
+            "departure": "gray"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'planned'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "planned",
+          "enum_values": [
+            "planned",
+            "confirmed",
+            "completed",
+            "changed"
+          ],
+          "badge_colors": {
+            "planned": "yellow",
+            "confirmed": "blue",
+            "completed": "green",
+            "changed": "orange"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "wedding_id",
+            "title",
+            "start_time",
+            "end_time",
+            "location",
+            "responsible_person"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Timelines yet",
+            "subtext": "Create your first timeline",
+            "action_label": "Add Timeline"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "wedding_id",
+            "title",
+            "start_time",
+            "end_time",
+            "location",
+            "responsible_person",
+            "category",
+            "notes",
+            "status"
+          ],
+          "required_fields": [
+            "wedding_id",
+            "title",
+            "start_time",
+            "end_time",
+            "category",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "wedding_id",
+            "title",
+            "start_time",
+            "end_time",
+            "location",
+            "responsible_person",
+            "category",
+            "notes",
+            "status"
+          ],
+          "required_fields": [
+            "wedding_id",
+            "title",
+            "start_time",
+            "end_time",
+            "category",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/timeline_items/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "wedding_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "wedding_id",
+            "title",
+            "start_time",
+            "end_time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "wedding_id",
+                "title",
+                "start_time",
+                "end_time",
+                "location",
+                "responsible_person"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "wedding_id",
+                "title",
+                "start_time",
+                "end_time",
+                "location",
+                "responsible_person",
+                "category",
+                "notes",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "wedding_id",
+          "references": {
+            "table": "weddings",
+            "column": "id"
+          }
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Weddings",
-      "route": "/weddings",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Box",
-      "entity": "Wedding"
-    },
-    {
-      "name": "Vendors",
-      "route": "/vendors",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Box",
-      "entity": "Vendor"
-    },
-    {
-      "name": "Guests",
-      "route": "/guests",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Box",
-      "entity": "Guest"
-    },
-    {
-      "name": "Tasks",
-      "route": "/tasks",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Box",
-      "entity": "Task"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Weddings",
-        "entity": "Wedding",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

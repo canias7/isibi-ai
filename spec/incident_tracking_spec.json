@@ -1,2857 +1,1033 @@
 {
   "_meta": {
-    "title": "Incident Tracking Application",
-    "domain": "Operations & IT",
-    "version": "1.0"
+    "app_name": "Incident Tracking",
+    "description": "Complete incident tracking management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "rose",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "severity_colors": {
-      "sev1": "red",
-      "sev2": "orange",
-      "sev3": "amber",
-      "sev4": "yellow",
-      "sev5": "sky"
-    },
-    "severity_labels": {
-      "sev1": "Critical",
-      "sev2": "High",
-      "sev3": "Medium",
-      "sev4": "Low",
-      "sev5": "Informational"
-    },
-    "status_colors": {
-      "open": "red",
-      "acknowledged": "orange",
-      "investigating": "amber",
-      "identified": "blue",
-      "mitigating": "violet",
-      "monitoring": "cyan",
-      "resolved": "green",
-      "closed": "slate",
-      "cancelled": "gray"
-    },
-    "type_colors": {
-      "security": "red",
-      "outage": "orange",
-      "degraded_performance": "amber",
-      "data_breach": "rose",
-      "infrastructure": "blue",
-      "application": "violet",
-      "compliance": "teal",
-      "business": "cyan",
-      "other": "slate"
-    }
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
-  },
+  "spec_name": "incident_tracking_spec",
   "entities": [
+    {
+      "name": "Category",
+      "table": "incident_categories",
+      "description": "Category",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "code",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "security",
+            "infrastructure",
+            "application",
+            "network",
+            "hardware",
+            "other"
+          ],
+          "badge_colors": {
+            "security": "red",
+            "infrastructure": "blue",
+            "application": "green",
+            "network": "purple",
+            "hardware": "amber",
+            "other": "slate"
+          }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "incident_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(incidents)"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
     {
       "name": "Incident",
       "table": "incidents",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "severity"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "incident_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "commander_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "detected_at"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "is_major"
-          ]
-        }
-      ],
+      "description": "Incident",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "category_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Category"
         },
         {
           "name": "incident_number",
-          "db_type": "VARCHAR(50)",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "auto-gen INC-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
           "editable": false,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(500)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/incidents/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "description",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "incident_type",
-          "db_type": "ENUM('security','outage','degraded_performance','data_breach','infrastructure','application','compliance','business','other')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "other",
-          "input_component": "Select",
-          "display_component": "IncidentTypeBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
           "name": "severity",
-          "db_type": "ENUM('sev1','sev2','sev3','sev4','sev5')",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "sev3",
-          "input_component": "Select",
-          "display_component": "SeverityBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('open','acknowledged','investigating','identified','mitigating','monitoring','resolved','closed','cancelled')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "open",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "commander_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "notes": "Incident commander / DRI",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "reporter_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "detected_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": "DateTimePicker",
-          "display_component": "AbsoluteDateTime",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "acknowledged_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDateTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "resolved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DateTimePicker",
-          "display_component": "AbsoluteDateTime",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "closed_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDateTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "time_to_acknowledge_min",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "computed": {
-            "source": "self",
-            "formula": "EXTRACT(EPOCH FROM acknowledged_at - detected_at) / 60",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "formula": "EXTRACT(EPOCH FROM acknowledged_at - detected_at) / 60",
-          "input_component": null,
-          "display_component": "DurationDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "time_to_resolve_min",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "computed": {
-            "source": "self",
-            "formula": "EXTRACT(EPOCH FROM resolved_at - detected_at) / 60",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "formula": "EXTRACT(EPOCH FROM resolved_at - detected_at) / 60",
-          "input_component": null,
-          "display_component": "DurationDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "affected_services",
-          "db_type": "TEXT[]",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "ARRAY[]::TEXT[]",
-          "input_component": "ServiceSelector",
-          "display_component": "TagList",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "affected_users_count",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "NumberInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "min": 0
-          }
-        },
-        {
-          "name": "customer_impact",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "is_major",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "notes": "True for SEV1 and SEV2 with customer impact",
-          "input_component": null,
-          "display_component": "BooleanBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "root_cause",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "resolution_summary",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "postmortem_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "postmortems",
-          "input_component": null,
-          "display_component": "PostmortemLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "tags",
-          "db_type": "TEXT[]",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "ARRAY[]::TEXT[]",
-          "input_component": "TagInput",
-          "display_component": "TagList",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_incidents_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_incidents_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "sev1",
+            "sev2",
+            "sev3",
+            "sev4"
           ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "IncidentUpdate",
-      "table": "incident_updates",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "incident_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "author_id"
-          ]
-        },
-        {
-          "columns": [
-            "incident_id",
-            "created_at"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "incident_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "incidents",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "author_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "message",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "RichTextDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "update_type",
-          "db_type": "ENUM('status_change','note','action_taken','escalation','resolution','system')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "note",
-          "input_component": "Select",
-          "display_component": "UpdateTypeBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "status_from",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "status_to",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "is_public",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "notes": "Whether visible on status page / external communications",
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_incident_updates_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_incident_updates_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "IncidentResponder",
-      "table": "incident_responders",
-      "indexes": [
-        {
-          "columns": [
-            "incident_id",
-            "user_id"
-          ],
-          "unique": true
-        },
-        {
-          "columns": [
-            "org_id",
-            "user_id"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "incident_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "incidents",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "user_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "role",
-          "db_type": "ENUM('commander','responder','observer','stakeholder')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "responder",
-          "input_component": "Select",
-          "display_component": "RoleBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "paged_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "joined_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_incident_responders_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_incident_responders_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "Postmortem",
-      "table": "postmortems",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "incident_id"
-          ],
-          "unique": true
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "incident_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "incidents",
-          "input_component": null,
-          "display_component": "IncidentLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "author_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('draft','in_review','published')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "draft",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "timeline",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Markdown/rich text timeline of events",
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "what_happened",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "contributing_factors",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "what_went_well",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "what_could_be_improved",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "corrective_actions",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "published_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_postmortems_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_postmortems_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "ActionItem",
-      "table": "incident_action_items",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "incident_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "assignee_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "incident_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "incidents",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "title",
-          "db_type": "VARCHAR(500)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "assignee_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('open','in_progress','done','cancelled')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "open",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
+          "badge_colors": {
+            "sev1": "red",
+            "sev2": "amber",
+            "sev3": "blue",
+            "sev4": "slate"
           }
         },
         {
           "name": "priority",
-          "db_type": "ENUM('low','medium','high','critical')",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "medium",
-          "input_component": "Select",
-          "display_component": "PriorityBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
+          }
         },
         {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
+          "name": "impact",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "critical",
+            "major",
+            "moderate",
+            "minor"
+          ],
+          "badge_colors": {
+            "critical": "red",
+            "major": "amber",
+            "moderate": "blue",
+            "minor": "green"
+          }
+        },
+        {
+          "name": "reported_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "reported_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "resolved_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "datetime_picker",
+          "display_component": "date",
+          "visible_when": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "resolved",
+              "closed"
+            ]
+          }
         },
         {
-          "name": "source",
-          "db_type": "ENUM('during_incident','postmortem')",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "during_incident",
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "new",
+            "triaged",
+            "investigating",
+            "mitigating",
+            "resolved",
+            "closed"
+          ],
+          "badge_colors": {
+            "new": "red",
+            "triaged": "amber",
+            "investigating": "blue",
+            "mitigating": "purple",
+            "resolved": "green",
+            "closed": "slate"
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Response",
+      "table": "incident_responses",
+      "description": "Response",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "incident_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Incident"
+        },
+        {
+          "name": "responder",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "role",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "incident_commander",
+            "tech_lead",
+            "communicator",
+            "scribe",
+            "subject_expert"
+          ],
+          "badge_colors": {
+            "incident_commander": "purple",
+            "tech_lead": "blue",
+            "communicator": "green",
+            "scribe": "amber",
+            "subject_expert": "pink"
+          }
+        },
+        {
+          "name": "actions_taken",
+          "db_type": "TEXT",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "version",
-          "db_type": "INTEGER",
+          "name": "joined_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "left_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "time_spent_minutes",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "EXTRACT(EPOCH FROM left_at - joined_at) / 60"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_incident_action_items_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "name": "idx_incident_action_items_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
-    }
-  ],
-  "components": [
-    {
-      "name": "ActiveIncidentBanner",
-      "type": "Banner",
-      "props": {
-        "sticky": true,
-        "variant": "critical"
-      },
-      "features": [
-        "sev1_sev2_only",
-        "click_to_incident",
-        "responder_count",
-        "elapsed_time",
-        "join_button"
-      ]
     },
     {
-      "name": "IncidentListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "incident_number",
-          "title",
-          "incident_type",
-          "severity",
-          "status",
-          "commander_id",
-          "detected_at",
-          "resolved_at",
-          "time_to_resolve_min",
-          "affected_services",
-          "customer_impact",
-          "is_major",
-          "postmortem_id"
-        ]
-      },
-      "features": [
-        "filter_by_severity",
-        "filter_by_type",
-        "filter_by_status",
-        "filter_by_date",
-        "search",
-        "export_csv",
-        "realtime_updates"
-      ]
-    },
-    {
-      "name": "IncidentCreationForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "title",
-          "description",
-          "incident_type",
-          "severity",
-          "affected_services",
-          "customer_impact",
-          "commander_id",
-          "detected_at",
-          "tags"
-        ]
-      },
-      "features": [
-        "pagerduty_integration",
-        "auto_page_oncall",
-        "severity_guide",
-        "quick_create_mode"
-      ]
-    },
-    {
-      "name": "IncidentWarRoom",
-      "type": "Page",
-      "description": "Real-time incident response workspace",
-      "features": [
-        "status_change_bar",
-        "responder_panel",
-        "live_updates_feed",
-        "action_items_panel",
-        "timeline",
-        "severity_change",
-        "escalation_button",
-        "resolve_button"
-      ]
-    },
-    {
-      "name": "LiveUpdatesFeed",
-      "type": "ActivityFeed",
-      "features": [
-        "add_update",
-        "filter_by_type",
-        "auto_scroll",
-        "timestamp_markers",
-        "system_events",
-        "is_public_toggle"
-      ]
-    },
-    {
-      "name": "ResponderPanel",
-      "type": "Panel",
-      "features": [
-        "add_responder",
-        "assign_commander",
-        "page_oncall",
-        "responder_roles",
-        "joined_at_indicator"
-      ]
-    },
-    {
-      "name": "IncidentTimelineStepper",
-      "type": "Timeline",
-      "features": [
-        "detected_at",
-        "acknowledged_at",
-        "resolved_at",
-        "closed_at",
-        "duration_between_stages",
-        "click_to_update"
-      ]
-    },
-    {
-      "name": "PostmortemEditor",
-      "type": "Page",
-      "features": [
-        "collaborative_editing",
-        "sections_nav",
-        "auto_populate_from_incident",
-        "incident_timeline_import",
-        "corrective_actions",
-        "publish_button",
-        "export_pdf"
-      ]
-    },
-    {
-      "name": "IncidentSummaryStats",
-      "type": "StatsGrid",
-      "metrics": [
+      "name": "Investigation",
+      "table": "incident_investigations",
+      "description": "Investigation",
+      "fields": [
         {
-          "label": "Open Incidents",
-          "field": "open_count",
-          "format": "number",
-          "color": "red"
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "label": "SEV1/SEV2 Active",
-          "field": "major_active",
-          "format": "number",
-          "color": "orange"
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "label": "MTTR (This Month)",
-          "field": "mttr_minutes",
-          "format": "duration"
+          "name": "incident_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Incident"
         },
         {
-          "label": "MTTA (This Month)",
-          "field": "mtta_minutes",
-          "format": "duration"
+          "name": "investigator",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "label": "Total This Month",
-          "field": "total_this_month",
-          "format": "number"
-        }
-      ]
-    },
-    {
-      "name": "IncidentsByTypeChart",
-      "type": "BarChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "incident_type",
-        "yAxis": "count",
-        "stacked": true,
-        "color_by": "severity"
-      }
-    },
-    {
-      "name": "MTTRTrendChart",
-      "type": "LineChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "week",
-        "yAxis": "mttr_minutes",
-        "series_per": "severity"
-      }
-    },
-    {
-      "name": "ActionItemsPanel",
-      "type": "Panel",
-      "features": [
-        "add_action",
-        "assign",
-        "due_date",
-        "status_toggle",
-        "source_indicator",
-        "overdue_highlight"
-      ]
-    },
-    {
-      "name": "SeverityGuideModal",
-      "type": "Modal",
-      "features": [
-        "severity_definitions",
-        "customer_impact_matrix",
-        "response_playbooks"
-      ]
-    },
-    {
-      "name": "EscalationModal",
-      "type": "Modal",
-      "features": [
-        "upgrade_severity",
-        "notify_stakeholders",
-        "page_additional_responders",
-        "reason_input"
-      ]
-    }
-  ],
-  "modules": [
-    {
-      "name": "IncidentsDashboard",
-      "path": "/incidents",
-      "description": "Real-time incident operations dashboard",
-      "components": [
-        "ActiveIncidentBanner",
-        "IncidentSummaryStats",
-        "IncidentListTable",
-        "IncidentsByTypeChart",
-        "MTTRTrendChart"
-      ],
-      "tabs": [
-        "Active",
-        "Recent",
-        "All"
-      ]
-    },
-    {
-      "name": "IncidentWarRoomPage",
-      "path": "/incidents/:id",
-      "description": "Live incident response workspace (war room)",
-      "components": [
-        "IncidentWarRoom",
-        "LiveUpdatesFeed",
-        "ResponderPanel",
-        "IncidentTimelineStepper",
-        "ActionItemsPanel"
-      ]
-    },
-    {
-      "name": "PostmortemsList",
-      "path": "/incidents/postmortems",
-      "description": "Post-incident reviews and action item tracking",
-      "components": [
-        "IncidentListTable",
-        "PostmortemEditor"
-      ],
-      "tabs": [
-        "Draft",
-        "In Review",
-        "Published"
-      ]
-    },
-    {
-      "name": "ActionItemsTracker",
-      "path": "/incidents/action-items",
-      "description": "Track all corrective actions from incidents and postmortems",
-      "components": [
-        "ActionItemsPanel"
-      ],
-      "default_filters": {
-        "assignee_id": "current_user"
-      },
-      "tabs": [
-        "My Actions",
-        "All Actions",
-        "Overdue"
-      ]
-    },
-    {
-      "name": "AnalyticsPage",
-      "path": "/incidents/analytics",
-      "description": "Incident metrics, MTTR/MTTA trends, repeat incident analysis",
-      "components": [
-        "IncidentSummaryStats",
-        "IncidentsByTypeChart",
-        "MTTRTrendChart"
-      ],
-      "features": [
-        "date_range",
-        "severity_filter",
-        "type_filter",
-        "export_csv"
-      ]
-    }
-  ],
-  "api": {
-    "incidents": {
-      "GET /api/incidents": {
-        "description": "List incidents",
-        "query_params": [
-          "status",
-          "severity",
-          "incident_type",
-          "commander_id",
-          "date_from",
-          "date_to",
-          "customer_impact",
-          "is_major",
-          "search",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedIncident[]",
-        "response_envelope": {
-          "data": "PaginatedIncident[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/incidents": {
-        "description": "Create incident",
-        "body": "CreateIncidentDto",
-        "response": "Incident"
-      },
-      "GET /api/incidents/:id": {
-        "description": "Get full incident with relations",
-        "response": "IncidentWithRelations"
-      },
-      "PATCH /api/incidents/:id": {
-        "description": "Update incident",
-        "body": "UpdateIncidentDto",
-        "response": "Incident"
-      },
-      "DELETE /api/incidents/:id": {
-        "description": "Soft delete incident",
-        "response": "void"
-      },
-      "POST /api/incidents/:id/acknowledge": {
-        "description": "Acknowledge incident",
-        "response": "Incident"
-      },
-      "POST /api/incidents/:id/resolve": {
-        "description": "Mark incident as resolved",
-        "body": "ResolveIncidentDto",
-        "response": "Incident"
-      },
-      "POST /api/incidents/:id/close": {
-        "description": "Close incident",
-        "body": "CloseIncidentDto",
-        "response": "Incident"
-      },
-      "POST /api/incidents/:id/escalate": {
-        "description": "Escalate severity",
-        "body": "EscalateDto",
-        "response": "Incident"
-      },
-      "GET /api/incidents/active": {
-        "description": "Get all active (open/in-progress) incidents",
-        "response": "Incident[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "Incident[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "updates": {
-      "GET /api/incidents/:id/updates": {
-        "description": "Get incident update timeline",
-        "response": "IncidentUpdate[]"
-      },
-      "POST /api/incidents/:id/updates": {
-        "description": "Post update to incident",
-        "body": "CreateUpdateDto",
-        "response": "IncidentUpdate"
-      }
-    },
-    "responders": {
-      "POST /api/incidents/:id/responders": {
-        "description": "Add responder to incident",
-        "body": "AddResponderDto",
-        "response": "IncidentResponder"
-      },
-      "DELETE /api/incidents/:id/responders/:userId": {
-        "description": "Remove responder",
-        "response": "void"
-      },
-      "PATCH /api/incidents/:id/responders/:userId": {
-        "description": "Update responder role",
-        "body": "UpdateResponderDto",
-        "response": "IncidentResponder"
-      }
-    },
-    "postmortems": {
-      "POST /api/incidents/:id/postmortem": {
-        "description": "Create postmortem for incident",
-        "response": "Postmortem"
-      },
-      "GET /api/postmortems/:id": {
-        "description": "Get postmortem detail",
-        "response": "Postmortem"
-      },
-      "PATCH /api/postmortems/:id": {
-        "description": "Update postmortem",
-        "body": "UpdatePostmortemDto",
-        "response": "Postmortem"
-      },
-      "POST /api/postmortems/:id/publish": {
-        "description": "Publish postmortem",
-        "response": "Postmortem"
-      },
-      "GET /api/postmortems": {
-        "description": "List all postmortems",
-        "query_params": [
-          "status",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedPostmortem[]",
-        "response_envelope": {
-          "data": "PaginatedPostmortem[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "action_items": {
-      "GET /api/incidents/:id/action-items": {
-        "description": "List action items for incident",
-        "response": "ActionItem[]"
-      },
-      "POST /api/incidents/:id/action-items": {
-        "description": "Create action item",
-        "body": "CreateActionItemDto",
-        "response": "ActionItem"
-      },
-      "PATCH /api/action-items/:id": {
-        "description": "Update action item",
-        "body": "UpdateActionItemDto",
-        "response": "ActionItem"
-      },
-      "GET /api/action-items": {
-        "description": "List all action items cross-incident",
-        "query_params": [
-          "assignee_id",
-          "status",
-          "source",
-          "due_before",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedActionItem[]",
-        "response_envelope": {
-          "data": "PaginatedActionItem[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "analytics": {
-      "GET /api/incidents/analytics/summary": {
-        "description": "Summary stats",
-        "query_params": [
-          "date_from",
-          "date_to",
-          "severity",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "IncidentSummaryStats",
-        "response_envelope": {
-          "data": "IncidentSummaryStats",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/incidents/analytics/mttr": {
-        "description": "MTTR/MTTA trend",
-        "query_params": [
-          "weeks",
-          "severity",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "MTTRTrend[]",
-        "response_envelope": {
-          "data": "MTTRTrend[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/incidents/analytics/by-type": {
-        "description": "Incidents by type and severity",
-        "response": "TypeBreakdown[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "TypeBreakdown[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/incidents/analytics/repeat": {
-        "description": "Repeat incident patterns",
-        "response": "RepeatPattern[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "RepeatPattern[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    }
-  },
-  "permissions": {
-    "roles": [
-      "owner",
-      "admin",
-      "incident_manager",
-      "responder",
-      "viewer"
-    ],
-    "matrix": {
-      "incident.create": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "incident.edit": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "incident.delete": [
-        "owner",
-        "admin"
-      ],
-      "incident.acknowledge": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "incident.resolve": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "incident.close": [
-        "owner",
-        "admin",
-        "incident_manager"
-      ],
-      "incident.escalate": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "incident.view_all": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "incident.view_basic": [
-        "viewer"
-      ],
-      "update.create": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "responder.add": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "postmortem.create": [
-        "owner",
-        "admin",
-        "incident_manager"
-      ],
-      "postmortem.edit": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "postmortem.publish": [
-        "owner",
-        "admin",
-        "incident_manager"
-      ],
-      "action_item.create": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "action_item.complete_own": [
-        "owner",
-        "admin",
-        "incident_manager",
-        "responder"
-      ],
-      "analytics.view": [
-        "owner",
-        "admin",
-        "incident_manager"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "incidentStore",
-        "state": [
-          "activeIncidents",
-          "selectedIncident",
-          "viewMode",
-          "activeFilters"
-        ],
-        "actions": [
-          "setActiveIncidents",
-          "setSelectedIncident",
-          "setViewMode",
-          "setActiveFilters",
-          "clearFilters"
-        ]
-      },
-      {
-        "name": "warRoomStore",
-        "state": [
-          "incidentId",
-          "isLive",
-          "updateDraft"
-        ],
-        "actions": [
-          "setIncidentId",
-          "setIsLive",
-          "setUpdateDraft",
-          "clearUpdateDraft"
-        ]
-      }
-    ],
-    "query_keys": [
-      "incidents.list(filters)",
-      "incidents.active",
-      "incidents.detail(id)",
-      "updates.by-incident(id)",
-      "responders.by-incident(id)",
-      "postmortems.list(filters)",
-      "postmortems.detail(id)",
-      "action-items.list(filters)",
-      "analytics.summary(dateRange)",
-      "analytics.mttr(weeks)"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "incident:created",
-        "payload": "Incident",
-        "description": "Broadcast to all responders and show ActiveIncidentBanner for SEV1/SEV2"
-      },
-      {
-        "name": "incident:update_added",
-        "payload": "IncidentUpdate",
-        "description": "Real-time update in war room feed"
-      },
-      {
-        "name": "incident:status_changed",
-        "payload": "Incident",
-        "description": "Notify all responders and update status badge"
-      },
-      {
-        "name": "incident:severity_changed",
-        "payload": "Incident",
-        "description": "Alert if severity escalated to SEV1/SEV2"
-      },
-      {
-        "name": "incident:resolved",
-        "payload": "Incident",
-        "description": "Notify all responders and stakeholders"
-      },
-      {
-        "name": "incident:responder_joined",
-        "payload": "IncidentResponder",
-        "description": "Show in war room responder panel"
-      },
-      {
-        "name": "postmortem:updated",
-        "payload": "Postmortem",
-        "description": "Sync collaborative postmortem editing"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Declare Incident",
-      "trigger": "Responder or automated alert creates incident",
-      "steps": [
-        "Create incident with status = open",
-        "Auto-determine is_major based on severity (SEV1/SEV2) and customer_impact",
-        "If SEV1/SEV2 \u2192 immediately page on-call commander, broadcast to all responders",
-        "Show ActiveIncidentBanner app-wide",
-        "Create system IncidentUpdate: 'Incident declared'",
-        "Commander acknowledges \u2192 set acknowledged_at, status = acknowledged",
-        "Responders join \u2192 open war room with live feed"
-      ]
-    },
-    {
-      "name": "Resolve Incident",
-      "trigger": "Commander clicks Resolve",
-      "steps": [
-        "Require resolution_summary",
-        "Set resolved_at = NOW(), status = resolved",
-        "Create system update: 'Incident resolved'",
-        "Notify all responders and stakeholders",
-        "Prompt to start postmortem if is_major = true",
-        "Commander closes when satisfied: status = closed, closed_at = NOW()"
-      ]
-    },
-    {
-      "name": "Write Postmortem",
-      "trigger": "Incident is closed or commander starts postmortem",
-      "steps": [
-        "Create Postmortem record linked to incident",
-        "Auto-populate timeline from IncidentUpdates",
-        "Team collaborates on sections via real-time editor",
-        "Add corrective action items",
-        "Submit for review \u2192 status = in_review",
-        "Reviewer approves \u2192 status = published, notify stakeholders"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "name": "time_to_acknowledge_min",
-      "entity": "Incident",
-      "formula": "EXTRACT(EPOCH FROM acknowledged_at - detected_at) / 60",
-      "stored": true
-    },
-    {
-      "name": "time_to_resolve_min",
-      "entity": "Incident",
-      "formula": "EXTRACT(EPOCH FROM resolved_at - detected_at) / 60",
-      "stored": true
-    },
-    {
-      "name": "is_major",
-      "entity": "Incident",
-      "formula": "severity IN ('sev1','sev2') AND customer_impact = true",
-      "stored": true
-    },
-    {
-      "name": "mttr_minutes",
-      "entity": "Analytics",
-      "formula": "AVG(time_to_resolve_min) WHERE resolved_at IS NOT NULL AND period matches filter",
-      "stored": false
-    },
-    {
-      "name": "mtta_minutes",
-      "entity": "Analytics",
-      "formula": "AVG(time_to_acknowledge_min) WHERE acknowledged_at IS NOT NULL",
-      "stored": false
-    }
-  ],
-  "domain_rules": [
-    "Only one commander per incident at a time; reassigning commander creates a system update entry",
-    "SEV1 incidents require a postmortem before the incident can be fully closed",
-    "Incidents cannot be deleted once they have any updates or responders",
-    "MTTR and MTTA calculated only on incidents with resolved/closed status",
-    "is_major auto-set on create/update; cannot be manually overridden",
-    "Postmortems are created at most once per incident (unique constraint)",
-    "Action items sourced from postmortem are tagged source=postmortem for tracking",
-    "ActiveIncidentBanner appears for all logged-in users when SEV1/SEV2 incident is open"
-  ],
-  "folder_structure": {
-    "src": {
-      "features": {
-        "incident-tracking": {
-          "components": [
-            "ActiveIncidentBanner.tsx",
-            "IncidentListTable.tsx",
-            "IncidentCreationForm.tsx",
-            "IncidentWarRoom.tsx",
-            "LiveUpdatesFeed.tsx",
-            "ResponderPanel.tsx",
-            "IncidentTimelineStepper.tsx",
-            "PostmortemEditor.tsx",
-            "ActionItemsPanel.tsx",
-            "IncidentSummaryStats.tsx",
-            "MTTRTrendChart.tsx",
-            "EscalationModal.tsx",
-            "SeverityGuideModal.tsx"
+          "name": "investigation_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "root_cause",
+            "timeline",
+            "impact_assessment",
+            "post_mortem"
           ],
-          "pages": [
-            "IncidentsDashboardPage.tsx",
-            "IncidentWarRoomPage.tsx",
-            "PostmortemsListPage.tsx",
-            "ActionItemsTrackerPage.tsx",
-            "IncidentAnalyticsPage.tsx"
+          "badge_colors": {
+            "root_cause": "red",
+            "timeline": "blue",
+            "impact_assessment": "amber",
+            "post_mortem": "green"
+          }
+        },
+        {
+          "name": "findings",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "root_cause",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "recommendations",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "in_progress",
+            "completed",
+            "needs_review"
           ],
-          "hooks": [
-            "useIncidents.ts",
-            "useIncidentDetail.ts",
-            "useIncidentUpdates.ts",
-            "useResponders.ts",
-            "usePostmortem.ts",
-            "useActionItems.ts",
-            "useIncidentAnalytics.ts"
-          ],
-          "store": [
-            "incidentStore.ts",
-            "warRoomStore.ts"
-          ],
-          "api": [
-            "incidentsApi.ts",
-            "incidentUpdatesApi.ts",
-            "respondersApi.ts",
-            "postmortemsApi.ts",
-            "actionItemsApi.ts",
-            "incidentAnalyticsApi.ts"
-          ],
-          "types": [
-            "incident.types.ts"
-          ],
-          "utils": [
-            "severityUtils.ts",
-            "mttrUtils.ts",
-            "incidentStatusUtils.ts"
-          ]
+          "badge_colors": {
+            "in_progress": "blue",
+            "completed": "green",
+            "needs_review": "amber"
+          }
+        },
+        {
+          "name": "completed_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
-      }
-    }
-  },
-  "generation_rules": [
-    "War room page subscribes to all websocket events for the incident on mount; unsubscribes on unmount",
-    "ActiveIncidentBanner mounts at app root, subscribes to incident:created for SEV1/SEV2",
-    "LiveUpdatesFeed auto-scrolls to newest update; pause auto-scroll when user scrolls up",
-    "Postmortem editor uses TipTap with collaborative extension (websocket Y.js provider)",
-    "Incident timeline automatically inserts system updates on status changes (no manual entry required)",
-    "MTTR/MTTA stored on incident record after resolve to avoid recalculation on analytics queries",
-    "Page on-call integration: fire webhook to PagerDuty/OpsGenie on SEV1/SEV2 incident creation",
-    "Incident number auto-increments per org: INC-0001, INC-0002"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
       ]
     },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
+    {
+      "name": "Action",
+      "table": "incident_actions",
+      "description": "Action",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "incident_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Incident"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "action_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "immediate",
+            "short_term",
+            "long_term",
+            "preventive"
+          ],
+          "badge_colors": {
+            "immediate": "red",
+            "short_term": "amber",
+            "long_term": "blue",
+            "preventive": "green"
+          }
+        },
+        {
+          "name": "assignee",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "open",
+            "in_progress",
+            "done",
+            "overdue"
+          ],
+          "badge_colors": {
+            "open": "blue",
+            "in_progress": "amber",
+            "done": "green",
+            "overdue": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
       ]
     },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
+    {
+      "name": "Notification",
+      "table": "incident_notifications",
+      "description": "Notification",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "incident_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Incident"
+        },
+        {
+          "name": "recipient",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "recipient_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "channel",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "email",
+            "sms",
+            "slack",
+            "pagerduty",
+            "webhook"
+          ],
+          "badge_colors": {
+            "email": "blue",
+            "sms": "green",
+            "slack": "purple",
+            "pagerduty": "red",
+            "webhook": "amber"
+          }
+        },
+        {
+          "name": "message",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "queued",
+            "sent",
+            "delivered",
+            "failed"
+          ],
+          "badge_colors": {
+            "queued": "slate",
+            "sent": "blue",
+            "delivered": "green",
+            "failed": "red"
+          }
+        },
+        {
+          "name": "sent_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "failure_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "failed"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
     }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "incident_type_enum": {
-      "pg_type": "incident_type_type",
-      "ts_type": "IncidentTypeEnum",
-      "values": [
-        "security",
-        "outage",
-        "degraded_performance",
-        "data_breach",
-        "infrastructure",
-        "application",
-        "compliance",
-        "business",
-        "other"
-      ],
-      "pg_ddl": "CREATE TYPE incident_type_type AS ENUM ('security', 'outage', 'degraded_performance', 'data_breach', 'infrastructure', 'application', 'compliance', 'business', 'other')"
-    },
-    "severity_enum": {
-      "pg_type": "severity_type",
-      "ts_type": "SeverityEnum",
-      "values": [
-        "sev1",
-        "sev2",
-        "sev3",
-        "sev4",
-        "sev5"
-      ],
-      "pg_ddl": "CREATE TYPE severity_type AS ENUM ('sev1', 'sev2', 'sev3', 'sev4', 'sev5')"
-    },
-    "status_enum": {
-      "pg_type": "status_type",
-      "ts_type": "StatusEnum",
-      "values": [
-        "open",
-        "in_progress",
-        "done",
-        "cancelled"
-      ],
-      "pg_ddl": "CREATE TYPE status_type AS ENUM ('open', 'in_progress', 'done', 'cancelled')"
-    },
-    "update_type_enum": {
-      "pg_type": "update_type_type",
-      "ts_type": "UpdateTypeEnum",
-      "values": [
-        "status_change",
-        "note",
-        "action_taken",
-        "escalation",
-        "resolution",
-        "system"
-      ],
-      "pg_ddl": "CREATE TYPE update_type_type AS ENUM ('status_change', 'note', 'action_taken', 'escalation', 'resolution', 'system')"
-    },
-    "role_enum": {
-      "pg_type": "role_type",
-      "ts_type": "RoleEnum",
-      "values": [
-        "commander",
-        "responder",
-        "observer",
-        "stakeholder"
-      ],
-      "pg_ddl": "CREATE TYPE role_type AS ENUM ('commander', 'responder', 'observer', 'stakeholder')"
-    },
-    "priority_enum": {
-      "pg_type": "priority_type",
-      "ts_type": "PriorityEnum",
-      "values": [
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ],
-      "pg_ddl": "CREATE TYPE priority_type AS ENUM ('low', 'medium', 'high', 'critical')"
-    },
-    "source_enum": {
-      "pg_type": "source_type",
-      "ts_type": "SourceEnum",
-      "values": [
-        "during_incident",
-        "postmortem"
-      ],
-      "pg_ddl": "CREATE TYPE source_type AS ENUM ('during_incident', 'postmortem')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  }
+  ]
 }

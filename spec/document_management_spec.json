@@ -1,4639 +1,1033 @@
 {
   "_meta": {
-    "title": "Document Management System",
-    "domain": "Operations & Internal Tools",
-    "version": "1.0.0",
-    "generated_at": "2026-03-23"
+    "app_name": "Document Management",
+    "description": "Complete document management management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18",
-      "TypeScript",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form",
-      "Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node.js",
-      "Express"
-    ],
-    "database": "PostgreSQL 15+",
-    "cache": "Redis",
-    "auth": "JWT",
-    "storage": "S3",
-    "realtime": "Socket.io"
-  },
-  "design_system": {
-    "theme": "dark",
-    "base_bg": "bg-slate-950",
-    "document_preview": "iframe / PDF.js",
-    "folder_tree": "recursive React component"
-  },
-  "global_rules": {
-    "every_entity_has": [
-      "id (UUID PK)",
-      "org_id (UUID NOT NULL FK\u2192organizations indexed)",
-      "created_at",
-      "updated_at",
-      "deleted_at"
-    ],
-    "every_field_has": [
-      "name",
-      "db_type",
-      "ts_type",
-      "nullable",
-      "default",
-      "input_component",
-      "display_component",
-      "editable",
-      "sortable",
-      "filterable",
-      "show_in_table",
-      "show_in_form",
-      "validation"
-    ],
-    "domain_rules_shape": {
-      "rule": "string",
-      "enforced_at": "array",
-      "api_guard": "string",
-      "ui_behavior": "string",
-      "db_constraint": "string"
-    }
-  },
+  "spec_name": "document_management_spec",
   "entities": [
     {
-      "table": "documents",
-      "description": "Core document entity supporting versioning, approvals, locking, and folder organization",
+      "name": "Folder",
+      "table": "doc_folders",
+      "description": "Folder",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "document_number",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "auto-generated DOC-NNNN",
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "pattern": "^DOC-[0-9]{4,}$"
-          }
-        },
-        {
-          "name": "title",
-          "db_type": "VARCHAR(500) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/documents/:id"
-          },
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        {
-          "name": "folder_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "FolderSelector",
-          "display_component": "FolderBreadcrumb",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "folders.id"
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(20) NOT NULL",
-          "ts_type": "'draft' | 'under_review' | 'approved' | 'rejected' | 'archived'",
-          "nullable": false,
-          "default": "draft",
-          "enum_values": [
-            "draft",
-            "under_review",
-            "approved",
-            "rejected",
-            "archived"
-          ],
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "enum": [
-              "draft",
-              "under_review",
-              "approved",
-              "rejected",
-              "archived"
-            ]
-          }
-        },
-        {
-          "name": "current_version_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "document_versions.id"
-        },
-        {
-          "name": "owner_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "current_user_id",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "users.id"
-        },
-        {
-          "name": "tag_ids",
-          "db_type": "UUID[] NOT NULL DEFAULT '{}'",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "[]",
-          "input_component": "TagInput",
-          "display_component": "TagList",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        },
-        {
-          "name": "is_locked",
-          "db_type": "BOOLEAN NOT NULL DEFAULT false",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": null,
-          "display_component": "LockBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "boolean"
-          }
-        },
-        {
-          "name": "locked_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "users.id"
-        },
-        {
-          "name": "locked_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "approval_status",
-          "db_type": "VARCHAR(30) NOT NULL",
-          "ts_type": "'not_requested' | 'pending' | 'approved' | 'rejected'",
-          "nullable": false,
-          "default": "not_requested",
-          "enum_values": [
-            "not_requested",
-            "pending",
-            "approved",
-            "rejected"
-          ],
-          "input_component": null,
-          "display_component": "ApprovlStatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "enum": [
-              "not_requested",
-              "pending",
-              "approved",
-              "rejected"
-            ]
-          }
-        },
-        {
-          "name": "mime_type",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "FileTypeIcon",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "maxLength": 255,
-            "nullable": true
-          }
-        },
-        {
-          "name": "file_size_bytes",
-          "db_type": "BIGINT NOT NULL DEFAULT 0",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "FileSizeDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_documents_org_folder",
-          "columns": [
-            "org_id",
-            "folder_id"
-          ]
-        },
-        {
-          "name": "idx_documents_org_owner",
-          "columns": [
-            "org_id",
-            "owner_id"
-          ]
-        },
-        {
-          "name": "idx_documents_org_status",
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "name": "idx_documents_org_approval_status",
-          "columns": [
-            "org_id",
-            "approval_status"
-          ]
-        }
-      ],
-      "name": "Document",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "document_number",
-            "title",
-            "folder_id",
-            "status",
-            "owner_id",
-            "tag_ids"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Documents yet",
-            "subtext": "Create your first document",
-            "action_label": "Add Document"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "title",
-            "description",
-            "folder_id",
-            "status",
-            "owner_id",
-            "tag_ids"
-          ],
-          "required_fields": [
-            "title",
-            "description"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "title",
-            "description",
-            "folder_id",
-            "status",
-            "owner_id",
-            "tag_ids"
-          ],
-          "required_fields": [
-            "title",
-            "description"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/documents/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "title"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "document_number",
-            "title",
-            "folder_id",
-            "status"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "document_number",
-                "title",
-                "folder_id",
-                "status",
-                "owner_id",
-                "tag_ids",
-                "is_locked",
-                "approval_status",
-                "mime_type",
-                "file_size_bytes",
-                "updated_at"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "folders",
-      "description": "Hierarchical folder structure using materialized path pattern",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 255
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "parent_folder_id",
           "db_type": "UUID",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "FolderSelector",
-          "display_component": "FolderBreadcrumb",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "folders.id"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Folder"
         },
         {
           "name": "path",
-          "db_type": "TEXT NOT NULL",
+          "db_type": "VARCHAR(1000) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "note": "Materialized path e.g. /root/marketing/campaigns/",
-          "input_component": null,
-          "display_component": "MonospaceText",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "minLength": 1
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "owner_id",
-          "db_type": "UUID NOT NULL",
+          "name": "color",
+          "db_type": "VARCHAR(7)",
           "ts_type": "string",
-          "nullable": false,
-          "default": "current_user_id",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
+          "nullable": true,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "users.id"
-        },
-        {
-          "name": "is_shared",
-          "db_type": "BOOLEAN NOT NULL DEFAULT false",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "boolean"
-          }
+          "input_component": "color_picker",
+          "display_component": "color_swatch"
         },
         {
           "name": "document_count",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for document_count computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "formula": "COUNT(documents WHERE folder_id=id AND status != 'archived')",
-          "input_component": null,
-          "display_component": "NumberDisplay",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {
-            "type": "integer",
-            "minimum": 0
-          }
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(documents)"
         },
         {
-          "name": "folder_count",
-          "db_type": "INTEGER NOT NULL DEFAULT 0",
-          "ts_type": "number",
+          "name": "visibility",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for folder_count computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "formula": "COUNT(folders WHERE parent_folder_id=id)",
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "integer",
-            "minimum": 0
-          }
-        },
-        {
-          "name": "color",
-          "db_type": "VARCHAR(7)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "ColorPicker",
-          "display_component": "ColorSwatch",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "pattern": "^#[0-9A-Fa-f]{6}$",
-            "nullable": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "public",
+            "team",
+            "private"
+          ],
+          "badge_colors": {
+            "public": "green",
+            "team": "blue",
+            "private": "red"
           }
+        },
+        {
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Template",
+      "table": "doc_templates",
+      "description": "Template",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_folders_org_parent",
-          "columns": [
-            "org_id",
-            "parent_folder_id"
-          ]
-        },
-        {
-          "name": "idx_folders_org_path",
-          "columns": [
-            "org_id",
-            "path"
-          ]
-        },
-        {
-          "name": "uq_folders_org_parent_name",
-          "type": "UNIQUE",
-          "columns": [
-            "org_id",
-            "parent_folder_id",
-            "name"
-          ]
-        }
-      ],
-      "name": "Folder",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "is_shared",
-            "document_count",
-            "folder_count",
-            "color"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Folders yet",
-            "subtext": "Create your first folder",
-            "action_label": "Add Folder"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "parent_folder_id",
-            "owner_id",
-            "is_shared",
-            "color"
-          ],
-          "required_fields": [
-            "name",
-            "parent_folder_id"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "parent_folder_id",
-            "owner_id",
-            "is_shared",
-            "color"
-          ],
-          "required_fields": [
-            "name",
-            "parent_folder_id"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/folders/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "is_shared",
-            "document_count",
-            "folder_count"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "is_shared",
-                "document_count",
-                "folder_count",
-                "color"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "document_versions",
-      "description": "Immutable uploaded file versions for each document",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "contract",
+            "proposal",
+            "report",
+            "letter",
+            "memo",
+            "sop"
+          ],
+          "badge_colors": {
+            "contract": "blue",
+            "proposal": "green",
+            "report": "purple",
+            "letter": "amber",
+            "memo": "pink",
+            "sop": "slate"
           }
+        },
+        {
+          "name": "content",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "format",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "markdown",
+            "html",
+            "plain_text",
+            "rich_text"
+          ]
+        },
+        {
+          "name": "usage_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Document",
+      "table": "documents",
+      "description": "Document",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "folder_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Folder"
+        },
+        {
+          "name": "template_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Template"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "content",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "doc_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "document",
+            "spreadsheet",
+            "presentation",
+            "pdf",
+            "image",
+            "other"
+          ],
+          "badge_colors": {
+            "document": "blue",
+            "spreadsheet": "green",
+            "presentation": "purple",
+            "pdf": "red",
+            "image": "pink",
+            "other": "slate"
+          }
+        },
+        {
+          "name": "file_size_kb",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "author",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "version_number",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "review",
+            "approved",
+            "published",
+            "archived"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "review": "amber",
+            "approved": "blue",
+            "published": "green",
+            "archived": "purple"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Version",
+      "table": "doc_versions",
+      "description": "Version",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "document_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "documents.id",
-          "on_delete": "CASCADE"
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Document"
         },
         {
           "name": "version_number",
-          "db_type": "INTEGER NOT NULL",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "integer",
-            "minimum": 1
-          }
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
-          "name": "filename",
-          "db_type": "VARCHAR(500) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "FilenameLink",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "file_url",
-          "db_type": "TEXT NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uri"
-          }
-        },
-        {
-          "name": "thumbnail_url",
+          "name": "change_summary",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uri",
-            "nullable": true
-          }
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "mime_type",
+          "name": "author",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "FileTypeIcon",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "maxLength": 255
-          }
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "file_size_bytes",
-          "db_type": "BIGINT NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "FileSizeDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "integer",
-            "minimum": 1
-          }
-        },
-        {
-          "name": "change_notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        {
-          "name": "uploaded_by",
-          "db_type": "UUID NOT NULL",
+          "name": "file_url",
+          "db_type": "VARCHAR(500) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "current_user_id",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "file_upload",
+          "display_component": "file_link"
+        },
+        {
+          "name": "file_size_kb",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at_version",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "users.id"
+          "input_component": "datetime_picker",
+          "display_component": "date"
         },
         {
           "name": "is_current",
           "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
           "nullable": false,
-          "default": false,
-          "input_component": null,
-          "display_component": "YesNoBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "boolean"
-          }
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Share",
+      "table": "doc_shares",
+      "description": "Share",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_doc_versions_org_document",
-          "columns": [
-            "org_id",
-            "document_id"
-          ]
-        },
-        {
-          "name": "uq_doc_versions_org_document_version",
-          "type": "UNIQUE",
-          "columns": [
-            "org_id",
-            "document_id",
-            "version_number"
-          ]
-        },
-        {
-          "name": "idx_doc_versions_current",
-          "type": "PARTIAL",
-          "columns": [
-            "org_id",
-            "document_id"
-          ],
-          "condition": "WHERE is_current = true"
-        }
-      ],
-      "name": "DocumentVersion",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "version_number",
-            "filename",
-            "mime_type",
-            "file_size_bytes",
-            "change_notes",
-            "uploaded_by"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No DocumentVersions yet",
-            "subtext": "Create your first documentversion",
-            "action_label": "Add DocumentVersion"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": []
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": [],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/document_versions/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "version_number",
-            "filename",
-            "mime_type",
-            "file_size_bytes"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "version_number",
-                "filename",
-                "mime_type",
-                "file_size_bytes",
-                "change_notes",
-                "uploaded_by",
-                "is_current",
-                "created_at"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "document_permission_grants",
-      "description": "Fine-grained access control grants on documents or folders",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "document_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "documents.id",
-          "on_delete": "CASCADE"
-        },
-        {
-          "name": "folder_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "folders.id",
-          "on_delete": "CASCADE"
-        },
-        {
-          "name": "grantee_type",
-          "db_type": "VARCHAR(10) NOT NULL",
-          "ts_type": "'user' | 'team' | 'role'",
-          "nullable": false,
-          "default": null,
-          "enum_values": [
-            "user",
-            "team",
-            "role"
-          ],
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "enum": [
-              "user",
-              "team",
-              "role"
-            ]
-          }
-        },
-        {
-          "name": "grantee_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "PermissionSelector",
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Document"
+        },
+        {
+          "name": "shared_with",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "shared_with_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "type": "string",
-            "format": "uuid"
+            "rule": "email",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "permission_level",
-          "db_type": "VARCHAR(10) NOT NULL",
-          "ts_type": "'view' | 'comment' | 'edit' | 'manage'",
+          "name": "permission",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "view",
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
           "enum_values": [
             "view",
             "comment",
             "edit",
-            "manage"
+            "admin"
           ],
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "enum": [
-              "view",
-              "comment",
-              "edit",
-              "manage"
-            ]
+          "badge_colors": {
+            "view": "slate",
+            "comment": "blue",
+            "edit": "green",
+            "admin": "purple"
           }
-        },
-        {
-          "name": "granted_by",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "current_user_id",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "users.id"
         },
         {
           "name": "expires_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "db_type": "DATE",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "notify_on_change",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "share_link",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "link"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Tag",
+      "table": "doc_tags",
+      "description": "Tag",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_perm_grants_org_document",
-          "columns": [
-            "org_id",
-            "document_id"
-          ]
-        },
-        {
-          "name": "idx_perm_grants_org_folder",
-          "columns": [
-            "org_id",
-            "folder_id"
-          ]
-        },
-        {
-          "name": "idx_perm_grants_org_grantee",
-          "columns": [
-            "org_id",
-            "grantee_type",
-            "grantee_id"
-          ]
-        }
-      ],
-      "name": "PermissionGrant",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "grantee_type",
-            "grantee_id",
-            "permission_level",
-            "expires_at"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No PermissionGrants yet",
-            "subtext": "Create your first permissiongrant",
-            "action_label": "Add PermissionGrant"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "grantee_type",
-            "grantee_id",
-            "permission_level",
-            "expires_at"
-          ],
-          "required_fields": [
-            "grantee_type",
-            "grantee_id"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "grantee_type",
-            "grantee_id",
-            "permission_level",
-            "expires_at"
-          ],
-          "required_fields": [
-            "grantee_type",
-            "grantee_id"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/document_permission_grants/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "grantee_type"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "grantee_type",
-            "grantee_id",
-            "permission_level",
-            "expires_at"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "grantee_type",
-                "grantee_id",
-                "permission_level",
-                "expires_at"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "document_tags",
-      "description": "Tags for labeling documents",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TagBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "color",
           "db_type": "VARCHAR(7)",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "ColorPicker",
-          "display_component": "ColorSwatch",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "pattern": "^#[0-9A-Fa-f]{6}$",
-            "nullable": true
-          }
+          "input_component": "color_picker",
+          "display_component": "color_swatch"
         },
         {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "name": "usage_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
           "editable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "indexes": [
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(document_tags)"
+        },
         {
-          "name": "uq_document_tags_org_name",
-          "type": "UNIQUE",
-          "columns": [
-            "org_id",
-            "name"
-          ]
-        }
-      ],
-      "name": "Tag",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "color"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Tags yet",
-            "subtext": "Create your first tag",
-            "action_label": "Add Tag"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "color"
-          ],
-          "required_fields": [
-            "name",
-            "color"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "color"
-          ],
-          "required_fields": [
-            "name",
-            "color"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/document_tags/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "color"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "color"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "document_comments",
-      "description": "Inline and threaded comments with optional page/position annotations",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
+          "name": "category",
+          "db_type": "VARCHAR(50)",
           "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "document_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "documents.id",
-          "on_delete": "CASCADE"
-        },
-        {
-          "name": "version_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "document_versions.id"
-        },
-        {
-          "name": "content",
-          "db_type": "TEXT NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "RichTextDisplay",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "minLength": 1
-          }
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "topic",
+            "project",
+            "department",
+            "custom"
+          ]
         },
         {
-          "name": "author_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "current_user_id",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "users.id"
-        },
-        {
-          "name": "page_number",
-          "db_type": "INTEGER",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "integer",
-            "minimum": 1,
-            "nullable": true
-          }
-        },
-        {
-          "name": "x_position",
-          "db_type": "NUMERIC(8,4)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "note": "For inline annotation positioning",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "number",
-            "nullable": true
-          }
-        },
-        {
-          "name": "y_position",
-          "db_type": "NUMERIC(8,4)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "note": "For inline annotation positioning",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "number",
-            "nullable": true
-          }
-        },
-        {
-          "name": "parent_comment_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid",
-            "nullable": true
-          },
-          "fk": "document_comments.id"
-        },
-        {
-          "name": "is_resolved",
+          "name": "is_system",
           "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
           "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "boolean"
-          }
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeDate",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Workflow",
+      "table": "doc_workflows",
+      "description": "Workflow",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_doc_comments_org_document",
-          "columns": [
-            "org_id",
-            "document_id"
-          ]
-        },
-        {
-          "name": "idx_doc_comments_org_version",
-          "columns": [
-            "org_id",
-            "version_id"
-          ]
-        }
-      ],
-      "name": "Comment",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "content",
-            "author_id",
-            "is_resolved",
-            "created_at"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Comments yet",
-            "subtext": "Create your first comment",
-            "action_label": "Add Comment"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "content"
-          ],
-          "required_fields": [
-            "content"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "content"
-          ],
-          "required_fields": [
-            "content"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/document_comments/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "content"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "content",
-            "author_id",
-            "is_resolved",
-            "created_at"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "content",
-                "author_id",
-                "is_resolved",
-                "created_at"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "document_approval_requests",
-      "description": "Tracks document approval workflows with multi-approver support",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "document_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "TextLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "documents.id"
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Document"
         },
         {
-          "name": "version_id",
-          "db_type": "UUID NOT NULL",
+          "name": "workflow_type",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "document_versions.id"
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "approval",
+            "review",
+            "sign_off",
+            "publish"
+          ],
+          "badge_colors": {
+            "approval": "blue",
+            "review": "green",
+            "sign_off": "purple",
+            "publish": "amber"
+          }
         },
         {
-          "name": "requested_by",
-          "db_type": "UUID NOT NULL",
+          "name": "current_step",
+          "db_type": "VARCHAR(100)",
           "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total_steps",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
           "nullable": false,
-          "default": "current_user_id",
-          "input_component": null,
-          "display_component": "UserAvatar",
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "completed_steps",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "progress_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
           "editable": false,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "users.id"
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "completed_steps / total_steps * 100"
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(10) NOT NULL",
-          "ts_type": "'pending' | 'approved' | 'rejected'",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "pending",
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
           "enum_values": [
             "pending",
+            "in_progress",
             "approved",
             "rejected"
           ],
-          "input_component": null,
-          "display_component": "StatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "enum": [
-              "pending",
-              "approved",
-              "rejected"
-            ]
+          "badge_colors": {
+            "pending": "slate",
+            "in_progress": "blue",
+            "approved": "green",
+            "rejected": "red"
           }
         },
         {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "format": "date",
-            "nullable": true
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        {
-          "name": "approver_ids",
-          "db_type": "UUID[] NOT NULL",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": null,
-          "input_component": "MultiSelect",
-          "display_component": "AvatarGroup",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "type": "array",
-            "items": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "minItems": 1
-          }
-        },
-        {
-          "name": "responses",
-          "db_type": "JSONB NOT NULL DEFAULT '[]'",
-          "ts_type": "ApprovalResponse[]",
-          "nullable": false,
-          "default": "[]",
-          "note": "Array of {approver_id, status, notes, responded_at}",
-          "input_component": null,
-          "display_component": "ApprovalResponsePanel",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "array"
-          }
-        },
-        {
-          "name": "approved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "rejected_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "rejection_reason",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_approval_requests_org_document",
-          "columns": [
-            "org_id",
-            "document_id"
-          ]
-        },
-        {
-          "name": "idx_approval_requests_org_status",
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "name": "idx_approval_requests_org_due_date",
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        }
-      ],
-      "name": "ApprovalRequest",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "document_id",
-            "requested_by",
-            "status",
-            "due_date",
-            "approver_ids",
-            "created_at"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No ApprovalRequests yet",
-            "subtext": "Create your first approvalrequest",
-            "action_label": "Add ApprovalRequest"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "due_date",
-            "notes",
-            "approver_ids"
-          ],
-          "required_fields": [
-            "due_date",
-            "notes"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "due_date",
-            "notes",
-            "approver_ids"
-          ],
-          "required_fields": [
-            "due_date",
-            "notes"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/document_approval_requests/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "due_date"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "document_id",
-            "requested_by",
-            "status",
-            "due_date"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "document_id",
-                "requested_by",
-                "status",
-                "due_date",
-                "approver_ids",
-                "created_at"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "document_attachments",
-      "description": "Additional file attachments associated with a document (separate from versions)",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "document_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "documents.id",
-          "on_delete": "CASCADE"
-        },
-        {
-          "name": "filename",
-          "db_type": "VARCHAR(500) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "FilenameLink",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "file_url",
-          "db_type": "TEXT NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uri"
-          }
-        },
-        {
-          "name": "mime_type",
+          "name": "initiated_by",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "FileTypeIcon",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "file_size_bytes",
-          "db_type": "BIGINT NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "FileSizeDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "integer",
-            "minimum": 1
-          }
-        },
-        {
-          "name": "uploaded_by",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "current_user_id",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "fk": "users.id"
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "indexes": [
+          "display_component": "date"
+        },
         {
-          "name": "idx_doc_attachments_org_document",
-          "columns": [
-            "org_id",
-            "document_id"
-          ]
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
-      ],
-      "name": "Attachment",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "filename",
-            "mime_type",
-            "file_size_bytes",
-            "uploaded_by",
-            "created_at"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Attachments yet",
-            "subtext": "Create your first attachment",
-            "action_label": "Add Attachment"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": []
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": [],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/document_attachments/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "filename",
-            "mime_type",
-            "file_size_bytes",
-            "uploaded_by"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "filename",
-                "mime_type",
-                "file_size_bytes",
-                "uploaded_by",
-                "created_at"
-              ]
-            }
-          ]
-        }
-      }
-    }
-  ],
-  "computed_fields": [
-    {
-      "entity": "Document",
-      "field": "latest_version_number",
-      "formula": "MAX(document_versions.version_number WHERE document_id=id)",
-      "triggers": [
-        "DocumentVersion created"
-      ]
-    },
-    {
-      "entity": "Document",
-      "field": "approval_status",
-      "formula": "Derived from most recent ApprovalRequest.status",
-      "triggers": [
-        "ApprovalRequest.status updated"
-      ]
-    },
-    {
-      "entity": "Document",
-      "field": "shared_user_count",
-      "formula": "COUNT(DISTINCT permission_grants.grantee_id WHERE document_id=id AND grantee_type='user')",
-      "triggers": [
-        "PermissionGrant mutated"
-      ]
-    },
-    {
-      "entity": "Folder",
-      "field": "document_count",
-      "formula": "COUNT(documents WHERE folder_id=id AND status != 'archived')",
-      "triggers": [
-        "Document mutated"
-      ]
-    },
-    {
-      "entity": "Folder",
-      "field": "folder_count",
-      "formula": "COUNT(folders WHERE parent_folder_id=id)",
-      "triggers": [
-        "Folder mutated"
       ]
     }
-  ],
-  "domain_rules": [
-    {
-      "id": 1,
-      "rule": "Locked document cannot be edited by non-owner",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Return 403 if is_locked=true AND user != locked_by AND role != admin",
-      "ui_behavior": "Disable edit controls and show lock indicator with locker name",
-      "db_constraint": null
-    },
-    {
-      "id": 2,
-      "rule": "Document requires approval before final status if approval workflow configured",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Return 422 if attempting to set status=approved without completed ApprovalRequest",
-      "ui_behavior": "Show approval request panel if approval workflow is required; disable manual approve",
-      "db_constraint": null
-    },
-    {
-      "id": 3,
-      "rule": "Version number is monotonically increasing and cannot be skipped",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Set version_number = MAX(existing version_number for document) + 1",
-      "ui_behavior": null,
-      "db_constraint": null
-    },
-    {
-      "id": 4,
-      "rule": "Folder path must be unique within org",
-      "enforced_at": [
-        "db"
-      ],
-      "api_guard": null,
-      "ui_behavior": "Show error if duplicate path detected",
-      "db_constraint": "UNIQUE INDEX on (org_id, path)"
-    },
-    {
-      "id": 5,
-      "rule": "Permission grant grantee_type=user requires valid user_id in org",
-      "enforced_at": [
-        "api"
-      ],
-      "api_guard": "Return 422 if grantee_type=user and grantee_id not found in org members",
-      "ui_behavior": "UserSelector filters to org members only",
-      "db_constraint": null
-    },
-    {
-      "id": 6,
-      "rule": "Archived documents are read-only",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Return 403 on any mutating request if document.status=archived",
-      "ui_behavior": "Disable all editing controls and show archived banner",
-      "db_constraint": null
-    }
-  ],
-  "permissions": {
-    "roles": [
-      "admin",
-      "manager",
-      "editor",
-      "viewer"
-    ],
-    "matrix": {
-      "documents.create": [
-        "admin",
-        "manager",
-        "editor"
-      ],
-      "documents.manage_permissions": [
-        "admin",
-        "manager"
-      ],
-      "documents.approve": [
-        "designated_approvers"
-      ],
-      "documents.lock": [
-        "admin",
-        "manager",
-        "document_owner"
-      ],
-      "folders.create": [
-        "admin",
-        "manager"
-      ]
-    }
-  },
-  "api": {
-    "base_path": "/api/v1",
-    "endpoints": [
-      {
-        "method": "GET",
-        "path": "/documents",
-        "description": "List documents with filtering and pagination",
-        "request_schema": {
-          "query": {
-            "folder_id": "string?",
-            "status": "string?",
-            "owner_id": "string?",
-            "tag_ids": "string[]?",
-            "approval_status": "string?",
-            "page": "number?",
-            "limit": "number?",
-            "sort": "string?",
-            "view": "'grid'|'list'"
-          }
-        },
-        "response_schema": {
-          "data": "Document[]",
-          "total": "number",
-          "page": "number",
-          "limit": "number"
-        },
-        "react_query_hook": "useDocuments",
-        "query_key": [
-          "documents",
-          "list"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/documents/:id",
-        "description": "Get single document with current version",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useDocument",
-        "query_key": [
-          "documents",
-          "detail",
-          ":id"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents",
-        "description": "Upload a new document (multipart/form-data); creates DocumentVersion v1",
-        "request_schema": {
-          "body": {
-            "title": "string",
-            "description": "string?",
-            "folder_id": "string?",
-            "tag_ids": "string[]?",
-            "file": "File"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useCreateDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.list",
-          "folders.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/documents/:id",
-        "description": "Update document metadata",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "title": "string?",
-            "description": "string?",
-            "folder_id": "string?",
-            "tag_ids": "string[]?",
-            "owner_id": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useUpdateDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.list",
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "DELETE",
-        "path": "/documents/:id",
-        "description": "Soft-delete a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.list"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/lock",
-        "description": "Lock document for exclusive editing",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useLockDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/unlock",
-        "description": "Unlock a locked document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useUnlockDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/duplicate",
-        "description": "Duplicate document with current version",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useDuplicateDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.list"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/archive",
-        "description": "Archive a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useArchiveDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.list",
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/move",
-        "description": "Move document to a different folder",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "folder_id": "string | null"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useMoveDocument",
-        "query_key": null,
-        "invalidates": [
-          "documents.detail",
-          "folders.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/folders",
-        "description": "List top-level folders",
-        "request_schema": {
-          "query": {
-            "parent_folder_id": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Folder[]"
-        },
-        "react_query_hook": "useFolders",
-        "query_key": [
-          "folders",
-          "list"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/folders/:id",
-        "description": "Get folder details",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Folder"
-        },
-        "react_query_hook": "useFolder",
-        "query_key": [
-          "folders",
-          "detail",
-          ":id"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/folders/:id/contents",
-        "description": "Get folder contents \u2014 child folders and documents",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": {
-            "folders": "Folder[]",
-            "documents": "Document[]"
-          }
-        },
-        "react_query_hook": "useFolderContents",
-        "query_key": [
-          "folders",
-          "contents",
-          ":id"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/folders",
-        "description": "Create a new folder",
-        "request_schema": {
-          "body": {
-            "name": "string",
-            "parent_folder_id": "string?",
-            "color": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Folder"
-        },
-        "react_query_hook": "useCreateFolder",
-        "query_key": null,
-        "invalidates": [
-          "folders.list",
-          "folders.contents"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/folders/:id",
-        "description": "Update folder metadata",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "name": "string?",
-            "color": "string?",
-            "is_shared": "boolean?"
-          }
-        },
-        "response_schema": {
-          "data": "Folder"
-        },
-        "react_query_hook": "useUpdateFolder",
-        "query_key": null,
-        "invalidates": [
-          "folders.list",
-          "folders.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "DELETE",
-        "path": "/folders/:id",
-        "description": "Delete folder if empty",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteFolder",
-        "query_key": null,
-        "invalidates": [
-          "folders.list"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/folders/:id/move",
-        "description": "Move folder to new parent",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "parent_folder_id": "string | null"
-          }
-        },
-        "response_schema": {
-          "data": "Folder"
-        },
-        "react_query_hook": "useMoveFolder",
-        "query_key": null,
-        "invalidates": [
-          "folders.list",
-          "folders.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/documents/:id/versions",
-        "description": "Get all versions for a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "DocumentVersion[]"
-        },
-        "react_query_hook": "useDocumentVersions",
-        "query_key": [
-          "versions",
-          "byDocument",
-          ":id"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/versions",
-        "description": "Upload a new version for a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "file": "File",
-            "change_notes": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "DocumentVersion"
-        },
-        "react_query_hook": "useUploadVersion",
-        "query_key": null,
-        "invalidates": [
-          "versions.byDocument",
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/versions/:versionId/restore",
-        "description": "Restore a previous version as the current version",
-        "request_schema": {
-          "params": {
-            "id": "string",
-            "versionId": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useRestoreVersion",
-        "query_key": null,
-        "invalidates": [
-          "versions.byDocument",
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/versions/:versionId/set-current",
-        "description": "Set a specific version as the current version",
-        "request_schema": {
-          "params": {
-            "id": "string",
-            "versionId": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Document"
-        },
-        "react_query_hook": "useSetCurrentVersion",
-        "query_key": null,
-        "invalidates": [
-          "versions.byDocument",
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/documents/:id/permissions",
-        "description": "Get permission grants for a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "PermissionGrant[]"
-        },
-        "react_query_hook": "useDocumentPermissions",
-        "query_key": [
-          "permissions",
-          "byDocument",
-          ":id"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/permissions",
-        "description": "Grant access to a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "grantee_type": "string",
-            "grantee_id": "string",
-            "permission_level": "string",
-            "expires_at": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "PermissionGrant"
-        },
-        "react_query_hook": "useGrantPermission",
-        "query_key": null,
-        "invalidates": [
-          "permissions.byDocument"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "PATCH",
-        "path": "/documents/:id/permissions/:grantId",
-        "description": "Update a permission grant",
-        "request_schema": {
-          "params": {
-            "id": "string",
-            "grantId": "string"
-          },
-          "body": {
-            "permission_level": "string?",
-            "expires_at": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "PermissionGrant"
-        },
-        "react_query_hook": "useUpdatePermission",
-        "query_key": null,
-        "invalidates": [
-          "permissions.byDocument"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "DELETE",
-        "path": "/documents/:id/permissions/:grantId",
-        "description": "Revoke a permission grant",
-        "request_schema": {
-          "params": {
-            "id": "string",
-            "grantId": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useRevokePermission",
-        "query_key": null,
-        "invalidates": [
-          "permissions.byDocument"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "GET",
-        "path": "/documents/:id/comments",
-        "description": "Get comments for a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "query": {
-            "version_id": "string?",
-            "is_resolved": "boolean?"
-          }
-        },
-        "response_schema": {
-          "data": "Comment[]"
-        },
-        "react_query_hook": "useDocumentComments",
-        "query_key": [
-          "comments",
-          "byDocument",
-          ":id"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/comments",
-        "description": "Add a comment or annotation to a document",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "content": "string",
-            "version_id": "string?",
-            "page_number": "number?",
-            "x_position": "number?",
-            "y_position": "number?",
-            "parent_comment_id": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "Comment"
-        },
-        "react_query_hook": "useCreateDocumentComment",
-        "query_key": null,
-        "invalidates": [
-          "comments.byDocument"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "PATCH",
-        "path": "/documents/:id/comments/:commentId",
-        "description": "Edit a comment",
-        "request_schema": {
-          "params": {
-            "id": "string",
-            "commentId": "string"
-          },
-          "body": {
-            "content": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Comment"
-        },
-        "react_query_hook": "useUpdateDocumentComment",
-        "query_key": null,
-        "invalidates": [
-          "comments.byDocument"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "DELETE",
-        "path": "/documents/:id/comments/:commentId",
-        "description": "Delete a comment",
-        "request_schema": {
-          "params": {
-            "id": "string",
-            "commentId": "string"
-          }
-        },
-        "response_schema": {
-          "success": "boolean"
-        },
-        "react_query_hook": "useDeleteDocumentComment",
-        "query_key": null,
-        "invalidates": [
-          "comments.byDocument"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "POST",
-        "path": "/comments/:id/resolve",
-        "description": "Mark a comment as resolved",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "Comment"
-        },
-        "react_query_hook": "useResolveComment",
-        "query_key": null,
-        "invalidates": [
-          "comments.byDocument"
-        ],
-        "optimistic_updates": true
-      },
-      {
-        "method": "GET",
-        "path": "/approval-requests",
-        "description": "List approval requests visible to current user",
-        "request_schema": {
-          "query": {
-            "status": "string?",
-            "document_id": "string?",
-            "page": "number?",
-            "limit": "number?"
-          }
-        },
-        "response_schema": {
-          "data": "ApprovalRequest[]",
-          "total": "number"
-        },
-        "react_query_hook": "useApprovalRequests",
-        "query_key": [
-          "approvalRequests",
-          "list"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/documents/:id/approval-requests",
-        "description": "Request approval for a document version",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "approver_ids": "string[]",
-            "due_date": "string?",
-            "notes": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "ApprovalRequest"
-        },
-        "react_query_hook": "useRequestApproval",
-        "query_key": null,
-        "invalidates": [
-          "approvalRequests.list",
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      },
-      {
-        "method": "GET",
-        "path": "/approval-requests/:id",
-        "description": "Get a single approval request",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          }
-        },
-        "response_schema": {
-          "data": "ApprovalRequest"
-        },
-        "react_query_hook": "useApprovalRequest",
-        "query_key": [
-          "approvalRequests",
-          "detail",
-          ":id"
-        ],
-        "invalidates": [],
-        "optimistic_updates": false
-      },
-      {
-        "method": "POST",
-        "path": "/approval-requests/:id/respond",
-        "description": "Approve or reject an approval request",
-        "request_schema": {
-          "params": {
-            "id": "string"
-          },
-          "body": {
-            "status": "'approved'|'rejected'",
-            "notes": "string?"
-          }
-        },
-        "response_schema": {
-          "data": "ApprovalRequest"
-        },
-        "react_query_hook": "useRespondToApproval",
-        "query_key": null,
-        "invalidates": [
-          "approvalRequests.detail",
-          "approvalRequests.list",
-          "documents.detail"
-        ],
-        "optimistic_updates": false
-      }
-    ]
-  },
-  "state_management": {
-    "stores": {
-      "authStore": {
-        "description": "Authentication state",
-        "fields": [
-          "user",
-          "token",
-          "role",
-          "isAuthenticated"
-        ]
-      },
-      "uiStore": {
-        "description": "Global UI state",
-        "fields": [
-          "sidebarOpen",
-          "activeModal",
-          "toasts"
-        ]
-      },
-      "folderStore": {
-        "description": "Current folder navigation state",
-        "fields": [
-          "currentFolderId",
-          "breadcrumbs",
-          "folderPath"
-        ]
-      },
-      "documentPreviewStore": {
-        "description": "Document preview and annotation state",
-        "fields": [
-          "activeVersionId",
-          "annotationMode",
-          "currentPage",
-          "zoomLevel"
-        ]
-      },
-      "filterStore": {
-        "description": "Table/list filter state",
-        "fields": [
-          "activeFilters",
-          "sort",
-          "page",
-          "limit",
-          "view"
-        ]
-      }
-    },
-    "query_keys": {
-      "documents": [
-        "documents.all",
-        "documents.list",
-        "documents.detail"
-      ],
-      "folders": [
-        "folders.all",
-        "folders.list",
-        "folders.detail",
-        "folders.contents"
-      ],
-      "versions": [
-        "versions.byDocument"
-      ],
-      "permissions": [
-        "permissions.byDocument"
-      ],
-      "comments": [
-        "comments.byDocument"
-      ],
-      "approvalRequests": [
-        "approvalRequests.all",
-        "approvalRequests.list",
-        "approvalRequests.detail"
-      ]
-    }
-  },
-  "websocket_events": [
-    {
-      "event": "document.uploaded",
-      "payload": {
-        "document_id": "string",
-        "title": "string",
-        "uploaded_by": "string"
-      },
-      "description": "New document uploaded"
-    },
-    {
-      "event": "document.version_added",
-      "payload": {
-        "document_id": "string",
-        "version_number": "number"
-      },
-      "description": "New version uploaded"
-    },
-    {
-      "event": "document.approved",
-      "payload": {
-        "document_id": "string",
-        "approval_request_id": "string"
-      },
-      "description": "Document approval completed"
-    },
-    {
-      "event": "document.rejected",
-      "payload": {
-        "document_id": "string",
-        "rejection_reason": "string"
-      },
-      "description": "Document rejected"
-    },
-    {
-      "event": "document.locked",
-      "payload": {
-        "document_id": "string",
-        "locked_by": "string"
-      },
-      "description": "Document locked for editing"
-    },
-    {
-      "event": "comment.added",
-      "payload": {
-        "comment_id": "string",
-        "document_id": "string",
-        "author_id": "string"
-      },
-      "description": "Comment added to document"
-    },
-    {
-      "event": "comment.resolved",
-      "payload": {
-        "comment_id": "string",
-        "document_id": "string"
-      },
-      "description": "Comment resolved"
-    },
-    {
-      "event": "approval.requested",
-      "payload": {
-        "approval_request_id": "string",
-        "document_id": "string",
-        "approver_ids": "string[]"
-      },
-      "description": "Approval requested; notify approvers"
-    },
-    {
-      "event": "ws.reconnected",
-      "payload": {},
-      "description": "Client reconnected; trigger query invalidation"
-    }
-  ],
-  "flows": [
-    {
-      "name": "Upload Document",
-      "steps": [
-        "POST /documents (multipart/form-data) with file + metadata",
-        "Create DocumentVersion v1 with version_number=1, is_current=true",
-        "Set Document.current_version_id = new version id",
-        "Store file in S3",
-        "Generate thumbnail if mime_type is PDF or image",
-        "Document.status = draft"
-      ]
-    },
-    {
-      "name": "Create Version",
-      "steps": [
-        "POST /documents/:id/versions (upload new file)",
-        "version_number = MAX(existing) + 1",
-        "Set new version is_current=true; set previous current is_current=false",
-        "Update Document.current_version_id to new version",
-        "Generate thumbnail if applicable"
-      ]
-    },
-    {
-      "name": "Request Approval",
-      "steps": [
-        "POST /documents/:id/approval-requests with approver_ids and optional due_date",
-        "Document.approval_status = pending",
-        "Each approver notified via WebSocket and email",
-        "Each approver responds via POST /approval-requests/:id/respond",
-        "If all respond approved: Document.approval_status = approved, status = approved",
-        "If any responds rejected: Document.approval_status = rejected, status = rejected"
-      ]
-    },
-    {
-      "name": "Share Document",
-      "steps": [
-        "POST /documents/:id/permissions with grantee_type, grantee_id, permission_level",
-        "Optional expires_at set",
-        "Grantee can access document per permission_level",
-        "Document.shared_user_count updated"
-      ]
-    },
-    {
-      "name": "Lock and Unlock",
-      "steps": [
-        "POST /documents/:id/lock \u2192 is_locked=true, locked_by=current_user, locked_at=NOW()",
-        "Other users receive is_locked=true in document data; edit controls disabled",
-        "POST /documents/:id/unlock \u2192 is_locked=false, locked_by=null, locked_at=null"
-      ]
-    }
-  ],
-  "components": [
-    "DataTable",
-    "SlideOverForm",
-    "Modal",
-    "StatusBadge",
-    "ApprovlStatusBadge",
-    "LockBadge",
-    "FileTypeIcon",
-    "FileSizeDisplay",
-    "FolderSelector",
-    "FolderBreadcrumb",
-    "FolderTree",
-    "DocumentCard",
-    "VersionHistoryList",
-    "VersionDiffViewer",
-    "PermissionSelector",
-    "TagBadge",
-    "TagList",
-    "TagInput",
-    "UserAvatar",
-    "AvatarGroup",
-    "FileUploader",
-    "FilenameLink",
-    "CommentAnnotation",
-    "CommentPanel",
-    "ApprovalRequestForm",
-    "ApprovalResponsePanel",
-    "EmptyState",
-    "LoadingSkeleton",
-    "ConfirmationDialog",
-    "PageHeader",
-    "FilterPanel",
-    "TabPanel",
-    "TextInput",
-    "Textarea",
-    "Select",
-    "MultiSelect",
-    "Toggle",
-    "DatePicker",
-    "NumberDisplay",
-    "PlainText",
-    "TruncatedText",
-    "TextLink",
-    "MonospaceText",
-    "AbsoluteDate",
-    "RelativeDate",
-    "StatCard",
-    "ActivityTimeline",
-    "NotificationBell",
-    "AuthGuard",
-    "ShareModal",
-    "DocumentPreview",
-    "BreadcrumbNav",
-    "SearchBar",
-    "ColorPicker"
-  ],
-  "modules": [
-    {
-      "name": "DocumentList",
-      "path": "/documents",
-      "description": "Document listing with grid/list view toggle"
-    },
-    {
-      "name": "FolderBrowser",
-      "path": "/folders/:id",
-      "description": "Recursive folder navigation with tree sidebar"
-    },
-    {
-      "name": "DocumentDetail",
-      "path": "/documents/:id",
-      "description": "Document detail with tabs: Preview / Versions / Comments / Approvals / Activity"
-    },
-    {
-      "name": "SharedDocuments",
-      "path": "/documents/shared",
-      "description": "Documents shared with the current user"
-    },
-    {
-      "name": "ApprovalsQueue",
-      "path": "/approvals",
-      "description": "Pending and completed approval requests"
-    },
-    {
-      "name": "DocumentSearch",
-      "path": "/documents/search",
-      "description": "Full-text document search"
-    },
-    {
-      "name": "DocumentSettings",
-      "path": "/settings/documents",
-      "description": "Document management settings"
-    }
-  ],
-  "folder_structure": {
-    "src": {
-      "components": {
-        "common": [
-          "DataTable.tsx",
-          "SlideOverForm.tsx",
-          "Modal.tsx",
-          "EmptyState.tsx",
-          "LoadingSkeleton.tsx",
-          "ConfirmationDialog.tsx",
-          "PageHeader.tsx",
-          "FilterPanel.tsx",
-          "TabPanel.tsx",
-          "AuthGuard.tsx",
-          "NotificationBell.tsx",
-          "ActivityTimeline.tsx",
-          "StatCard.tsx",
-          "BreadcrumbNav.tsx"
-        ],
-        "forms": [
-          "TextInput.tsx",
-          "Textarea.tsx",
-          "Select.tsx",
-          "MultiSelect.tsx",
-          "Toggle.tsx",
-          "DatePicker.tsx",
-          "ColorPicker.tsx"
-        ],
-        "display": [
-          "StatusBadge.tsx",
-          "ApprovlStatusBadge.tsx",
-          "LockBadge.tsx",
-          "FileTypeIcon.tsx",
-          "FileSizeDisplay.tsx",
-          "TagBadge.tsx",
-          "TagList.tsx",
-          "UserAvatar.tsx",
-          "AvatarGroup.tsx",
-          "FilenameLink.tsx",
-          "MonospaceText.tsx",
-          "PlainText.tsx",
-          "TruncatedText.tsx",
-          "TextLink.tsx",
-          "NumberDisplay.tsx",
-          "AbsoluteDate.tsx",
-          "RelativeDate.tsx",
-          "YesNoBadge.tsx"
-        ],
-        "documents": [
-          "DocumentCard.tsx",
-          "DocumentPreview.tsx",
-          "FolderTree.tsx",
-          "FolderSelector.tsx",
-          "FolderBreadcrumb.tsx",
-          "VersionHistoryList.tsx",
-          "VersionDiffViewer.tsx",
-          "PermissionSelector.tsx",
-          "TagInput.tsx",
-          "FileUploader.tsx",
-          "CommentAnnotation.tsx",
-          "CommentPanel.tsx",
-          "ApprovalRequestForm.tsx",
-          "ApprovalResponsePanel.tsx",
-          "ShareModal.tsx",
-          "SearchBar.tsx"
-        ]
-      },
-      "modules": {
-        "documents": [
-          "DocumentList.tsx",
-          "FolderBrowser.tsx",
-          "DocumentDetail.tsx",
-          "SharedDocuments.tsx"
-        ],
-        "approvals": [
-          "ApprovalsQueue.tsx"
-        ],
-        "search": [
-          "DocumentSearch.tsx"
-        ],
-        "settings": [
-          "DocumentSettings.tsx"
-        ]
-      },
-      "stores": [
-        "authStore.ts",
-        "uiStore.ts",
-        "folderStore.ts",
-        "documentPreviewStore.ts",
-        "filterStore.ts"
-      ],
-      "hooks": [
-        "useDocuments.ts",
-        "useDocument.ts",
-        "useCreateDocument.ts",
-        "useUpdateDocument.ts",
-        "useFolders.ts",
-        "useFolderContents.ts",
-        "useDocumentVersions.ts",
-        "useDocumentPermissions.ts",
-        "useDocumentComments.ts",
-        "useApprovalRequests.ts"
-      ],
-      "api": [
-        "documents.ts",
-        "folders.ts",
-        "versions.ts",
-        "permissions.ts",
-        "comments.ts",
-        "approvals.ts"
-      ],
-      "lib": [
-        "queryClient.ts",
-        "axios.ts",
-        "socket.ts",
-        "zod-schemas.ts"
-      ],
-      "router": [
-        "index.tsx",
-        "routes.ts"
-      ],
-      "types": [
-        "Document.ts",
-        "Folder.ts",
-        "DocumentVersion.ts",
-        "PermissionGrant.ts",
-        "Tag.ts",
-        "Comment.ts",
-        "ApprovalRequest.ts",
-        "Attachment.ts"
-      ]
-    }
-  },
-  "generation_rules": {
-    "document_preview": "Use iframe for general files; PDF.js for PDF rendering with page navigation",
-    "folder_tree": "Recursive FolderTree React component with expand/collapse; lazy-load children on expand",
-    "file_upload": "Multipart form-data upload with progress indicator; S3 presigned URL flow supported",
-    "version_number": "Always computed server-side as MAX(version_number) + 1; never trusted from client",
-    "materialized_path": "Folder.path updated recursively when folder is moved via SQL UPDATE with prefix replacement"
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, row-level security anchor"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null,
-      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
-    }
-  },
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {},
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  },
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Documents",
-        "entity": "Document",
-        "method": "count",
-        "icon": "Box",
-        "color": "blue"
-      }
-    ]
-  }
+  ]
 }

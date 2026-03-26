@@ -1,262 +1,13 @@
 {
   "_meta": {
-    "app_name": "Event Manager",
-    "description": "Event planning and management"
+    "app_name": "Event Management",
+    "description": "Conference and event planning platform"
   },
   "entities": [
     {
-      "name": "Event",
-      "table": "events",
-      "description": "Event",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "venue",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "capacity",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "conference",
-            "workshop",
-            "concert",
-            "wedding",
-            "corporate",
-            "meetup"
-          ],
-          "badge_colors": {
-            "conference": "blue",
-            "workshop": "green",
-            "concert": "pink",
-            "wedding": "purple",
-            "corporate": "amber",
-            "meetup": "slate"
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "planning",
-            "confirmed",
-            "in_progress",
-            "completed",
-            "cancelled"
-          ],
-          "badge_colors": {
-            "planning": "amber",
-            "confirmed": "blue",
-            "in_progress": "green",
-            "completed": "slate",
-            "cancelled": "red"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "venue",
-            "date",
-            "capacity",
-            "type",
-            "status"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Events yet",
-            "subtext": "Create your first event",
-            "action_label": "Add Event"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "venue",
-            "date",
-            "capacity",
-            "type",
-            "status"
-          ],
-          "required_fields": [
-            "name",
-            "venue"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "venue",
-            "date",
-            "capacity",
-            "type",
-            "status"
-          ],
-          "required_fields": [
-            "name",
-            "venue"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/events/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "venue",
-            "date",
-            "capacity"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "venue",
-                "date",
-                "capacity",
-                "type",
-                "status"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
       "name": "Venue",
       "table": "venues",
-      "description": "Event venue",
+      "description": "Event venue location",
       "fields": [
         {
           "name": "id",
@@ -289,18 +40,35 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "address",
-          "db_type": "VARCHAR(500) NOT NULL",
+          "db_type": "TEXT NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "city",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "capacity",
@@ -310,39 +78,94 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 100000
+          }
         },
         {
-          "name": "price_per_day",
-          "db_type": "NUMERIC(10,2)",
-          "ts_type": "number",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "venue_type",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "indoor",
+            "hotel",
+            "convention_center",
             "outdoor",
+            "theater",
+            "restaurant",
+            "virtual",
             "hybrid"
           ],
           "badge_colors": {
-            "indoor": "blue",
+            "hotel": "blue",
+            "convention_center": "purple",
             "outdoor": "green",
-            "hybrid": "purple"
+            "theater": "red",
+            "restaurant": "orange",
+            "virtual": "teal",
+            "hybrid": "pink"
+          }
+        },
+        {
+          "name": "daily_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "contact_email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "contact_phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
           }
         },
         {
@@ -396,9 +219,10 @@
           "columns": [
             "name",
             "address",
+            "city",
             "capacity",
-            "price_per_day",
-            "type"
+            "venue_type",
+            "daily_rate"
           ],
           "filters": [],
           "empty_state": {
@@ -413,13 +237,20 @@
           "field_order": [
             "name",
             "address",
+            "city",
             "capacity",
-            "price_per_day",
-            "type"
+            "venue_type",
+            "daily_rate",
+            "contact_email",
+            "contact_phone"
           ],
           "required_fields": [
             "name",
-            "address"
+            "address",
+            "city",
+            "capacity",
+            "venue_type",
+            "daily_rate"
           ]
         },
         "edit_form": {
@@ -427,13 +258,20 @@
           "field_order": [
             "name",
             "address",
+            "city",
             "capacity",
-            "price_per_day",
-            "type"
+            "venue_type",
+            "daily_rate",
+            "contact_email",
+            "contact_phone"
           ],
           "required_fields": [
             "name",
-            "address"
+            "address",
+            "city",
+            "capacity",
+            "venue_type",
+            "daily_rate"
           ],
           "prefilled": true
         },
@@ -449,8 +287,8 @@
           "primary_fields": [
             "name",
             "address",
-            "capacity",
-            "price_per_day"
+            "city",
+            "capacity"
           ],
           "tabs": [
             {
@@ -458,14 +296,407 @@
               "fields": [
                 "name",
                 "address",
+                "city",
                 "capacity",
-                "price_per_day",
-                "type"
+                "venue_type",
+                "daily_rate"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "address",
+                "city",
+                "capacity",
+                "venue_type",
+                "daily_rate",
+                "contact_email",
+                "contact_phone"
               ]
             }
           ]
         }
       }
+    },
+    {
+      "name": "Event",
+      "table": "events",
+      "description": "Planned event",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "venue_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "venues",
+          "fk_display": "name"
+        },
+        {
+          "name": "start_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "event_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "conference",
+            "workshop",
+            "seminar",
+            "gala",
+            "concert",
+            "trade_show",
+            "webinar"
+          ],
+          "badge_colors": {
+            "conference": "blue",
+            "workshop": "green",
+            "seminar": "purple",
+            "gala": "gold",
+            "concert": "red",
+            "trade_show": "orange",
+            "webinar": "teal"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'planning'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "planning",
+          "enum_values": [
+            "planning",
+            "confirmed",
+            "in_progress",
+            "completed",
+            "cancelled",
+            "postponed"
+          ],
+          "badge_colors": {
+            "planning": "yellow",
+            "confirmed": "blue",
+            "in_progress": "green",
+            "completed": "teal",
+            "cancelled": "red",
+            "postponed": "orange"
+          }
+        },
+        {
+          "name": "budget",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "max_attendees",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "cancellation_reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "cancelled",
+              "postponed"
+            ]
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "venue_id",
+            "start_date",
+            "end_date",
+            "event_type",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Events yet",
+            "subtext": "Create your first event",
+            "action_label": "Add Event"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "venue_id",
+            "start_date",
+            "end_date",
+            "event_type",
+            "status",
+            "budget",
+            "max_attendees",
+            "cancellation_reason"
+          ],
+          "required_fields": [
+            "name",
+            "venue_id",
+            "start_date",
+            "end_date",
+            "event_type",
+            "status",
+            "budget",
+            "max_attendees"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "venue_id",
+            "start_date",
+            "end_date",
+            "event_type",
+            "status",
+            "budget",
+            "max_attendees",
+            "cancellation_reason"
+          ],
+          "required_fields": [
+            "name",
+            "venue_id",
+            "start_date",
+            "end_date",
+            "event_type",
+            "status",
+            "budget",
+            "max_attendees"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/events/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "venue_id",
+            "start_date",
+            "end_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "venue_id",
+                "start_date",
+                "end_date",
+                "event_type",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "description",
+                "venue_id",
+                "start_date",
+                "end_date",
+                "event_type",
+                "status",
+                "budget",
+                "max_attendees",
+                "cancellation_reason"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "venue_id",
+          "references": {
+            "table": "venues",
+            "column": "id"
+          }
+        }
+      ]
     },
     {
       "name": "Ticket",
@@ -495,59 +726,48 @@
           "display_component": "text"
         },
         {
-          "name": "event_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "event_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "events",
+          "fk_display": "name"
         },
         {
-          "name": "attendee_name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "tier",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
             "general",
             "vip",
+            "premium",
             "early_bird",
-            "student"
+            "student",
+            "group"
           ],
           "badge_colors": {
-            "general": "slate",
-            "vip": "pink",
+            "general": "gray",
+            "vip": "gold",
+            "premium": "purple",
             "early_bird": "green",
-            "student": "blue"
+            "student": "blue",
+            "group": "teal"
           }
         },
         {
@@ -558,29 +778,69 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "quantity_available",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "quantity_sold",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "sale_start_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "valid",
-            "used",
-            "refunded"
-          ],
-          "badge_colors": {
-            "valid": "green",
-            "used": "slate",
-            "refunded": "red"
-          }
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "sale_end_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "created_at",
@@ -631,12 +891,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "event_name",
-            "attendee_name",
-            "email",
-            "type",
+            "event_id",
+            "tier",
             "price",
-            "status"
+            "quantity_available",
+            "quantity_sold",
+            "sale_start_date"
           ],
           "filters": [],
           "empty_state": {
@@ -649,31 +909,39 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "event_name",
-            "attendee_name",
-            "email",
-            "type",
+            "event_id",
+            "tier",
             "price",
-            "status"
+            "quantity_available",
+            "sale_start_date",
+            "sale_end_date"
           ],
           "required_fields": [
-            "event_name",
-            "attendee_name"
+            "event_id",
+            "tier",
+            "price",
+            "quantity_available",
+            "sale_start_date",
+            "sale_end_date"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "event_name",
-            "attendee_name",
-            "email",
-            "type",
+            "event_id",
+            "tier",
             "price",
-            "status"
+            "quantity_available",
+            "sale_start_date",
+            "sale_end_date"
           ],
           "required_fields": [
-            "event_name",
-            "attendee_name"
+            "event_id",
+            "tier",
+            "price",
+            "quantity_available",
+            "sale_start_date",
+            "sale_end_date"
           ],
           "prefilled": true
         },
@@ -682,36 +950,68 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "event_name"
+              "event_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "event_name",
-            "attendee_name",
-            "email",
-            "type"
+            "event_id",
+            "tier",
+            "price",
+            "quantity_available"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "event_name",
-                "attendee_name",
-                "email",
-                "type",
+                "event_id",
+                "tier",
                 "price",
-                "status"
+                "quantity_available",
+                "quantity_sold",
+                "sale_start_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "event_id",
+                "tier",
+                "price",
+                "quantity_available",
+                "sale_start_date",
+                "sale_end_date"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "event_id",
+          "references": {
+            "table": "events",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "revenue",
+          "expression": "price * quantity_sold",
+          "ts_expression": "price * quantity_sold"
+        },
+        {
+          "name": "remaining",
+          "expression": "quantity_available - quantity_sold",
+          "ts_expression": "quantity_available - quantity_sold"
+        }
+      ]
     },
     {
       "name": "Speaker",
       "table": "speakers",
-      "description": "Event speaker",
+      "description": "Event speaker / presenter",
       "fields": [
         {
           "name": "id",
@@ -736,6 +1036,22 @@
           "display_component": "text"
         },
         {
+          "name": "event_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "events",
+          "fk_display": "name"
+        },
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -744,18 +1060,39 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "bio",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "topic",
@@ -766,38 +1103,75 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "bio",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "speaker_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "confirmed",
-            "pending",
-            "declined"
+            "keynote",
+            "panelist",
+            "workshop_lead",
+            "guest",
+            "moderator"
           ],
           "badge_colors": {
+            "keynote": "gold",
+            "panelist": "blue",
+            "workshop_lead": "green",
+            "guest": "purple",
+            "moderator": "teal"
+          }
+        },
+        {
+          "name": "fee",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'invited'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "invited",
+          "enum_values": [
+            "invited",
+            "confirmed",
+            "declined",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "invited": "yellow",
             "confirmed": "green",
-            "pending": "amber",
-            "declined": "red"
+            "declined": "red",
+            "cancelled": "gray"
           }
         },
         {
@@ -849,10 +1223,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
+            "event_id",
             "name",
             "email",
             "topic",
-            "status"
+            "speaker_type",
+            "fee"
           ],
           "filters": [],
           "empty_state": {
@@ -865,29 +1241,45 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
+            "event_id",
             "name",
             "email",
-            "topic",
             "bio",
+            "topic",
+            "speaker_type",
+            "fee",
             "status"
           ],
           "required_fields": [
+            "event_id",
             "name",
-            "email"
+            "email",
+            "topic",
+            "speaker_type",
+            "fee",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
+            "event_id",
             "name",
             "email",
-            "topic",
             "bio",
+            "topic",
+            "speaker_type",
+            "fee",
             "status"
           ],
           "required_fields": [
+            "event_id",
             "name",
-            "email"
+            "email",
+            "topic",
+            "speaker_type",
+            "fee",
+            "status"
           ],
           "prefilled": true
         },
@@ -896,124 +1288,1033 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "event_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
+            "event_id",
             "name",
             "email",
-            "topic",
-            "status"
+            "topic"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
+                "event_id",
                 "name",
                 "email",
                 "topic",
+                "speaker_type",
+                "fee"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "event_id",
+                "name",
+                "email",
+                "bio",
+                "topic",
+                "speaker_type",
+                "fee",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "event_id",
+          "references": {
+            "table": "events",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sponsor",
+      "table": "sponsors",
+      "description": "Event sponsor",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "event_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "events",
+          "fk_display": "name"
+        },
+        {
+          "name": "company_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contact_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "contact_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "tier",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "title",
+            "platinum",
+            "gold",
+            "silver",
+            "bronze",
+            "in_kind"
+          ],
+          "badge_colors": {
+            "title": "red",
+            "platinum": "purple",
+            "gold": "yellow",
+            "silver": "gray",
+            "bronze": "orange",
+            "in_kind": "teal"
+          }
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'pledged'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "pledged",
+          "enum_values": [
+            "pledged",
+            "confirmed",
+            "paid",
+            "withdrawn"
+          ],
+          "badge_colors": {
+            "pledged": "yellow",
+            "confirmed": "blue",
+            "paid": "green",
+            "withdrawn": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "event_id",
+            "company_name",
+            "contact_name",
+            "contact_email",
+            "tier",
+            "amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Sponsors yet",
+            "subtext": "Create your first sponsor",
+            "action_label": "Add Sponsor"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_id",
+            "company_name",
+            "contact_name",
+            "contact_email",
+            "tier",
+            "amount",
+            "status"
+          ],
+          "required_fields": [
+            "event_id",
+            "company_name",
+            "contact_name",
+            "contact_email",
+            "tier",
+            "amount",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_id",
+            "company_name",
+            "contact_name",
+            "contact_email",
+            "tier",
+            "amount",
+            "status"
+          ],
+          "required_fields": [
+            "event_id",
+            "company_name",
+            "contact_name",
+            "contact_email",
+            "tier",
+            "amount",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/sponsors/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "event_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "event_id",
+            "company_name",
+            "contact_name",
+            "contact_email"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "event_id",
+                "company_name",
+                "contact_name",
+                "contact_email",
+                "tier",
+                "amount"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "event_id",
+                "company_name",
+                "contact_name",
+                "contact_email",
+                "tier",
+                "amount",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "event_id",
+          "references": {
+            "table": "events",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedule",
+      "table": "schedules",
+      "description": "Event schedule / agenda item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "event_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "events",
+          "fk_display": "name"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "location",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "session_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "keynote",
+            "breakout",
+            "workshop",
+            "panel",
+            "networking",
+            "meal",
+            "registration"
+          ],
+          "badge_colors": {
+            "keynote": "gold",
+            "breakout": "blue",
+            "workshop": "green",
+            "panel": "purple",
+            "networking": "teal",
+            "meal": "orange",
+            "registration": "gray"
+          }
+        },
+        {
+          "name": "speaker_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "speakers",
+          "fk_display": "name"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "event_id",
+            "title",
+            "start_time",
+            "end_time",
+            "location",
+            "session_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Schedules yet",
+            "subtext": "Create your first schedule",
+            "action_label": "Add Schedule"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_id",
+            "title",
+            "description",
+            "start_time",
+            "end_time",
+            "location",
+            "session_type",
+            "speaker_id"
+          ],
+          "required_fields": [
+            "event_id",
+            "title",
+            "start_time",
+            "end_time",
+            "session_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_id",
+            "title",
+            "description",
+            "start_time",
+            "end_time",
+            "location",
+            "session_type",
+            "speaker_id"
+          ],
+          "required_fields": [
+            "event_id",
+            "title",
+            "start_time",
+            "end_time",
+            "session_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/schedules/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "event_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "event_id",
+            "title",
+            "start_time",
+            "end_time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "event_id",
+                "title",
+                "start_time",
+                "end_time",
+                "location",
+                "session_type"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "event_id",
+                "title",
+                "description",
+                "start_time",
+                "end_time",
+                "location",
+                "session_type",
+                "speaker_id"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "event_id",
+          "references": {
+            "table": "events",
+            "column": "id"
+          }
+        },
+        {
+          "column": "speaker_id",
+          "references": {
+            "table": "speakers",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendee",
+      "table": "attendees",
+      "description": "Event attendee",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "event_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "events",
+          "fk_display": "name"
+        },
+        {
+          "name": "ticket_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "tickets",
+          "fk_display": "tier"
+        },
+        {
+          "name": "first_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "last_name",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "company",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "dietary_restrictions",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "none",
+            "vegetarian",
+            "vegan",
+            "gluten_free",
+            "kosher",
+            "halal",
+            "other"
+          ],
+          "badge_colors": {
+            "none": "gray",
+            "vegetarian": "green",
+            "vegan": "teal",
+            "gluten_free": "yellow",
+            "kosher": "blue",
+            "halal": "purple",
+            "other": "orange"
+          }
+        },
+        {
+          "name": "check_in_status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'registered'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "registered",
+          "enum_values": [
+            "registered",
+            "checked_in",
+            "no_show"
+          ],
+          "badge_colors": {
+            "registered": "blue",
+            "checked_in": "green",
+            "no_show": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "event_id",
+            "ticket_id",
+            "first_name",
+            "last_name",
+            "email",
+            "company"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Attendees yet",
+            "subtext": "Create your first attendee",
+            "action_label": "Add Attendee"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_id",
+            "ticket_id",
+            "first_name",
+            "last_name",
+            "email",
+            "company",
+            "dietary_restrictions",
+            "check_in_status"
+          ],
+          "required_fields": [
+            "event_id",
+            "ticket_id",
+            "first_name",
+            "last_name",
+            "email",
+            "check_in_status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_id",
+            "ticket_id",
+            "first_name",
+            "last_name",
+            "email",
+            "company",
+            "dietary_restrictions",
+            "check_in_status"
+          ],
+          "required_fields": [
+            "event_id",
+            "ticket_id",
+            "first_name",
+            "last_name",
+            "email",
+            "check_in_status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/attendees/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "event_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "event_id",
+            "ticket_id",
+            "first_name",
+            "last_name"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "event_id",
+                "ticket_id",
+                "first_name",
+                "last_name",
+                "email",
+                "company"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "event_id",
+                "ticket_id",
+                "first_name",
+                "last_name",
+                "email",
+                "company",
+                "dietary_restrictions",
+                "check_in_status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "event_id",
+          "references": {
+            "table": "events",
+            "column": "id"
+          }
+        },
+        {
+          "column": "ticket_id",
+          "references": {
+            "table": "tickets",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "full_name",
+          "expression": "first_name || ' ' || last_name",
+          "ts_expression": "first_name + ' ' + last_name"
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Events",
-      "route": "/events",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Calendar",
-      "entity": "Event"
-    },
-    {
-      "name": "Venues",
-      "route": "/venues",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Building2",
-      "entity": "Venue"
-    },
-    {
-      "name": "Tickets",
-      "route": "/tickets",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Ticket",
-      "entity": "Ticket"
-    },
-    {
-      "name": "Speakers",
-      "route": "/speakers",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Mic",
-      "entity": "Speaker"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Events",
-        "entity": "Event",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

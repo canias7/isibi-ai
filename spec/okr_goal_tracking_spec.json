@@ -1,2571 +1,974 @@
 {
   "_meta": {
-    "title": "OKR & Goal Tracking Application",
-    "domain": "Operations & Internal Tools",
-    "version": "1.0"
+    "app_name": "OKR Goal Tracking",
+    "description": "Complete okr goal tracking management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "emerald",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "confidence_colors": {
-      "on_track": "green",
-      "at_risk": "amber",
-      "off_track": "red",
-      "completed": "emerald",
-      "not_started": "slate",
-      "paused": "gray"
-    },
-    "level_colors": {
-      "company": "violet",
-      "department": "blue",
-      "team": "cyan",
-      "individual": "emerald"
-    },
-    "progress_thresholds": {
-      "on_track": 70,
-      "at_risk": 40,
-      "off_track": 0
-    }
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
-  },
+  "spec_name": "okr_goal_tracking_spec",
   "entities": [
     {
-      "name": "OKRCycle",
-      "table": "okr_cycles",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "cycle_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "start_date"
-          ]
-        }
-      ],
+      "name": "Team",
+      "table": "okr_teams",
+      "description": "Team",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 255
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "cycle_type",
-          "db_type": "ENUM('annual','quarterly','monthly','custom')",
-          "ts_type": "'annual' | 'quarterly' | 'monthly' | 'custom'",
-          "nullable": false,
-          "default": "quarterly",
-          "input_component": "Select",
-          "display_component": "CycleBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "start_date",
-          "db_type": "DATE",
+          "name": "department",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "end_date",
-          "db_type": "DATE",
+          "name": "lead",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "lead_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true
+            "rule": "email",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "is_active",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
+          "name": "member_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
           "nullable": false,
-          "default": false,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
+          "name": "active_objectives",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(objectives WHERE status=active)"
+        },
+        {
+          "name": "color",
+          "db_type": "VARCHAR(7)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "color_picker",
+          "display_component": "color_swatch"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_okr_cycles_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_okr_cycles_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
       "name": "Objective",
       "table": "objectives",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "cycle_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "owner_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "level"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "team_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "parent_objective_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "confidence_status"
-          ]
-        }
-      ],
+      "description": "Objective",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "cycle_id",
-          "db_type": "UUID",
+          "name": "team_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "okr_cycles",
-          "input_component": "CycleSelector",
-          "display_component": "CycleBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Team"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(1000)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/objectives/:id"
-          },
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 1000
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "description",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "level",
-          "db_type": "ENUM('company','department','team','individual')",
-          "ts_type": "'company' | 'department' | 'team' | 'individual'",
-          "nullable": false,
-          "default": "team",
-          "input_component": "Select",
-          "display_component": "LevelBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "owner_id",
-          "db_type": "UUID",
+          "name": "time_frame",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "quarterly",
+            "semi_annual",
+            "annual"
+          ],
+          "badge_colors": {
+            "quarterly": "blue",
+            "semi_annual": "purple",
+            "annual": "green"
           }
         },
         {
-          "name": "team_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "teams",
-          "input_component": "TeamSelector",
-          "display_component": "TeamBadge",
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
-          "name": "parent_objective_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "objectives",
-          "notes": "Supports objective hierarchy / alignment",
-          "input_component": "ObjectiveSelector",
-          "display_component": "ObjectiveLink",
+          "name": "end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "date_picker",
+          "display_component": "date"
         },
         {
           "name": "progress_pct",
           "db_type": "NUMERIC(5,2)",
           "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "key_results",
-            "formula": "COALESCE(SUM(kr.progress_pct * kr.weight) / NULLIF(SUM(kr.weight),0), 0) for objectives; ((current_value - start_value)/(target_value - start_value))*100 for metric KRs",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "notes": "Average of child KR progress percentages",
-          "input_component": null,
-          "display_component": "ProgressBar",
+          "nullable": true,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "AVG(key_results.progress_pct)"
         },
         {
-          "name": "confidence_status",
-          "db_type": "ENUM('not_started','on_track','at_risk','off_track','completed','paused')",
-          "ts_type": "'not_started' | 'on_track' | 'at_risk' | 'off_track' | 'completed' | 'paused'",
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "not_started",
-          "input_component": "ConfidenceSelect",
-          "display_component": "ConfidenceBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "is_public",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "sort_order",
-          "db_type": "NUMERIC(10,5)",
-          "ts_type": "number",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "draft",
+            "active",
+            "at_risk",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "draft": "slate",
+            "active": "green",
+            "at_risk": "red",
+            "completed": "blue",
+            "cancelled": "purple"
+          }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_objectives_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_objectives_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
       "name": "KeyResult",
       "table": "key_results",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "objective_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "owner_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "confidence_status"
-          ]
-        }
-      ],
+      "description": "KeyResult",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "objective_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "objectives",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Objective"
         },
         {
           "name": "title",
-          "db_type": "VARCHAR(1000)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 1000
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "owner_id",
-          "db_type": "UUID",
+          "name": "metric_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "kr_type",
-          "db_type": "ENUM('metric','milestone','boolean')",
-          "ts_type": "'metric' | 'milestone' | 'boolean'",
-          "nullable": false,
-          "default": "metric",
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "number",
+            "percentage",
+            "currency",
+            "boolean"
+          ],
+          "badge_colors": {
+            "number": "blue",
+            "percentage": "green",
+            "currency": "amber",
+            "boolean": "purple"
           }
         },
         {
           "name": "start_value",
-          "db_type": "NUMERIC(15,4)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "notes": "For metric type: baseline value",
-          "input_component": "NumberInput",
-          "display_component": "MetricDisplay",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "target_value",
-          "db_type": "NUMERIC(15,4)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "notes": "For metric type: goal value",
-          "input_component": "NumberInput",
-          "display_component": "MetricDisplay",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "current_value",
-          "db_type": "NUMERIC(15,4)",
-          "ts_type": "number | null",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
           "nullable": true,
-          "default": null,
-          "notes": "Latest check-in value",
-          "input_component": "NumberInput",
-          "display_component": "MetricDisplay",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "unit",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "e.g. %, $, users, NPS",
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "direction",
-          "db_type": "ENUM('increase','decrease','maintain')",
-          "ts_type": "'increase' | 'decrease' | 'maintain'",
-          "nullable": false,
-          "default": "increase",
-          "input_component": "Select",
-          "display_component": "DirectionIcon",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "progress_pct",
           "db_type": "NUMERIC(5,2)",
           "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "key_results",
-            "formula": "COALESCE(SUM(kr.progress_pct * kr.weight) / NULLIF(SUM(kr.weight),0), 0) for objectives; ((current_value - start_value)/(target_value - start_value))*100 for metric KRs",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "formula": "CASE kr_type WHEN metric: (current_value - start_value)/(target_value - start_value)*100 WHEN boolean: completed ? 100 : 0 WHEN milestone: milestone_progress_pct END",
-          "input_component": null,
-          "display_component": "ProgressBar",
+          "nullable": true,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "(current_value - start_value) / (target_value - start_value) * 100"
         },
         {
-          "name": "confidence_status",
-          "db_type": "ENUM('not_started','on_track','at_risk','off_track','completed','paused')",
-          "ts_type": "'not_started' | 'on_track' | 'at_risk' | 'off_track' | 'completed' | 'paused'",
+          "name": "owner",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "not_started",
-          "input_component": "ConfidenceSelect",
-          "display_component": "ConfidenceBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "weight",
-          "db_type": "NUMERIC(5,2)",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1.0,
-          "notes": "Weight for objective progress calculation",
-          "input_component": "NumberInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
           "show_in_form": true,
-          "validation": {
-            "min": 0,
-            "max": 10
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "on_track",
+            "behind",
+            "at_risk",
+            "achieved"
+          ],
+          "badge_colors": {
+            "on_track": "green",
+            "behind": "amber",
+            "at_risk": "red",
+            "achieved": "blue"
           }
         },
         {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "last_updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "Timestamp of most recent check-in",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Initiative",
+      "table": "okr_initiatives",
+      "description": "Initiative",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "key_result_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "KeyResult"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "version",
-          "db_type": "INTEGER",
+          "name": "assignee",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
+          }
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "estimated_effort_days",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_key_results_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
-          "name": "idx_key_results_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
+          "name": "completion_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "not_started",
+            "in_progress",
+            "blocked",
+            "completed"
           ],
-          "note": "Covers global filter"
+          "badge_colors": {
+            "not_started": "slate",
+            "in_progress": "blue",
+            "blocked": "red",
+            "completed": "green"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
       "name": "CheckIn",
-      "table": "checkins",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "key_result_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "author_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "checked_in_at"
-          ]
-        }
-      ],
+      "table": "okr_checkins",
+      "description": "CheckIn",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "key_result_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "key_results",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "author_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "value",
-          "db_type": "NUMERIC(15,4)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "notes": "New metric value",
-          "input_component": "NumberInput",
-          "display_component": "MetricDisplay",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "KeyResult"
         },
         {
-          "name": "progress_pct",
+          "name": "author",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "checkin_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "previous_value",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "new_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "delta",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": "new_value - previous_value"
+        },
+        {
+          "name": "confidence",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "on_track",
+            "at_risk",
+            "off_track"
+          ],
+          "badge_colors": {
+            "on_track": "green",
+            "at_risk": "amber",
+            "off_track": "red"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Alignment",
+      "table": "okr_alignments",
+      "description": "Alignment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "parent_objective_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Objective"
+        },
+        {
+          "name": "child_objective_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Objective"
+        },
+        {
+          "name": "alignment_type",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "supports",
+            "contributes_to",
+            "depends_on",
+            "blocks"
+          ],
+          "badge_colors": {
+            "supports": "green",
+            "contributes_to": "blue",
+            "depends_on": "amber",
+            "blocks": "red"
+          }
+        },
+        {
+          "name": "contribution_weight",
           "db_type": "NUMERIC(5,2)",
           "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "ProgressBar",
+          "nullable": true,
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "number_input",
+          "display_component": "percentage"
         },
         {
-          "name": "confidence_status",
-          "db_type": "ENUM('not_started','on_track','at_risk','off_track','completed','paused')",
-          "ts_type": "'not_started' | 'on_track' | 'at_risk' | 'off_track' | 'completed' | 'paused'",
-          "nullable": false,
-          "default": "not_started",
-          "input_component": "ConfidenceSelect",
-          "display_component": "ConfidenceBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "comment",
+          "name": "rationale",
           "db_type": "TEXT",
-          "ts_type": "string | null",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "checked_in_at",
-          "db_type": "TIMESTAMPTZ",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_checkins_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_checkins_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "proposed",
+            "approved",
+            "active",
+            "removed"
           ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "InitiativeLinkage",
-      "table": "initiative_linkages",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "key_result_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "initiative_type",
-            "initiative_id"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "key_result_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "key_results",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "initiative_type",
-          "db_type": "ENUM('project','task','milestone')",
-          "ts_type": "'project' | 'task' | 'milestone'",
-          "nullable": false,
-          "default": null,
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "initiative_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "notes": "FK to project/task/milestone based on initiative_type",
-          "input_component": "InitiativeSelector",
-          "display_component": "InitiativeLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
+          "badge_colors": {
+            "proposed": "slate",
+            "approved": "blue",
+            "active": "green",
+            "removed": "red"
           }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_initiative_linkages_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_initiative_linkages_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     }
-  ],
-  "components": [
-    {
-      "name": "OKRTreeView",
-      "type": "HierarchyTree",
-      "features": [
-        "expandable_nodes",
-        "drag_to_align",
-        "level_filter",
-        "cycle_filter",
-        "inline_progress",
-        "confidence_color_coding",
-        "alignment_lines"
-      ]
-    },
-    {
-      "name": "ObjectiveCard",
-      "type": "Card",
-      "props": {
-        "fields": [
-          "title",
-          "owner_id",
-          "level",
-          "progress_pct",
-          "confidence_status",
-          "cycle_id"
-        ]
-      },
-      "features": [
-        "expand_key_results",
-        "quick_checkin",
-        "edit",
-        "alignment_indicators"
-      ]
-    },
-    {
-      "name": "KeyResultRow",
-      "type": "TableRow",
-      "props": {
-        "fields": [
-          "title",
-          "owner_id",
-          "kr_type",
-          "progress_pct",
-          "current_value",
-          "target_value",
-          "unit",
-          "confidence_status",
-          "last_updated_at"
-        ]
-      },
-      "features": [
-        "inline_checkin",
-        "edit",
-        "link_initiative",
-        "history_sparkline"
-      ]
-    },
-    {
-      "name": "CheckInForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "value",
-          "confidence_status",
-          "comment"
-        ]
-      },
-      "features": [
-        "progress_preview",
-        "delta_display",
-        "historical_context"
-      ]
-    },
-    {
-      "name": "OKRProgressBoard",
-      "type": "KanbanBoard",
-      "columns": [
-        "not_started",
-        "on_track",
-        "at_risk",
-        "off_track",
-        "completed"
-      ],
-      "features": [
-        "drag_between_columns",
-        "filter_by_level",
-        "filter_by_owner",
-        "filter_by_cycle"
-      ]
-    },
-    {
-      "name": "OKRListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "title",
-          "level",
-          "owner_id",
-          "team_id",
-          "cycle_id",
-          "progress_pct",
-          "confidence_status",
-          "last_updated_at"
-        ]
-      },
-      "features": [
-        "filter_by_level",
-        "filter_by_owner",
-        "filter_by_cycle",
-        "search",
-        "export_csv"
-      ]
-    },
-    {
-      "name": "CycleSelector",
-      "type": "Dropdown",
-      "props": {
-        "show_active_indicator": true
-      },
-      "features": [
-        "switch_cycle",
-        "compare_cycles"
-      ]
-    },
-    {
-      "name": "CompanyScorecard",
-      "type": "Dashboard",
-      "features": [
-        "top_level_objectives",
-        "overall_progress",
-        "confidence_distribution",
-        "department_breakdown",
-        "cycle_comparison"
-      ]
-    },
-    {
-      "name": "ObjectiveDetailPage",
-      "type": "Page",
-      "features": [
-        "objective_info",
-        "key_results_list",
-        "checkin_history",
-        "initiative_linkages",
-        "comments",
-        "activity_log",
-        "child_objectives"
-      ]
-    },
-    {
-      "name": "ProgressTrendChart",
-      "type": "LineChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "check_in_date",
-        "yAxis": "progress_pct",
-        "series_per": "key_result"
-      }
-    },
-    {
-      "name": "ConfidenceDistributionChart",
-      "type": "DonutChart",
-      "library": "Recharts",
-      "props": {
-        "dataKey": "count",
-        "nameKey": "confidence_status",
-        "color_map": "confidence_colors"
-      }
-    },
-    {
-      "name": "AlignmentMap",
-      "type": "ForceGraph",
-      "features": [
-        "hierarchical_layout",
-        "hover_details",
-        "filter_by_level",
-        "zoom_pan"
-      ]
-    },
-    {
-      "name": "CheckInRemindersWidget",
-      "type": "Widget",
-      "features": [
-        "stale_krs_list",
-        "one_click_checkin",
-        "snooze"
-      ]
-    },
-    {
-      "name": "OKRSummaryStats",
-      "type": "StatsGrid",
-      "metrics": [
-        {
-          "label": "Objectives",
-          "field": "objective_count",
-          "format": "number"
-        },
-        {
-          "label": "Avg Progress",
-          "field": "avg_progress_pct",
-          "format": "percent"
-        },
-        {
-          "label": "On Track",
-          "field": "on_track_count",
-          "format": "number",
-          "color": "green"
-        },
-        {
-          "label": "At Risk",
-          "field": "at_risk_count",
-          "format": "number",
-          "color": "amber"
-        },
-        {
-          "label": "Off Track",
-          "field": "off_track_count",
-          "format": "number",
-          "color": "red"
-        }
-      ]
-    }
-  ],
-  "modules": [
-    {
-      "name": "CompanyDashboard",
-      "path": "/okr",
-      "description": "Company-wide OKR overview with scorecard",
-      "components": [
-        "CompanyScorecard",
-        "OKRSummaryStats",
-        "ConfidenceDistributionChart",
-        "CycleSelector"
-      ]
-    },
-    {
-      "name": "OKRExplorer",
-      "path": "/okr/explore",
-      "description": "Browse and filter all OKRs across cycles and levels",
-      "components": [
-        "OKRTreeView",
-        "OKRListTable",
-        "OKRProgressBoard",
-        "OKRSummaryStats",
-        "CycleSelector"
-      ],
-      "views": [
-        "Tree",
-        "List",
-        "Board"
-      ]
-    },
-    {
-      "name": "MyOKRs",
-      "path": "/okr/my",
-      "description": "Personal OKRs and check-in management",
-      "components": [
-        "ObjectiveCard",
-        "CheckInRemindersWidget",
-        "OKRListTable"
-      ],
-      "default_filters": {
-        "owner_id": "current_user"
-      }
-    },
-    {
-      "name": "ObjectiveDetail",
-      "path": "/objectives/:id",
-      "description": "Full objective detail with KRs, check-ins, and alignment",
-      "components": [
-        "ObjectiveDetailPage",
-        "ProgressTrendChart",
-        "AlignmentMap"
-      ]
-    },
-    {
-      "name": "AlignmentView",
-      "path": "/okr/alignment",
-      "description": "Visual alignment map showing objective hierarchy",
-      "components": [
-        "AlignmentMap",
-        "OKRTreeView"
-      ]
-    },
-    {
-      "name": "CycleManager",
-      "path": "/settings/okr-cycles",
-      "description": "Manage OKR cycles",
-      "components": [
-        "OKRListTable"
-      ],
-      "features": [
-        "create_cycle",
-        "edit_cycle",
-        "activate_cycle",
-        "archive_cycle"
-      ]
-    }
-  ],
-  "api": {
-    "objectives": {
-      "GET /api/objectives": {
-        "description": "List objectives",
-        "query_params": [
-          "cycle_id",
-          "level",
-          "owner_id",
-          "team_id",
-          "confidence_status",
-          "parent_id",
-          "page",
-          "limit",
-          "search",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedObjective[]",
-        "response_envelope": {
-          "data": "PaginatedObjective[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/objectives": {
-        "description": "Create objective",
-        "body": "CreateObjectiveDto",
-        "response": "Objective"
-      },
-      "GET /api/objectives/:id": {
-        "description": "Get objective with KRs and child objectives",
-        "response": "ObjectiveWithRelations"
-      },
-      "PATCH /api/objectives/:id": {
-        "description": "Update objective",
-        "body": "UpdateObjectiveDto",
-        "response": "Objective"
-      },
-      "DELETE /api/objectives/:id": {
-        "description": "Soft delete objective",
-        "response": "void"
-      },
-      "GET /api/objectives/tree": {
-        "description": "Get full OKR tree for cycle",
-        "query_params": [
-          "cycle_id",
-          "level",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "ObjectiveTree[]",
-        "response_envelope": {
-          "data": "ObjectiveTree[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    },
-    "key_results": {
-      "GET /api/objectives/:objectiveId/key-results": {
-        "description": "List KRs for objective",
-        "response": "KeyResult[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "KeyResult[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/objectives/:objectiveId/key-results": {
-        "description": "Create KR",
-        "body": "CreateKeyResultDto",
-        "response": "KeyResult"
-      },
-      "PATCH /api/key-results/:id": {
-        "description": "Update KR",
-        "body": "UpdateKeyResultDto",
-        "response": "KeyResult"
-      },
-      "DELETE /api/key-results/:id": {
-        "description": "Delete KR",
-        "response": "void"
-      }
-    },
-    "checkins": {
-      "POST /api/key-results/:krId/checkins": {
-        "description": "Submit check-in for KR",
-        "body": "CreateCheckInDto",
-        "response": "CheckIn"
-      },
-      "GET /api/key-results/:krId/checkins": {
-        "description": "Get check-in history",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedCheckIn[]",
-        "response_envelope": {
-          "data": "PaginatedCheckIn[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "DELETE /api/checkins/:id": {
-        "description": "Delete check-in (reverts KR to previous value)",
-        "response": "void"
-      }
-    },
-    "cycles": {
-      "GET /api/okr-cycles": {
-        "description": "List cycles",
-        "response": "OKRCycle[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "OKRCycle[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/okr-cycles": {
-        "description": "Create cycle",
-        "body": "CreateCycleDto",
-        "response": "OKRCycle"
-      },
-      "PATCH /api/okr-cycles/:id": {
-        "description": "Update cycle",
-        "body": "UpdateCycleDto",
-        "response": "OKRCycle"
-      },
-      "POST /api/okr-cycles/:id/activate": {
-        "description": "Set as active cycle",
-        "response": "OKRCycle"
-      }
-    },
-    "analytics": {
-      "GET /api/okr/analytics/summary": {
-        "description": "Cycle summary stats",
-        "query_params": [
-          "cycle_id",
-          "team_id",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "OKRSummaryStats",
-        "response_envelope": {
-          "data": "OKRSummaryStats",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/okr/analytics/trend": {
-        "description": "Progress trend over check-ins",
-        "query_params": [
-          "objective_id",
-          "cycle_id",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "ProgressTrend[]",
-        "response_envelope": {
-          "data": "ProgressTrend[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/okr/analytics/confidence-distribution": {
-        "description": "Distribution of confidence statuses",
-        "query_params": [
-          "cycle_id",
-          "level",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "ConfidenceDistribution[]",
-        "response_envelope": {
-          "data": "ConfidenceDistribution[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    }
-  },
-  "permissions": {
-    "roles": [
-      "owner",
-      "admin",
-      "manager",
-      "employee",
-      "viewer"
-    ],
-    "matrix": {
-      "objective.create": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "objective.edit_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "objective.edit_any": [
-        "owner",
-        "admin"
-      ],
-      "objective.delete_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "objective.delete_any": [
-        "owner",
-        "admin"
-      ],
-      "objective.view_public": [
-        "owner",
-        "admin",
-        "manager",
-        "employee",
-        "viewer"
-      ],
-      "objective.view_private": [
-        "owner",
-        "admin",
-        "manager"
-      ],
-      "key_result.create": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "key_result.edit_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "key_result.edit_any": [
-        "owner",
-        "admin",
-        "manager"
-      ],
-      "checkin.create": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "checkin.delete_own": [
-        "owner",
-        "admin",
-        "manager",
-        "employee"
-      ],
-      "cycle.manage": [
-        "owner",
-        "admin"
-      ],
-      "analytics.view": [
-        "owner",
-        "admin",
-        "manager"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "okrStore",
-        "state": [
-          "activeCycle",
-          "selectedLevel",
-          "selectedTeam",
-          "viewMode",
-          "expandedObjectives"
-        ],
-        "actions": [
-          "setActiveCycle",
-          "setSelectedLevel",
-          "setSelectedTeam",
-          "setViewMode",
-          "toggleObjectiveExpand",
-          "expandAll",
-          "collapseAll"
-        ]
-      }
-    ],
-    "query_keys": [
-      "objectives.list(filters)",
-      "objectives.detail(id)",
-      "objectives.tree(cycleId,level)",
-      "key-results.by-objective(objectiveId)",
-      "checkins.by-kr(krId)",
-      "cycles.list",
-      "analytics.summary(cycleId)",
-      "analytics.trend(objectiveId)"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "checkin:created",
-        "payload": "CheckIn",
-        "description": "Broadcast updated KR progress to team viewing same objective"
-      },
-      {
-        "name": "objective:updated",
-        "payload": "Objective",
-        "description": "Sync progress changes when KRs are checked in"
-      },
-      {
-        "name": "kr:confidence_changed",
-        "payload": "KeyResult",
-        "description": "Alert owner when confidence drops to at_risk or off_track"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Check In on Key Result",
-      "trigger": "Owner clicks Check In on KR",
-      "steps": [
-        "Show CheckInForm with current value and previous check-in context",
-        "User enters new value, confidence status, and optional comment",
-        "Calculate new progress_pct based on kr_type formula",
-        "Save CheckIn record",
-        "Update key_result.current_value, progress_pct, confidence_status, last_updated_at",
-        "Recalculate parent objective.progress_pct as weighted average of KR progress",
-        "Broadcast checkin:created to viewers of same objective",
-        "If confidence dropped \u2192 notify objective owner"
-      ]
-    },
-    {
-      "name": "Create Objective with Key Results",
-      "trigger": "User fills objective form and adds KRs",
-      "steps": [
-        "Validate objective fields",
-        "Create Objective record",
-        "Create each KeyResult linked to objective",
-        "If parent_objective_id set \u2192 establish alignment relationship",
-        "Calculate initial progress_pct (0 for new)",
-        "Notify owner if assigned to someone else"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "name": "progress_pct (metric KR)",
-      "entity": "KeyResult",
-      "formula": "CLAMP((current_value - start_value) / (target_value - start_value) * 100, 0, 100)",
-      "stored": true
-    },
-    {
-      "name": "progress_pct (objective)",
-      "entity": "Objective",
-      "formula": "SUM(kr.progress_pct * kr.weight) / SUM(kr.weight) for all non-deleted KRs",
-      "stored": true
-    },
-    {
-      "name": "avg_progress_pct",
-      "entity": "Analytics",
-      "formula": "AVG(objective.progress_pct) for cycle",
-      "stored": false
-    },
-    {
-      "name": "on_track_count",
-      "entity": "Analytics",
-      "formula": "COUNT objectives WHERE confidence_status = 'on_track'",
-      "stored": false
-    },
-    {
-      "name": "at_risk_count",
-      "entity": "Analytics",
-      "formula": "COUNT objectives WHERE confidence_status = 'at_risk'",
-      "stored": false
-    }
-  ],
-  "domain_rules": [
-    "Each OKR cycle can have only one active designation at a time",
-    "Objective progress is the weighted average of its KR progress percentages",
-    "KR progress is clamped to 0-100%",
-    "Check-in on a KR updates parent objective progress immediately",
-    "Individual-level OKRs must have an owner_id assigned",
-    "Company/department-level OKRs may align to no parent (they are root nodes)",
-    "Deleting a parent objective soft-deletes all child objectives and KRs",
-    "Stale KRs (no check-in in 7+ days) are flagged in reminder widget",
-    "Private objectives are visible only to owner, manager chain, and admins"
-  ],
-  "folder_structure": {
-    "src": {
-      "features": {
-        "okr": {
-          "components": [
-            "OKRTreeView.tsx",
-            "ObjectiveCard.tsx",
-            "KeyResultRow.tsx",
-            "CheckInForm.tsx",
-            "OKRProgressBoard.tsx",
-            "CompanyScorecard.tsx",
-            "AlignmentMap.tsx",
-            "ProgressTrendChart.tsx",
-            "CheckInRemindersWidget.tsx",
-            "OKRSummaryStats.tsx",
-            "CycleSelector.tsx"
-          ],
-          "pages": [
-            "OKRDashboardPage.tsx",
-            "OKRExplorerPage.tsx",
-            "MyOKRsPage.tsx",
-            "ObjectiveDetailPage.tsx",
-            "AlignmentPage.tsx",
-            "CycleManagerPage.tsx"
-          ],
-          "hooks": [
-            "useObjectives.ts",
-            "useKeyResults.ts",
-            "useCheckIns.ts",
-            "useOKRCycles.ts",
-            "useOKRAnalytics.ts",
-            "useOKRTree.ts"
-          ],
-          "store": [
-            "okrStore.ts"
-          ],
-          "api": [
-            "objectivesApi.ts",
-            "keyResultsApi.ts",
-            "checkInsApi.ts",
-            "cyclesApi.ts",
-            "okrAnalyticsApi.ts"
-          ],
-          "types": [
-            "okr.types.ts"
-          ],
-          "utils": [
-            "progressUtils.ts",
-            "rruleUtils.ts",
-            "alignmentUtils.ts"
-          ]
-        }
-      }
-    }
-  },
-  "generation_rules": [
-    "OKR tree uses recursive CTE query: WITH RECURSIVE obj_tree AS ...",
-    "Objective progress recalculated server-side on every check-in; not client-computed",
-    "AlignmentMap uses D3.js force simulation or ELK.js hierarchical layout",
-    "Confidence status on objectives auto-computed from KR statuses unless manually overridden",
-    "Check-in history chart uses sparklines inline in KeyResultRow",
-    "Cycle switcher persists selection in localStorage and query params",
-    "Progress bars use CSS custom properties for smooth animated transitions",
-    "Stale check-in reminders queued via server-side cron job every Monday 9am"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "cycle_type_enum": {
-      "pg_type": "cycle_type_type",
-      "ts_type": "CycleTypeEnum",
-      "values": [
-        "annual",
-        "quarterly",
-        "monthly",
-        "custom"
-      ],
-      "pg_ddl": "CREATE TYPE cycle_type_type AS ENUM ('annual', 'quarterly', 'monthly', 'custom')"
-    },
-    "level_enum": {
-      "pg_type": "level_type",
-      "ts_type": "LevelEnum",
-      "values": [
-        "company",
-        "department",
-        "team",
-        "individual"
-      ],
-      "pg_ddl": "CREATE TYPE level_type AS ENUM ('company', 'department', 'team', 'individual')"
-    },
-    "confidence_status_enum": {
-      "pg_type": "confidence_status_type",
-      "ts_type": "ConfidenceStatusEnum",
-      "values": [
-        "not_started",
-        "on_track",
-        "at_risk",
-        "off_track",
-        "completed",
-        "paused"
-      ],
-      "pg_ddl": "CREATE TYPE confidence_status_type AS ENUM ('not_started', 'on_track', 'at_risk', 'off_track', 'completed', 'paused')"
-    },
-    "kr_type_enum": {
-      "pg_type": "kr_type_type",
-      "ts_type": "KrTypeEnum",
-      "values": [
-        "metric",
-        "milestone",
-        "boolean"
-      ],
-      "pg_ddl": "CREATE TYPE kr_type_type AS ENUM ('metric', 'milestone', 'boolean')"
-    },
-    "direction_enum": {
-      "pg_type": "direction_type",
-      "ts_type": "DirectionEnum",
-      "values": [
-        "increase",
-        "decrease",
-        "maintain"
-      ],
-      "pg_ddl": "CREATE TYPE direction_type AS ENUM ('increase', 'decrease', 'maintain')"
-    },
-    "initiative_type_enum": {
-      "pg_type": "initiative_type_type",
-      "ts_type": "InitiativeTypeEnum",
-      "values": [
-        "project",
-        "task",
-        "milestone"
-      ],
-      "pg_ddl": "CREATE TYPE initiative_type_type AS ENUM ('project', 'task', 'milestone')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  }
+  ]
 }

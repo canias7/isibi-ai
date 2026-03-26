@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "app_name": "Nonprofit Manager",
-    "description": "Nonprofit and charity management"
+    "app_name": "Nonprofit Management",
+    "description": "Nonprofit organization and fundraising management"
   },
   "entities": [
     {
@@ -40,18 +40,26 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
           "name": "phone",
@@ -62,61 +70,122 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "donor_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "individual",
+            "corporate",
+            "foundation",
+            "government",
+            "anonymous"
+          ],
+          "badge_colors": {
+            "individual": "blue",
+            "corporate": "green",
+            "foundation": "purple",
+            "government": "teal",
+            "anonymous": "gray"
+          }
         },
         {
           "name": "total_donated",
-          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "db_type": "NUMERIC(14,2) NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "tier",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'supporter'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "supporter",
           "enum_values": [
-            "individual",
-            "corporate",
-            "foundation",
-            "government"
+            "supporter",
+            "bronze",
+            "silver",
+            "gold",
+            "platinum",
+            "benefactor"
           ],
           "badge_colors": {
-            "individual": "blue",
-            "corporate": "purple",
-            "foundation": "green",
-            "government": "amber"
+            "supporter": "gray",
+            "bronze": "orange",
+            "silver": "blue",
+            "gold": "yellow",
+            "platinum": "purple",
+            "benefactor": "green"
           }
         },
         {
+          "name": "address",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
           "enum_values": [
             "active",
             "lapsed",
-            "prospect"
+            "deceased",
+            "opted_out"
           ],
           "badge_colors": {
             "active": "green",
-            "lapsed": "red",
-            "prospect": "blue"
+            "lapsed": "yellow",
+            "deceased": "gray",
+            "opted_out": "red"
           }
         },
         {
@@ -171,9 +240,9 @@
             "name",
             "email",
             "phone",
+            "donor_type",
             "total_donated",
-            "type",
-            "status"
+            "tier"
           ],
           "filters": [],
           "empty_state": {
@@ -189,12 +258,17 @@
             "name",
             "email",
             "phone",
-            "type",
+            "donor_type",
+            "tier",
+            "address",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "donor_type",
+            "tier",
+            "status"
           ]
         },
         "edit_form": {
@@ -203,12 +277,17 @@
             "name",
             "email",
             "phone",
-            "type",
+            "donor_type",
+            "tier",
+            "address",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "donor_type",
+            "tier",
+            "status"
           ],
           "prefilled": true
         },
@@ -225,7 +304,7 @@
             "name",
             "email",
             "phone",
-            "total_donated"
+            "donor_type"
           ],
           "tabs": [
             {
@@ -234,242 +313,21 @@
                 "name",
                 "email",
                 "phone",
+                "donor_type",
                 "total_donated",
-                "type",
-                "status"
+                "tier"
               ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Donation",
-      "table": "donations",
-      "description": "Financial donation",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "donor_name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "amount",
-          "db_type": "NUMERIC(12,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "campaign",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "method",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "online",
-            "check",
-            "cash",
-            "wire",
-            "in_kind"
-          ],
-          "badge_colors": {
-            "online": "blue",
-            "check": "amber",
-            "cash": "green",
-            "wire": "purple",
-            "in_kind": "pink"
-          }
-        },
-        {
-          "name": "receipt_sent",
-          "db_type": "BOOLEAN NOT NULL DEFAULT false",
-          "ts_type": "boolean",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "checkbox",
-          "display_component": "boolean_badge"
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "donor_name",
-            "amount",
-            "date",
-            "campaign",
-            "method",
-            "receipt_sent"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Donations yet",
-            "subtext": "Create your first donation",
-            "action_label": "Add Donation"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "donor_name",
-            "amount",
-            "date",
-            "campaign",
-            "method",
-            "receipt_sent"
-          ],
-          "required_fields": [
-            "donor_name",
-            "amount"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "donor_name",
-            "amount",
-            "date",
-            "campaign",
-            "method",
-            "receipt_sent"
-          ],
-          "required_fields": [
-            "donor_name",
-            "amount"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/donations/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "donor_name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "donor_name",
-            "amount",
-            "date",
-            "campaign"
-          ],
-          "tabs": [
+            },
             {
-              "name": "Overview",
+              "name": "Details",
               "fields": [
-                "donor_name",
-                "amount",
-                "date",
-                "campaign",
-                "method",
-                "receipt_sent"
+                "name",
+                "email",
+                "phone",
+                "donor_type",
+                "tier",
+                "address",
+                "status"
               ]
             }
           ]
@@ -512,72 +370,133 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "goal",
-          "db_type": "NUMERIC(12,2) NOT NULL",
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "goal_amount",
+          "db_type": "NUMERIC(14,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
-          "name": "raised",
-          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "name": "raised_amount",
+          "db_type": "NUMERIC(14,2) NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
           "name": "start_date",
-          "db_type": "DATE",
+          "db_type": "DATE NOT NULL",
           "ts_type": "string",
-          "nullable": true,
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
           "name": "end_date",
-          "db_type": "DATE",
+          "db_type": "DATE NOT NULL",
           "ts_type": "string",
-          "nullable": true,
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "campaign_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "annual",
+            "capital",
+            "planned_giving",
+            "event",
+            "emergency",
+            "peer_to_peer"
+          ],
+          "badge_colors": {
+            "annual": "blue",
+            "capital": "purple",
+            "planned_giving": "green",
+            "event": "orange",
+            "emergency": "red",
+            "peer_to_peer": "teal"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'planning'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "planning",
           "enum_values": [
             "planning",
             "active",
+            "paused",
             "completed",
             "cancelled"
           ],
           "badge_colors": {
-            "planning": "blue",
+            "planning": "yellow",
             "active": "green",
-            "completed": "slate",
+            "paused": "orange",
+            "completed": "blue",
             "cancelled": "red"
           }
         },
@@ -631,11 +550,11 @@
           "layout": "table",
           "columns": [
             "name",
-            "goal",
-            "raised",
+            "goal_amount",
+            "raised_amount",
             "start_date",
             "end_date",
-            "status"
+            "campaign_type"
           ],
           "filters": [],
           "empty_state": {
@@ -649,28 +568,40 @@
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "goal",
+            "description",
+            "goal_amount",
             "start_date",
             "end_date",
+            "campaign_type",
             "status"
           ],
           "required_fields": [
             "name",
-            "goal"
+            "goal_amount",
+            "start_date",
+            "end_date",
+            "campaign_type",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "goal",
+            "description",
+            "goal_amount",
             "start_date",
             "end_date",
+            "campaign_type",
             "status"
           ],
           "required_fields": [
             "name",
-            "goal"
+            "goal_amount",
+            "start_date",
+            "end_date",
+            "campaign_type",
+            "status"
           ],
           "prefilled": true
         },
@@ -685,8 +616,8 @@
           },
           "primary_fields": [
             "name",
-            "goal",
-            "raised",
+            "goal_amount",
+            "raised_amount",
             "start_date"
           ],
           "tabs": [
@@ -694,21 +625,408 @@
               "name": "Overview",
               "fields": [
                 "name",
-                "goal",
-                "raised",
+                "goal_amount",
+                "raised_amount",
                 "start_date",
                 "end_date",
+                "campaign_type"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "description",
+                "goal_amount",
+                "start_date",
+                "end_date",
+                "campaign_type",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "computed_fields": [
+        {
+          "name": "progress_pct",
+          "expression": "ROUND(raised_amount / NULLIF(goal_amount,0) * 100, 2)",
+          "ts_expression": "(raised_amount / goal_amount * 100).toFixed(2)"
+        },
+        {
+          "name": "remaining",
+          "expression": "goal_amount - raised_amount",
+          "ts_expression": "goal_amount - raised_amount"
+        }
+      ]
     },
     {
-      "name": "Volunteer",
-      "table": "volunteers",
-      "description": "Organization volunteer",
+      "name": "Donation",
+      "table": "donations",
+      "description": "Individual donation",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "donor_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "donors",
+          "fk_display": "name"
+        },
+        {
+          "name": "campaign_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "campaigns",
+          "fk_display": "name"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.01
+          }
+        },
+        {
+          "name": "donation_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "payment_method",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "credit_card",
+            "check",
+            "bank_transfer",
+            "cash",
+            "stock",
+            "crypto",
+            "in_kind"
+          ],
+          "badge_colors": {
+            "credit_card": "blue",
+            "check": "teal",
+            "bank_transfer": "green",
+            "cash": "orange",
+            "stock": "purple",
+            "crypto": "yellow",
+            "in_kind": "pink"
+          }
+        },
+        {
+          "name": "is_recurring",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "frequency",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "weekly",
+            "monthly",
+            "quarterly",
+            "annually"
+          ],
+          "badge_colors": {
+            "weekly": "blue",
+            "monthly": "green",
+            "quarterly": "purple",
+            "annually": "orange"
+          },
+          "conditional_visibility": {
+            "field": "is_recurring",
+            "operator": "equals",
+            "value": true
+          }
+        },
+        {
+          "name": "is_anonymous",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "tax_receipt_sent",
+          "db_type": "BOOLEAN NOT NULL DEFAULT FALSE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": false
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "donor_id",
+            "campaign_id",
+            "amount",
+            "donation_date",
+            "payment_method",
+            "is_recurring"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Donations yet",
+            "subtext": "Create your first donation",
+            "action_label": "Add Donation"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "donor_id",
+            "campaign_id",
+            "amount",
+            "donation_date",
+            "payment_method",
+            "is_recurring",
+            "frequency",
+            "is_anonymous",
+            "tax_receipt_sent"
+          ],
+          "required_fields": [
+            "donor_id",
+            "amount",
+            "donation_date",
+            "payment_method",
+            "is_recurring",
+            "is_anonymous",
+            "tax_receipt_sent"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "donor_id",
+            "campaign_id",
+            "amount",
+            "donation_date",
+            "payment_method",
+            "is_recurring",
+            "frequency",
+            "is_anonymous",
+            "tax_receipt_sent"
+          ],
+          "required_fields": [
+            "donor_id",
+            "amount",
+            "donation_date",
+            "payment_method",
+            "is_recurring",
+            "is_anonymous",
+            "tax_receipt_sent"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/donations/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "donor_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "donor_id",
+            "campaign_id",
+            "amount",
+            "donation_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "donor_id",
+                "campaign_id",
+                "amount",
+                "donation_date",
+                "payment_method",
+                "is_recurring"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "donor_id",
+                "campaign_id",
+                "amount",
+                "donation_date",
+                "payment_method",
+                "is_recurring",
+                "frequency",
+                "is_anonymous",
+                "tax_receipt_sent"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "donor_id",
+          "references": {
+            "table": "donors",
+            "column": "id"
+          }
+        },
+        {
+          "column": "campaign_id",
+          "references": {
+            "table": "campaigns",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Program",
+      "table": "programs",
+      "description": "Nonprofit program",
       "fields": [
         {
           "name": "id",
@@ -741,71 +1059,136 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "phone",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "skills",
+          "name": "description",
           "db_type": "TEXT",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
           "show_in_table": false,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "hours_logged",
-          "db_type": "NUMERIC(8,2) NOT NULL DEFAULT 0",
+          "name": "budget",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "spent",
+          "db_type": "NUMERIC(14,2) NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "active",
-            "inactive",
-            "pending"
+            "education",
+            "health",
+            "environment",
+            "social_services",
+            "arts",
+            "research",
+            "community"
           ],
           "badge_colors": {
+            "education": "blue",
+            "health": "green",
+            "environment": "teal",
+            "social_services": "purple",
+            "arts": "pink",
+            "research": "orange",
+            "community": "yellow"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "planning",
+            "active",
+            "paused",
+            "completed",
+            "discontinued"
+          ],
+          "badge_colors": {
+            "planning": "yellow",
             "active": "green",
-            "inactive": "slate",
-            "pending": "amber"
+            "paused": "orange",
+            "completed": "blue",
+            "discontinued": "red"
           }
         },
         {
@@ -858,50 +1241,61 @@
           "layout": "table",
           "columns": [
             "name",
-            "email",
-            "phone",
-            "hours_logged",
-            "status"
+            "budget",
+            "spent",
+            "start_date",
+            "end_date",
+            "category"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No Volunteers yet",
-            "subtext": "Create your first volunteer",
-            "action_label": "Add Volunteer"
+            "heading": "No Programs yet",
+            "subtext": "Create your first program",
+            "action_label": "Add Program"
           }
         },
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "email",
-            "phone",
-            "skills",
+            "description",
+            "budget",
+            "start_date",
+            "end_date",
+            "category",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "budget",
+            "start_date",
+            "category",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "email",
-            "phone",
-            "skills",
+            "description",
+            "budget",
+            "start_date",
+            "end_date",
+            "category",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "budget",
+            "start_date",
+            "category",
+            "status"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/volunteers/:id",
+          "route": "/programs/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
@@ -911,29 +1305,54 @@
           },
           "primary_fields": [
             "name",
-            "email",
-            "phone",
-            "hours_logged"
+            "budget",
+            "spent",
+            "start_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "name",
-                "email",
-                "phone",
-                "hours_logged",
+                "budget",
+                "spent",
+                "start_date",
+                "end_date",
+                "category"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "description",
+                "budget",
+                "start_date",
+                "end_date",
+                "category",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "computed_fields": [
+        {
+          "name": "remaining_budget",
+          "expression": "budget - spent",
+          "ts_expression": "budget - spent"
+        },
+        {
+          "name": "utilization_pct",
+          "expression": "ROUND(spent / NULLIF(budget,0) * 100, 2)",
+          "ts_expression": "(spent / budget * 100).toFixed(2)"
+        }
+      ]
     },
     {
-      "name": "Grant",
-      "table": "grants",
-      "description": "Grant application",
+      "name": "Volunteer",
+      "table": "volunteers",
+      "description": "Volunteer participant",
       "fields": [
         {
           "name": "id",
@@ -958,7 +1377,7 @@
           "display_component": "text"
         },
         {
-          "name": "title",
+          "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -966,10 +1385,12 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "funder",
+          "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -977,55 +1398,124 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
-          "name": "amount",
-          "db_type": "NUMERIC(14,2) NOT NULL",
-          "ts_type": "number",
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
         },
         {
-          "name": "deadline",
-          "db_type": "DATE",
+          "name": "program_id",
+          "db_type": "UUID",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "programs",
+          "fk_display": "name"
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "skills",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "hours_logged",
+          "db_type": "NUMERIC(8,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "availability",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'flexible'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "flexible",
           "enum_values": [
-            "researching",
-            "writing",
-            "submitted",
-            "approved",
-            "denied",
-            "reporting"
+            "weekdays",
+            "weekends",
+            "evenings",
+            "flexible",
+            "limited"
           ],
           "badge_colors": {
-            "researching": "slate",
-            "writing": "blue",
-            "submitted": "amber",
-            "approved": "green",
-            "denied": "red",
-            "reporting": "purple"
+            "weekdays": "blue",
+            "weekends": "green",
+            "evenings": "purple",
+            "flexible": "teal",
+            "limited": "orange"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "on_leave"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "on_leave": "yellow"
           }
         },
         {
@@ -1077,11 +1567,369 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "title",
-            "funder",
-            "amount",
-            "deadline",
+            "name",
+            "email",
+            "phone",
+            "program_id",
+            "hours_logged",
+            "availability"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Volunteers yet",
+            "subtext": "Create your first volunteer",
+            "action_label": "Add Volunteer"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "program_id",
+            "skills",
+            "availability",
             "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "availability",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "program_id",
+            "skills",
+            "availability",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "availability",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/volunteers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "program_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "program_id",
+                "hours_logged",
+                "availability"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "program_id",
+                "skills",
+                "availability",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "program_id",
+          "references": {
+            "table": "programs",
+            "column": "id"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Grant",
+      "table": "grants",
+      "description": "Grant received",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "program_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "programs",
+          "fk_display": "name"
+        },
+        {
+          "name": "grantor_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "disbursed_amount",
+          "db_type": "NUMERIC(14,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "end_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "grant_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "federal",
+            "state",
+            "private",
+            "corporate",
+            "foundation"
+          ],
+          "badge_colors": {
+            "federal": "blue",
+            "state": "green",
+            "private": "purple",
+            "corporate": "orange",
+            "foundation": "teal"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'applied'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "applied",
+          "enum_values": [
+            "applied",
+            "awarded",
+            "active",
+            "reporting",
+            "closed",
+            "rejected"
+          ],
+          "badge_colors": {
+            "applied": "yellow",
+            "awarded": "green",
+            "active": "blue",
+            "reporting": "purple",
+            "closed": "gray",
+            "rejected": "red"
+          }
+        },
+        {
+          "name": "reporting_frequency",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "monthly",
+            "quarterly",
+            "semi_annual",
+            "annual"
+          ],
+          "badge_colors": {
+            "monthly": "blue",
+            "quarterly": "green",
+            "semi_annual": "purple",
+            "annual": "orange"
+          },
+          "conditional_visibility": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "active",
+              "reporting"
+            ]
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "program_id",
+            "grantor_name",
+            "amount",
+            "disbursed_amount",
+            "start_date",
+            "end_date"
           ],
           "filters": [],
           "empty_state": {
@@ -1094,29 +1942,49 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "title",
-            "funder",
+            "program_id",
+            "grantor_name",
             "amount",
-            "deadline",
-            "status"
+            "disbursed_amount",
+            "start_date",
+            "end_date",
+            "grant_type",
+            "status",
+            "reporting_frequency"
           ],
           "required_fields": [
-            "title",
-            "funder"
+            "program_id",
+            "grantor_name",
+            "amount",
+            "disbursed_amount",
+            "start_date",
+            "end_date",
+            "grant_type",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "title",
-            "funder",
+            "program_id",
+            "grantor_name",
             "amount",
-            "deadline",
-            "status"
+            "disbursed_amount",
+            "start_date",
+            "end_date",
+            "grant_type",
+            "status",
+            "reporting_frequency"
           ],
           "required_fields": [
-            "title",
-            "funder"
+            "program_id",
+            "grantor_name",
+            "amount",
+            "disbursed_amount",
+            "start_date",
+            "end_date",
+            "grant_type",
+            "status"
           ],
           "prefilled": true
         },
@@ -1125,134 +1993,415 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "title"
+              "program_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "title",
-            "funder",
+            "program_id",
+            "grantor_name",
             "amount",
-            "deadline"
+            "disbursed_amount"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "title",
-                "funder",
+                "program_id",
+                "grantor_name",
                 "amount",
-                "deadline",
+                "disbursed_amount",
+                "start_date",
+                "end_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "program_id",
+                "grantor_name",
+                "amount",
+                "disbursed_amount",
+                "start_date",
+                "end_date",
+                "grant_type",
+                "status",
+                "reporting_frequency"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "program_id",
+          "references": {
+            "table": "programs",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "remaining_funds",
+          "expression": "amount - disbursed_amount",
+          "ts_expression": "amount - disbursed_amount"
+        }
+      ]
+    },
+    {
+      "name": "Event",
+      "table": "events",
+      "description": "Fundraising event",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "campaign_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "campaigns",
+          "fk_display": "name"
+        },
+        {
+          "name": "event_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "location",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "budget",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "ticket_price",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "max_attendees",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1
+          }
+        },
+        {
+          "name": "event_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "gala",
+            "auction",
+            "walk_run",
+            "concert",
+            "dinner",
+            "virtual",
+            "golf"
+          ],
+          "badge_colors": {
+            "gala": "gold",
+            "auction": "purple",
+            "walk_run": "green",
+            "concert": "red",
+            "dinner": "orange",
+            "virtual": "teal",
+            "golf": "blue"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'planning'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "planning",
+          "enum_values": [
+            "planning",
+            "confirmed",
+            "in_progress",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "planning": "yellow",
+            "confirmed": "blue",
+            "in_progress": "green",
+            "completed": "teal",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "campaign_id",
+            "event_date",
+            "location",
+            "budget",
+            "ticket_price"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Events yet",
+            "subtext": "Create your first event",
+            "action_label": "Add Event"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "campaign_id",
+            "event_date",
+            "location",
+            "budget",
+            "ticket_price",
+            "max_attendees",
+            "event_type",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "event_date",
+            "location",
+            "budget",
+            "ticket_price",
+            "max_attendees",
+            "event_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "campaign_id",
+            "event_date",
+            "location",
+            "budget",
+            "ticket_price",
+            "max_attendees",
+            "event_type",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "event_date",
+            "location",
+            "budget",
+            "ticket_price",
+            "max_attendees",
+            "event_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/events/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "campaign_id",
+            "event_date",
+            "location"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "campaign_id",
+                "event_date",
+                "location",
+                "budget",
+                "ticket_price"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "campaign_id",
+                "event_date",
+                "location",
+                "budget",
+                "ticket_price",
+                "max_attendees",
+                "event_type",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "campaign_id",
+          "references": {
+            "table": "campaigns",
+            "column": "id"
+          }
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Donors",
-      "route": "/donors",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Heart",
-      "entity": "Donor"
-    },
-    {
-      "name": "Donations",
-      "route": "/donations",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "DollarSign",
-      "entity": "Donation"
-    },
-    {
-      "name": "Campaigns",
-      "route": "/campaigns",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Target",
-      "entity": "Campaign"
-    },
-    {
-      "name": "Volunteers",
-      "route": "/volunteers",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "HandHeart",
-      "entity": "Volunteer"
-    },
-    {
-      "name": "Grants",
-      "route": "/grants",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 6,
-      "sidebar_icon": "FileCheck",
-      "entity": "Grant"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Donors",
-        "entity": "Donor",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }

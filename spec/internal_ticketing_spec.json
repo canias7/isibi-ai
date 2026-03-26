@@ -1,2891 +1,933 @@
 {
   "_meta": {
-    "title": "Internal Ticketing System",
-    "domain": "Operations & Internal Tools",
-    "version": "1.0"
+    "app_name": "Internal Ticketing",
+    "description": "Complete internal ticketing management"
   },
-  "tech_stack": {
-    "frontend": [
-      "React 18 TS strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form + Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node/Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
-  },
-  "design_system": {
-    "theme": "dark",
-    "background": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber",
-    "priority_colors": {
-      "critical": "red",
-      "high": "orange",
-      "medium": "amber",
-      "low": "blue",
-      "none": "slate"
-    },
-    "status_colors": {
-      "open": "blue",
-      "in_progress": "violet",
-      "pending": "amber",
-      "waiting_on_requester": "yellow",
-      "waiting_on_third_party": "orange",
-      "resolved": "green",
-      "closed": "slate",
-      "cancelled": "gray"
-    },
-    "ticket_type_colors": {
-      "bug": "red",
-      "feature_request": "violet",
-      "it_support": "blue",
-      "hr_request": "pink",
-      "access_request": "cyan",
-      "infrastructure": "orange",
-      "question": "sky",
-      "other": "slate"
-    },
-    "sla_status_colors": {
-      "within_sla": "green",
-      "at_risk": "amber",
-      "breached": "red",
-      "paused": "slate"
-    }
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, indexed on every table"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null
-    }
-  },
+  "spec_name": "internal_ticketing_spec",
   "entities": [
     {
-      "name": "Ticket",
-      "table": "tickets",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "status"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "priority"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "ticket_type"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "assignee_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "requester_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "queue_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "due_date"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "sla_status"
-          ]
-        }
-      ],
+      "name": "Category",
+      "table": "ticket_categories",
+      "description": "Category",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "ticket_number",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "auto-gen TKT-NNNN",
-          "unique": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "subject",
-          "db_type": "VARCHAR(500)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TextLink",
-          "display_component_props": {
-            "href": "/tickets/:id"
-          },
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "ticket_type",
-          "db_type": "ENUM('bug','feature_request','it_support','hr_request','access_request','infrastructure','question','other')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "other",
-          "input_component": "Select",
-          "display_component": "TicketTypeBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "priority",
-          "db_type": "ENUM('none','low','medium','high','critical')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "medium",
-          "input_component": "Select",
-          "display_component": "PriorityBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "ENUM('open','in_progress','pending','waiting_on_requester','waiting_on_third_party','resolved','closed','cancelled')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "open",
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "requester_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "assignee_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "AgentSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "queue_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "ticket_queues",
-          "input_component": "QueueSelector",
-          "display_component": "QueueBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "sla_policy_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "sla_policies",
-          "notes": "Auto-assigned based on queue and priority",
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "sla_status",
-          "db_type": "ENUM('within_sla','at_risk','breached','paused')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "within_sla",
-          "computed": {
-            "source": "self",
-            "formula": "IF resolved: check if resolved_at <= resolution_due_at; ELIF NOW() > resolution_due_at: 'breached'; ELIF NOW() > resolution_due_at * 0.8: 'at_risk'; ELSE: 'within_sla'",
-            "trigger": [
-              "update",
-              "cron_5min"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "SLAStatusBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "first_response_due_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "computed": {
-            "source": "sla_policy",
-            "formula": "created_at + (sla_policy.first_response_hours * INTERVAL '1 hour') adjusted for business_hours_only schedule",
-            "trigger": [
-              "insert"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "AbsoluteDateTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "resolution_due_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "computed": {
-            "source": "sla_policy",
-            "formula": "created_at + (sla_policy.resolution_hours * INTERVAL '1 hour') adjusted for business_hours_only schedule",
-            "trigger": [
-              "insert"
-            ],
-            "storage": "stored"
-          },
-          "input_component": null,
-          "display_component": "AbsoluteDateTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "first_responded_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "resolved_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "due_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "category",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CategorySelect",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "tags",
-          "db_type": "TEXT[]",
-          "ts_type": "string[]",
-          "nullable": false,
-          "default": "ARRAY[]::TEXT[]",
-          "input_component": "TagInput",
-          "display_component": "TagList",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "satisfaction_rating",
-          "db_type": "SMALLINT",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "notes": "1-5 CSAT rating from requester after resolution",
-          "input_component": "StarRating",
-          "display_component": "StarRating",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "min": 1,
-            "max": 5
-          }
-        },
-        {
-          "name": "satisfaction_comment",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "source",
-          "db_type": "ENUM('web','email','slack','api','phone','manual')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "web",
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "parent_ticket_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "tickets",
-          "notes": "For sub-tickets or linked tickets",
-          "input_component": "TicketSelector",
-          "display_component": "TicketLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_tickets_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_tickets_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "TicketReply",
-      "table": "ticket_replies",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "ticket_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "author_id"
-          ]
-        },
-        {
-          "columns": [
-            "ticket_id",
-            "created_at"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "ticket_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "tickets",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "author_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "body",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "RichTextEditor",
-          "display_component": "RichTextDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "reply_type",
-          "db_type": "ENUM('public','internal_note','system')",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "public",
-          "input_component": "ReplyTypeToggle",
-          "display_component": "ReplyTypeBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "is_first_response",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": false,
-          "notes": "True if first public agent reply; sets first_responded_at on ticket",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_ticket_replies_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_ticket_replies_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
-        }
-      ]
-    },
-    {
-      "name": "TicketQueue",
-      "table": "ticket_queues",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "is_active"
-          ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "maxLength": 255
-          }
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "code",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "color",
           "db_type": "VARCHAR(7)",
           "ts_type": "string",
-          "nullable": false,
-          "default": "#3b82f6",
-          "input_component": "ColorPicker",
-          "display_component": "ColorSwatch",
+          "nullable": true,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "pattern": "^#[0-9a-fA-F]{6}$"
-          }
+          "input_component": "color_picker",
+          "display_component": "color_swatch"
         },
         {
-          "name": "default_assignee_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "users",
-          "input_component": "UserSelector",
-          "display_component": "UserAvatar",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "auto_assign_mode",
-          "db_type": "ENUM('none','round_robin','least_busy','specific_agent')",
-          "ts_type": "string",
+          "name": "ticket_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
           "nullable": false,
-          "default": "none",
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {}
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(tickets)"
+        },
+        {
+          "name": "avg_resolution_hrs",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "AVG(tickets.resolution_time)"
         },
         {
           "name": "is_active",
-          "db_type": "BOOLEAN",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
           "ts_type": "boolean",
           "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "checkbox",
+          "display_component": "boolean"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_ticket_queues_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_ticket_queues_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "SLAPolicy",
-      "table": "sla_policies",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "queue_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "priority"
-          ]
-        }
-      ],
+      "name": "Agent",
+      "table": "ticket_agents",
+      "description": "Agent",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
           "validation": {
-            "required": true,
-            "maxLength": 255
+            "rule": "email",
+            "message": "Valid email required"
           }
         },
         {
-          "name": "queue_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "ticket_queues",
-          "notes": "null = applies to all queues",
-          "input_component": "QueueSelector",
-          "display_component": "QueueBadge",
+          "name": "department",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "priority",
-          "db_type": "ENUM('none','low','medium','high','critical')",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "notes": "null = applies to all priorities",
-          "input_component": "Select",
-          "display_component": "PriorityBadge",
+          "name": "skill_level",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {}
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "tier_1",
+            "tier_2",
+            "tier_3",
+            "specialist"
+          ],
+          "badge_colors": {
+            "tier_1": "slate",
+            "tier_2": "blue",
+            "tier_3": "purple",
+            "specialist": "green"
+          }
         },
         {
-          "name": "first_response_hours",
-          "db_type": "NUMERIC(6,2)",
+          "name": "open_tickets",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 8,
-          "input_component": "NumberInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
+          "editable": false,
           "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0.25
-          }
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(tickets WHERE status!=closed)"
         },
         {
-          "name": "resolution_hours",
-          "db_type": "NUMERIC(6,2)",
+          "name": "avg_satisfaction",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
-          "default": 48,
-          "input_component": "NumberInput",
-          "display_component": "PlainText",
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "AVG(tickets.satisfaction_rating)"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 1
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "available",
+            "busy",
+            "offline"
+          ],
+          "badge_colors": {
+            "available": "green",
+            "busy": "amber",
+            "offline": "slate"
           }
-        },
-        {
-          "name": "business_hours_only",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "BooleanBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {}
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_sla_policies_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-        },
-        {
-          "name": "idx_sla_policies_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
     },
     {
-      "name": "TicketAttachment",
-      "table": "ticket_attachments",
-      "indexes": [
-        {
-          "columns": [
-            "org_id",
-            "ticket_id"
-          ]
-        },
-        {
-          "columns": [
-            "org_id",
-            "reply_id"
-          ]
-        }
-      ],
+      "name": "SLA",
+      "table": "ticket_slas",
+      "description": "SLA",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
-          "db_type": "UUID",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "ticket_id",
-          "db_type": "UUID",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "tickets",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "reply_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "references": "ticket_replies",
-          "notes": "null if attached to ticket directly (not a reply)",
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "file_name",
-          "db_type": "VARCHAR(500)",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "file_url",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "FileUpload",
-          "display_component": "FileDownloadLink",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "file_size_bytes",
-          "db_type": "BIGINT",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "FileSizeDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "mime_type",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {}
-        },
-        {
-          "name": "uploaded_by",
-          "db_type": "UUID",
+          "name": "priority_level",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "references": "users",
-          "input_component": null,
-          "display_component": "UserAvatar",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
           }
+        },
+        {
+          "name": "response_time_hrs",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "resolution_time_hrs",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "escalation_policy",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "breach_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "text",
+          "computed": "COUNT(tickets WHERE sla_breached)"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "NOW()",
-          "input_component": null,
-          "display_component": "RelativeTime",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Ticket",
+      "table": "tickets",
+      "description": "Ticket",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "category_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Category"
+        },
+        {
+          "name": "sla_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "SLA"
+        },
+        {
+          "name": "ticket_number",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {}
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
+          "name": "subject",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
+          "editable": true,
           "show_in_table": false,
-          "show_in_form": false,
-          "validation": null
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
         },
         {
-          "name": "version",
+          "name": "requester_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "requester_email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "critical": "red"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "new",
+            "assigned",
+            "in_progress",
+            "waiting",
+            "resolved",
+            "closed"
+          ],
+          "badge_colors": {
+            "new": "blue",
+            "assigned": "purple",
+            "in_progress": "amber",
+            "waiting": "pink",
+            "resolved": "green",
+            "closed": "slate"
+          }
+        },
+        {
+          "name": "satisfaction_rating",
           "db_type": "INTEGER",
           "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "closed"
+          }
+        },
+        {
+          "name": "sla_breached",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
           "nullable": false,
-          "default": 1,
-          "notes": "Optimistic lock version \u2014 incremented on every UPDATE",
-          "input_component": null,
-          "display_component": null,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {}
-        }
-      ],
-      "db_constraints": [
-        {
-          "name": "chk_ticket_attachments_deleted_order",
-          "type": "CHECK",
-          "expression": "deleted_at IS NULL OR deleted_at >= created_at"
+          "input_component": "none",
+          "display_component": "date"
         },
         {
-          "name": "idx_ticket_attachments_org_deleted",
-          "type": "INDEX",
-          "columns": [
-            "org_id",
-            "deleted_at"
-          ],
-          "note": "Covers global filter"
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
       ]
-    }
-  ],
-  "components": [
-    {
-      "name": "TicketListTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "ticket_number",
-          "subject",
-          "ticket_type",
-          "priority",
-          "status",
-          "requester_id",
-          "assignee_id",
-          "queue_id",
-          "sla_status",
-          "first_response_due_at",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      "features": [
-        "filter_by_status",
-        "filter_by_priority",
-        "filter_by_type",
-        "filter_by_queue",
-        "filter_by_assignee",
-        "search",
-        "export_csv",
-        "bulk_assign",
-        "bulk_status",
-        "sla_due_highlight",
-        "realtime_updates"
-      ]
     },
     {
-      "name": "TicketKanbanBoard",
-      "type": "KanbanBoard",
-      "columns": [
-        "open",
-        "in_progress",
-        "pending",
-        "waiting_on_requester",
-        "resolved"
-      ],
-      "features": [
-        "drag_between_columns",
-        "card_sla_indicator",
-        "card_priority_color",
-        "filter_by_queue",
-        "filter_by_assignee"
-      ]
-    },
-    {
-      "name": "TicketCreationForm",
-      "type": "Modal",
-      "props": {
-        "fields": [
-          "subject",
-          "description",
-          "ticket_type",
-          "priority",
-          "requester_id",
-          "assignee_id",
-          "queue_id",
-          "due_date",
-          "category",
-          "tags",
-          "attachments"
-        ]
-      },
-      "features": [
-        "requester_search",
-        "ai_category_suggest",
-        "auto_assign",
-        "sla_preview"
-      ]
-    },
-    {
-      "name": "TicketDetailPage",
-      "type": "Page",
-      "features": [
-        "ticket_header",
-        "reply_thread",
-        "internal_notes",
-        "attachments",
-        "ticket_properties_sidebar",
-        "activity_log",
-        "sla_countdown",
-        "related_tickets",
-        "merge_ticket",
-        "split_ticket"
-      ]
-    },
-    {
-      "name": "ReplyComposer",
-      "type": "RichTextEditor",
-      "features": [
-        "public_reply",
-        "internal_note_toggle",
-        "file_attach",
-        "canned_responses",
-        "@mention",
-        "submit_and_close",
-        "submit_and_pending",
-        "markdown_support"
-      ]
-    },
-    {
-      "name": "TicketPropertiesSidebar",
-      "type": "Sidebar",
-      "features": [
-        "status_change",
-        "priority_change",
-        "assign",
-        "queue_change",
-        "tag_edit",
-        "due_date",
-        "linked_tickets",
-        "satisfaction_rating_display"
-      ]
-    },
-    {
-      "name": "SLACountdown",
-      "type": "Widget",
-      "features": [
-        "first_response_timer",
-        "resolution_timer",
-        "color_change_at_risk",
-        "paused_indicator",
-        "breach_alert"
-      ]
-    },
-    {
-      "name": "TicketSummaryStats",
-      "type": "StatsGrid",
-      "metrics": [
+      "name": "Comment",
+      "table": "ticket_comments",
+      "description": "Comment",
+      "fields": [
         {
-          "label": "Open Tickets",
-          "field": "open_count",
-          "format": "number"
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "label": "Unassigned",
-          "field": "unassigned_count",
-          "format": "number",
-          "color": "amber"
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "label": "SLA Breached",
-          "field": "sla_breached_count",
-          "format": "number",
-          "color": "red"
+          "name": "ticket_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Ticket"
         },
         {
-          "label": "Avg Resolution (h)",
-          "field": "avg_resolution_hours",
-          "format": "decimal"
+          "name": "author",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "label": "CSAT Score",
-          "field": "csat_avg",
-          "format": "decimal"
-        }
-      ]
-    },
-    {
-      "name": "TicketVolumeChart",
-      "type": "BarChart",
-      "library": "Recharts",
-      "props": {
-        "xAxis": "date",
-        "yAxis": "count",
-        "series": [
-          "created",
-          "resolved"
-        ]
-      }
-    },
-    {
-      "name": "SLAComplianceChart",
-      "type": "DonutChart",
-      "library": "Recharts",
-      "props": {
-        "dataKey": "count",
-        "nameKey": "sla_status",
-        "color_map": "sla_status_colors"
-      }
-    },
-    {
-      "name": "AgentWorkloadTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "agent",
-          "open_tickets",
-          "in_progress",
-          "avg_resolution_hours",
-          "csat_avg"
-        ]
-      },
-      "features": [
-        "sort",
-        "filter_by_queue"
-      ]
-    },
-    {
-      "name": "CannedResponseManager",
-      "type": "Modal",
-      "features": [
-        "create_response",
-        "edit_response",
-        "delete_response",
-        "category_filter",
-        "shortcut_key"
-      ]
-    },
-    {
-      "name": "QueueManagerPage",
-      "type": "Page",
-      "features": [
-        "create_queue",
-        "edit_queue",
-        "assign_agents",
-        "sla_policy_assignment",
-        "auto_assign_config"
-      ]
-    },
-    {
-      "name": "SLAPolicyTable",
-      "type": "DataTable",
-      "props": {
-        "columns": [
-          "name",
-          "queue_id",
-          "priority",
-          "first_response_hours",
-          "resolution_hours",
-          "business_hours_only",
-          "is_active"
-        ]
-      },
-      "features": [
-        "create_policy",
-        "edit_inline",
-        "toggle_active"
-      ]
-    },
-    {
-      "name": "MergeTicketModal",
-      "type": "Modal",
-      "features": [
-        "search_target_ticket",
-        "preview_merge",
-        "select_winner_metadata",
-        "confirm_merge"
-      ]
-    }
-  ],
-  "modules": [
-    {
-      "name": "AgentInbox",
-      "path": "/tickets/inbox",
-      "description": "Agent-facing ticket inbox sorted by SLA urgency",
-      "components": [
-        "TicketListTable",
-        "TicketKanbanBoard",
-        "TicketSummaryStats"
-      ],
-      "default_filters": {
-        "assignee_id": "current_user"
-      },
-      "views": [
-        "List",
-        "Kanban"
-      ],
-      "tabs": [
-        "All",
-        "Open",
-        "Pending",
-        "Resolved"
-      ]
-    },
-    {
-      "name": "AllTickets",
-      "path": "/tickets",
-      "description": "Complete ticket queue across all agents",
-      "components": [
-        "TicketListTable",
-        "TicketSummaryStats"
-      ],
-      "tabs": [
-        "Open",
-        "Unassigned",
-        "SLA Breached",
-        "All"
-      ]
-    },
-    {
-      "name": "TicketDetail",
-      "path": "/tickets/:id",
-      "description": "Full ticket conversation and management",
-      "components": [
-        "TicketDetailPage",
-        "ReplyComposer",
-        "TicketPropertiesSidebar",
-        "SLACountdown"
-      ]
-    },
-    {
-      "name": "RequesterPortal",
-      "path": "/portal",
-      "description": "Self-service portal for requesters to submit and track their tickets",
-      "components": [
-        "TicketCreationForm",
-        "TicketListTable"
-      ],
-      "default_filters": {
-        "requester_id": "current_user"
-      },
-      "features": [
-        "submit_ticket",
-        "view_my_tickets",
-        "view_kb_articles",
-        "satisfaction_survey"
-      ]
-    },
-    {
-      "name": "Analytics",
-      "path": "/tickets/analytics",
-      "description": "Support team performance and volume analytics",
-      "components": [
-        "TicketSummaryStats",
-        "TicketVolumeChart",
-        "SLAComplianceChart",
-        "AgentWorkloadTable"
-      ],
-      "features": [
-        "date_range",
-        "queue_filter",
-        "agent_filter",
-        "export_csv"
-      ]
-    },
-    {
-      "name": "Settings",
-      "path": "/settings/tickets",
-      "description": "Configure queues, SLA policies, canned responses, and automations",
-      "components": [
-        "QueueManagerPage",
-        "SLAPolicyTable",
-        "CannedResponseManager"
-      ]
-    }
-  ],
-  "api": {
-    "tickets": {
-      "GET /api/tickets": {
-        "description": "List tickets",
-        "query_params": [
-          "status",
-          "priority",
-          "ticket_type",
-          "assignee_id",
-          "requester_id",
-          "queue_id",
-          "sla_status",
-          "search",
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "PaginatedTicket[]",
-        "response_envelope": {
-          "data": "PaginatedTicket[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/tickets": {
-        "description": "Create ticket",
-        "body": "CreateTicketDto",
-        "response": "TicketWithRelations"
-      },
-      "GET /api/tickets/:id": {
-        "description": "Get ticket with replies and properties",
-        "response": "TicketWithRelations"
-      },
-      "PATCH /api/tickets/:id": {
-        "description": "Update ticket properties",
-        "body": "UpdateTicketDto",
-        "response": "Ticket"
-      },
-      "DELETE /api/tickets/:id": {
-        "description": "Soft delete ticket",
-        "response": "void"
-      },
-      "POST /api/tickets/:id/assign": {
-        "description": "Assign ticket to agent",
-        "body": "AssignDto",
-        "response": "Ticket"
-      },
-      "POST /api/tickets/:id/resolve": {
-        "description": "Mark ticket as resolved",
-        "body": "ResolveDto",
-        "response": "Ticket"
-      },
-      "POST /api/tickets/:id/close": {
-        "description": "Close ticket",
-        "response": "Ticket"
-      },
-      "POST /api/tickets/:id/reopen": {
-        "description": "Reopen resolved/closed ticket",
-        "response": "Ticket"
-      },
-      "POST /api/tickets/:id/merge": {
-        "description": "Merge into another ticket",
-        "body": "MergeDto",
-        "response": "void"
-      },
-      "POST /api/tickets/bulk-assign": {
-        "description": "Bulk assign tickets",
-        "body": "BulkAssignDto",
-        "response": "BulkOperationResult"
-      },
-      "POST /api/tickets/bulk-status": {
-        "description": "Bulk update status",
-        "body": "BulkStatusDto",
-        "response": "BulkOperationResult"
-      }
-    },
-    "replies": {
-      "GET /api/tickets/:id/replies": {
-        "description": "Get replies for ticket",
-        "query_params": [
-          "include_internal"
-        ],
-        "response": "TicketReply[]"
-      },
-      "POST /api/tickets/:id/replies": {
-        "description": "Add reply",
-        "body": "CreateReplyDto",
-        "response": "TicketReply"
-      },
-      "PATCH /api/replies/:id": {
-        "description": "Edit reply",
-        "body": "UpdateReplyDto",
-        "response": "TicketReply"
-      },
-      "DELETE /api/replies/:id": {
-        "description": "Delete reply",
-        "response": "void"
-      }
-    },
-    "attachments": {
-      "POST /api/tickets/:id/attachments": {
-        "description": "Upload attachment",
-        "body": "FormData",
-        "response": "TicketAttachment"
-      },
-      "DELETE /api/attachments/:id": {
-        "description": "Delete attachment",
-        "response": "void"
-      }
-    },
-    "queues": {
-      "GET /api/queues": {
-        "description": "List queues",
-        "response": "TicketQueue[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "TicketQueue[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/queues": {
-        "description": "Create queue",
-        "body": "CreateQueueDto",
-        "response": "TicketQueue"
-      },
-      "PATCH /api/queues/:id": {
-        "description": "Update queue",
-        "body": "UpdateQueueDto",
-        "response": "TicketQueue"
-      },
-      "DELETE /api/queues/:id": {
-        "description": "Delete queue",
-        "response": "void"
-      }
-    },
-    "sla": {
-      "GET /api/sla-policies": {
-        "description": "List SLA policies",
-        "response": "SLAPolicy[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "SLAPolicy[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "POST /api/sla-policies": {
-        "description": "Create SLA policy",
-        "body": "CreateSLAPolicyDto",
-        "response": "SLAPolicy"
-      },
-      "PATCH /api/sla-policies/:id": {
-        "description": "Update SLA policy",
-        "body": "UpdateSLAPolicyDto",
-        "response": "SLAPolicy"
-      }
-    },
-    "satisfaction": {
-      "POST /api/tickets/:id/satisfaction": {
-        "description": "Submit CSAT rating",
-        "body": "SatisfactionDto",
-        "response": "Ticket"
-      }
-    },
-    "analytics": {
-      "GET /api/tickets/analytics/summary": {
-        "description": "Summary stats",
-        "query_params": [
-          "queue_id",
-          "assignee_id",
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "TicketSummaryStats",
-        "response_envelope": {
-          "data": "TicketSummaryStats",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/tickets/analytics/volume": {
-        "description": "Ticket volume trend",
-        "query_params": [
-          "days",
-          "queue_id",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "VolumeTrend[]",
-        "response_envelope": {
-          "data": "VolumeTrend[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/tickets/analytics/sla-compliance": {
-        "description": "SLA compliance breakdown",
-        "query_params": [
-          "queue_id",
-          "date_from",
-          "date_to",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "SLACompliance",
-        "response_envelope": {
-          "data": "SLACompliance",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/tickets/analytics/agent-workload": {
-        "description": "Per-agent workload stats",
-        "response": "AgentWorkload[]",
-        "query_params": [
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response_envelope": {
-          "data": "AgentWorkload[]",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      },
-      "GET /api/tickets/analytics/csat": {
-        "description": "CSAT score breakdown",
-        "query_params": [
-          "date_from",
-          "date_to",
-          "assignee_id",
-          "page",
-          "limit",
-          "sort",
-          "cursor"
-        ],
-        "response": "CSATStats",
-        "response_envelope": {
-          "data": "CSATStats",
-          "meta": {
-            "total": "integer",
-            "limit": "integer",
-            "cursor": "string | null",
-            "has_more": "boolean"
-          }
-        }
-      }
-    }
-  },
-  "permissions": {
-    "roles": [
-      "owner",
-      "admin",
-      "agent",
-      "requester",
-      "viewer"
-    ],
-    "matrix": {
-      "ticket.create": [
-        "owner",
-        "admin",
-        "agent",
-        "requester"
-      ],
-      "ticket.edit_own": [
-        "owner",
-        "admin",
-        "agent",
-        "requester"
-      ],
-      "ticket.edit_any": [
-        "owner",
-        "admin",
-        "agent"
-      ],
-      "ticket.delete": [
-        "owner",
-        "admin"
-      ],
-      "ticket.assign": [
-        "owner",
-        "admin",
-        "agent"
-      ],
-      "ticket.view_all": [
-        "owner",
-        "admin",
-        "agent"
-      ],
-      "ticket.view_own": [
-        "requester",
-        "viewer"
-      ],
-      "reply.create_public": [
-        "owner",
-        "admin",
-        "agent",
-        "requester"
-      ],
-      "reply.create_internal": [
-        "owner",
-        "admin",
-        "agent"
-      ],
-      "reply.delete_own": [
-        "owner",
-        "admin",
-        "agent"
-      ],
-      "queue.manage": [
-        "owner",
-        "admin"
-      ],
-      "sla.manage": [
-        "owner",
-        "admin"
-      ],
-      "analytics.view": [
-        "owner",
-        "admin",
-        "agent"
-      ],
-      "analytics.export": [
-        "owner",
-        "admin"
-      ],
-      "satisfaction.submit": [
-        "requester"
-      ]
-    }
-  },
-  "state": {
-    "stores": [
-      {
-        "name": "ticketStore",
-        "state": [
-          "viewMode",
-          "activeFilters",
-          "selectedTickets",
-          "activeQueue",
-          "sortConfig"
-        ],
-        "actions": [
-          "setViewMode",
-          "setActiveFilters",
-          "setSelectedTickets",
-          "setActiveQueue",
-          "setSortConfig",
-          "clearFilters"
-        ]
-      },
-      {
-        "name": "replyStore",
-        "state": [
-          "draftBody",
-          "replyType",
-          "attachments"
-        ],
-        "actions": [
-          "setDraftBody",
-          "setReplyType",
-          "addAttachment",
-          "removeAttachment",
-          "clearDraft"
-        ]
-      }
-    ],
-    "query_keys": [
-      "tickets.list(filters)",
-      "tickets.detail(id)",
-      "replies.by-ticket(ticketId)",
-      "attachments.by-ticket(ticketId)",
-      "queues.list",
-      "sla-policies.list",
-      "analytics.summary(filters)",
-      "analytics.volume(filters)",
-      "analytics.sla-compliance(filters)",
-      "analytics.agent-workload"
-    ]
-  },
-  "websocket": {
-    "events": [
-      {
-        "name": "ticket:created",
-        "payload": "Ticket",
-        "description": "Notify queue agents of new ticket"
-      },
-      {
-        "name": "ticket:assigned",
-        "payload": "Ticket",
-        "description": "Notify assigned agent"
-      },
-      {
-        "name": "ticket:reply_added",
-        "payload": "TicketReply",
-        "description": "Real-time thread update in ticket detail"
-      },
-      {
-        "name": "ticket:status_changed",
-        "payload": "Ticket",
-        "description": "Update list view badge in real-time"
-      },
-      {
-        "name": "ticket:sla_at_risk",
-        "payload": "Ticket",
-        "description": "Alert agent when ticket SLA enters at-risk window"
-      },
-      {
-        "name": "ticket:sla_breached",
-        "payload": "Ticket",
-        "description": "Alert agent and manager on SLA breach"
-      },
-      {
-        "name": "ticket:satisfaction_submitted",
-        "payload": "Ticket",
-        "description": "Notify agent of CSAT rating received"
-      }
-    ]
-  },
-  "flows": [
-    {
-      "name": "Submit Ticket",
-      "trigger": "Requester submits form or sends email",
-      "steps": [
-        "Create ticket with source = web/email/api",
-        "Auto-assign to queue based on ticket_type routing rules",
-        "Auto-assign to agent based on queue.auto_assign_mode",
-        "Determine and attach SLA policy based on queue + priority",
-        "Calculate first_response_due_at and resolution_due_at",
-        "Send confirmation email to requester with ticket number",
-        "Notify assigned agent via websocket and email"
-      ]
-    },
-    {
-      "name": "Agent Reply",
-      "trigger": "Agent clicks Submit in ReplyComposer",
-      "steps": [
-        "Create TicketReply (public or internal_note)",
-        "If first public reply \u2192 set ticket.first_responded_at, mark is_first_response = true",
-        "If reply_type = public \u2192 send email notification to requester",
-        "If status changed (submit_and_close, submit_and_pending) \u2192 update ticket status",
-        "Update ticket.updated_at and sla_status",
-        "Broadcast ticket:reply_added to watchers"
-      ]
-    },
-    {
-      "name": "SLA Monitoring",
-      "trigger": "Background cron every 5 minutes",
-      "steps": [
-        "Scan open tickets: check first_response_due_at and resolution_due_at vs NOW()",
-        "If within 80% of window \u2192 set sla_status = at_risk, broadcast ticket:sla_at_risk",
-        "If past due \u2192 set sla_status = breached, broadcast ticket:sla_breached, notify manager",
-        "If ticket resolved/closed \u2192 compute final SLA compliance result"
-      ]
-    },
-    {
-      "name": "CSAT Survey",
-      "trigger": "Ticket resolved \u2192 send email after 24 hours",
-      "steps": [
-        "Cron job sends CSAT email with 1-5 star link to requester",
-        "Requester clicks rating link \u2192 pre-authenticated token",
-        "Submit satisfaction_rating and optional comment",
-        "Notify agent via websocket"
-      ]
-    }
-  ],
-  "computed_fields": [
-    {
-      "name": "first_response_due_at",
-      "entity": "Ticket",
-      "formula": "created_at + (sla_policy.first_response_hours * INTERVAL '1 hour') accounting for business_hours_only",
-      "stored": true
-    },
-    {
-      "name": "resolution_due_at",
-      "entity": "Ticket",
-      "formula": "created_at + (sla_policy.resolution_hours * INTERVAL '1 hour') accounting for business_hours_only",
-      "stored": true
-    },
-    {
-      "name": "sla_status",
-      "entity": "Ticket",
-      "formula": "CASE WHEN resolved \u2192 within_sla/breached; WHEN NOW() > due_at \u2192 breached; WHEN NOW() > due_at * 0.8 \u2192 at_risk ELSE within_sla END",
-      "stored": true
-    },
-    {
-      "name": "avg_resolution_hours",
-      "entity": "Analytics",
-      "formula": "AVG(EXTRACT(EPOCH FROM resolved_at - created_at) / 3600) WHERE resolved_at IS NOT NULL",
-      "stored": false
-    },
-    {
-      "name": "csat_avg",
-      "entity": "Analytics",
-      "formula": "AVG(satisfaction_rating) WHERE satisfaction_rating IS NOT NULL",
-      "stored": false
-    }
-  ],
-  "domain_rules": [
-    "Ticket number auto-increments per org: TKT-0001, TKT-0002",
-    "Internal notes are never visible to requesters (filtered server-side on requester portal)",
-    "Merged tickets: secondary ticket redirects to primary; replies preserved on primary",
-    "SLA timer pauses when status = waiting_on_requester or waiting_on_third_party",
-    "CSAT survey sent 24 hours after resolution; only one survey per ticket",
-    "Round-robin assignment tracks last assigned agent per queue to distribute evenly",
-    "Requester can reopen a resolved ticket within 7 days; after that requires agent action",
-    "Email ingestion: inbound emails create tickets; replies to ticket email threaded via ticket_number in subject",
-    "Agents can only see tickets in their assigned queues unless they have admin role"
-  ],
-  "folder_structure": {
-    "src": {
-      "features": {
-        "ticketing": {
-          "components": [
-            "TicketListTable.tsx",
-            "TicketKanbanBoard.tsx",
-            "TicketCreationForm.tsx",
-            "TicketDetailPage.tsx",
-            "ReplyComposer.tsx",
-            "TicketPropertiesSidebar.tsx",
-            "SLACountdown.tsx",
-            "TicketSummaryStats.tsx",
-            "TicketVolumeChart.tsx",
-            "SLAComplianceChart.tsx",
-            "AgentWorkloadTable.tsx",
-            "CannedResponseManager.tsx",
-            "MergeTicketModal.tsx",
-            "QueueManagerPage.tsx",
-            "SLAPolicyTable.tsx"
+          "name": "content",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "comment_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "reply",
+            "internal_note",
+            "status_change",
+            "escalation"
           ],
-          "pages": [
-            "AgentInboxPage.tsx",
-            "AllTicketsPage.tsx",
-            "TicketDetailRoutePage.tsx",
-            "RequesterPortalPage.tsx",
-            "AnalyticsPage.tsx",
-            "SettingsPage.tsx"
-          ],
-          "hooks": [
-            "useTickets.ts",
-            "useTicketDetail.ts",
-            "useReplies.ts",
-            "useQueues.ts",
-            "useSLAPolicies.ts",
-            "useTicketAnalytics.ts",
-            "useSLATimer.ts",
-            "useCannedResponses.ts"
-          ],
-          "store": [
-            "ticketStore.ts",
-            "replyStore.ts"
-          ],
-          "api": [
-            "ticketsApi.ts",
-            "repliesApi.ts",
-            "attachmentsApi.ts",
-            "queuesApi.ts",
-            "slaPoliciesApi.ts",
-            "ticketAnalyticsApi.ts"
-          ],
-          "types": [
-            "ticket.types.ts"
-          ],
-          "utils": [
-            "slaUtils.ts",
-            "assignmentUtils.ts",
-            "emailThreadUtils.ts",
-            "ticketStatusUtils.ts"
-          ]
+          "badge_colors": {
+            "reply": "blue",
+            "internal_note": "amber",
+            "status_change": "green",
+            "escalation": "red"
+          }
+        },
+        {
+          "name": "is_internal",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "posted_at",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "datetime_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
-      }
-    }
-  },
-  "generation_rules": [
-    "SLA due times stored on ticket at creation; not dynamically recomputed on every query",
-    "Business hours SLA: use work-schedule table (Mon-Fri 9am-5pm default) to compute business-hour intervals",
-    "SLA monitoring cron runs every 5 min; batch-updates sla_status in single UPDATE WHERE",
-    "Internal notes have reply_type = internal_note; server excludes them from requester API responses",
-    "Email ingestion via inbound email parsing service; route by subject ticket number pattern",
-    "Ticket number in all outbound emails: '[TKT-0042]' in subject for reply threading",
-    "Round-robin: store last_assigned_agent_idx per queue in Redis for fast lookup",
-    "CSAT email link uses signed JWT token valid 7 days; no login required to submit rating"
-  ],
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
       ]
     },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
+    {
+      "name": "Attachment",
+      "table": "ticket_attachments",
+      "description": "Attachment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "ticket_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Ticket"
+        },
+        {
+          "name": "comment_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Comment"
+        },
+        {
+          "name": "file_name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "file_url",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "file_upload",
+          "display_component": "file_link"
+        },
+        {
+          "name": "file_type",
+          "db_type": "VARCHAR(30)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "status_badge",
+          "enum_values": [
+            "image",
+            "document",
+            "log",
+            "screenshot",
+            "other"
+          ],
+          "badge_colors": {
+            "image": "green",
+            "document": "blue",
+            "log": "purple",
+            "screenshot": "pink",
+            "other": "slate"
+          }
+        },
+        {
+          "name": "file_size_kb",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "uploaded_by",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
       ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
     }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {
-    "ticket_type_enum": {
-      "pg_type": "ticket_type_type",
-      "ts_type": "TicketTypeEnum",
-      "values": [
-        "bug",
-        "feature_request",
-        "it_support",
-        "hr_request",
-        "access_request",
-        "infrastructure",
-        "question",
-        "other"
-      ],
-      "pg_ddl": "CREATE TYPE ticket_type_type AS ENUM ('bug', 'feature_request', 'it_support', 'hr_request', 'access_request', 'infrastructure', 'question', 'other')"
-    },
-    "priority_enum": {
-      "pg_type": "priority_type",
-      "ts_type": "PriorityEnum",
-      "values": [
-        "none",
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ],
-      "pg_ddl": "CREATE TYPE priority_type AS ENUM ('none', 'low', 'medium', 'high', 'critical')"
-    },
-    "status_enum": {
-      "pg_type": "status_type",
-      "ts_type": "StatusEnum",
-      "values": [
-        "open",
-        "in_progress",
-        "pending",
-        "waiting_on_requester",
-        "waiting_on_third_party",
-        "resolved",
-        "closed",
-        "cancelled"
-      ],
-      "pg_ddl": "CREATE TYPE status_type AS ENUM ('open', 'in_progress', 'pending', 'waiting_on_requester', 'waiting_on_third_party', 'resolved', 'closed', 'cancelled')"
-    },
-    "sla_status_enum": {
-      "pg_type": "sla_status_type",
-      "ts_type": "SlaStatusEnum",
-      "values": [
-        "within_sla",
-        "at_risk",
-        "breached",
-        "paused"
-      ],
-      "pg_ddl": "CREATE TYPE sla_status_type AS ENUM ('within_sla', 'at_risk', 'breached', 'paused')"
-    },
-    "source_enum": {
-      "pg_type": "source_type",
-      "ts_type": "SourceEnum",
-      "values": [
-        "web",
-        "email",
-        "slack",
-        "api",
-        "phone",
-        "manual"
-      ],
-      "pg_ddl": "CREATE TYPE source_type AS ENUM ('web', 'email', 'slack', 'api', 'phone', 'manual')"
-    },
-    "reply_type_enum": {
-      "pg_type": "reply_type_type",
-      "ts_type": "ReplyTypeEnum",
-      "values": [
-        "public",
-        "internal_note",
-        "system"
-      ],
-      "pg_ddl": "CREATE TYPE reply_type_type AS ENUM ('public', 'internal_note', 'system')"
-    },
-    "auto_assign_mode_enum": {
-      "pg_type": "auto_assign_mode_type",
-      "ts_type": "AutoAssignModeEnum",
-      "values": [
-        "none",
-        "round_robin",
-        "least_busy",
-        "specific_agent"
-      ],
-      "pg_ddl": "CREATE TYPE auto_assign_mode_type AS ENUM ('none', 'round_robin', 'least_busy', 'specific_agent')"
-    }
-  },
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  }
+  ]
 }

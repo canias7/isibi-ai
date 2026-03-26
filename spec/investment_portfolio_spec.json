@@ -1,3887 +1,1091 @@
 {
-  "file": "investment_portfolio_spec.json",
-  "version": "1.0.0",
-  "tech_stack": {
-    "frontend": [
-      "React 18",
-      "TypeScript strict",
-      "Tailwind CSS",
-      "TanStack Query v5",
-      "React Hook Form v7",
-      "Zod",
-      "Zustand v4",
-      "React Router v6",
-      "Recharts",
-      "date-fns",
-      "Lucide React",
-      "Radix UI"
-    ],
-    "backend": [
-      "Node.js",
-      "Express",
-      "PostgreSQL 15+",
-      "Redis",
-      "JWT",
-      "AWS S3",
-      "Socket.io"
-    ]
+  "_meta": {
+    "app_name": "Investment Portfolio",
+    "description": "Complete investment portfolio management"
   },
-  "design": {
-    "theme": "dark",
-    "bg": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber"
-  },
+  "spec_name": "investment_portfolio_spec",
   "entities": [
     {
+      "name": "Portfolio",
       "table": "portfolios",
-      "description": "An investment portfolio tracking a collection of asset holdings.",
+      "description": "Portfolio",
       "fields": [
         {
           "name": "id",
-          "db_type": "UUID",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
           "ts_type": "string",
           "nullable": false,
-          "default": "gen_random_uuid()",
-          "primary_key": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "foreign_key": "organizations.id",
-          "indexed": true,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TruncatedText",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "minLength": 1,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "portfolio_type",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "'stocks' | 'bonds' | 'mixed' | 'real_estate' | 'crypto' | 'mutual_funds' | 'etf' | 'custom'",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
           "nullable": false,
-          "default": "mixed",
-          "enum": [
-            "stocks",
-            "bonds",
-            "mixed",
-            "real_estate",
-            "crypto",
-            "mutual_funds",
-            "etf",
-            "custom"
-          ],
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "stocks",
-              "bonds",
-              "mixed",
-              "real_estate",
-              "crypto",
-              "mutual_funds",
-              "etf",
-              "custom"
-            ]
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "growth",
+            "income",
+            "balanced",
+            "aggressive",
+            "conservative",
+            "index"
+          ],
+          "badge_colors": {
+            "growth": "green",
+            "income": "blue",
+            "balanced": "purple",
+            "aggressive": "red",
+            "conservative": "amber",
+            "index": "slate"
           }
         },
         {
           "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
+          "db_type": "CHAR(3) NOT NULL DEFAULT 'USD'",
           "ts_type": "string",
           "nullable": false,
-          "default": "USD",
-          "input_component": "Select",
-          "display_component": "PlainText",
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "length": 3
-          }
-        },
-        {
-          "name": "benchmark_index",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "inception_date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "'active' | 'inactive' | 'closed'",
-          "nullable": false,
-          "default": "active",
-          "enum": [
-            "active",
-            "inactive",
-            "closed"
-          ],
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "active",
-              "inactive",
-              "closed"
-            ]
-          }
-        },
-        {
-          "name": "total_cost_basis",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for total_cost_basis computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "SUM(net_amount) for all buy trades on portfolio",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "current_value",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for current_value computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "SUM(holdings.current_value) + cash_balance",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "unrealized_gain_loss",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for unrealized_gain_loss computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "SUM(holdings.unrealized_gain_loss)",
-          "input_component": null,
-          "display_component": "GainLossBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "unrealized_gain_loss_pct",
-          "db_type": "NUMERIC(8,4) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for unrealized_gain_loss_pct computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "(unrealized_gain_loss / total_cost_basis) * 100 if total_cost_basis > 0",
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "total_realized_gain_loss",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for total_realized_gain_loss computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "Accumulated from sell trades: SUM(realized_gain per sell trade)",
-          "input_component": null,
-          "display_component": "GainLossBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "total_dividends_received",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for total_dividends_received computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "SUM(trades.net_amount WHERE trade_type='dividend' AND portfolio_id=id)",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "cash_balance",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "gl_account_id",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "foreign_key": "accounts.id",
-          "input_component": "AccountSelector",
-          "display_component": "AccountLink",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "foreign_key": "users.id",
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
+          "input_component": "text_input",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_portfolios_org_status",
-          "columns": [
-            "org_id",
-            "status"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_portfolios_org_type",
-          "columns": [
-            "org_id",
-            "portfolio_type"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_portfolios_org_inception_date",
-          "columns": [
-            "org_id",
-            "inception_date"
-          ],
-          "unique": false
-        }
-      ],
-      "name": "Portfolio",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "portfolio_type",
-            "status",
-            "total_cost_basis",
-            "current_value",
-            "unrealized_gain_loss"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Portfolios yet",
-            "subtext": "Create your first portfolio",
-            "action_label": "Add Portfolio"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "description",
-            "portfolio_type",
-            "currency",
-            "benchmark_index",
-            "inception_date",
-            "status",
-            "cash_balance",
-            "gl_account_id",
-            "notes"
-          ],
-          "required_fields": [
-            "name",
-            "description"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "description",
-            "portfolio_type",
-            "currency",
-            "benchmark_index",
-            "inception_date",
-            "status",
-            "cash_balance",
-            "gl_account_id",
-            "notes"
-          ],
-          "required_fields": [
-            "name",
-            "description"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/portfolios/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "portfolio_type",
-            "status",
-            "total_cost_basis"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "portfolio_type",
-                "status",
-                "total_cost_basis",
-                "current_value",
-                "unrealized_gain_loss",
-                "unrealized_gain_loss_pct"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "assets",
-      "description": "An investable asset (stock, bond, ETF, crypto, etc.) that can be held in portfolios.",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "primary_key": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "organizations.id",
-          "indexed": true,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "ticker",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "unique_within_org_partial": "WHERE ticker IS NOT NULL",
-          "input_component": "TextInput",
-          "display_component": "TickerBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 20
-          }
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(500) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "TruncatedText",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "minLength": 1,
-            "maxLength": 500
-          }
-        },
-        {
-          "name": "asset_type",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "'stock' | 'bond' | 'etf' | 'mutual_fund' | 'real_estate' | 'crypto' | 'option' | 'futures' | 'cash' | 'other'",
-          "nullable": false,
-          "default": null,
-          "enum": [
-            "stock",
-            "bond",
-            "etf",
-            "mutual_fund",
-            "real_estate",
-            "crypto",
-            "option",
-            "futures",
-            "cash",
-            "other"
-          ],
-          "input_component": "Select",
-          "display_component": "AssetTypeBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "stock",
-              "bond",
-              "etf",
-              "mutual_fund",
-              "real_estate",
-              "crypto",
-              "option",
-              "futures",
-              "cash",
-              "other"
-            ]
-          }
-        },
-        {
-          "name": "exchange",
-          "db_type": "VARCHAR(50)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 50
-          }
-        },
-        {
-          "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "USD",
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "length": 3
-          }
-        },
-        {
-          "name": "sector",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "industry",
-          "db_type": "VARCHAR(100)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 100
-          }
-        },
-        {
-          "name": "isin",
-          "db_type": "VARCHAR(12)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 12
-          }
-        },
-        {
-          "name": "cusip",
-          "db_type": "VARCHAR(9)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 9
-          }
-        },
-        {
-          "name": "description",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "is_active",
-          "db_type": "BOOLEAN NOT NULL",
-          "ts_type": "boolean",
-          "nullable": false,
-          "default": true,
-          "input_component": "Toggle",
-          "display_component": "YesNoBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true
-          }
-        },
-        {
-          "name": "last_price",
-          "db_type": "NUMERIC(15,6) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "PriceDisplay",
-          "editable": true,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "last_price_updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "price_source",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "'manual' | 'api' | 'import'",
-          "nullable": false,
-          "default": "manual",
-          "enum": [
-            "manual",
-            "api",
-            "import"
-          ],
-          "input_component": "Select",
-          "display_component": "StatusBadge",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "manual",
-              "api",
-              "import"
-            ]
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_assets_org_ticker",
-          "columns": [
-            "org_id",
-            "ticker"
-          ],
-          "unique": false,
-          "partial": "WHERE ticker IS NOT NULL",
-          "note": "Partial unique index for non-null tickers"
-        },
-        {
-          "name": "idx_assets_org_type",
-          "columns": [
-            "org_id",
-            "asset_type"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_assets_org_is_active",
-          "columns": [
-            "org_id",
-            "is_active"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_assets_org_name",
-          "columns": [
-            "org_id",
-            "name"
-          ],
-          "unique": false
-        }
-      ],
-      "name": "Asset",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "ticker",
-            "name",
-            "asset_type",
-            "is_active",
-            "last_price",
-            "last_price_updated_at"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Assets yet",
-            "subtext": "Create your first asset",
-            "action_label": "Add Asset"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "ticker",
-            "name",
-            "asset_type",
-            "exchange",
-            "currency",
-            "sector",
-            "industry",
-            "isin",
-            "cusip",
-            "description",
-            "is_active",
-            "last_price",
-            "price_source"
-          ],
-          "required_fields": [
-            "ticker",
-            "name"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "ticker",
-            "name",
-            "asset_type",
-            "exchange",
-            "currency",
-            "sector",
-            "industry",
-            "isin",
-            "cusip",
-            "description",
-            "is_active",
-            "last_price",
-            "price_source"
-          ],
-          "required_fields": [
-            "ticker",
-            "name"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/assets/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "ticker"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "ticker",
-            "name",
-            "asset_type",
-            "is_active"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "ticker",
-                "name",
-                "asset_type",
-                "is_active",
-                "last_price",
-                "last_price_updated_at"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "holdings",
-      "description": "A position in a specific asset within a portfolio.",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "primary_key": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "organizations.id",
-          "indexed": true,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "portfolio_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "portfolios.id",
-          "input_component": "PortfolioSelector",
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "asset_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "assets.id",
-          "input_component": "AssetSelector",
-          "display_component": "TickerBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "quantity",
-          "db_type": "NUMERIC(18,8) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "avg_cost_basis",
-          "db_type": "NUMERIC(15,8) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "PriceDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "total_cost_basis",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for total_cost_basis computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "quantity * avg_cost_basis",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "current_price",
-          "db_type": "NUMERIC(15,8) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": null,
-          "display_component": "PriceDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "current_value",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for current_value computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "quantity * current_price",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "unrealized_gain_loss",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for unrealized_gain_loss computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "current_value - total_cost_basis",
-          "input_component": null,
-          "display_component": "GainLossBadge",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "unrealized_gain_loss_pct",
-          "db_type": "NUMERIC(8,4) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for unrealized_gain_loss_pct computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "(unrealized_gain_loss / total_cost_basis) * 100 if total_cost_basis > 0 else 0",
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "weight_in_portfolio",
-          "db_type": "NUMERIC(8,4) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for weight_in_portfolio computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "(current_value / portfolio.current_value) * 100 if portfolio.current_value > 0",
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "last_price_updated_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "first_purchase_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "date"
-          }
-        },
-        {
-          "name": "last_trade_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "date"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_holdings_org_portfolio_asset",
-          "columns": [
-            "org_id",
-            "portfolio_id",
-            "asset_id"
-          ],
-          "unique": true
-        },
-        {
-          "name": "idx_holdings_org_portfolio",
-          "columns": [
-            "org_id",
-            "portfolio_id"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_holdings_org_asset",
-          "columns": [
-            "org_id",
-            "asset_id"
-          ],
-          "unique": false
-        }
-      ],
-      "name": "Holding",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "asset_id",
-            "quantity",
-            "avg_cost_basis",
-            "total_cost_basis",
-            "current_price",
-            "current_value"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Holdings yet",
-            "subtext": "Create your first holding",
-            "action_label": "Add Holding"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": []
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": [],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/holdings/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "asset_id",
-            "quantity",
-            "avg_cost_basis",
-            "total_cost_basis"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "asset_id",
-                "quantity",
-                "avg_cost_basis",
-                "total_cost_basis",
-                "current_price",
-                "current_value",
-                "unrealized_gain_loss",
-                "unrealized_gain_loss_pct",
-                "weight_in_portfolio"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "trades",
-      "description": "A buy, sell, dividend, split, or transfer transaction against a portfolio asset.",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "primary_key": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "organizations.id",
-          "indexed": true,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "portfolio_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "portfolios.id",
-          "input_component": "PortfolioSelector",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "asset_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "assets.id",
-          "input_component": "AssetSelector",
-          "display_component": "TickerBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "trade_type",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "'buy' | 'sell' | 'dividend' | 'split' | 'transfer_in' | 'transfer_out' | 'fee'",
-          "nullable": false,
-          "default": null,
-          "enum": [
-            "buy",
-            "sell",
-            "dividend",
-            "split",
-            "transfer_in",
-            "transfer_out",
-            "fee"
-          ],
-          "input_component": "Select",
-          "display_component": "TradeTypeBadge",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "enum": [
-              "buy",
-              "sell",
-              "dividend",
-              "split",
-              "transfer_in",
-              "transfer_out",
-              "fee"
-            ]
-          }
-        },
-        {
-          "name": "trade_date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
-        },
-        {
-          "name": "settlement_date",
-          "db_type": "DATE",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "format": "date"
-          }
-        },
-        {
-          "name": "quantity",
-          "db_type": "NUMERIC(18,8) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "TextInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "price",
-          "db_type": "NUMERIC(15,8) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "db_constraint": "CHECK (price > 0)",
-          "input_component": "CurrencyInput",
-          "display_component": "PriceDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 1e-08
-          }
-        },
-        {
-          "name": "gross_amount",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "derived",
-            "formula": "See domain_rules for gross_amount computation logic",
-            "trigger": [
-              "insert",
-              "update",
-              "delete"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "quantity * price",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "commission",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "fees",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "input_component": "CurrencyInput",
-          "display_component": "CurrencyDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
-        },
-        {
-          "name": "net_amount",
-          "db_type": "NUMERIC(15,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "default": 0,
-          "computed": {
-            "source": "self",
-            "formula": "debit_amount - credit_amount",
-            "trigger": [
-              "update"
-            ],
-            "storage": "stored"
-          },
-          "computed_from": "if buy: gross_amount + commission + fees; if sell: gross_amount - commission - fees",
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": true,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "currency",
-          "db_type": "CHAR(3) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "USD",
-          "input_component": "Select",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": true,
-            "length": 3
-          }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "Textarea",
-          "display_component": "PlainText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "created_by",
-          "db_type": "UUID",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "foreign_key": "users.id",
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "external_reference",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "MonospaceText",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "maxLength": 255
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "RelativeDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_trades_org_portfolio",
-          "columns": [
-            "org_id",
-            "portfolio_id"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_trades_org_asset",
-          "columns": [
-            "org_id",
-            "asset_id"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_trades_org_trade_date",
-          "columns": [
-            "org_id",
-            "trade_date"
-          ],
-          "unique": false
-        },
-        {
-          "name": "idx_trades_org_trade_type",
-          "columns": [
-            "org_id",
-            "trade_type"
-          ],
-          "unique": false
-        }
-      ],
-      "name": "Trade",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "asset_id",
-            "trade_type",
-            "trade_date",
-            "quantity",
-            "price",
-            "net_amount"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Trades yet",
-            "subtext": "Create your first trade",
-            "action_label": "Add Trade"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "portfolio_id",
-            "asset_id",
-            "trade_type",
-            "trade_date",
-            "settlement_date",
-            "quantity",
-            "price",
-            "gross_amount",
-            "commission",
-            "fees",
-            "net_amount",
-            "currency",
-            "notes",
-            "external_reference"
-          ],
-          "required_fields": [
-            "portfolio_id",
-            "asset_id"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "portfolio_id",
-            "asset_id",
-            "trade_type",
-            "trade_date",
-            "settlement_date",
-            "quantity",
-            "price",
-            "gross_amount",
-            "commission",
-            "fees",
-            "net_amount",
-            "currency",
-            "notes",
-            "external_reference"
-          ],
-          "required_fields": [
-            "portfolio_id",
-            "asset_id"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/trades/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "portfolio_id"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "asset_id",
-            "trade_type",
-            "trade_date",
-            "quantity"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "asset_id",
-                "trade_type",
-                "trade_date",
-                "quantity",
-                "price",
-                "net_amount"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "performance_metrics",
-      "description": "Daily computed performance metrics for a portfolio.",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "primary_key": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "organizations.id",
-          "indexed": true,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "portfolio_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "foreign_key": "portfolios.id",
-          "input_component": null,
-          "display_component": "PlainText",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
-        },
-        {
-          "name": "metric_date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": true,
-          "filterable": true,
-          "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
         },
         {
           "name": "total_value",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(assets.current_value)",
           "validation": {
-            "required": true
+            "min": 0
           }
         },
         {
-          "name": "total_cost_basis",
+          "name": "total_cost",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "CurrencyDisplay",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "SUM(assets.cost_basis)",
           "validation": {
-            "required": true
+            "min": 0
           }
         },
         {
-          "name": "unrealized_gain_loss",
+          "name": "total_gain_loss",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "GainLossBadge",
           "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "total_value - total_cost",
           "validation": {
-            "required": true
+            "min": 0
           }
         },
         {
-          "name": "daily_return_pct",
-          "db_type": "NUMERIC(8,6)",
-          "ts_type": "number | null",
+          "name": "total_return_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "mtd_return_pct",
-          "db_type": "NUMERIC(8,6)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "ytd_return_pct",
-          "db_type": "NUMERIC(8,6)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "total_gain_loss / total_cost * 100"
         },
         {
-          "name": "since_inception_return_pct",
-          "db_type": "NUMERIC(8,6)",
-          "ts_type": "number | null",
+          "name": "benchmark",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
           "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": true,
-          "filterable": false,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "enum_values": [
+            "SP500",
+            "NASDAQ",
+            "DOW",
+            "RUSSELL2000",
+            "MSCI_WORLD"
+          ]
         },
         {
-          "name": "benchmark_return_pct",
-          "db_type": "NUMERIC(8,6)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "PercentageDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "alpha",
-          "db_type": "NUMERIC(8,6)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "sharpe_ratio",
-          "db_type": "NUMERIC(8,6)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": "NumberDisplay",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false
-          }
-        },
-        {
-          "name": "computed_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "name": "status",
+          "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": null,
-          "display_component": "AbsoluteDate",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "closed",
+            "frozen"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "closed": "slate",
+            "frozen": "amber"
           }
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Asset",
+      "table": "portfolio_assets",
+      "description": "Asset",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_pm_org_portfolio_date",
-          "columns": [
-            "org_id",
-            "portfolio_id",
-            "metric_date"
-          ],
-          "unique": true
-        },
-        {
-          "name": "idx_pm_org_metric_date",
-          "columns": [
-            "org_id",
-            "metric_date"
-          ],
-          "unique": false
-        }
-      ],
-      "name": "PerformanceMetric",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "metric_date",
-            "total_value",
-            "unrealized_gain_loss",
-            "ytd_return_pct",
-            "since_inception_return_pct"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No PerformanceMetrics yet",
-            "subtext": "Create your first performancemetric",
-            "action_label": "Add PerformanceMetric"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": []
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [],
-          "required_fields": [],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/performance_metrics/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "metric_date",
-            "total_value",
-            "unrealized_gain_loss",
-            "ytd_return_pct"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "metric_date",
-                "total_value",
-                "unrealized_gain_loss",
-                "ytd_return_pct",
-                "since_inception_return_pct"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "table": "price_history",
-      "description": "Historical OHLCV price data for an asset.",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID",
-          "ts_type": "string",
-          "nullable": false,
-          "default": "gen_random_uuid()",
-          "primary_key": true,
-          "input_component": null,
-          "display_component": "MonospaceText",
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
         },
         {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "foreign_key": "organizations.id",
-          "indexed": true,
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": true,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "input_component": "none",
+          "display_component": "text"
         },
         {
-          "name": "asset_id",
+          "name": "portfolio_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "foreign_key": "assets.id",
-          "input_component": null,
-          "display_component": "TickerBadge",
-          "editable": false,
-          "sortable": false,
-          "filterable": true,
+          "editable": true,
           "show_in_table": true,
-          "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "uuid"
-          }
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Portfolio"
         },
         {
-          "name": "price_date",
-          "db_type": "DATE NOT NULL",
+          "name": "symbol",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
-          "default": null,
-          "input_component": "DatePicker",
-          "display_component": "AbsoluteDate",
           "editable": true,
-          "sortable": true,
-          "filterable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "format": "date"
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "open_price",
-          "db_type": "NUMERIC(15,8)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "PriceDisplay",
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
-          "name": "high_price",
-          "db_type": "NUMERIC(15,8)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "PriceDisplay",
+          "name": "asset_class",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
           "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "stock",
+            "bond",
+            "etf",
+            "mutual_fund",
+            "reit",
+            "commodity",
+            "crypto",
+            "cash"
+          ],
+          "badge_colors": {
+            "stock": "blue",
+            "bond": "green",
+            "etf": "purple",
+            "mutual_fund": "amber",
+            "reit": "pink",
+            "commodity": "slate",
+            "crypto": "red",
+            "cash": "teal"
           }
         },
         {
-          "name": "low_price",
-          "db_type": "NUMERIC(15,8)",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "PriceDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "close_price",
-          "db_type": "NUMERIC(15,8) NOT NULL",
+          "name": "quantity",
+          "db_type": "NUMERIC(15,6) NOT NULL",
           "ts_type": "number",
           "nullable": false,
-          "default": null,
-          "input_component": "CurrencyInput",
-          "display_component": "PriceDisplay",
           "editable": true,
-          "sortable": true,
-          "filterable": false,
           "show_in_table": true,
           "show_in_form": true,
-          "validation": {
-            "required": true,
-            "min": 0
-          }
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
-          "name": "volume",
-          "db_type": "BIGINT",
-          "ts_type": "number | null",
-          "nullable": true,
-          "default": null,
-          "input_component": "TextInput",
-          "display_component": "NumberDisplay",
-          "editable": true,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": true,
-          "validation": {
-            "required": false,
-            "min": 0
-          }
-        },
-        {
-          "name": "source",
-          "db_type": "VARCHAR(50) NOT NULL",
-          "ts_type": "'manual' | 'api'",
+          "name": "avg_cost",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
           "nullable": false,
-          "default": "manual",
-          "enum": [
-            "manual",
-            "api"
-          ],
-          "input_component": "Select",
-          "display_component": "StatusBadge",
           "editable": true,
-          "sortable": false,
-          "filterable": true,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
           "validation": {
-            "required": true,
-            "enum": [
-              "manual",
-              "api"
-            ]
+            "min": 0
           }
+        },
+        {
+          "name": "current_price",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "cost_basis",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "quantity * avg_cost",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "current_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "quantity * current_price",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "unrealized_gain",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "current_value - cost_basis",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "return_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "unrealized_gain / cost_basis * 100"
+        },
+        {
+          "name": "weight_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "current_value / portfolio.total_value * 100"
         },
         {
           "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": "AbsoluteDate",
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
+          "input_component": "none",
+          "display_component": "date"
         },
         {
           "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
           "ts_type": "string",
           "nullable": false,
-          "default": "now()",
-          "input_component": null,
-          "display_component": null,
           "editable": false,
-          "sortable": false,
-          "filterable": false,
           "show_in_table": false,
           "show_in_form": false,
-          "validation": {
-            "required": true,
-            "format": "datetime"
-          }
-        },
+          "input_component": "none",
+          "display_component": "date"
+        }
+      ]
+    },
+    {
+      "name": "Transaction",
+      "table": "portfolio_transactions",
+      "description": "Transaction",
+      "fields": [
         {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string | null",
-          "nullable": true,
-          "default": null,
-          "input_component": null,
-          "display_component": null,
-          "editable": false,
-          "sortable": false,
-          "filterable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "validation": {
-            "required": false,
-            "format": "datetime"
-          }
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
           "nullable": false,
           "editable": false,
           "show_in_table": false,
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
-        }
-      ],
-      "indexes": [
-        {
-          "name": "idx_ph_org_asset_date",
-          "columns": [
-            "org_id",
-            "asset_id",
-            "price_date"
-          ],
-          "unique": true
         },
         {
-          "name": "idx_ph_org_asset_desc",
-          "columns": [
-            "org_id",
-            "asset_id"
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "asset_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Asset"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "buy",
+            "sell",
+            "dividend",
+            "split",
+            "transfer_in",
+            "transfer_out"
           ],
-          "unique": false,
-          "order": "DESC",
-          "note": "For latest price lookup"
-        }
-      ],
-      "name": "PriceHistory",
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "asset_id",
-            "price_date",
-            "close_price"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No PriceHistorys yet",
-            "subtext": "Create your first pricehistory",
-            "action_label": "Add PriceHistory"
+          "badge_colors": {
+            "buy": "green",
+            "sell": "red",
+            "dividend": "blue",
+            "split": "purple",
+            "transfer_in": "amber",
+            "transfer_out": "pink"
           }
         },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "price_date",
-            "open_price",
-            "high_price",
-            "low_price",
-            "close_price",
-            "volume",
-            "source"
-          ],
-          "required_fields": [
-            "price_date",
-            "open_price"
-          ]
+        {
+          "name": "quantity",
+          "db_type": "NUMERIC(15,6) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
         },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "price_date",
-            "open_price",
-            "high_price",
-            "low_price",
-            "close_price",
-            "volume",
-            "source"
-          ],
-          "required_fields": [
-            "price_date",
-            "open_price"
-          ],
-          "prefilled": true
+        {
+          "name": "price_per_unit",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
         },
-        "detail_view": {
-          "route": "/price_history/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "price_date"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "asset_id",
-            "price_date",
-            "close_price"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "asset_id",
-                "price_date",
-                "close_price"
-              ]
-            }
-          ]
+        {
+          "name": "total_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "quantity * price_per_unit",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "fees",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "net_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "total_amount - fees",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "transaction_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
         }
-      }
-    }
-  ],
-  "components": [
-    "DataTable",
-    "SlideOverForm",
-    "StatusBadge",
-    "CurrencyDisplay",
-    "CurrencyInput",
-    "NumberDisplay",
-    "PercentageDisplay",
-    "Select",
-    "MultiSelect",
-    "Toggle",
-    "DatePicker",
-    "TextInput",
-    "Textarea",
-    "PlainText",
-    "MonospaceText",
-    "TruncatedText",
-    "TextLink",
-    "AbsoluteDate",
-    "RelativeDate",
-    "YesNoBadge",
-    "PageHeader",
-    "FilterPanel",
-    "TabPanel",
-    "EmptyState",
-    "LoadingSkeleton",
-    "ConfirmationDialog",
-    "StatCard",
-    "ActivityTimeline",
-    "AuthGuard",
-    "NotificationBell",
-    "AccountSelector",
-    "PortfolioSelector",
-    "AssetSelector",
-    "AssetSearchInput",
-    "TickerBadge",
-    "AssetTypeBadge",
-    "TradeTypeBadge",
-    "GainLossBadge",
-    "PortfolioValueCard",
-    "HoldingsTable",
-    "AllocationPieChart",
-    "PerformanceLineChart",
-    "BenchmarkComparisonChart",
-    "ReturnMetricsCard",
-    "TradeHistoryTable",
-    "DividendTable",
-    "PortfolioSummaryCard",
-    "PriceDisplay",
-    "PriceChangeIndicator",
-    "SectorAllocationChart",
-    "RebalancingHelper",
-    "ROICalculator"
-  ],
-  "modules": [
-    {
-      "name": "PortfolioList",
-      "route": "/portfolios",
-      "tabs": [
-        "Active",
-        "Inactive",
-        "All"
       ]
     },
     {
-      "name": "PortfolioDetail",
-      "route": "/portfolios/:id",
-      "tabs": [
-        "Overview",
-        "Holdings",
-        "Trades",
-        "Performance",
-        "Dividends"
+      "name": "Watchlist",
+      "table": "portfolio_watchlist",
+      "description": "Watchlist",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "symbol",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "asset_class",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "stock",
+            "bond",
+            "etf",
+            "mutual_fund",
+            "crypto"
+          ],
+          "badge_colors": {
+            "stock": "blue",
+            "bond": "green",
+            "etf": "purple",
+            "mutual_fund": "amber",
+            "crypto": "red"
+          }
+        },
+        {
+          "name": "target_price",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "current_price",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "alert_above",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "alert_below",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "thesis",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "alert_enabled",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
       ]
     },
     {
-      "name": "PortfolioCreate",
-      "route": "/portfolios/new",
-      "tabs": []
-    },
-    {
-      "name": "AssetList",
-      "route": "/assets",
-      "tabs": []
-    },
-    {
-      "name": "AssetDetail",
-      "route": "/assets/:id",
-      "tabs": [
-        "Overview",
-        "Price History",
-        "Holdings",
-        "Trades"
+      "name": "Dividend",
+      "table": "portfolio_dividends",
+      "description": "Dividend",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "asset_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Asset"
+        },
+        {
+          "name": "amount_per_share",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "quantity",
+          "db_type": "NUMERIC(15,6) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total_amount",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "amount_per_share * quantity",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "ex_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "pay_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "dividend_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "regular",
+            "special",
+            "return_of_capital"
+          ],
+          "badge_colors": {
+            "regular": "blue",
+            "special": "green",
+            "return_of_capital": "amber"
+          }
+        },
+        {
+          "name": "reinvested",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
       ]
     },
     {
-      "name": "TradeList",
-      "route": "/trades",
-      "tabs": []
-    },
-    {
-      "name": "TradeCreate",
-      "route": "/trades/new",
-      "tabs": []
-    },
-    {
-      "name": "PerformanceDashboard",
-      "route": "/performance",
-      "tabs": []
-    },
-    {
-      "name": "PriceManagement",
-      "route": "/assets/prices",
-      "tabs": []
-    }
-  ],
-  "api": {
-    "portfolios": [
-      {
-        "method": "GET",
-        "path": "/portfolios",
-        "description": "List portfolios"
-      },
-      {
-        "method": "POST",
-        "path": "/portfolios",
-        "description": "Create portfolio"
-      },
-      {
-        "method": "GET",
-        "path": "/portfolios/:id",
-        "description": "Get portfolio"
-      },
-      {
-        "method": "PATCH",
-        "path": "/portfolios/:id",
-        "description": "Update portfolio"
-      },
-      {
-        "method": "DELETE",
-        "path": "/portfolios/:id",
-        "description": "Delete portfolio"
-      },
-      {
-        "method": "GET",
-        "path": "/portfolios/:id/holdings",
-        "description": "Get portfolio holdings"
-      },
-      {
-        "method": "GET",
-        "path": "/portfolios/:id/trades",
-        "description": "Get portfolio trades"
-      },
-      {
-        "method": "GET",
-        "path": "/portfolios/:id/performance",
-        "description": "Get portfolio performance history"
-      },
-      {
-        "method": "POST",
-        "path": "/portfolios/:id/revalue",
-        "description": "Recompute current values from latest prices"
-      }
-    ],
-    "assets": [
-      {
-        "method": "GET",
-        "path": "/assets",
-        "description": "List assets"
-      },
-      {
-        "method": "POST",
-        "path": "/assets",
-        "description": "Create asset"
-      },
-      {
-        "method": "GET",
-        "path": "/assets/:id",
-        "description": "Get asset"
-      },
-      {
-        "method": "PATCH",
-        "path": "/assets/:id",
-        "description": "Update asset"
-      },
-      {
-        "method": "DELETE",
-        "path": "/assets/:id",
-        "description": "Delete asset"
-      },
-      {
-        "method": "GET",
-        "path": "/assets/:id/price-history",
-        "description": "Get price history"
-      },
-      {
-        "method": "POST",
-        "path": "/assets/:id/prices",
-        "description": "Manual price entry"
-      },
-      {
-        "method": "POST",
-        "path": "/assets/prices/import",
-        "description": "Bulk import prices from CSV"
-      },
-      {
-        "method": "GET",
-        "path": "/assets/:id/holdings-summary",
-        "description": "Get holdings summary across portfolios"
-      }
-    ],
-    "holdings": [
-      {
-        "method": "GET",
-        "path": "/holdings",
-        "description": "List holdings, filterable by portfolio"
-      },
-      {
-        "method": "GET",
-        "path": "/holdings/:id",
-        "description": "Get holding"
-      },
-      {
-        "method": "POST",
-        "path": "/holdings/revalue-all",
-        "description": "Revalue all holdings (background job)"
-      }
-    ],
-    "trades": [
-      {
-        "method": "GET",
-        "path": "/trades",
-        "description": "List trades"
-      },
-      {
-        "method": "POST",
-        "path": "/trades",
-        "description": "Execute trade (buy/sell/dividend)"
-      },
-      {
-        "method": "GET",
-        "path": "/trades/:id",
-        "description": "Get trade"
-      },
-      {
-        "method": "PATCH",
-        "path": "/trades/:id",
-        "description": "Correct trade"
-      },
-      {
-        "method": "DELETE",
-        "path": "/trades/:id",
-        "description": "Reverse trade"
-      },
-      {
-        "method": "POST",
-        "path": "/trades/import",
-        "description": "Import trades from CSV"
-      }
-    ],
-    "performance_metrics": [
-      {
-        "method": "GET",
-        "path": "/performance-metrics",
-        "params": [
-          "portfolio_id",
-          "from",
-          "to"
-        ],
-        "description": "Get performance metrics"
-      },
-      {
-        "method": "POST",
-        "path": "/performance-metrics/compute",
-        "description": "Compute metrics for all portfolios (background job)"
-      },
-      {
-        "method": "GET",
-        "path": "/portfolios/:id/performance/summary",
-        "description": "Get portfolio performance summary"
-      }
-    ],
-    "price_history": [
-      {
-        "method": "GET",
-        "path": "/price-history",
-        "params": [
-          "asset_id",
-          "from",
-          "to"
-        ],
-        "description": "Get price history"
-      },
-      {
-        "method": "POST",
-        "path": "/price-history",
-        "description": "Create manual price entry"
-      },
-      {
-        "method": "POST",
-        "path": "/price-history/import",
-        "description": "Import price history from CSV"
-      }
-    ],
-    "analytics": [
-      {
-        "method": "GET",
-        "path": "/analytics/portfolio/allocation",
-        "params": [
-          "portfolio_id"
-        ],
-        "description": "Allocation by asset, sector, type"
-      },
-      {
-        "method": "GET",
-        "path": "/analytics/portfolio/roi",
-        "params": [
-          "portfolio_id",
-          "from",
-          "to"
-        ],
-        "description": "ROI analysis"
-      },
-      {
-        "method": "GET",
-        "path": "/analytics/portfolio/comparison",
-        "params": [
-          "portfolio_ids"
-        ],
-        "description": "Compare multiple portfolios"
-      }
-    ]
-  },
-  "permissions": {
-    "roles": [
-      "admin",
-      "portfolio_manager",
-      "analyst",
-      "viewer"
-    ],
-    "matrix": {
-      "portfolios.create": [
-        "admin",
-        "portfolio_manager"
-      ],
-      "portfolios.edit": [
-        "admin",
-        "portfolio_manager"
-      ],
-      "trades.execute": [
-        "admin",
-        "portfolio_manager"
-      ],
-      "assets.manage": [
-        "admin",
-        "portfolio_manager",
-        "analyst"
-      ],
-      "prices.update": [
-        "admin",
-        "portfolio_manager",
-        "analyst"
-      ],
-      "performance.view": [
-        "admin",
-        "portfolio_manager",
-        "analyst",
-        "viewer"
-      ],
-      "reports.export": [
-        "admin",
-        "portfolio_manager",
-        "analyst"
+      "name": "PerformanceLog",
+      "table": "portfolio_performance",
+      "description": "PerformanceLog",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "portfolio_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Portfolio"
+        },
+        {
+          "name": "log_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "portfolio_value",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "daily_change",
+          "db_type": "NUMERIC(15,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "currency",
+          "computed": "portfolio_value - prev_day_value",
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "daily_return_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "daily_change / prev_day_value * 100"
+        },
+        {
+          "name": "ytd_return_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage"
+        },
+        {
+          "name": "benchmark_value",
+          "db_type": "NUMERIC(15,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "currency"
+        },
+        {
+          "name": "alpha",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "number_input",
+          "display_component": "percentage",
+          "computed": "ytd_return_pct - benchmark_return"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT now()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "date"
+        }
       ]
     }
-  },
-  "state": {
-    "stores": [
-      "authStore",
-      "uiStore",
-      "portfolioStore",
-      "tradeFormStore"
-    ],
-    "portfolioStore_description": "Stores selected portfolio, revalue status, and active time period for charts",
-    "tradeFormStore_description": "Stores draft trade entry during creation",
-    "query_keys": [
-      "portfolios",
-      "holdings",
-      "trades",
-      "assets",
-      "priceHistory",
-      "performanceMetrics"
-    ]
-  },
-  "websocket_events": [
-    {
-      "event": "price.updated",
-      "description": "Emitted when asset price is updated (real-time or manual)"
-    },
-    {
-      "event": "trade.executed",
-      "description": "Emitted when a trade is confirmed"
-    },
-    {
-      "event": "portfolio.revalued",
-      "description": "Emitted when portfolio current values are recomputed"
-    },
-    {
-      "event": "performance.computed",
-      "description": "Emitted when daily performance metrics are computed"
-    }
-  ],
-  "flows": {
-    "buy_asset": {
-      "steps": [
-        "POST /trades with trade_type=buy, portfolio_id, asset_id, quantity, price, commission, fees",
-        "Server computes gross_amount = quantity * price",
-        "Server computes net_amount = gross_amount + commission + fees",
-        "If Holding exists for (portfolio_id, asset_id): new_avg_cost = (current_quantity * avg_cost_basis + net_amount) / (current_quantity + quantity); quantity += quantity",
-        "If Holding does not exist: create new Holding with avg_cost_basis = net_amount / quantity",
-        "Portfolio.total_cost_basis += net_amount"
-      ],
-      "journal_entry_side_effects": [
-        "DR Investment Asset (asset account) / CR Cash/Bank"
-      ]
-    },
-    "sell_asset": {
-      "steps": [
-        "POST /trades with trade_type=sell",
-        "Server computes realized_gain = (sell_price - avg_cost_basis) * quantity",
-        "Server computes net_amount = gross_amount - commission - fees",
-        "Holding.quantity -= quantity",
-        "If Holding.quantity == 0: delete or mark holding inactive",
-        "Portfolio.total_realized_gain_loss += realized_gain"
-      ],
-      "journal_entry_side_effects": [
-        "DR Bank / CR Investment Asset (at cost basis)",
-        "CR Realized Gain or DR Realized Loss for the difference"
-      ]
-    },
-    "calculate_roi": {
-      "steps": [
-        "GET /analytics/portfolio/roi",
-        "total_return = (current_value - total_cost_basis + total_realized_gain_loss + total_dividends_received) / total_cost_basis * 100",
-        "Annualize return using inception_date",
-        "Compute PerformanceMetric for requested period"
-      ]
-    },
-    "daily_revaluation": {
-      "steps": [
-        "Background job fetches latest prices for all assets",
-        "Update Asset.last_price and last_price_updated_at",
-        "POST /holdings/revalue-all",
-        "Recalculate Holding.current_value and unrealized_gain_loss for all holdings",
-        "Update Portfolio.current_value and unrealized_gain_loss",
-        "Compute and store PerformanceMetric for the day",
-        "Emit portfolio.revalued via WebSocket"
-      ]
-    }
-  },
-  "computed_fields": [
-    {
-      "entity": "Trade",
-      "field": "gross_amount",
-      "formula": "quantity * price"
-    },
-    {
-      "entity": "Trade",
-      "field": "net_amount",
-      "formula": "if buy: gross_amount + commission + fees; if sell: gross_amount - commission - fees"
-    },
-    {
-      "entity": "Holding",
-      "field": "total_cost_basis",
-      "formula": "quantity * avg_cost_basis"
-    },
-    {
-      "entity": "Holding",
-      "field": "current_value",
-      "formula": "quantity * current_price"
-    },
-    {
-      "entity": "Holding",
-      "field": "unrealized_gain_loss",
-      "formula": "current_value - total_cost_basis"
-    },
-    {
-      "entity": "Holding",
-      "field": "unrealized_gain_loss_pct",
-      "formula": "(unrealized_gain_loss / total_cost_basis) * 100 if total_cost_basis > 0 else 0"
-    },
-    {
-      "entity": "Holding",
-      "field": "weight_in_portfolio",
-      "formula": "(current_value / portfolio.current_value) * 100 if portfolio.current_value > 0"
-    },
-    {
-      "entity": "Portfolio",
-      "field": "current_value",
-      "formula": "SUM(holdings.current_value) + cash_balance"
-    },
-    {
-      "entity": "Portfolio",
-      "field": "unrealized_gain_loss",
-      "formula": "SUM(holdings.unrealized_gain_loss)"
-    },
-    {
-      "entity": "Portfolio",
-      "field": "unrealized_gain_loss_pct",
-      "formula": "(unrealized_gain_loss / total_cost_basis) * 100 if total_cost_basis > 0"
-    },
-    {
-      "entity": "PerformanceMetric",
-      "field": "ytd_return_pct",
-      "formula": "(current_value - value_at_start_of_year - net_cash_flows) / value_at_start_of_year * 100 (time-weighted return)"
-    }
-  ],
-  "domain_rules": [
-    {
-      "rule": "Sell quantity cannot exceed holding quantity",
-      "enforced_at": [
-        "api",
-        "ui",
-        "db"
-      ],
-      "api_guard": "Return 422 if trade.quantity > holding.quantity for sell trades",
-      "ui_behavior": "Quantity input capped at current holding quantity for sell trades; show remaining balance",
-      "db_constraint": "Application-level CHECK on trade submission"
-    },
-    {
-      "rule": "Trade price must be greater than 0",
-      "enforced_at": [
-        "db",
-        "api"
-      ],
-      "api_guard": "Return 422 if price <= 0",
-      "ui_behavior": "Price input validation requires value > 0",
-      "db_constraint": "CHECK (price > 0)"
-    },
-    {
-      "rule": "Asset ticker must be unique within org if provided",
-      "enforced_at": [
-        "db"
-      ],
-      "api_guard": "Unique constraint violation returns 409",
-      "ui_behavior": "Show error if duplicate ticker entered",
-      "db_constraint": "UNIQUE partial index on (org_id, ticker) WHERE ticker IS NOT NULL"
-    },
-    {
-      "rule": "Holding quantity must not go negative after sell",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Return 422 if sell quantity > holding.quantity",
-      "ui_behavior": "Prevent sell quantity exceeding current holding; show error message",
-      "db_constraint": null
-    },
-    {
-      "rule": "Closed portfolio cannot receive new trades",
-      "enforced_at": [
-        "api",
-        "ui"
-      ],
-      "api_guard": "Return 422 if portfolio.status == closed",
-      "ui_behavior": "Trade entry disabled for closed portfolios; show closed status badge",
-      "db_constraint": null
-    },
-    {
-      "rule": "PerformanceMetric metric_date must be unique per portfolio",
-      "enforced_at": [
-        "db"
-      ],
-      "api_guard": "Upsert on conflict (org_id, portfolio_id, metric_date) to update rather than duplicate",
-      "ui_behavior": "No user-facing implication; handled server-side",
-      "db_constraint": "UNIQUE INDEX on (org_id, portfolio_id, metric_date)"
-    }
-  ],
-  "_meta": {
-    "title": "investment_portfolio_spec.json",
-    "domain": "Operations",
-    "version": "1.0.0"
-  },
-  "design_system": {
-    "theme": "dark",
-    "bg": "slate-950",
-    "accent": "blue",
-    "success": "green",
-    "danger": "red",
-    "warning": "amber"
-  },
-  "global_fields": {
-    "id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "gen_random_uuid()",
-      "notes": "Primary key"
-    },
-    "org_id": {
-      "db_type": "UUID",
-      "ts_type": "string",
-      "nullable": false,
-      "default": null,
-      "notes": "FK\u2192organizations, row-level security anchor"
-    },
-    "created_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "updated_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string",
-      "nullable": false,
-      "default": "NOW()"
-    },
-    "deleted_at": {
-      "db_type": "TIMESTAMPTZ",
-      "ts_type": "string | null",
-      "nullable": true,
-      "default": null,
-      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
-    }
-  },
-  "security": {
-    "row_level_security": {
-      "enabled": true,
-      "policy": "org_id = current_setting('app.current_org_id')::uuid",
-      "enforcement": [
-        "postgres_rls",
-        "application_middleware"
-      ],
-      "postgres_ddl": "CREATE POLICY tenant_isolation ON {table} USING (org_id = current_setting('app.current_org_id')::uuid)"
-    },
-    "org_id_injection": {
-      "source": "jwt_claims",
-      "never_from_client": true,
-      "middleware": "req.body.org_id is stripped; injected from req.user.org_id",
-      "jwt_claim": "org_id"
-    },
-    "auth_required": true,
-    "api_rate_limiting": {
-      "enabled": true,
-      "strategy": "sliding_window",
-      "limits": {
-        "default": "1000/min",
-        "write": "200/min",
-        "bulk": "50/min"
-      }
-    }
-  },
-  "global_query_filters": [
-    "deleted_at IS NULL",
-    "org_id = :current_org_id"
-  ],
-  "concurrency": {
-    "strategy": "optimistic_locking",
-    "version_field": {
-      "name": "version",
-      "db_type": "INTEGER",
-      "default": 1,
-      "increment_on": [
-        "update"
-      ]
-    },
-    "conflict_response": {
-      "http_status": 409,
-      "message": "Record was modified by another user. Refresh and retry.",
-      "include_current_version": true
-    },
-    "high_contention_tables": "see entities with high write concurrency",
-    "pessimistic_locking": {
-      "use_for": [
-        "financial_transactions",
-        "inventory_updates",
-        "balance_changes"
-      ],
-      "mechanism": "SELECT ... FOR UPDATE NOWAIT"
-    }
-  },
-  "transactions": {
-    "isolation_level": "READ COMMITTED",
-    "financial_operations": {
-      "isolation_level": "SERIALIZABLE",
-      "operations": [
-        "journal_post",
-        "payment_apply",
-        "balance_update",
-        "invoice_finalize"
-      ]
-    },
-    "patterns": [
-      {
-        "name": "write_with_audit",
-        "steps": [
-          "BEGIN",
-          "acquire_row_lock",
-          "validate_business_rules",
-          "write_entity",
-          "write_audit_log",
-          "COMMIT"
-        ],
-        "on_error": "ROLLBACK with full error detail"
-      },
-      {
-        "name": "bulk_operation",
-        "steps": [
-          "BEGIN",
-          "validate_all_records",
-          "write_batch",
-          "write_audit_log_batch",
-          "COMMIT"
-        ],
-        "max_batch_size": 500,
-        "on_error": "ROLLBACK entire batch"
-      }
-    ],
-    "deadlock_handling": {
-      "retry_attempts": 3,
-      "backoff_ms": [
-        50,
-        150,
-        500
-      ],
-      "on_exhaustion": "Return 503 with Retry-After header"
-    }
-  },
-  "pagination": {
-    "default_strategy": "cursor",
-    "fallback_strategy": "offset",
-    "cursor_field": "id",
-    "default_page_size": 25,
-    "max_page_size": 100,
-    "response_envelope": {
-      "data": "T[]",
-      "meta": {
-        "total": "integer (offset only)",
-        "page": "integer (offset only)",
-        "limit": "integer",
-        "cursor": "string | null (cursor strategy)",
-        "has_more": "boolean"
-      }
-    },
-    "sorting": {
-      "default": "created_at DESC",
-      "allowed_fields": "see individual entity sortable fields",
-      "multi_sort": true
-    },
-    "filtering": {
-      "engine": "query_params",
-      "operators": [
-        "eq",
-        "neq",
-        "gt",
-        "gte",
-        "lt",
-        "lte",
-        "in",
-        "like",
-        "is_null"
-      ],
-      "full_text_search": {
-        "enabled": true,
-        "fields": "see entity filterable fields",
-        "engine": "pg_trgm"
-      }
-    }
-  },
-  "audit_trail": {
-    "enabled": true,
-    "table": "audit_logs",
-    "captures": [
-      "insert",
-      "update",
-      "delete"
-    ],
-    "fields_tracked": "all non-computed, non-system fields",
-    "schema": {
-      "id": "UUID PK",
-      "org_id": "UUID NOT NULL",
-      "entity_type": "VARCHAR(100) NOT NULL",
-      "entity_id": "UUID NOT NULL",
-      "action": "ENUM('insert','update','delete')",
-      "actor_id": "UUID REFERENCES users",
-      "actor_ip": "INET",
-      "before": "JSONB",
-      "after": "JSONB",
-      "diff": "JSONB (computed: keys where before != after)",
-      "created_at": "TIMESTAMPTZ DEFAULT NOW()"
-    },
-    "indexes": [
-      {
-        "columns": [
-          "org_id",
-          "entity_type",
-          "entity_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "actor_id"
-        ]
-      },
-      {
-        "columns": [
-          "org_id",
-          "created_at"
-        ]
-      }
-    ],
-    "retention_days": 2555,
-    "immutable": true,
-    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
-  },
-  "db_constraints_policy": {
-    "naming_convention": "{table}_{column(s)}_{constraint_type}",
-    "standard_constraints": [
-      {
-        "type": "NOT NULL",
-        "applies_to": [
-          "id",
-          "org_id",
-          "created_at",
-          "updated_at"
-        ]
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_deleted_order",
-        "expression": "deleted_at IS NULL OR deleted_at >= created_at"
-      },
-      {
-        "type": "INDEX",
-        "name": "idx_{table}_org_deleted",
-        "columns": [
-          "org_id",
-          "deleted_at"
-        ],
-        "note": "Covers global query filter"
-      }
-    ],
-    "financial_constraints": [
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_positive_amount",
-        "expression": "amount >= 0",
-        "applies_to": "monetary amount fields"
-      },
-      {
-        "type": "CHECK",
-        "name": "chk_{table}_valid_currency",
-        "expression": "char_length(currency) = 3",
-        "applies_to": "currency fields"
-      }
-    ],
-    "enum_validation": "DB ENUM types preferred over VARCHAR + CHECK; enum values defined in global enums registry"
-  },
-  "enums": {},
-  "soft_delete_policy": {
-    "field": "deleted_at",
-    "type": "TIMESTAMPTZ",
-    "filter": "deleted_at IS NULL applied globally via query builder middleware",
-    "cascade": "Parent delete soft-deletes children via application cascade, not DB cascade",
-    "hard_delete": "Prohibited in production; available only via admin CLI with audit log",
-    "restore": "Set deleted_at = NULL; triggers audit log entry"
-  },
-  "naming_conventions": {
-    "db_tables": "snake_case plural (e.g. invoice_lines)",
-    "db_columns": "snake_case (e.g. created_at)",
-    "ts_types": "PascalCase (e.g. InvoiceLine)",
-    "ts_fields": "camelCase (e.g. createdAt)",
-    "api_routes": "kebab-case plural (e.g. /invoice-lines)",
-    "api_params": "snake_case (e.g. ?created_at_from=)",
-    "enums_pg": "snake_case with _type suffix (e.g. invoice_status_type)",
-    "enums_ts": "PascalCase with Enum suffix (e.g. InvoiceStatusEnum)",
-    "component_naming": "PascalCase (e.g. InvoiceLineTable)",
-    "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
-    "id_fields": "Primary key is always id; foreign keys are {entity}_id"
-  },
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Portfolios",
-        "entity": "Portfolio",
-        "method": "count",
-        "icon": "Box",
-        "color": "blue"
-      }
-    ]
-  }
+  ]
 }

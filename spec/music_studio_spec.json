@@ -1,13 +1,13 @@
 {
   "_meta": {
     "app_name": "Music Studio",
-    "description": "Recording studio management"
+    "description": "Recording studio session and project management"
   },
   "entities": [
     {
       "name": "Artist",
       "table": "artists",
-      "description": "Recording artist",
+      "description": "Recording artist or band",
       "fields": [
         {
           "name": "id",
@@ -40,64 +40,107 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "genre",
+          "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "genre",
+          "db_type": "VARCHAR(30) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "pop",
             "rock",
+            "pop",
             "hip_hop",
             "rnb",
-            "electronic",
             "jazz",
             "classical",
+            "electronic",
             "country",
             "latin",
             "other"
           ],
           "badge_colors": {
-            "pop": "pink",
             "rock": "red",
+            "pop": "pink",
             "hip_hop": "purple",
             "rnb": "blue",
-            "electronic": "blue",
-            "jazz": "amber",
-            "classical": "slate",
-            "country": "green",
-            "latin": "amber",
-            "other": "slate"
+            "jazz": "teal",
+            "classical": "gold",
+            "electronic": "green",
+            "country": "orange",
+            "latin": "yellow",
+            "other": "gray"
           }
         },
         {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
+          "name": "artist_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
-          "nullable": true,
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "phone",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "solo",
+            "band",
+            "duo",
+            "ensemble",
+            "dj"
+          ],
+          "badge_colors": {
+            "solo": "blue",
+            "band": "green",
+            "duo": "purple",
+            "ensemble": "teal",
+            "dj": "orange"
+          }
         },
         {
           "name": "label",
@@ -108,7 +151,33 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'active'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "active",
+          "enum_values": [
+            "active",
+            "inactive",
+            "prospect"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "gray",
+            "prospect": "yellow"
+          }
         },
         {
           "name": "created_at",
@@ -160,9 +229,10 @@
           "layout": "table",
           "columns": [
             "name",
-            "genre",
             "email",
             "phone",
+            "genre",
+            "artist_type",
             "label"
           ],
           "filters": [],
@@ -177,28 +247,40 @@
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "genre",
             "email",
             "phone",
-            "label"
+            "genre",
+            "artist_type",
+            "label",
+            "status"
           ],
           "required_fields": [
             "name",
-            "genre"
+            "email",
+            "phone",
+            "genre",
+            "artist_type",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "genre",
             "email",
             "phone",
-            "label"
+            "genre",
+            "artist_type",
+            "label",
+            "status"
           ],
           "required_fields": [
             "name",
-            "genre"
+            "email",
+            "phone",
+            "genre",
+            "artist_type",
+            "status"
           ],
           "prefilled": true
         },
@@ -213,279 +295,31 @@
           },
           "primary_fields": [
             "name",
-            "genre",
             "email",
-            "phone"
+            "phone",
+            "genre"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "name",
-                "genre",
                 "email",
                 "phone",
+                "genre",
+                "artist_type",
                 "label"
               ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Session",
-      "table": "sessions",
-      "description": "Recording session",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "artist_name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "room_name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "engineer_name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "date",
-          "db_type": "DATE NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
-        },
-        {
-          "name": "start_time",
-          "db_type": "TIME NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "duration_hours",
-          "db_type": "NUMERIC(4,1) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "rate_per_hour",
-          "db_type": "NUMERIC(10,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "booked",
-            "in_progress",
-            "completed",
-            "cancelled",
-            "no_show"
-          ],
-          "badge_colors": {
-            "booked": "blue",
-            "in_progress": "amber",
-            "completed": "green",
-            "cancelled": "red",
-            "no_show": "slate"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "artist_name",
-            "room_name",
-            "engineer_name",
-            "date",
-            "start_time",
-            "duration_hours"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Sessions yet",
-            "subtext": "Create your first session",
-            "action_label": "Add Session"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "artist_name",
-            "room_name",
-            "engineer_name",
-            "date",
-            "start_time",
-            "duration_hours",
-            "rate_per_hour",
-            "status"
-          ],
-          "required_fields": [
-            "artist_name",
-            "room_name"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "artist_name",
-            "room_name",
-            "engineer_name",
-            "date",
-            "start_time",
-            "duration_hours",
-            "rate_per_hour",
-            "status"
-          ],
-          "required_fields": [
-            "artist_name",
-            "room_name"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/sessions/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "artist_name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "artist_name",
-            "room_name",
-            "engineer_name",
-            "date"
-          ],
-          "tabs": [
+            },
             {
-              "name": "Overview",
+              "name": "Details",
               "fields": [
-                "artist_name",
-                "room_name",
-                "engineer_name",
-                "date",
-                "start_time",
-                "duration_hours",
-                "rate_per_hour",
+                "name",
+                "email",
+                "phone",
+                "genre",
+                "artist_type",
+                "label",
                 "status"
               ]
             }
@@ -522,38 +356,44 @@
         },
         {
           "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "room_type",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "recording",
+            "tracking",
             "mixing",
             "mastering",
             "rehearsal",
-            "podcast"
+            "vocal_booth",
+            "production"
           ],
           "badge_colors": {
-            "recording": "blue",
-            "mixing": "purple",
-            "mastering": "pink",
-            "rehearsal": "green",
-            "podcast": "amber"
+            "tracking": "blue",
+            "mixing": "green",
+            "mastering": "gold",
+            "rehearsal": "orange",
+            "vocal_booth": "purple",
+            "production": "teal"
           }
         },
         {
@@ -564,39 +404,69 @@
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
           "name": "capacity",
-          "db_type": "INTEGER NOT NULL DEFAULT 5",
+          "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 1,
+            "max": 50
+          }
+        },
+        {
+          "name": "has_isolation",
+          "db_type": "BOOLEAN NOT NULL DEFAULT TRUE",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "toggle",
+          "display_component": "boolean",
+          "sortable": true,
+          "filterable": true,
+          "default": true
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'available'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "available",
           "enum_values": [
             "available",
             "in_use",
-            "maintenance"
+            "maintenance",
+            "reserved"
           ],
           "badge_colors": {
             "available": "green",
-            "in_use": "red",
-            "maintenance": "amber"
+            "in_use": "blue",
+            "maintenance": "yellow",
+            "reserved": "purple"
           }
         },
         {
@@ -649,9 +519,10 @@
           "layout": "table",
           "columns": [
             "name",
-            "type",
+            "room_type",
             "hourly_rate",
             "capacity",
+            "has_isolation",
             "status"
           ],
           "filters": [],
@@ -666,28 +537,38 @@
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "type",
+            "room_type",
             "hourly_rate",
             "capacity",
+            "has_isolation",
             "status"
           ],
           "required_fields": [
             "name",
-            "type"
+            "room_type",
+            "hourly_rate",
+            "capacity",
+            "has_isolation",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "type",
+            "room_type",
             "hourly_rate",
             "capacity",
+            "has_isolation",
             "status"
           ],
           "required_fields": [
             "name",
-            "type"
+            "room_type",
+            "hourly_rate",
+            "capacity",
+            "has_isolation",
+            "status"
           ],
           "prefilled": true
         },
@@ -702,7 +583,7 @@
           },
           "primary_fields": [
             "name",
-            "type",
+            "room_type",
             "hourly_rate",
             "capacity"
           ],
@@ -711,9 +592,21 @@
               "name": "Overview",
               "fields": [
                 "name",
-                "type",
+                "room_type",
                 "hourly_rate",
                 "capacity",
+                "has_isolation",
+                "status"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "room_type",
+                "hourly_rate",
+                "capacity",
+                "has_isolation",
                 "status"
               ]
             }
@@ -722,9 +615,9 @@
       }
     },
     {
-      "name": "Project",
-      "table": "studio_projects",
-      "description": "Music project",
+      "name": "Engineer",
+      "table": "engineers",
+      "description": "Audio engineer",
       "fields": [
         {
           "name": "id",
@@ -749,7 +642,7 @@
           "display_component": "text"
         },
         {
-          "name": "title",
+          "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -757,10 +650,12 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
         },
         {
-          "name": "artist_name",
+          "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -768,82 +663,117 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Valid email required"
+          }
         },
         {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "phone",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
+            "message": "Valid phone required"
+          }
+        },
+        {
+          "name": "specialization",
+          "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
           "enum_values": [
-            "single",
-            "ep",
-            "album",
-            "podcast",
-            "audiobook",
-            "jingle"
+            "recording",
+            "mixing",
+            "mastering",
+            "live_sound",
+            "post_production",
+            "producer"
           ],
           "badge_colors": {
-            "single": "blue",
-            "ep": "purple",
-            "album": "pink",
-            "podcast": "green",
-            "audiobook": "amber",
-            "jingle": "slate"
+            "recording": "blue",
+            "mixing": "green",
+            "mastering": "gold",
+            "live_sound": "orange",
+            "post_production": "purple",
+            "producer": "red"
           }
         },
         {
-          "name": "tracks",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
         },
         {
-          "name": "deadline",
-          "db_type": "DATE",
-          "ts_type": "string",
-          "nullable": true,
+          "name": "experience_years",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "date_input",
-          "display_component": "date"
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0,
+            "max": 50
+          }
         },
         {
           "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'available'",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "status_badge",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "available",
           "enum_values": [
-            "pre_production",
-            "recording",
-            "mixing",
-            "mastering",
-            "completed",
-            "released"
+            "available",
+            "in_session",
+            "off_duty",
+            "on_leave"
           ],
           "badge_colors": {
-            "pre_production": "slate",
-            "recording": "blue",
-            "mixing": "purple",
-            "mastering": "pink",
-            "completed": "green",
-            "released": "green"
+            "available": "green",
+            "in_session": "blue",
+            "off_duty": "gray",
+            "on_leave": "yellow"
           }
         },
         {
@@ -895,12 +825,707 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "title",
-            "artist_name",
-            "type",
-            "tracks",
-            "deadline",
+            "name",
+            "email",
+            "phone",
+            "specialization",
+            "hourly_rate",
+            "experience_years"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Engineers yet",
+            "subtext": "Create your first engineer",
+            "action_label": "Add Engineer"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "specialization",
+            "hourly_rate",
+            "experience_years",
             "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "specialization",
+            "hourly_rate",
+            "experience_years",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "specialization",
+            "hourly_rate",
+            "experience_years",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone",
+            "specialization",
+            "hourly_rate",
+            "experience_years",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/engineers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "specialization"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "specialization",
+                "hourly_rate",
+                "experience_years"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "specialization",
+                "hourly_rate",
+                "experience_years",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Session",
+      "table": "sessions",
+      "description": "Recording session",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "artist_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "artists",
+          "fk_display": "name"
+        },
+        {
+          "name": "room_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "rooms",
+          "fk_display": "name"
+        },
+        {
+          "name": "engineer_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "engineers",
+          "fk_display": "name"
+        },
+        {
+          "name": "session_date",
+          "db_type": "TIMESTAMPTZ NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "datetime_picker",
+          "display_component": "datetime",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "duration_hours",
+          "db_type": "NUMERIC(4,1) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0.5,
+            "max": 24
+          }
+        },
+        {
+          "name": "session_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "recording",
+            "mixing",
+            "mastering",
+            "rehearsal",
+            "overdub",
+            "vocal"
+          ],
+          "badge_colors": {
+            "recording": "blue",
+            "mixing": "green",
+            "mastering": "gold",
+            "rehearsal": "orange",
+            "overdub": "purple",
+            "vocal": "pink"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'booked'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "booked",
+          "enum_values": [
+            "booked",
+            "in_progress",
+            "completed",
+            "cancelled",
+            "no_show"
+          ],
+          "badge_colors": {
+            "booked": "blue",
+            "in_progress": "yellow",
+            "completed": "green",
+            "cancelled": "red",
+            "no_show": "gray"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "artist_id",
+            "room_id",
+            "engineer_id",
+            "session_date",
+            "duration_hours",
+            "session_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Sessions yet",
+            "subtext": "Create your first session",
+            "action_label": "Add Session"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "artist_id",
+            "room_id",
+            "engineer_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "artist_id",
+            "room_id",
+            "engineer_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "artist_id",
+            "room_id",
+            "engineer_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "status",
+            "notes"
+          ],
+          "required_fields": [
+            "artist_id",
+            "room_id",
+            "engineer_id",
+            "session_date",
+            "duration_hours",
+            "session_type",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/sessions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "artist_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "artist_id",
+            "room_id",
+            "engineer_id",
+            "session_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "artist_id",
+                "room_id",
+                "engineer_id",
+                "session_date",
+                "duration_hours",
+                "session_type"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "artist_id",
+                "room_id",
+                "engineer_id",
+                "session_date",
+                "duration_hours",
+                "session_type",
+                "status",
+                "notes"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "artist_id",
+          "references": {
+            "table": "artists",
+            "column": "id"
+          }
+        },
+        {
+          "column": "room_id",
+          "references": {
+            "table": "rooms",
+            "column": "id"
+          }
+        },
+        {
+          "column": "engineer_id",
+          "references": {
+            "table": "engineers",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "estimated_cost",
+          "expression": "duration_hours * (SELECT hourly_rate FROM rooms WHERE id = room_id)",
+          "ts_expression": "duration_hours * 0"
+        }
+      ]
+    },
+    {
+      "name": "Project",
+      "table": "projects",
+      "description": "Music project / album",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "artist_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "artists",
+          "fk_display": "name"
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "project_type",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "single",
+            "ep",
+            "album",
+            "mixtape",
+            "compilation",
+            "soundtrack"
+          ],
+          "badge_colors": {
+            "single": "blue",
+            "ep": "green",
+            "album": "purple",
+            "mixtape": "orange",
+            "compilation": "teal",
+            "soundtrack": "gold"
+          }
+        },
+        {
+          "name": "start_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "target_release",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "budget",
+          "db_type": "NUMERIC(12,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "spent",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "track_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'pre_production'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "pre_production",
+          "enum_values": [
+            "pre_production",
+            "recording",
+            "mixing",
+            "mastering",
+            "complete",
+            "released",
+            "shelved"
+          ],
+          "badge_colors": {
+            "pre_production": "yellow",
+            "recording": "blue",
+            "mixing": "green",
+            "mastering": "gold",
+            "complete": "teal",
+            "released": "purple",
+            "shelved": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "artist_id",
+            "title",
+            "project_type",
+            "start_date",
+            "target_release",
+            "budget"
           ],
           "filters": [],
           "empty_state": {
@@ -913,159 +1538,771 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
+            "artist_id",
             "title",
-            "artist_name",
-            "type",
-            "tracks",
-            "deadline",
+            "project_type",
+            "start_date",
+            "target_release",
+            "budget",
+            "track_count",
             "status"
           ],
           "required_fields": [
+            "artist_id",
             "title",
-            "artist_name"
+            "project_type",
+            "start_date",
+            "budget",
+            "track_count",
+            "status"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
+            "artist_id",
             "title",
-            "artist_name",
-            "type",
-            "tracks",
-            "deadline",
+            "project_type",
+            "start_date",
+            "target_release",
+            "budget",
+            "track_count",
             "status"
           ],
           "required_fields": [
+            "artist_id",
             "title",
-            "artist_name"
+            "project_type",
+            "start_date",
+            "budget",
+            "track_count",
+            "status"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/studio_projects/:id",
+          "route": "/projects/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "title"
+              "artist_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
+            "artist_id",
             "title",
-            "artist_name",
-            "type",
-            "tracks"
+            "project_type",
+            "start_date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
+                "artist_id",
                 "title",
-                "artist_name",
-                "type",
-                "tracks",
-                "deadline",
+                "project_type",
+                "start_date",
+                "target_release",
+                "budget"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "artist_id",
+                "title",
+                "project_type",
+                "start_date",
+                "target_release",
+                "budget",
+                "track_count",
                 "status"
               ]
             }
           ]
         }
-      }
+      },
+      "foreign_keys": [
+        {
+          "column": "artist_id",
+          "references": {
+            "table": "artists",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "remaining_budget",
+          "expression": "budget - spent",
+          "ts_expression": "budget - spent"
+        }
+      ]
+    },
+    {
+      "name": "Invoice",
+      "table": "invoices",
+      "description": "Studio invoice",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "artist_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "artists",
+          "fk_display": "name"
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "projects",
+          "fk_display": "title"
+        },
+        {
+          "name": "invoice_number",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "tax_amount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "default": 0
+        },
+        {
+          "name": "issue_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "due_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'draft'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "draft",
+          "enum_values": [
+            "draft",
+            "sent",
+            "paid",
+            "overdue",
+            "void"
+          ],
+          "badge_colors": {
+            "draft": "gray",
+            "sent": "blue",
+            "paid": "green",
+            "overdue": "red",
+            "void": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "artist_id",
+            "project_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "issue_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Invoices yet",
+            "subtext": "Create your first invoice",
+            "action_label": "Add Invoice"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "artist_id",
+            "project_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "issue_date",
+            "due_date",
+            "status"
+          ],
+          "required_fields": [
+            "artist_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "issue_date",
+            "due_date",
+            "status"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "artist_id",
+            "project_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "issue_date",
+            "due_date",
+            "status"
+          ],
+          "required_fields": [
+            "artist_id",
+            "invoice_number",
+            "amount",
+            "tax_amount",
+            "issue_date",
+            "due_date",
+            "status"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/invoices/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "artist_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "artist_id",
+            "project_id",
+            "invoice_number",
+            "amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "artist_id",
+                "project_id",
+                "invoice_number",
+                "amount",
+                "tax_amount",
+                "issue_date"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "artist_id",
+                "project_id",
+                "invoice_number",
+                "amount",
+                "tax_amount",
+                "issue_date",
+                "due_date",
+                "status"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "artist_id",
+          "references": {
+            "table": "artists",
+            "column": "id"
+          }
+        },
+        {
+          "column": "project_id",
+          "references": {
+            "table": "projects",
+            "column": "id"
+          }
+        }
+      ],
+      "computed_fields": [
+        {
+          "name": "total",
+          "expression": "amount + tax_amount",
+          "ts_expression": "amount + tax_amount"
+        }
+      ]
+    },
+    {
+      "name": "Equipment",
+      "table": "equipment",
+      "description": "Studio equipment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(20) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "enum_values": [
+            "microphone",
+            "preamp",
+            "compressor",
+            "console",
+            "monitor",
+            "headphones",
+            "cable",
+            "instrument",
+            "software"
+          ],
+          "badge_colors": {
+            "microphone": "blue",
+            "preamp": "green",
+            "compressor": "orange",
+            "console": "purple",
+            "monitor": "teal",
+            "headphones": "pink",
+            "cable": "gray",
+            "instrument": "red",
+            "software": "yellow"
+          }
+        },
+        {
+          "name": "brand",
+          "db_type": "VARCHAR(100) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "model",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "serial_number",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true
+        },
+        {
+          "name": "purchase_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "currency",
+          "sortable": true,
+          "filterable": true,
+          "validation": {
+            "min": 0
+          }
+        },
+        {
+          "name": "room_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "foreign_key_select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "is_fk": true,
+          "fk_table": "rooms",
+          "fk_display": "name"
+        },
+        {
+          "name": "condition",
+          "db_type": "VARCHAR(20) NOT NULL DEFAULT 'good'",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "text",
+          "sortable": true,
+          "filterable": true,
+          "default": "good",
+          "enum_values": [
+            "new",
+            "good",
+            "fair",
+            "needs_repair",
+            "retired"
+          ],
+          "badge_colors": {
+            "new": "green",
+            "good": "blue",
+            "fair": "yellow",
+            "needs_repair": "orange",
+            "retired": "gray"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "category",
+            "brand",
+            "model",
+            "purchase_price",
+            "room_id"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Equipments yet",
+            "subtext": "Create your first equipment",
+            "action_label": "Add Equipment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category",
+            "brand",
+            "model",
+            "serial_number",
+            "purchase_price",
+            "room_id",
+            "condition"
+          ],
+          "required_fields": [
+            "name",
+            "category",
+            "brand",
+            "purchase_price",
+            "condition"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "category",
+            "brand",
+            "model",
+            "serial_number",
+            "purchase_price",
+            "room_id",
+            "condition"
+          ],
+          "required_fields": [
+            "name",
+            "category",
+            "brand",
+            "purchase_price",
+            "condition"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/equipment/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "category",
+            "brand",
+            "model"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "category",
+                "brand",
+                "model",
+                "purchase_price",
+                "room_id"
+              ]
+            },
+            {
+              "name": "Details",
+              "fields": [
+                "name",
+                "category",
+                "brand",
+                "model",
+                "serial_number",
+                "purchase_price",
+                "room_id",
+                "condition"
+              ]
+            }
+          ]
+        }
+      },
+      "foreign_keys": [
+        {
+          "column": "room_id",
+          "references": {
+            "table": "rooms",
+            "column": "id"
+          }
+        }
+      ]
     }
-  ],
-  "modules": [
-    {
-      "name": "Dashboard",
-      "route": "/dashboard",
-      "component": "DashboardPage",
-      "layout": "app",
-      "sidebar_order": 1,
-      "sidebar_icon": "LayoutDashboard"
-    },
-    {
-      "name": "Artists",
-      "route": "/artists",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 2,
-      "sidebar_icon": "Music",
-      "entity": "Artist"
-    },
-    {
-      "name": "Sessions",
-      "route": "/sessions",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Mic2",
-      "entity": "Session"
-    },
-    {
-      "name": "Rooms",
-      "route": "/rooms",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Speaker",
-      "entity": "Room"
-    },
-    {
-      "name": "Projects",
-      "route": "/studio_projects",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Disc",
-      "entity": "Project"
-    }
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {
-        "label": "Total Artists",
-        "entity": "Artist",
-        "method": "count",
-        "icon": "Box",
-        "color": "pink"
-      }
-    ]
-  },
-  "design_system": {
-    "theme": "light",
-    "colors": {
-      "primary": "#ec4899",
-      "secondary": "#64748b",
-      "background": "#ffffff",
-      "surface": "#f8fafc",
-      "text": "#0f172a",
-      "muted": "#94a3b8"
-    },
-    "spacing": {
-      "page_padding": "24px",
-      "card_padding": "16px",
-      "gap": "16px"
-    },
-    "buttons": {
-      "primary": {
-        "bg": "bg-pink-500",
-        "text": "text-white",
-        "hover": "hover:bg-pink-600"
-      }
-    },
-    "table": {
-      "header_bg": "bg-gray-50",
-      "row_hover": "hover:bg-gray-50",
-      "border": "border-gray-200"
-    },
-    "typography": {
-      "heading": "text-gray-900 font-semibold",
-      "body": "text-gray-700",
-      "muted": "text-gray-400"
-    }
-  },
-  "pagination": {
-    "type": "cursor",
-    "default_page_size": 25,
-    "max_page_size": 100
-  }
+  ]
 }
