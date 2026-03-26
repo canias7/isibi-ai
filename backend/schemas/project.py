@@ -38,5 +38,7 @@ class ProjectListItem(BaseModel):
     name: str
     status: str
     prompt: str
+    spec: dict | None = None
+    conversation_history: list[dict] | None = None
     created_at: datetime
     updated_at: datetime

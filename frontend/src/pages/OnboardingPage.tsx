@@ -244,6 +244,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   // Chat history
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
 
   // Preview state
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
@@ -283,6 +284,56 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   useEffect(() => {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, []);
+
+  // Load saved projects from API on mount
+  useEffect(() => {
+    if (projectsLoaded || !isDev) return;
+    (async () => {
+      try {
+        const projects = await get<Array<{
+          id: string;
+          name: string;
+          prompt: string;
+          status: string;
+          spec: any;
+          created_at: string;
+          conversation_history?: any[];
+        }>>("/projects");
+        if (projects && projects.length > 0) {
+          const existingIds = new Set(chatSessions.map((s) => s.projectId).filter(Boolean));
+          const newSessions: ChatSession[] = projects
+            .filter((p) => !existingIds.has(p.id))
+            .map((p) => ({
+              id: p.id,
+              title: p.name || p.prompt?.slice(0, 40) || "Untitled Project",
+              messages: p.conversation_history || [
+                { role: "user" as const, content: p.prompt || "" },
+                { role: "assistant" as const, content: p.status === "built" || p.status === "deployed"
+                  ? "Your software is ready!"
+                  : "Working on your project..." },
+              ],
+              model: "anias-1.0",
+              createdAt: p.created_at,
+              spec: p.spec || null,
+              projectId: p.id,
+              deployUrl: p.status === "deployed" ? `/live/${p.id}` : null,
+            }));
+          if (newSessions.length > 0) {
+            setChatSessions((prev) => {
+              // Merge: keep existing sessions, add API ones that aren't duplicates
+              const existingChatIds = new Set(prev.map((s) => s.id));
+              const toAdd = newSessions.filter((s) => !existingChatIds.has(s.id));
+              return [...prev, ...toAdd];
+            });
+          }
+        }
+      } catch {
+        // API might not be ready yet, ignore
+      } finally {
+        setProjectsLoaded(true);
+      }
+    })();
+  }, [projectsLoaded, isDev]);
 
   const hasStartedChat = messages.length > 0 && activeView === "chat";
 
