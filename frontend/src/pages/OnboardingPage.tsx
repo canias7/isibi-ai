@@ -731,7 +731,7 @@ npx electron .`;
               )}
             </div>
           </div>
-        ) : (
+        ) : previewTab === "code" ? (
           <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-gray-900 p-4">
             <pre className="text-xs text-green-400">
               <code>
