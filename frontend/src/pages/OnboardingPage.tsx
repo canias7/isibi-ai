@@ -132,7 +132,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         project_id?: string;
         project_name?: string;
       }>("/chat", {
-        model: selectedModel,
+        model: selectedModel.id,
         messages: newMessages,
       });
 
