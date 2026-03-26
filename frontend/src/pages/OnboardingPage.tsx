@@ -1072,15 +1072,30 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 : "w-[375px] max-w-full"
             }`}
           >
-            {/* Simulated browser bar */}
-            <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-2">
-              <div className="flex gap-1.5">
-                <div className="h-2.5 w-2.5 rounded-full bg-red-400" />
-                <div className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-                <div className="h-2.5 w-2.5 rounded-full bg-green-400" />
+            {/* macOS-style browser chrome */}
+            <div className="flex items-center gap-2 border-b border-gray-200 bg-gray-50/80 px-3 py-2">
+              {/* Window controls */}
+              <div className="flex items-center gap-[6px]">
+                <div className="h-[10px] w-[10px] rounded-full bg-[#ff5f57] border border-[#e0443e]" />
+                <div className="h-[10px] w-[10px] rounded-full bg-[#febc2e] border border-[#dea123]" />
+                <div className="h-[10px] w-[10px] rounded-full bg-[#28c840] border border-[#1aab29]" />
               </div>
-              <div className="mx-2 flex-1 rounded-md bg-gray-50 px-3 py-1">
-                <p className="text-center text-[10px] text-gray-400">
+              {/* Navigation buttons */}
+              <div className="flex items-center gap-0.5 ml-2">
+                <button className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:text-gray-600 transition">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button className="flex h-5 w-5 items-center justify-center rounded text-gray-300 hover:text-gray-500 transition">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+                </button>
+                <button className="flex h-5 w-5 items-center justify-center rounded text-gray-400 hover:text-gray-600 transition ml-0.5">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                </button>
+              </div>
+              {/* URL bar */}
+              <div className="mx-1 flex flex-1 items-center gap-1.5 rounded-md bg-white border border-gray-200 px-2.5 py-[3px] shadow-inner">
+                <svg className="h-[10px] w-[10px] flex-shrink-0 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+                <p className="text-[11px] text-gray-600 truncate">
                   {builtSpec?.app_name?.toLowerCase().replace(/\s+/g, "-") || "your-app"}.isibi.ai
                 </p>
               </div>
@@ -1098,26 +1113,44 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 />
               ) : (
                 <div className="flex h-full items-center justify-center p-8">
-                  <div className="text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50">
-                      <Monitor className="h-8 w-8 text-gray-300" />
-                    </div>
-                    <p className="text-sm font-medium text-black">
-                      {loading ? "Building your app..." : "Preview"}
-                    </p>
-                    <p className="mt-1 text-xs text-gray-400">
-                      {loading
-                        ? "Generating your application..."
-                        : "Describe your requirements in the chat and the preview will appear here."}
-                    </p>
-                    {loading && (
-                      <div className="mt-4 flex justify-center">
-                        <div className="h-1 w-32 overflow-hidden rounded-full bg-gray-100">
-                          <div className="h-full w-1/3 animate-pulse rounded-full bg-black" />
+                  {loading ? (
+                    <div className="text-center">
+                      {/* Pulsing pink circle */}
+                      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center">
+                        <div className="absolute h-16 w-16 animate-ping rounded-full bg-pink-400/20" />
+                        <div className="relative h-12 w-12 animate-pulse rounded-full bg-gradient-to-br from-pink-400 to-pink-600 shadow-lg shadow-pink-200" />
+                      </div>
+                      <p className="text-sm font-semibold text-black">Building your app...</p>
+                      {/* Animated progress steps */}
+                      <div className="mt-5 space-y-2 text-left inline-block">
+                        <div className="flex items-center gap-2 text-xs text-green-600 animate-fade-in" style={{ animationDelay: "0s" }}>
+                          <span>&#10003;</span><span>Analyzing requirements...</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-green-600 animate-fade-in" style={{ animationDelay: "0.6s", animationFillMode: "backwards" }}>
+                          <span>&#10003;</span><span>Designing database schema...</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-pink-500 animate-fade-in" style={{ animationDelay: "1.2s", animationFillMode: "backwards" }}>
+                          <span className="inline-block animate-spin">&#10227;</span><span>Generating components...</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 animate-fade-in" style={{ animationDelay: "1.8s", animationFillMode: "backwards" }}>
+                          <span>&#9675;</span><span>Setting up API endpoints...</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-400 animate-fade-in" style={{ animationDelay: "2.4s", animationFillMode: "backwards" }}>
+                          <span>&#9675;</span><span>Configuring deployment...</span>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50">
+                        <Monitor className="h-8 w-8 text-gray-300" />
+                      </div>
+                      <p className="text-sm font-medium text-black">Preview</p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        Describe your requirements in the chat and the preview will appear here.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1648,19 +1681,22 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         }`}
       >
         {/* Sidebar header */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-black">
-              <span className="text-xs font-bold text-white">i</span>
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="flex h-5 w-5 items-center justify-center rounded-md bg-pink-500">
+                <span className="text-[11px] font-bold text-white leading-none">i</span>
+              </div>
+              <span className="text-sm font-semibold text-black">isibi.ai</span>
             </div>
-            <span className="text-sm font-semibold text-black">isibi.ai</span>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-gray-200 lg:hidden"
+            >
+              <X className="h-4 w-4 text-gray-500" />
+            </button>
           </div>
-          <button
-            onClick={() => setSidebarOpen(false)}
-            className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-gray-200 lg:hidden"
-          >
-            <X className="h-4 w-4 text-gray-500" />
-          </button>
+          <div className="mt-3 border-b border-gray-200" />
         </div>
 
         {/* New Chat button */}

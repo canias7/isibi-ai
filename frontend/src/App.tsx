@@ -6,6 +6,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
+import { NotFoundPage } from "@/pages/NotFoundPage";
 import { TermsPage } from "@/pages/TermsPage";
 import { PrivacyPage } from "@/pages/PrivacyPage";
 import { BuildCrmPage } from "@/pages/seo/BuildCrmPage";
@@ -101,7 +102,7 @@ function AppRoutes() {
       <Route path="/build-gym-software" element={<BuildGymPage />} />
 
       {/* Catch-all */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

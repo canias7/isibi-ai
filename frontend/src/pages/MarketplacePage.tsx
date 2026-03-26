@@ -1,9 +1,21 @@
 import { useState } from "react";
-import { Search, Download, Eye, X, Star, Check } from "lucide-react";
+import { Search, Download, Eye, X, Star, Check, ChevronDown } from "lucide-react";
 import JSZip from "jszip";
 import { useAppStore } from "@/stores/appStore";
 
-type Category = "all" | "software" | "websites" | "apps" | "agents";
+type Category =
+  | "all"
+  | "software"
+  | "websites"
+  | "apps"
+  | "agents"
+  | "crm"
+  | "restaurant"
+  | "gym"
+  | "ecommerce"
+  | "healthcare";
+
+type SortOption = "popular" | "recent" | "price-low" | "price-high";
 
 interface MarketplaceItem {
   id: string;
@@ -13,10 +25,11 @@ interface MarketplaceItem {
   category: Exclude<Category, "all">;
   price: number; // 0 = free
   rating: number;
+  ratingCount: number;
   downloads: number;
-  preview: string; // placeholder color/gradient
   tags: string[];
   downloadable?: string; // HTML content to download as a standalone app
+  featured?: boolean;
 }
 
 const TASK_TRACKER_HTML = `<!DOCTYPE html>
@@ -25,10 +38,6 @@ const TASK_TRACKER_HTML = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Task Tracker Pro</title>
-<link rel="manifest" href="data:application/json;base64,">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#ffffff">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;color:#1a1a1a;min-height:100vh}
@@ -117,111 +126,150 @@ const MOCK_ITEMS: MarketplaceItem[] = [
   {
     id: "0",
     title: "Task Tracker Pro",
-    description: "A complete task management app with priority levels (high/medium/low), filters, stats dashboard, and local storage persistence. Add tasks, mark complete, delete, and filter by status. Works entirely offline — no server needed.",
+    description: "Complete task management with priority levels, filters, stats dashboard, and local storage persistence.",
     creator: "isibi",
     category: "software",
     price: 0,
     rating: 4.9,
+    ratingCount: 284,
     downloads: 4820,
-    preview: "from-emerald-500 to-teal-600",
     tags: ["Tasks", "Productivity", "Offline", "Free"],
     downloadable: TASK_TRACKER_HTML,
+    featured: true,
   },
   {
     id: "1",
     title: "Real Estate CRM",
-    description: "Complete CRM for real estate agents with lead tracking, deal pipeline, property management, and automated follow-ups.",
+    description: "Complete CRM for real estate agents with lead tracking, deal pipeline, and automated follow-ups.",
     creator: "isibi",
-    category: "software",
+    category: "crm",
     price: 49,
     rating: 4.8,
+    ratingCount: 156,
     downloads: 1240,
-    preview: "from-blue-500 to-indigo-600",
     tags: ["CRM", "Real Estate", "Lead Management"],
+    featured: true,
   },
   {
     id: "2",
-    title: "Restaurant Inventory",
-    description: "Inventory management system for restaurants. Track ingredients, suppliers, orders, and waste with real-time alerts.",
+    title: "Restaurant Manager",
+    description: "Inventory management system for restaurants. Track ingredients, suppliers, orders, and waste.",
     creator: "chefdev",
-    category: "software",
+    category: "restaurant",
     price: 29,
     rating: 4.5,
+    ratingCount: 89,
     downloads: 830,
-    preview: "from-orange-500 to-red-500",
     tags: ["Inventory", "Restaurant", "Supply Chain"],
   },
   {
     id: "3",
-    title: "Portfolio Template",
-    description: "Modern developer portfolio website with project showcase, blog, contact form, and dark mode support.",
+    title: "Portfolio Builder",
+    description: "Modern developer portfolio with project showcase, blog, contact form, and dark mode support.",
     creator: "webcraft",
     category: "websites",
     price: 0,
     rating: 4.9,
+    ratingCount: 412,
     downloads: 3200,
-    preview: "from-gray-700 to-gray-900",
     tags: ["Portfolio", "Developer", "Responsive"],
+    featured: true,
   },
   {
     id: "4",
-    title: "Fitness Tracker",
-    description: "Cross-platform fitness app with workout logging, progress charts, meal planning, and social features.",
+    title: "FitTrack",
+    description: "Cross-platform fitness app with workout logging, progress charts, and meal planning.",
     creator: "fitlabs",
-    category: "apps",
+    category: "gym",
     price: 39,
     rating: 4.6,
+    ratingCount: 73,
     downloads: 560,
-    preview: "from-green-500 to-emerald-600",
     tags: ["Fitness", "Health", "Tracking"],
   },
   {
     id: "5",
-    title: "Customer Support Agent",
-    description: "AI-powered customer support agent that handles tickets, FAQ responses, escalation routing, and satisfaction surveys.",
+    title: "Support Agent AI",
+    description: "AI-powered customer support agent that handles tickets, FAQ responses, and escalation routing.",
     creator: "agentforge",
     category: "agents",
     price: 79,
     rating: 4.7,
+    ratingCount: 64,
     downloads: 410,
-    preview: "from-purple-500 to-violet-600",
     tags: ["AI Agent", "Support", "Automation"],
   },
   {
     id: "6",
-    title: "E-commerce Store",
+    title: "ShopFront",
     description: "Full-featured online store with product catalog, shopping cart, Stripe payments, and order management.",
     creator: "shopbuilder",
-    category: "websites",
+    category: "ecommerce",
     price: 59,
     rating: 4.4,
+    ratingCount: 198,
     downloads: 1870,
-    preview: "from-pink-500 to-rose-600",
     tags: ["E-commerce", "Payments", "Store"],
   },
   {
     id: "7",
-    title: "Project Management",
+    title: "KanbanFlow",
     description: "Kanban-style project tracker with team assignments, deadlines, file sharing, and time tracking.",
     creator: "isibi",
     category: "software",
     price: 0,
     rating: 4.3,
+    ratingCount: 231,
     downloads: 2100,
-    preview: "from-cyan-500 to-blue-600",
     tags: ["Project Management", "Kanban", "Teams"],
   },
   {
     id: "8",
-    title: "Sales Outreach Agent",
-    description: "Automated sales agent that researches prospects, personalizes emails, schedules follow-ups, and tracks engagement.",
+    title: "OutreachBot",
+    description: "Automated sales agent that researches prospects, personalizes emails, and tracks engagement.",
     creator: "growthbot",
     category: "agents",
     price: 99,
     rating: 4.9,
+    ratingCount: 42,
     downloads: 320,
-    preview: "from-amber-500 to-orange-600",
     tags: ["Sales", "AI Agent", "Outreach"],
+  },
+  {
+    id: "9",
+    title: "PatientCare",
+    description: "Healthcare appointment scheduling, patient records management, and telemedicine integration.",
+    creator: "medtech",
+    category: "healthcare",
+    price: 89,
+    rating: 4.8,
+    ratingCount: 57,
+    downloads: 390,
+    tags: ["Healthcare", "Appointments", "Telemedicine"],
+  },
+  {
+    id: "10",
+    title: "GymPro Manager",
+    description: "Gym membership management with class scheduling, trainer assignments, and payment processing.",
+    creator: "fitlabs",
+    category: "gym",
+    price: 49,
+    rating: 4.5,
+    ratingCount: 83,
+    downloads: 620,
+    tags: ["Gym", "Membership", "Scheduling"],
+  },
+  {
+    id: "11",
+    title: "Landing Page Kit",
+    description: "Collection of 12 responsive landing page templates for SaaS, agencies, and startups.",
+    creator: "webcraft",
+    category: "websites",
+    price: 0,
+    rating: 4.7,
+    ratingCount: 345,
+    downloads: 5200,
+    tags: ["Landing Pages", "Templates", "SaaS"],
   },
 ];
 
@@ -231,68 +279,127 @@ const CATEGORIES: { value: Category; label: string }[] = [
   { value: "websites", label: "Websites" },
   { value: "apps", label: "Apps" },
   { value: "agents", label: "Agents" },
+  { value: "crm", label: "CRM" },
+  { value: "restaurant", label: "Restaurant" },
+  { value: "gym", label: "Gym" },
+  { value: "ecommerce", label: "E-commerce" },
+  { value: "healthcare", label: "Healthcare" },
 ];
 
-const CATEGORY_BADGE: Record<string, string> = {
-  software: "bg-pink-100 text-pink-700",
-  websites: "bg-green-100 text-green-700",
-  apps: "bg-pink-100 text-pink-700",
-  agents: "bg-amber-100 text-amber-700",
+const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
+  software: { bg: "#fce7f3", text: "#be185d" },
+  websites: { bg: "#d1fae5", text: "#065f46" },
+  apps: { bg: "#dbeafe", text: "#1e40af" },
+  agents: { bg: "#fef3c7", text: "#92400e" },
+  crm: { bg: "#ede9fe", text: "#5b21b6" },
+  restaurant: { bg: "#ffedd5", text: "#9a3412" },
+  gym: { bg: "#ccfbf1", text: "#115e59" },
+  ecommerce: { bg: "#fce7f3", text: "#9d174d" },
+  healthcare: { bg: "#e0e7ff", text: "#3730a3" },
 };
 
-const GRADIENT_TO_COLOR: Record<string, string> = {
-  "from-emerald-500 to-teal-600": "#10b981",
-  "from-blue-500 to-indigo-600": "#3b82f6",
-  "from-orange-500 to-red-500": "#f97316",
-  "from-gray-700 to-gray-900": "#374151",
-  "from-green-500 to-emerald-600": "#22c55e",
-  "from-purple-500 to-violet-600": "#8b5cf6",
-  "from-pink-500 to-rose-600": "#ec4899",
-  "from-cyan-500 to-blue-600": "#06b6d4",
-  "from-amber-500 to-orange-600": "#f59e0b",
-};
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "popular", label: "Popular" },
+  { value: "recent", label: "Recent" },
+  { value: "price-low", label: "Price: Low-High" },
+  { value: "price-high", label: "Price: High-Low" },
+];
+
+// Generate a deterministic gradient from a string
+function hashGradient(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const h1 = Math.abs(hash % 360);
+  const h2 = (h1 + 40 + Math.abs((hash >> 8) % 40)) % 360;
+  return `linear-gradient(135deg, hsl(${h1}, 70%, 60%) 0%, hsl(${h2}, 80%, 45%) 100%)`;
+}
+
+function StarRating({ rating, count }: { rating: number; count: number }) {
+  return (
+    <span className="flex items-center gap-1 text-xs text-gray-500">
+      <span className="flex">
+        {[1, 2, 3, 4, 5].map((s) => (
+          <Star
+            key={s}
+            className="h-3 w-3"
+            fill={s <= Math.round(rating) ? "#f59e0b" : "none"}
+            stroke={s <= Math.round(rating) ? "#f59e0b" : "#d1d5db"}
+          />
+        ))}
+      </span>
+      <span className="text-gray-400">({count})</span>
+    </span>
+  );
+}
 
 export function MarketplacePage() {
   const [category, setCategory] = useState<Category>("all");
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortOption>("popular");
+  const [showSort, setShowSort] = useState(false);
   const [previewItem, setPreviewItem] = useState<MarketplaceItem | null>(null);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const { addApp, apps } = useAppStore();
 
   const filtered = MOCK_ITEMS.filter((item) => {
     if (category !== "all" && item.category !== category) return false;
-    if (search && !item.title.toLowerCase().includes(search.toLowerCase()) && !item.description.toLowerCase().includes(search.toLowerCase())) return false;
+    if (
+      search &&
+      !item.title.toLowerCase().includes(search.toLowerCase()) &&
+      !item.description.toLowerCase().includes(search.toLowerCase())
+    )
+      return false;
     return true;
+  }).sort((a, b) => {
+    switch (sort) {
+      case "popular":
+        return b.downloads - a.downloads;
+      case "recent":
+        return parseInt(b.id) - parseInt(a.id);
+      case "price-low":
+        return a.price - b.price;
+      case "price-high":
+        return b.price - a.price;
+      default:
+        return 0;
+    }
   });
+
+  const featuredItems = MOCK_ITEMS.filter((item) => item.featured);
 
   const handleDownload = async (item: MarketplaceItem) => {
     if (!item.downloadable) return;
 
-    // Add to My Apps if not already there
     const alreadyInApps = apps.some(
       (a) => a.name === item.title && a.source === "marketplace"
     );
     if (!alreadyInApps) {
       addApp({
         name: item.title,
-        type: item.category === "websites" ? "website" : item.category === "agents" ? "agent" : item.category === "apps" ? "app" : "software",
+        type:
+          item.category === "websites"
+            ? "website"
+            : item.category === "agents"
+            ? "agent"
+            : item.category === "apps"
+            ? "app"
+            : "software",
         status: "online",
-        color: GRADIENT_TO_COLOR[item.preview] || "#3b82f6",
+        color: "#ec4899",
         source: "marketplace",
         htmlContent: item.downloadable,
       });
     }
     setJustAdded((prev) => new Set(prev).add(item.id));
 
-    // Also download to PC
     const slug = item.title.toLowerCase().replace(/\s+/g, "-");
     const zip = new JSZip();
     const folder = zip.folder(slug)!;
 
-    // index.html — the actual app
     folder.file("index.html", item.downloadable);
 
-    // package.json — Electron wrapper
     folder.file(
       "package.json",
       JSON.stringify(
@@ -308,7 +415,6 @@ export function MarketplacePage() {
       )
     );
 
-    // main.js — Electron entry point
     folder.file(
       "main.js",
       `const { app, BrowserWindow } = require("electron");
@@ -329,7 +435,6 @@ app.on("window-all-closed", () => app.quit());
 `
     );
 
-    // start.command — double-click launcher for Mac
     folder.file(
       "start.command",
       `#!/bin/bash
@@ -352,7 +457,6 @@ npx electron .
       { unixPermissions: "755" }
     );
 
-    // start.bat — double-click launcher for Windows
     folder.file(
       "start.bat",
       `@echo off
@@ -367,34 +471,9 @@ npx electron .
 `
     );
 
-    // README
     folder.file(
       "README.md",
-      `# ${item.title}
-
-Built with [isibi.ai](https://isibi.ai)
-
-## Run as Desktop App
-
-### Mac
-1. Unzip this folder
-2. Open Terminal
-3. Run: \`cd ${slug} && chmod +x start.command && open start.command\`
-
-Or right-click \`start.command\` > Open (to bypass macOS Gatekeeper)
-
-### Windows
-Double-click \`start.bat\`
-
-### Manual (any OS)
-\`\`\`
-cd ${slug}
-npm install
-npm start
-\`\`\`
-
-Requires [Node.js](https://nodejs.org) installed.
-`
+      `# ${item.title}\n\nBuilt with [isibi.ai](https://isibi.ai)\n\n## Run as Desktop App\n\n### Mac\n1. Unzip this folder\n2. Open Terminal\n3. Run: \`cd ${slug} && chmod +x start.command && open start.command\`\n\n### Windows\nDouble-click \`start.bat\`\n\n### Manual (any OS)\n\`\`\`\ncd ${slug}\nnpm install\nnpm start\n\`\`\`\n\nRequires [Node.js](https://nodejs.org) installed.\n`
     );
 
     const blob = await zip.generateAsync({ type: "blob", platform: "UNIX" });
@@ -409,38 +488,59 @@ Requires [Node.js](https://nodejs.org) installed.
   };
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      <div className="mx-auto max-w-6xl px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-black">isibi marketplace</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Browse, preview, and download software, websites, apps, and agents built by the community.
+    <div className="flex-1 overflow-y-auto bg-white">
+      {/* Hero Banner */}
+      <div
+        className="relative overflow-hidden px-6 py-16 sm:py-20"
+        style={{ background: "linear-gradient(135deg, #ec4899 0%, #db2777 50%, #9d174d 100%)" }}
+      >
+        <div className="relative z-10 mx-auto max-w-4xl text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+            isibi marketplace
+          </h1>
+          <p className="mt-3 text-base text-white/80 sm:text-lg">
+            Discover apps built by developers worldwide
           </p>
+
+          {/* Search bar */}
+          <div className="mx-auto mt-8 max-w-xl">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search apps, tools, templates..."
+                className="w-full rounded-2xl border-0 bg-white py-4 pl-12 pr-4 text-sm text-black shadow-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/50"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Search + Categories */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative max-w-sm flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search marketplace..."
-              className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm text-black placeholder-gray-400 focus:border-gray-300 focus:outline-none"
-            />
-          </div>
-          <div className="flex gap-1">
+        {/* Decorative elements */}
+        <div className="absolute -bottom-10 -left-10 h-40 w-40 rounded-full bg-white/5" />
+        <div className="absolute -top-10 -right-10 h-60 w-60 rounded-full bg-white/5" />
+        <div className="absolute top-10 left-1/4 h-20 w-20 rounded-full bg-white/5" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        {/* Category filter bar */}
+        <div className="mb-8 -mx-6 px-6 overflow-x-auto">
+          <div className="flex gap-2 pb-2" style={{ minWidth: "max-content" }}>
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.value}
                 onClick={() => setCategory(cat.value)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                className={`rounded-full px-4 py-2 text-sm font-medium transition whitespace-nowrap ${
                   category === cat.value
-                    ? "bg-black text-white"
-                    : "text-gray-500 hover:bg-gray-100 hover:text-black"
+                    ? "text-white shadow-md"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 hover:text-black"
                 }`}
+                style={
+                  category === cat.value
+                    ? { backgroundColor: "#ec4899" }
+                    : undefined
+                }
               >
                 {cat.label}
               </button>
@@ -448,71 +548,176 @@ Requires [Node.js](https://nodejs.org) installed.
           </div>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {/* Featured section (only show when "All" is selected and no search) */}
+        {category === "all" && !search && (
+          <div className="mb-12">
+            <h2 className="mb-4 text-xl font-bold text-black">Featured Apps</h2>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white transition hover:shadow-lg hover:border-gray-300 cursor-pointer"
+                  onClick={() => setPreviewItem(item)}
+                >
+                  <div
+                    className="flex h-48 items-end p-5"
+                    style={{ background: hashGradient(item.title) }}
+                  >
+                    <div className="relative z-10">
+                      <span
+                        className="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium"
+                        style={{
+                          backgroundColor: CATEGORY_COLORS[item.category]?.bg || "#f3f4f6",
+                          color: CATEGORY_COLORS[item.category]?.text || "#374151",
+                        }}
+                      >
+                        {item.category}
+                      </span>
+                      <h3 className="mt-2 text-lg font-bold text-white drop-shadow-md">
+                        {item.title}
+                      </h3>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm text-gray-600 line-clamp-1">{item.description}</p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <StarRating rating={item.rating} count={item.ratingCount} />
+                      <span className="text-sm font-bold" style={{ color: item.price === 0 ? "#059669" : "#000" }}>
+                        {item.price === 0 ? "Free" : `$${item.price}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sort and results count */}
+        <div className="mb-4 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-black">
+            {category === "all" && !search ? "All Apps" : `${filtered.length} result${filtered.length !== 1 ? "s" : ""}`}
+          </h2>
+          <div className="relative">
+            <button
+              onClick={() => setShowSort(!showSort)}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 transition hover:border-gray-300"
+            >
+              Sort by: {SORT_OPTIONS.find((o) => o.value === sort)?.label}
+              <ChevronDown className="h-3.5 w-3.5" />
+            </button>
+            {showSort && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowSort(false)} />
+                <div className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => {
+                        setSort(opt.value);
+                        setShowSort(false);
+                      }}
+                      className={`w-full px-4 py-2 text-left text-sm transition hover:bg-gray-50 ${
+                        sort === opt.value ? "font-medium" : "text-gray-600"
+                      }`}
+                      style={sort === opt.value ? { color: "#ec4899" } : undefined}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* App grid */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((item) => (
             <div
               key={item.id}
-              className="group rounded-xl border border-gray-200 bg-white transition hover:border-gray-300 hover:shadow-sm"
+              className="group rounded-2xl border border-gray-200 bg-white transition hover:shadow-md hover:border-gray-300"
             >
-              {/* Preview thumbnail */}
+              {/* Gradient thumbnail */}
               <div
-                className={`relative h-40 rounded-t-xl bg-gradient-to-br ${item.preview} flex items-center justify-center`}
+                className="relative h-36 rounded-t-2xl flex items-center justify-center cursor-pointer"
+                style={{ background: hashGradient(item.title) }}
+                onClick={() => setPreviewItem(item)}
               >
-                <span className="text-3xl font-bold text-white/30">
+                <span className="text-4xl font-bold text-white/25 select-none">
                   {item.title.charAt(0)}
                 </span>
                 <button
-                  onClick={() => setPreviewItem(item)}
-                  className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewItem(item);
+                  }}
+                  className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/30 group-hover:opacity-100 rounded-t-2xl"
                 >
                   <Eye className="h-6 w-6 text-white" />
                 </button>
               </div>
 
-              {/* Info */}
+              {/* Card content */}
               <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <h3 className="text-sm font-semibold text-black">{item.title}</h3>
+                  <h3 className="text-sm font-bold text-black">{item.title}</h3>
                   <span
-                    className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${CATEGORY_BADGE[item.category]}`}
+                    className="shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-medium"
+                    style={{
+                      backgroundColor: CATEGORY_COLORS[item.category]?.bg || "#f3f4f6",
+                      color: CATEGORY_COLORS[item.category]?.text || "#374151",
+                    }}
                   >
                     {item.category}
                   </span>
                 </div>
-                <p className="mt-1 text-xs text-gray-500">by {item.creator}</p>
 
-                <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
-                  <span className="flex items-center gap-0.5">
-                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                    {item.rating}
-                  </span>
-                  <span>{item.downloads.toLocaleString()} downloads</span>
-                </div>
+                <p className="mt-1.5 text-xs text-gray-500 line-clamp-1">{item.description}</p>
 
                 <div className="mt-3 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-black">
+                  <StarRating rating={item.rating} count={item.ratingCount} />
+                  <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <Download className="h-3 w-3" />
+                    {item.downloads.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="mt-3 flex items-center justify-between border-t border-gray-100 pt-3">
+                  <span
+                    className="text-sm font-bold"
+                    style={{ color: item.price === 0 ? "#059669" : "#000" }}
+                  >
                     {item.price === 0 ? "Free" : `$${item.price}`}
                   </span>
                   <button
-                    onClick={() => handleDownload(item)}
-                    disabled={!item.downloadable && item.price > 0}
-                    className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition disabled:opacity-40 disabled:cursor-not-allowed ${
+                    onClick={() =>
+                      item.downloadable ? handleDownload(item) : setPreviewItem(item)
+                    }
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold transition ${
                       justAdded.has(item.id)
                         ? "bg-green-600 text-white"
-                        : "bg-black text-white hover:bg-gray-800"
+                        : "text-white hover:opacity-90"
                     }`}
+                    style={
+                      justAdded.has(item.id)
+                        ? undefined
+                        : { backgroundColor: "#ec4899" }
+                    }
                   >
                     {justAdded.has(item.id) ? (
                       <>
                         <Check className="h-3 w-3" />
-                        Added & Downloaded
+                        Added
                       </>
-                    ) : (
+                    ) : item.downloadable ? (
                       <>
                         <Download className="h-3 w-3" />
-                        {item.downloadable ? "Download" : item.price === 0 ? "Download" : "Buy"}
+                        Get App
                       </>
+                    ) : (
+                      "View"
                     )}
                   </button>
                 </div>
@@ -522,8 +727,12 @@ Requires [Node.js](https://nodejs.org) installed.
         </div>
 
         {filtered.length === 0 && (
-          <div className="py-20 text-center">
-            <p className="text-sm text-gray-400">No items found.</p>
+          <div className="py-24 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-100">
+              <Search className="h-7 w-7 text-gray-400" />
+            </div>
+            <p className="text-sm font-medium text-gray-500">No apps found</p>
+            <p className="mt-1 text-xs text-gray-400">Try adjusting your search or category filter</p>
           </div>
         )}
       </div>
@@ -531,21 +740,23 @@ Requires [Node.js](https://nodejs.org) installed.
       {/* Preview Modal */}
       {previewItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-xl">
+          <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setPreviewItem(null)}
-              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 transition hover:bg-gray-100"
+              className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow transition hover:bg-gray-100"
             >
               <X className="h-4 w-4 text-gray-600" />
             </button>
 
-            {/* Preview image */}
+            {/* Preview gradient */}
             <div
-              className={`h-64 rounded-t-2xl bg-gradient-to-br ${previewItem.preview} flex items-center justify-center`}
+              className="relative h-56 rounded-t-2xl flex items-center justify-center"
+              style={{ background: hashGradient(previewItem.title) }}
             >
-              <span className="text-6xl font-bold text-white/20">
+              <span className="relative z-10 text-6xl font-bold text-white/20 select-none">
                 {previewItem.title.charAt(0)}
               </span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-t-2xl" />
             </div>
 
             {/* Details */}
@@ -558,7 +769,11 @@ Requires [Node.js](https://nodejs.org) installed.
                   </p>
                 </div>
                 <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${CATEGORY_BADGE[previewItem.category]}`}
+                  className="rounded-full px-3 py-1 text-xs font-medium"
+                  style={{
+                    backgroundColor: CATEGORY_COLORS[previewItem.category]?.bg || "#f3f4f6",
+                    color: CATEGORY_COLORS[previewItem.category]?.text || "#374151",
+                  }}
                 >
                   {previewItem.category}
                 </span>
@@ -579,25 +794,32 @@ Requires [Node.js](https://nodejs.org) installed.
                 ))}
               </div>
 
-              <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
+              <div className="mt-4 flex items-center gap-6 text-sm text-gray-500">
+                <StarRating rating={previewItem.rating} count={previewItem.ratingCount} />
                 <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                  {previewItem.rating}
+                  <Download className="h-4 w-4" />
+                  {previewItem.downloads.toLocaleString()} downloads
                 </span>
-                <span>{previewItem.downloads.toLocaleString()} downloads</span>
               </div>
 
-              <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
-                <span className="text-2xl font-bold text-black">
+              <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5">
+                <span
+                  className="text-2xl font-bold"
+                  style={{ color: previewItem.price === 0 ? "#059669" : "#000" }}
+                >
                   {previewItem.price === 0 ? "Free" : `$${previewItem.price}`}
                 </span>
                 <button
-                  onClick={() => { handleDownload(previewItem); setPreviewItem(null); }}
+                  onClick={() => {
+                    handleDownload(previewItem);
+                    setPreviewItem(null);
+                  }}
                   disabled={!previewItem.downloadable && previewItem.price > 0}
-                  className="flex items-center gap-2 rounded-xl bg-black px-6 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: "#ec4899" }}
                 >
                   <Download className="h-4 w-4" />
-                  Download & Add to My Apps
+                  {previewItem.downloadable ? "Download & Add to My Apps" : previewItem.price === 0 ? "Download" : "Buy Now"}
                 </button>
               </div>
             </div>
