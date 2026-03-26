@@ -11,6 +11,11 @@ from .app_data import router as app_data_router
 from .versions import router as versions_router
 from .github_export import router as github_export_router
 from .deploy import router as deploy_router
+from .file_storage import router as file_storage_router
+from .app_auth import router as app_auth_router
+from .stripe_integration import router as stripe_router
+from .collaboration import router as collaboration_router
+from .custom_domains import router as custom_domains_router
 
 all_routers = [
     auth_router,
@@ -26,4 +31,9 @@ all_routers = [
     versions_router,
     github_export_router,
     deploy_router,
+    file_storage_router,
+    app_auth_router,
+    stripe_router,
+    collaboration_router,
+    custom_domains_router,
 ]
