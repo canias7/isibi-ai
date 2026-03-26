@@ -180,7 +180,7 @@ def _serialize(c: SharedComponent) -> dict:
 async def list_components(
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    sort: str = Query("popular", regex="^(popular|newest|name)$"),
+    sort: str = Query("popular", pattern="^(popular|newest|name)$"),
     db: AsyncSession = Depends(get_db),
 ):
     """List shared components."""

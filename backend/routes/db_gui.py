@@ -94,7 +94,7 @@ async def list_rows(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=500),
     sort: Optional[str] = Query(None),
-    order: str = Query("asc", regex="^(asc|desc)$"),
+    order: str = Query("asc", pattern="^(asc|desc)$"),
     org_id: uuid.UUID = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):

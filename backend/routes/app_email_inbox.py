@@ -122,7 +122,7 @@ async def list_emails_for_record(
 @router.get("/{project_id}/emails")
 async def list_all_emails(
     project_id: uuid.UUID,
-    direction: Optional[str] = Query(None, regex="^(inbound|outbound)$"),
+    direction: Optional[str] = Query(None, pattern="^(inbound|outbound)$"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),

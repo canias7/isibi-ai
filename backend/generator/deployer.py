@@ -552,25 +552,39 @@ body {{
   margin-bottom:24px;
 }}
 .stat-card {{
-  background:var(--bg-card);
+  background:linear-gradient(135deg, var(--bg-card) 0%, #f8f9ff 100%);
   border:1px solid var(--border);
   border-radius:var(--radius-lg);
   padding:20px 24px;
   box-shadow:var(--shadow-xs);
-  transition:all var(--transition);
+  transition:all 0.2s cubic-bezier(.4,0,.2,1);
   cursor:default;
+  display:flex;
+  align-items:center;
+  gap:16px;
+  position:relative;
+  overflow:hidden;
 }}
-.stat-card:hover {{ box-shadow:var(--shadow-sm);transform:translateY(-1px); }}
+.stat-card::after {{
+  content:'';position:absolute;top:0;right:0;width:80px;height:80px;
+  background:radial-gradient(circle at top right, var(--primary-light), transparent 70%);
+  pointer-events:none;
+}}
+.stat-card:hover {{ box-shadow:var(--shadow-md);transform:translateY(-2px); }}
 .stat-top {{
-  display:flex;align-items:flex-start;justify-content:space-between;
-  margin-bottom:12px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
 }}
 .stat-icon {{
-  width:40px;height:40px;border-radius:var(--radius-md);
+  width:48px;height:48px;border-radius:var(--radius-lg);
   display:flex;align-items:center;justify-content:center;
   background:var(--primary-light);color:var(--primary);
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);
 }}
-.stat-icon svg {{ width:20px;height:20px; }}
+.stat-icon svg {{ width:22px;height:22px; }}
+.stat-info {{
+  flex:1;min-width:0;
+}}
 .stat-trend {{
   font-size:12px;font-weight:600;
   display:flex;align-items:center;gap:2px;
@@ -580,11 +594,13 @@ body {{
 .stat-trend.down {{ color:var(--danger);background:var(--danger-light); }}
 .stat-label {{
   font-size:12px;color:var(--text-muted);
-  margin-bottom:4px;font-weight:500;
+  font-weight:500;
+  margin-top:2px;
 }}
 .stat-value {{
   font-size:28px;font-weight:700;color:var(--text);
   letter-spacing:-0.02em;
+  line-height:1.2;
 }}
 
 /* ── Chart (CSS-only bar chart) ── */
@@ -603,20 +619,39 @@ body {{
 .chart-header h3 {{ font-size:14px;font-weight:600; }}
 .chart-bars {{
   display:flex;align-items:flex-end;gap:8px;
-  height:160px;padding-top:8px;
+  height:180px;padding-top:8px;
+  position:relative;
+  border-left:1px solid var(--border-light);
+  border-bottom:1px solid var(--border-light);
+  background:repeating-linear-gradient(
+    to top,
+    transparent,
+    transparent 24%,
+    var(--border-light) 24%,
+    var(--border-light) 24.5%
+  );
 }}
 .chart-bar-col {{
   flex:1;display:flex;flex-direction:column;align-items:center;
   height:100%;justify-content:flex-end;gap:6px;
+  position:relative;
 }}
 .chart-bar {{
-  width:100%;max-width:40px;
+  width:100%;max-width:44px;
   border-radius:6px 6px 2px 2px;
-  background:var(--primary);opacity:0.8;
-  transition:opacity var(--transition), height 0.5s ease;
+  background:linear-gradient(180deg, var(--primary), var(--secondary));
+  opacity:0.85;
+  transition:opacity var(--transition), height 0.5s ease, transform var(--transition);
   min-height:4px;
+  position:relative;
 }}
-.chart-bar:hover {{ opacity:1; }}
+.chart-bar:hover {{ opacity:1;transform:scaleY(1.02);transform-origin:bottom; }}
+.chart-bar-val {{
+  position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+  font-size:10px;font-weight:700;color:var(--text);
+  white-space:nowrap;opacity:0;transition:opacity var(--transition);
+}}
+.chart-bar-col:hover .chart-bar-val {{ opacity:1; }}
 .chart-bar-label {{
   font-size:10px;color:var(--text-muted);font-weight:500;
   white-space:nowrap;
@@ -749,9 +784,21 @@ td {{
 tr:last-child td {{ border-bottom:none; }}
 tbody tr {{
   cursor:pointer;
-  transition:all 0.15s cubic-bezier(.4,0,.2,1);
+  transition:all 0.1s ease;
+  border-left:3px solid transparent;
 }}
-tbody tr:hover {{ background:rgba(0,0,0,.02); }}
+tbody tr:nth-child(even) {{ background:#fafafa; }}
+tbody tr:hover {{
+  background:var(--primary-subtle);
+  border-left-color:var(--primary);
+}}
+tbody tr:hover .row-actions {{ opacity:1;pointer-events:auto; }}
+.row-actions {{
+  opacity:0;pointer-events:none;
+  transition:opacity 0.1s ease;
+  display:inline-flex;gap:2px;
+}}
+td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Status badges ── */
 .badge {{
@@ -792,24 +839,39 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
 
 /* ── Empty state ── */
 .empty-state {{
-  text-align:center;padding:64px 24px;
+  text-align:center;padding:80px 24px;
   color:#9ca3af;
 }}
 .empty-state-icon {{
-  width:48px;height:48px;margin:0 auto 16px;
+  width:72px;height:72px;margin:0 auto 20px;
   border-radius:50%;
-  border:2px dashed #d1d5db;
-  background:transparent;
+  border:2px dashed var(--border);
+  background:var(--bg);
   display:flex;align-items:center;justify-content:center;
+  position:relative;
+  animation:emptyPulse 2s ease-in-out infinite;
 }}
-.empty-state-icon svg {{ width:24px;height:24px;opacity:0.4;color:var(--text-muted); }}
+@keyframes emptyPulse {{
+  0%,100% {{ transform:scale(1);opacity:0.8; }}
+  50% {{ transform:scale(1.05);opacity:1; }}
+}}
+.empty-state-icon svg {{ width:28px;height:28px;opacity:0.5;color:var(--text-muted); }}
+.empty-state-icon .plus-icon {{
+  position:absolute;bottom:-2px;right:-2px;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--primary);color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;line-height:1;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}}
 .empty-state h3 {{
-  font-size:15px;font-weight:600;color:var(--text);
-  margin-bottom:4px;
+  font-size:16px;font-weight:600;color:var(--text);
+  margin-bottom:6px;
 }}
 .empty-state p {{
-  font-size:13px;margin-bottom:16px;
+  font-size:13px;margin-bottom:20px;
   max-width:320px;margin-left:auto;margin-right:auto;
+  line-height:1.5;
 }}
 
 /* ── Pagination ── */
@@ -963,11 +1025,12 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
 
 /* ── Detail view ── */
 .detail-view {{
-  max-width:680px;
+  max-width:800px;
 }}
 .detail-header {{
   display:flex;align-items:center;gap:12px;
   margin-bottom:24px;
+  flex-wrap:wrap;
 }}
 .detail-header .back-btn {{
   background:none;border:none;cursor:pointer;
@@ -977,30 +1040,56 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
 }}
 .detail-header .back-btn:hover {{ background:var(--bg);color:var(--text); }}
 .detail-header .back-btn svg {{ width:20px;height:20px; }}
-.detail-header h2 {{ font-size:18px;font-weight:600;flex:1; }}
+.detail-header h2 {{ font-size:20px;font-weight:700;flex:1;min-width:0; }}
+.detail-header-actions {{
+  display:flex;gap:8px;flex-shrink:0;
+}}
+.detail-status-badge {{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-left:8px;vertical-align:middle;
+}}
 .detail-body {{
   background:var(--bg-card);
   border:1px solid var(--border);
   border-radius:var(--radius-lg);
   box-shadow:var(--shadow-xs);
   overflow:hidden;
+  padding:8px 0;
+}}
+.detail-fields-grid {{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:0;
 }}
 .detail-field {{
-  display:flex;padding:14px 24px;
+  display:flex;flex-direction:column;gap:4px;
+  padding:14px 24px;
   border-bottom:1px solid var(--border-light);
 }}
 .detail-field:last-child {{ border-bottom:none; }}
 .detail-field-label {{
-  width:180px;flex-shrink:0;
-  font-size:13px;font-weight:500;color:var(--text-muted);
-  text-transform:capitalize;
+  font-size:11px;font-weight:600;color:var(--text-muted);
+  text-transform:uppercase;letter-spacing:0.05em;
 }}
 .detail-field-value {{
-  flex:1;font-size:13px;color:var(--text);
+  font-size:14px;color:var(--text);
   word-break:break-word;
+}}
+.detail-field-value.empty {{
+  color:var(--text-placeholder);font-style:italic;
+}}
+.detail-field-value a {{
+  color:var(--primary);text-decoration:none;
+}}
+.detail-field-value a:hover {{ text-decoration:underline; }}
+.detail-field-value .relative-time {{
+  color:var(--text-muted);font-size:12px;margin-left:4px;
 }}
 .detail-actions {{
   display:flex;gap:8px;margin-top:20px;
+}}
+@media (max-width:600px) {{
+  .detail-fields-grid {{ grid-template-columns:1fr; }}
 }}
 
 /* ── Form ── */
@@ -1008,17 +1097,18 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
   margin-bottom:20px;
 }}
 .form-group label {{
-  display:block;font-size:13px;font-weight:500;
-  color:var(--text);margin-bottom:6px;
-  text-transform:capitalize;
+  display:block;font-size:11px;font-weight:600;
+  color:var(--text-muted);margin-bottom:6px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
 }}
 .form-group label .required {{
-  color:var(--danger);margin-left:2px;
+  color:var(--danger);margin-left:2px;font-size:14px;line-height:1;
 }}
 .form-group input,
 .form-group select,
 .form-group textarea {{
-  width:100%;padding:8px 12px;
+  width:100%;padding:10px 14px;
   border:1px solid #e5e7eb;
   border-radius:8px;
   font-size:14px;color:var(--text);
@@ -1037,9 +1127,38 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
 .form-group textarea::placeholder {{
   color:var(--text-placeholder);
 }}
+.form-group select {{
+  appearance:none;-webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:36px;
+  cursor:pointer;
+}}
 .form-group textarea {{
   min-height:80px;resize:vertical;
 }}
+.form-group textarea.auto-grow {{
+  resize:none;overflow:hidden;
+}}
+.form-divider {{
+  border:none;border-top:1px solid var(--border-light);
+  margin:24px 0 20px;
+}}
+.btn-cancel-outline {{
+  background:transparent;color:var(--text-secondary);
+  border:1px solid var(--border);border-radius:8px;
+  padding:8px 16px;font-size:14px;font-weight:500;cursor:pointer;
+  transition:all var(--transition);font-family:inherit;
+}}
+.btn-cancel-outline:hover {{ background:var(--bg);border-color:#d1d5db; }}
+.save-spinner {{
+  display:inline-block;width:14px;height:14px;
+  border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;
+  border-radius:50%;animation:spin 0.6s linear infinite;
+  margin-right:6px;vertical-align:middle;
+}}
+@keyframes spin {{ to {{ transform:rotate(360deg); }} }}
 .form-group input[type="checkbox"] {{
   width:auto;margin-right:8px;
   accent-color:var(--primary);
@@ -1077,7 +1196,7 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
 
 /* ── Toast ── */
 .toast-container {{
-  position:fixed;bottom:24px;right:24px;
+  position:fixed;top:24px;right:24px;
   z-index:200;display:flex;flex-direction:column;gap:8px;
 }}
 .toast {{
@@ -1086,12 +1205,12 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
   font-size:13px;font-weight:500;
   display:flex;align-items:center;gap:10px;
   box-shadow:var(--shadow-lg);
-  transform:translateX(120%);opacity:0;
+  transform:translateY(-120%);opacity:0;
   transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
   max-width:380px;
   border:1px solid transparent;
 }}
-.toast.show {{ transform:translateX(0);opacity:1; }}
+.toast.show {{ transform:translateY(0);opacity:1; }}
 .toast-success {{
   background:var(--bg-card);color:var(--success);
   border-color:var(--success);
@@ -1332,24 +1451,44 @@ tbody tr:hover {{ background:rgba(0,0,0,.02); }}
   .hamburger {{ display:flex; }}
   .topbar {{ padding:0 16px; }}
   .content {{ padding:16px; }}
-  .stats-grid {{ grid-template-columns:1fr; }}
+  .stats-grid {{ grid-template-columns:repeat(2, 1fr); }}
   .dashboard-grid {{ grid-template-columns:1fr; }}
-  .slide-over {{ width:100vw; }}
+  .slide-over {{
+    width:100vw;top:auto;bottom:0;right:0;
+    max-height:90vh;
+    border-radius:var(--radius-xl) var(--radius-xl) 0 0;
+    transform:translateY(100%);transition:transform 0.25s cubic-bezier(.4,0,.2,1);
+  }}
+  .slide-over.show {{ right:0;transform:translateY(0); }}
+  .table-scroll-wrapper {{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    position:relative;
+  }}
+  .table-scroll-wrapper::after {{
+    content:'';position:absolute;top:0;right:0;bottom:0;width:24px;
+    background:linear-gradient(to left, rgba(0,0,0,0.04), transparent);
+    pointer-events:none;z-index:1;
+  }}
   .search-input {{ min-width:140px; }}
   .table-toolbar {{ padding:12px 16px; }}
   td,th {{ padding:10px 12px; }}
   .sidebar-collapse-btn {{ display:none; }}
   .detail-field {{ flex-direction:column;gap:4px; }}
   .detail-field-label {{ width:auto; }}
+  .detail-fields-grid {{ grid-template-columns:1fr; }}
   .kanban-board {{ gap:12px; }}
   .kanban-column {{ min-width:240px;width:240px; }}
   .card-grid {{ grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); }}
+  .row-actions {{ opacity:1;pointer-events:auto; }}
+  .quick-actions-row {{ flex-wrap:wrap; }}
 }}
 @media (max-width:480px) {{
   .table-toolbar {{ flex-direction:column;align-items:stretch; }}
   .status-tabs {{ overflow-x:auto; }}
   .kanban-column {{ min-width:220px;width:220px; }}
   .card-grid {{ grid-template-columns:1fr; }}
+  .stats-grid {{ grid-template-columns:1fr; }}
 }}
 
 /* ── Analytics Page ── */
@@ -1795,10 +1934,41 @@ tr.row-urgent {{ background:rgba(245,158,11,0.08) !important; }}
 /* ── Premium SaaS Polish ── */
 @keyframes fadeIn {{ from{{opacity:0}} to{{opacity:1}} }}
 @keyframes slideUp {{ from{{opacity:0;transform:translateY(16px)}} to{{opacity:1;transform:translateY(0)}} }}
+@keyframes slideInRight {{ from{{transform:translateX(100%)}} to{{transform:translateX(0)}} }}
+@keyframes slideDownToast {{ from{{transform:translateY(-100%);opacity:0}} to{{transform:translateY(0);opacity:1}} }}
+@keyframes skeletonShimmer {{
+  0% {{ background-position:200% 0; }}
+  100% {{ background-position:-200% 0; }}
+}}
 
 /* Micro-animations */
-button, a, .sidebar-item, tr {{ transition:all 0.15s cubic-bezier(.4,0,.2,1); }}
-button:active {{ transform:scale(0.97); }}
+button, a, .sidebar-item {{ transition:all 0.15s cubic-bezier(.4,0,.2,1); }}
+button:active:not(:disabled) {{ transform:scale(0.97); }}
+.slide-over.show {{ animation:slideInRight 0.2s ease-out; }}
+.modal-overlay.show {{ animation:fadeIn 0.15s ease; }}
+
+/* Dashboard welcome animation */
+.dashboard-welcome {{ animation:slideUp 0.3s ease-out; }}
+.quick-actions-row {{ animation:slideUp 0.35s ease-out; }}
+.stats-grid {{ animation:slideUp 0.25s ease-out; }}
+
+/* Quick Actions row styling */
+.quick-actions-row {{
+  display:flex;gap:8px;margin-bottom:20px;
+  flex-wrap:wrap;
+}}
+.quick-action-btn {{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:8px 16px;border-radius:var(--radius);
+  background:var(--bg-card);border:1px solid var(--border);
+  font-size:13px;font-weight:500;color:var(--text);
+  cursor:pointer;transition:all var(--transition);font-family:inherit;
+}}
+.quick-action-btn:hover {{
+  border-color:var(--primary);color:var(--primary);
+  box-shadow:var(--shadow-sm);
+}}
+.quick-action-btn svg {{ width:14px;height:14px;color:var(--primary); }}
 
 /* Global form input polish */
 input, select, textarea {{
@@ -1822,13 +1992,12 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   box-shadow:0 0 0 3px rgba(59,130,246,0.15);
 }}
 
-/* Enhanced stat cards */
-.stat-card {{
-  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
-}}
-.stat-card:hover {{
-  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 4px 8px rgba(0,0,0,.07), 0 16px 32px rgba(0,0,0,.07);
-}}
+/* Enhanced stat cards - use gradient variants per card */
+.stat-card:nth-child(1) {{ background:linear-gradient(135deg, #fff 0%, #eef2ff 100%); }}
+.stat-card:nth-child(2) {{ background:linear-gradient(135deg, #fff 0%, #ecfdf5 100%); }}
+.stat-card:nth-child(3) {{ background:linear-gradient(135deg, #fff 0%, #fffbeb 100%); }}
+.stat-card:nth-child(4) {{ background:linear-gradient(135deg, #fff 0%, #eff6ff 100%); }}
+.stat-card:nth-child(5) {{ background:linear-gradient(135deg, #fff 0%, #fef2f2 100%); }}
 
 /* Enhanced table container */
 .table-container {{
@@ -1963,7 +2132,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   </div>
   <div class="slide-over-body" id="modal-body"></div>
   <div class="slide-over-footer">
-    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+    <button class="btn-cancel-outline" onclick="closeModal()">Cancel</button>
     <button class="btn btn-primary" id="modal-save" onclick="saveRecord()">Save</button>
   </div>
 </div>
@@ -2143,6 +2312,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       const token = data.token || data.access_token || data.jwt || "";
       if (token) {{
         localStorage.setItem("app_token", token);
+        localStorage.setItem("user_email", email);
         document.getElementById("auth-screen").style.display = "none";
         initApp();
       }} else {{
@@ -2159,6 +2329,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
   window.handleLogout = function() {{
     localStorage.removeItem("app_token");
+    localStorage.removeItem("user_email");
     document.getElementById("auth-email").value = "";
     document.getElementById("auth-password").value = "";
     document.getElementById("auth-error").style.display = "none";
@@ -2505,7 +2676,26 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   // ── Dashboard ──
   function renderDashboard(container) {{
     const entityNames = Object.keys(ENTITY_FIELDS);
+
+    // Welcome greeting
+    const userEmail = localStorage.getItem("user_email") || "";
+    const userName = userEmail ? userEmail.split("@")[0].replace(/[._]/g, " ").replace(/\\b\\w/g, l => l.toUpperCase()) : "there";
+    const hour = new Date().getHours();
+    const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    let welcomeHtml = '<div class="dashboard-welcome" style="margin-bottom:24px">' +
+      '<h2 style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">' + greeting + ', ' + escHtml(userName) + '!</h2>' +
+      '<p style="font-size:14px;color:var(--text-muted);margin:0">Here\\u2019s what\\u2019s happening with your data today.</p>' +
+    '</div>';
+
+    // Stat cards
     let statsHtml = '<div class="stats-grid">';
+    const statIcons = [
+      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>',
+      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
+      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+    ];
     entityNames.forEach((eName, idx) => {{
       const colors = [
         {{ bg: 'var(--primary-light)', fg: 'var(--primary)' }},
@@ -2515,19 +2705,33 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         {{ bg: 'var(--danger-light)', fg: 'var(--danger)' }},
       ];
       const c = colors[idx % colors.length];
+      const icon = statIcons[idx % statIcons.length];
       statsHtml += '<div class="stat-card">' +
-        '<div class="stat-top"><div class="stat-icon" style="background:' + c.bg + ';color:' + c.fg + '"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg></div></div>' +
-        '<div class="stat-label">Total ' + escHtml(eName) + 's</div>' +
+        '<div class="stat-top"><div class="stat-icon" style="background:' + c.bg + ';color:' + c.fg + '">' + icon + '</div></div>' +
+        '<div class="stat-info">' +
         '<div class="stat-value" id="stat-count-' + eName + '"><span class="skeleton skeleton-line" style="width:60px;display:inline-block">&nbsp;</span></div>' +
+        '<div class="stat-label">Total ' + escHtml(eName) + 's</div>' +
+        '</div>' +
         '</div>';
     }});
     statsHtml += '</div>';
 
+    // Quick Actions row
+    let quickActionsHtml = '<div class="quick-actions-row">';
+    entityNames.forEach(eName => {{
+      const modName = (SIDEBAR_ITEMS.find(si => si.entity === eName) || {{}}).name || eName;
+      quickActionsHtml += '<button class="quick-action-btn" onclick="showModule(\'' + escHtml(modName) + '\');setTimeout(()=>openCreate(),100)">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        'New ' + escHtml(eName) +
+        '</button>';
+    }});
+    quickActionsHtml += '</div>';
+
     // Chart + activity in grid
     const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    let chartBars = days.map(d => '<div class="chart-bar-col"><div class="chart-bar" id="chart-bar-' + d + '" style="height:20%"></div><div class="chart-bar-label">' + d + '</div></div>').join('');
+    let chartBars = days.map(d => '<div class="chart-bar-col"><div class="chart-bar" id="chart-bar-' + d + '" style="height:20%"><span class="chart-bar-val" id="chart-val-' + d + '">0</span></div><div class="chart-bar-label">' + d + '</div></div>').join('');
 
-    const html = statsHtml +
+    const html = welcomeHtml + statsHtml + quickActionsHtml +
       '<div class="dashboard-grid">' +
         '<div class="chart-container">' +
           '<div class="chart-header"><h3>Weekly Overview</h3></div>' +
@@ -2563,33 +2767,57 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       }}
     }}
 
-    // Update chart bars with pseudo-random data based on counts
+    // Update chart bars with pseudo-random data based on counts and show value labels
     const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
     const maxCount = Math.max(totalAll, 1);
     days.forEach((d, i) => {{
       const bar = document.getElementById("chart-bar-" + d);
+      const valEl = document.getElementById("chart-val-" + d);
       if (bar) {{
         const pct = Math.max(10, Math.min(95, (((i * 17 + totalAll * 3) % 80) + 15)));
+        const val = Math.round(totalAll * pct / 100);
         bar.style.height = pct + "%";
+        if (valEl) valEl.textContent = val;
       }}
     }});
 
-    // Recent activity
+    // Relative time helper
+    function relativeTime(dateStr) {{
+      if (!dateStr) return "";
+      const now = new Date();
+      const d = new Date(dateStr);
+      const diffMs = now - d;
+      const diffSec = Math.floor(diffMs / 1000);
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHr = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHr / 24);
+      if (diffSec < 60) return "just now";
+      if (diffMin < 60) return diffMin + "m ago";
+      if (diffHr < 24) return diffHr + "h ago";
+      if (diffDay < 7) return diffDay + "d ago";
+      return d.toLocaleDateString();
+    }}
+
+    // Recent activity — show last 5 across all entities
     const activityContainer = document.getElementById("activity-items");
     if (activityContainer) {{
       const recent = allRows
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
-        .slice(0, 6);
+        .slice(0, 5);
 
       if (recent.length === 0) {{
-        activityContainer.innerHTML = '<div class="activity-item"><div class="activity-text" style="color:var(--text-muted);font-size:12px">No activity yet</div></div>';
+        activityContainer.innerHTML = '<div class="activity-item"><div class="activity-text" style="color:var(--text-muted);font-size:12px">No activity yet. Create your first record to see it here.</div></div>';
       }} else {{
         activityContainer.innerHTML = recent.map(r => {{
           const fields = ENTITY_FIELDS[r._entity] || [];
           const nameField = fields.find(f => /^(name|title|subject|label)$/i.test(f.name));
           const label = nameField ? (r[nameField.name] || "Untitled") : ("Record #" + (r.id || "").toString().slice(0, 6));
-          const time = r.created_at ? new Date(r.created_at).toLocaleDateString() : "";
-          return '<div class="activity-item"><div class="activity-dot"></div><div class="activity-text"><strong>' + escHtml(label) + '</strong> added to ' + escHtml(r._entity) + '</div><div class="activity-time">' + escHtml(time) + '</div></div>';
+          const time = relativeTime(r.created_at);
+          return '<div class="activity-item">' +
+            '<div class="activity-dot" style="background:' + stringToColor(r._entity) + '"></div>' +
+            '<div class="activity-text"><strong>' + escHtml(label) + '</strong> added to <span style="color:var(--primary);font-weight:500">' + escHtml(r._entity) + '</span></div>' +
+            '<div class="activity-time">' + escHtml(time) + '</div>' +
+          '</div>';
         }}).join("");
       }}
     }}
@@ -3024,7 +3252,13 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     }}
 
     if (rows.length === 0) {{
-      tbody.innerHTML = '<tr><td colspan="20"><div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h3>No records found</h3><p>' + (search || filter ? 'Try adjusting your search or filter.' : 'Click the "Add New" button to create your first record.') + '</p>' + (!search && !filter ? '<button class="btn btn-primary btn-sm" onclick="openCreate()" style="margin-top:4px"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New</button>' : '') + '</div></td></tr>';
+      const entityLabel = entity.replace(/_/g, " ");
+      const entityTitle = entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1);
+      if (search || filter) {{
+        tbody.innerHTML = '<tr><td colspan="20"><div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><h3>No matching records</h3><p>Try adjusting your search or filter to find what you\\u2019re looking for.</p></div></td></tr>';
+      }} else {{
+        tbody.innerHTML = '<tr><td colspan="20"><div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="plus-icon">+</span></div><h3>No ' + escHtml(entityLabel) + 's yet</h3><p>Create your first ' + escHtml(entityLabel) + ' to get started.</p><button class="btn btn-primary" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add ' + escHtml(entityTitle) + '</button></div></td></tr>';
+      }}
       if (footer) footer.innerHTML = '';
       return;
     }}
@@ -3091,6 +3325,17 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
           return '<td' + dblClick + '>' + (val && val !== "false" ? '<span style="color:var(--success)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>') + '</td>';
         }}
 
+        // Empty cell: show dash
+        if (val === "" || val === null || val === undefined) {{
+          return '<td' + dblClick + ' style="color:var(--text-placeholder)">\u2014</td>';
+        }}
+
+        // Number column right-alignment
+        if (f.type === "number" || f.type === "integer" || f.type === "float" || f.type === "decimal" ||
+            /amount|value|price|cost|revenue|total|salary|fee|budget|quantity|count|number|age|score|rating/i.test(f.name)) {{
+          return '<td' + dblClick + ' style="text-align:right;font-variant-numeric:tabular-nums">' + escHtml(String(val)) + '</td>';
+        }}
+
         return '<td' + dblClick + '>' + escHtml(String(val)) + '</td>';
       }}).join("");
 
@@ -3100,8 +3345,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         '<td onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" ' + (isChecked ? 'checked' : '') + ' onchange="bulkToggleRow(\'' + escHtml(entity) + '\',\'' + rowId + '\',\'' + escHtml(currentModule) + '\',this.checked)"></td>' +
         cells +
         '<td style="text-align:right" onclick="event.stopPropagation()">' +
+          '<span class="row-actions">' +
           '<button class="btn btn-ghost btn-sm" onclick="openEdit(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
           '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteRecord(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
+          '</span>' +
         '</td></tr>';
     }}
 
@@ -3247,6 +3494,26 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   }};
 
   // ── Detail view ──
+  // Helper: relative time for detail view
+  function formatRelativeTime(dateStr) {{
+    if (!dateStr) return "";
+    const now = new Date();
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return "";
+    const diffMs = now - d;
+    const diffSec = Math.floor(Math.abs(diffMs) / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+    const future = diffMs < 0;
+    if (diffSec < 60) return future ? "in a moment" : "just now";
+    if (diffMin < 60) return future ? "in " + diffMin + " minutes" : diffMin + " minutes ago";
+    if (diffHr < 24) return future ? "in " + diffHr + " hours" : diffHr + " hours ago";
+    if (diffDay < 30) return future ? "in " + diffDay + " days" : diffDay + " days ago";
+    const diffMonth = Math.floor(diffDay / 30);
+    return future ? "in " + diffMonth + " months" : diffMonth + " months ago";
+  }}
+
   window.showDetail = function(entity, id) {{
     const rows = dataCache[entity] || [];
     const record = rows.find(r => String(r.id || r.ID) === String(id));
@@ -3260,13 +3527,25 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     const nameField = fields.find(f => /^(name|title|subject|label)$/i.test(f.name));
     const title = nameField ? (record[nameField.name] || entity) : entity + " #" + String(id).slice(0, 8);
 
+    // Find status field for header badge
+    const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 && /status|state|stage|phase/i.test(f.name));
+    let statusBadgeHtml = '';
+    if (statusField && record[statusField.name]) {{
+      const badgeClass = getBadgeClass(String(record[statusField.name]));
+      statusBadgeHtml = '<span class="detail-status-badge badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(record[statusField.name])) + '</span>';
+    }}
+
     const content = document.getElementById("content-area");
     let detailHtml = '<div class="detail-view">' +
       '<div class="detail-header">' +
         '<button class="back-btn" onclick="showModule(\'' + escHtml(currentModule) + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>' +
-        '<h2>' + escHtml(title) + '</h2>' +
+        '<h2>' + escHtml(title) + statusBadgeHtml + '</h2>' +
+        '<div class="detail-header-actions">' +
+          '<button class="btn btn-primary btn-sm" onclick="openEdit(\'' + entity + '\',\'' + id + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteRecord(\'' + entity + '\',\'' + id + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' +
+        '</div>' +
       '</div>' +
-      '<div class="detail-body">';
+      '<div class="detail-body"><div class="detail-fields-grid">';
 
     visibleFields.forEach(f => {{
       let val = record[f.name] ?? "";
@@ -3286,16 +3565,32 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
       const fxBadge = f.computed ? ' <span style="display:inline-block;background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;vertical-align:middle">fx</span>' : '';
 
-      if (f.enum_values && f.enum_values.length) {{
+      if (val === "" || val === null || val === undefined) {{
+        // Empty field
+        displayVal = '<span class="empty">Not set</span>';
+      }} else if (f.enum_values && f.enum_values.length) {{
         const badgeClass = getBadgeClass(String(val));
         displayVal = '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(val)) + '</span>';
       }} else if (f.type === "boolean" || val === true || val === false) {{
         displayVal = val && val !== "false" ? '<span style="color:var(--success)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>';
       }} else if (isRichTextField(f.name) && val && (String(val).includes("<") || String(val).includes("&lt;"))) {{
-        // Rich text field: render HTML content directly in detail view
         displayVal = '<div style="line-height:1.6">' + String(val) + '</div>';
+      }} else if (/email/i.test(f.name) && val) {{
+        // Email: clickable mailto link
+        displayVal = '<a href="mailto:' + escHtml(String(val)) + '">' + escHtml(String(val)) + '</a>';
+      }} else if (/phone|tel|mobile|cell/i.test(f.name) && val) {{
+        // Phone: clickable tel link
+        const formatted = formatValue(val, f.name, f.type);
+        displayVal = '<a href="tel:' + escHtml(String(val).replace(/[^+\\d]/g, "")) + '">' + escHtml(formatted) + '</a>';
+      }} else if (/url|website|link|homepage/i.test(f.name) && val && /^https?:\\/\\//i.test(String(val))) {{
+        // URL: clickable link
+        displayVal = '<a href="' + escHtml(String(val)) + '" target="_blank" rel="noopener">' + escHtml(String(val)) + '</a>';
+      }} else if (/date|_at$/i.test(f.name) && val) {{
+        // Date fields: show formatted date with relative time
+        const formatted = formatValue(val, f.name, f.type);
+        const relative = formatRelativeTime(String(val));
+        displayVal = escHtml(formatted) + (relative ? ' <span class="relative-time">(' + escHtml(relative) + ')</span>' : '');
       }} else {{
-        // Use formatValue for custom number/phone formatting
         const formatted = formatValue(val, f.name, f.type);
         displayVal = escHtml(formatted);
       }}
@@ -3303,12 +3598,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       detailHtml += '<div class="detail-field"><div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + fxBadge + '</div><div class="detail-field-value">' + displayVal + '</div></div>';
     }});
 
-    detailHtml += '</div>' +
-      '<div class="detail-actions">' +
-        '<button class="btn btn-primary btn-sm" onclick="openEdit(\'' + entity + '\',\'' + id + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="deleteRecord(\'' + entity + '\',\'' + id + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' +
-      '</div>' +
-    '</div>';
+    detailHtml += '</div></div></div>';
 
     content.innerHTML = detailHtml;
   }};
@@ -3518,9 +3808,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       }}
     }}
 
-    body.innerHTML = fields.map(f => {{
+    body.innerHTML = fields.map((f, fIdx) => {{
       const val = record[f.name] ?? f.default_value ?? "";
       const req = f.required || (f.nullable === false && !f.computed) ? '<span class="required">*</span>' : '';
+      const divider = (fIdx > 0 && fIdx % 4 === 0) ? '<hr class="form-divider">' : '';
       const label = escHtml(f.name.replace(/_/g, " "));
       const vwAttr = f.visible_when ? ' data-visible-when=\\'true\\'' : '';
       const vwStyle = f.visible_when ? ' style="transition:all 0.2s ease"' : '';
@@ -3528,7 +3819,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       // Computed field — read-only display with fx badge
       if (f.computed) {{
         const computedVal = evalComputed(f.computed, record);
-        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '>' +
+        return divider + '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '>' +
           '<label>' + label + ' <span style="display:inline-block;background:var(--primary-light);color:var(--primary);font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;vertical-align:middle">fx</span></label>' +
           '<div class="computed-value" style="padding:9px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;min-height:38px">' + escHtml(String(computedVal !== "" ? computedVal : "\\u2014")) + '</div>' +
           '<input type="hidden" name="' + f.name + '" value="' + escHtml(String(computedVal)) + '">' +
@@ -3555,7 +3846,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
           if (!displayName) displayName = String(rId).slice(0, 8);
           return '<option value="' + escHtml(String(rId)) + '"' + (String(rId) === String(val) ? ' selected' : '') + '>' + escHtml(displayName) + '</option>';
         }}).join("");
-        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
+        return divider + '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
       }}
 
       // Select for enums
@@ -3563,13 +3854,13 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         const opts = '<option value="">Select...</option>' + f.enum_values.map(v =>
           '<option value="' + escHtml(v) + '"' + (v === val ? ' selected' : '') + '>' + escHtml(v) + '</option>'
         ).join("");
-        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
+        return divider + '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
       }}
 
       // Checkbox for boolean
       if (f.type === "boolean") {{
         const checked = val && val !== "false" && val !== "0" ? ' checked' : '';
-        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><div class="form-check"><input type="checkbox" name="' + f.name + '"' + checked + '><label>' + label + '</label></div></div>';
+        return divider + '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><div class="form-check"><input type="checkbox" name="' + f.name + '"' + checked + '><label>' + label + '</label></div></div>';
       }}
 
       // Rich text / Textarea for description/notes/body
@@ -3636,6 +3927,18 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
     // Initial apply of visibility and computed fields
     applyFormRules();
+
+    // Auto-grow textareas
+    body.querySelectorAll("textarea").forEach(ta => {{
+      ta.classList.add("auto-grow");
+      ta.style.overflow = "hidden";
+      function autoGrow() {{
+        ta.style.height = "auto";
+        ta.style.height = Math.max(80, ta.scrollHeight) + "px";
+      }}
+      ta.addEventListener("input", autoGrow);
+      autoGrow();
+    }});
 
     // Attach rich text keyboard shortcuts and sync to hidden inputs
     body.querySelectorAll(".rt-editable").forEach(div => {{
@@ -3724,8 +4027,9 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     }}
 
     const saveBtn = document.getElementById("modal-save");
+    const originalText = saveBtn.textContent;
     saveBtn.disabled = true;
-    saveBtn.textContent = "Saving...";
+    saveBtn.innerHTML = '<span class="save-spinner"></span>Saving...';
 
     let result;
     if (editingId) {{
@@ -3747,7 +4051,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     }}
 
     saveBtn.disabled = false;
-    saveBtn.textContent = editingId ? "Save Changes" : "Create";
+    saveBtn.textContent = originalText;
     closeModal();
     if (currentModule) showModule(currentModule);
   }};

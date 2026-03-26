@@ -1,20 +1,22 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { LandingPage } from "@/pages/LandingPage";
-import { LoginPage } from "@/pages/LoginPage";
-import { SignupPage } from "@/pages/SignupPage";
-import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
-import { OnboardingPage } from "@/pages/OnboardingPage";
-import { NotFoundPage } from "@/pages/NotFoundPage";
-import { TermsPage } from "@/pages/TermsPage";
-import { PrivacyPage } from "@/pages/PrivacyPage";
-import { BuildCrmPage } from "@/pages/seo/BuildCrmPage";
-import { BuildEcommercePage } from "@/pages/seo/BuildEcommercePage";
-import { BuildRestaurantPage } from "@/pages/seo/BuildRestaurantPage";
-import { BuildGymPage } from "@/pages/seo/BuildGymPage";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
+
+// Lazy-loaded page components
+const LandingPage = lazy(() => import("@/pages/LandingPage").then(m => ({ default: m.LandingPage })));
+const LoginPage = lazy(() => import("@/pages/LoginPage").then(m => ({ default: m.LoginPage })));
+const SignupPage = lazy(() => import("@/pages/SignupPage").then(m => ({ default: m.SignupPage })));
+const VerifyEmailPage = lazy(() => import("@/pages/VerifyEmailPage").then(m => ({ default: m.VerifyEmailPage })));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage").then(m => ({ default: m.OnboardingPage })));
+const NotFoundPage = lazy(() => import("@/pages/NotFoundPage").then(m => ({ default: m.NotFoundPage })));
+const TermsPage = lazy(() => import("@/pages/TermsPage").then(m => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import("@/pages/PrivacyPage").then(m => ({ default: m.PrivacyPage })));
+const BuildCrmPage = lazy(() => import("@/pages/seo/BuildCrmPage").then(m => ({ default: m.BuildCrmPage })));
+const BuildEcommercePage = lazy(() => import("@/pages/seo/BuildEcommercePage").then(m => ({ default: m.BuildEcommercePage })));
+const BuildRestaurantPage = lazy(() => import("@/pages/seo/BuildRestaurantPage").then(m => ({ default: m.BuildRestaurantPage })));
+const BuildGymPage = lazy(() => import("@/pages/seo/BuildGymPage").then(m => ({ default: m.BuildGymPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -111,7 +113,9 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AppRoutes />
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-pink-500 border-t-transparent" /></div>}>
+          <AppRoutes />
+        </Suspense>
       </BrowserRouter>
     </QueryClientProvider>
   );

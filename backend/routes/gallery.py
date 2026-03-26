@@ -71,7 +71,7 @@ def _serialize(entry: GalleryEntry) -> dict:
 async def list_gallery(
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    sort: str = Query("recent", regex="^(popular|recent)$"),
+    sort: str = Query("recent", pattern="^(popular|recent)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),

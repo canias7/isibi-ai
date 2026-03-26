@@ -449,7 +449,7 @@ function TypingIndicator({ modelLabel }: { modelLabel: string }) {
 }
 
 export function OnboardingPage({ onSpecCreated }: Props) {
-  const { user, clearAuth } = useAuthStore();
+  const { user, clearAuth, isAuthenticated } = useAuthStore();
   const isDev = user?.account_type === "developer";
   const sidebarItems = isDev ? DEV_SIDEBAR : USER_SIDEBAR;
   const defaultView: View = isDev ? "chat" : "myapps";

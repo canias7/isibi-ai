@@ -88,7 +88,7 @@ async def list_rows(
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=200),
     sort_by: str = Query("id", description="Column to sort by"),
-    sort_dir: str = Query("desc", regex="^(asc|desc)$"),
+    sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db),
     org_id: UUID = Depends(get_current_org_id),
 ):

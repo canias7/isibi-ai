@@ -72,7 +72,7 @@ async def track_event(
 @router.get("/api/projects/{project_id}/analytics")
 async def get_analytics_summary(
     project_id: str,
-    days: int = Query(7, regex="^(7|30|90)$"),
+    days: int = Query(7, pattern="^(7|30|90)$"),
     org_id: uuid.UUID = Depends(get_current_org_id),
     db: AsyncSession = Depends(get_db),
 ):

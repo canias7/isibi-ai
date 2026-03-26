@@ -335,7 +335,7 @@ class TemplateCreate(BaseModel):
 async def list_templates(
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    sort: str = Query("popular", regex="^(popular|newest|name)$"),
+    sort: str = Query("popular", pattern="^(popular|newest|name)$"),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),

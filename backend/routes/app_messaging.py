@@ -98,7 +98,7 @@ async def send_message(
 @router.get("/{project_id}/messages")
 async def list_messages(
     project_id: uuid.UUID,
-    folder: str = Query("all", regex="^(all|inbox|sent)$"),
+    folder: str = Query("all", pattern="^(all|inbox|sent)$"),
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     claims: dict = Depends(get_current_app_user),

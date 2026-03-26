@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -44,10 +44,8 @@ class FunctionUpdateBody(BaseModel):
 
 
 class InvokeBody(BaseModel):
+    model_config = ConfigDict(extra="allow")  # Accept any additional JSON fields
     input: Optional[dict] = None
-
-    class Config:
-        extra = "allow"  # Accept any additional JSON fields
 
 
 def _serialize(f: ServerlessFunction) -> dict:

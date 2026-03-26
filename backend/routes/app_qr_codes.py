@@ -98,7 +98,7 @@ async def get_qr_code(
     project_id: uuid.UUID,
     table: str,
     record_id: str,
-    format: str = Query("svg", regex="^(svg|url)$"),
+    format: str = Query("svg", pattern="^(svg|url)$"),
     db: AsyncSession = Depends(get_db),
     org_id: uuid.UUID = Depends(get_current_org_id),
 ):

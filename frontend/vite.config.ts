@@ -10,4 +10,17 @@ export default defineConfig({
   server: {
     proxy: { "/api": "http://localhost:8000" },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          query: ['@tanstack/react-query'],
+          ui: ['lucide-react', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs', '@radix-ui/react-tooltip'],
+          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          state: ['zustand'],
+        }
+      }
+    }
+  },
 });
