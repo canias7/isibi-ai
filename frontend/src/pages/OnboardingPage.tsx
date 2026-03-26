@@ -101,6 +101,107 @@ const USER_SIDEBAR: SidebarItem[] = [
   { id: "history", label: "History", icon: Clock },
 ];
 
+/** Parse [OPTIONS] blocks from AI messages and render as clickable buttons */
+function MessageContent({
+  content,
+  isLastAssistant,
+  onOptionClick,
+}: {
+  content: string;
+  isLastAssistant: boolean;
+  onOptionClick: (option: string) => void;
+}) {
+  // Check for [OPTIONS] block
+  const optionsMatch = content.match(/\[OPTIONS\]([\s\S]*?)\[\/OPTIONS\]/);
+
+  if (!optionsMatch) {
+    // Render markdown-like bold
+    const parts = content.split(/\*\*(.*?)\*\*/g);
+    return (
+      <p className="whitespace-pre-wrap">
+        {parts.map((part, i) =>
+          i % 2 === 1 ? (
+            <strong key={i} className="font-semibold text-black">
+              {part}
+            </strong>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </p>
+    );
+  }
+
+  // Split content into text before options and the options themselves
+  const textBefore = content.slice(0, optionsMatch.index).trim();
+  const textAfter = content
+    .slice((optionsMatch.index || 0) + optionsMatch[0].length)
+    .trim();
+  const optionsRaw = optionsMatch[1].trim();
+
+  // Parse options: each line starting with "- "
+  const options = optionsRaw
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .map((line) => {
+      const full = line.slice(2).trim();
+      const dashIdx = full.indexOf(" — ");
+      if (dashIdx > -1) {
+        return { label: full.slice(0, dashIdx), description: full.slice(dashIdx + 3) };
+      }
+      const dashIdx2 = full.indexOf(" - ");
+      if (dashIdx2 > -1) {
+        return { label: full.slice(0, dashIdx2), description: full.slice(dashIdx2 + 3) };
+      }
+      return { label: full, description: "" };
+    });
+
+  // Render bold in text
+  const renderText = (text: string) => {
+    const parts = text.split(/\*\*(.*?)\*\*/g);
+    return parts.map((part, i) =>
+      i % 2 === 1 ? (
+        <strong key={i} className="font-semibold text-black">
+          {part}
+        </strong>
+      ) : (
+        <span key={i}>{part}</span>
+      )
+    );
+  };
+
+  return (
+    <div>
+      {textBefore && <p className="whitespace-pre-wrap">{renderText(textBefore)}</p>}
+      {options.length > 0 && (
+        <div className="mt-3 flex flex-col gap-2">
+          {options.map((opt, i) => (
+            <button
+              key={i}
+              onClick={() => onOptionClick(opt.label)}
+              disabled={!isLastAssistant}
+              className={`group flex flex-col rounded-xl border px-4 py-3 text-left transition ${
+                isLastAssistant
+                  ? "border-gray-200 bg-white hover:border-black hover:bg-gray-50 cursor-pointer"
+                  : "border-gray-100 bg-gray-50 cursor-default opacity-60"
+              }`}
+            >
+              <span className="text-sm font-medium text-black">{opt.label}</span>
+              {opt.description && (
+                <span className="mt-0.5 text-xs text-gray-500">{opt.description}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+      {textAfter && (
+        <p className="mt-2 whitespace-pre-wrap">{renderText(textAfter)}</p>
+      )}
+    </div>
+  );
+}
+
 export function OnboardingPage({ onSpecCreated }: Props) {
   const { user, clearAuth } = useAuthStore();
   const isDev = user?.account_type === "developer";
@@ -294,9 +395,19 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setSelectedVersionSpec(null);
   };
 
+  const handleOptionSelect = (option: string) => {
+    setPrompt(option);
+    // Directly submit with the option text
+    submitMessage(option);
+  };
+
   const handleSubmit = async () => {
     if (!prompt.trim() || loading) return;
-    const userMsg = prompt.trim();
+    submitMessage(prompt.trim());
+  };
+
+  const submitMessage = async (userMsg: string) => {
+    if (!userMsg || loading) return;
     setPrompt("");
     setError(null);
 
@@ -530,9 +641,17 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             <p className="text-xs font-medium text-black">
               {msg.role === "user" ? "You" : selectedModel.label}
             </p>
-            <p className="mt-0.5 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-              {msg.content}
-            </p>
+            <div className="mt-0.5 text-sm leading-relaxed text-gray-700">
+              <MessageContent
+                content={msg.content}
+                isLastAssistant={msg.role === "assistant" && i === messages.length - 1}
+                onOptionClick={(option) => {
+                  if (!loading) {
+                    handleOptionSelect(option);
+                  }
+                }}
+              />
+            </div>
           </div>
         </div>
       ))}
