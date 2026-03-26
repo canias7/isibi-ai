@@ -246,6 +246,9 @@ async def api_chat(
             )
 
         except Exception as e:
+            import traceback
+            tb = traceback.format_exc()
+            print(f"BUILD ERROR: {e}\n{tb}", flush=True)
             return ChatResponse(
                 reply=f"I had everything planned out, but hit an error while building: {str(e)}\n\nPlease try again.",
                 ready_to_build=False,
