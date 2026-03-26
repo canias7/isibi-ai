@@ -1,0 +1,552 @@
+{
+  "_meta": {
+    "app_name": "Hiking Club",
+    "description": "Hiking Club management"
+  },
+  "entities": [
+    {
+      "name": "Member",
+      "table": "members",
+      "description": "Member",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "experience",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "beginner",
+            "intermediate",
+            "advanced",
+            "expert"
+          ],
+          "badge_colors": {
+            "beginner": "pink",
+            "intermediate": "blue",
+            "advanced": "green",
+            "expert": "amber"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "seasonal"
+          ],
+          "badge_colors": {
+            "active": "pink",
+            "seasonal": "blue"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "experience",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Members yet",
+            "subtext": "Add member",
+            "action_label": "Add Member"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "experience",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "experience",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/members/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "experience",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "experience",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Hike",
+      "table": "hikes",
+      "description": "Hike",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "trail",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "distance_mi",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "elevation_ft",
+          "db_type": "INTEGER",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "difficulty",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "easy",
+            "moderate",
+            "hard",
+            "strenuous"
+          ],
+          "badge_colors": {
+            "easy": "pink",
+            "moderate": "blue",
+            "hard": "green",
+            "strenuous": "amber"
+          }
+        },
+        {
+          "name": "leader",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "planned",
+            "open",
+            "full",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "planned": "pink",
+            "open": "blue",
+            "full": "green",
+            "completed": "amber",
+            "cancelled": "purple"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "trail",
+            "date",
+            "distance_mi",
+            "elevation_ft",
+            "difficulty",
+            "leader"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Hikes yet",
+            "subtext": "Add hike",
+            "action_label": "Add Hike"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "trail",
+            "date",
+            "distance_mi",
+            "elevation_ft",
+            "difficulty",
+            "leader",
+            "status"
+          ],
+          "required_fields": [
+            "trail",
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "trail",
+            "date",
+            "distance_mi",
+            "elevation_ft",
+            "difficulty",
+            "leader",
+            "status"
+          ],
+          "required_fields": [
+            "trail",
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/hikes/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "trail"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "trail",
+            "date",
+            "distance_mi",
+            "elevation_ft"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "trail",
+                "date",
+                "distance_mi",
+                "elevation_ft",
+                "difficulty",
+                "leader"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Members",
+      "route": "/members",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Box",
+      "entity": "Member"
+    },
+    {
+      "name": "Hikes",
+      "route": "/hikes",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Box",
+      "entity": "Hike"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total",
+        "entity": "Member",
+        "method": "count",
+        "icon": "Box",
+        "color": "pink"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

@@ -1,0 +1,495 @@
+{
+  "_meta": {
+    "app_name": "Handwriting Analysis",
+    "description": "Handwriting Analysis management"
+  },
+  "entities": [
+    {
+      "name": "Case",
+      "table": "cases",
+      "description": "Case",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "client",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "questioned_document",
+            "forgery",
+            "will",
+            "anonymous_letter",
+            "comparison"
+          ],
+          "badge_colors": {
+            "questioned_document": "pink",
+            "forgery": "blue",
+            "will": "green",
+            "anonymous_letter": "amber",
+            "comparison": "purple"
+          }
+        },
+        {
+          "name": "documents",
+          "db_type": "INTEGER",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "received",
+            "examining",
+            "analysis",
+            "report",
+            "testimony"
+          ],
+          "badge_colors": {
+            "received": "pink",
+            "examining": "blue",
+            "analysis": "green",
+            "report": "amber",
+            "testimony": "purple"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "client",
+            "type",
+            "documents",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Cases yet",
+            "subtext": "Add case",
+            "action_label": "Add Case"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client",
+            "type",
+            "documents",
+            "status"
+          ],
+          "required_fields": [
+            "client",
+            "type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "client",
+            "type",
+            "documents",
+            "status"
+          ],
+          "required_fields": [
+            "client",
+            "type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/cases/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "client"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "client",
+            "type",
+            "documents",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "client",
+                "type",
+                "documents",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Report",
+      "table": "reports",
+      "description": "Report",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "case_client",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "conclusion",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "authentic",
+            "forged",
+            "inconclusive"
+          ],
+          "badge_colors": {
+            "authentic": "pink",
+            "forged": "blue",
+            "inconclusive": "green"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "drafting",
+            "review",
+            "delivered"
+          ],
+          "badge_colors": {
+            "drafting": "pink",
+            "review": "blue",
+            "delivered": "green"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "case_client",
+            "conclusion",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Reports yet",
+            "subtext": "Add report",
+            "action_label": "Add Report"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_client",
+            "conclusion",
+            "status"
+          ],
+          "required_fields": [
+            "case_client",
+            "conclusion"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "case_client",
+            "conclusion",
+            "status"
+          ],
+          "required_fields": [
+            "case_client",
+            "conclusion"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/reports/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "case_client"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "case_client",
+            "conclusion",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "case_client",
+                "conclusion",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Cases",
+      "route": "/cases",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Box",
+      "entity": "Case"
+    },
+    {
+      "name": "Reports",
+      "route": "/reports",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Box",
+      "entity": "Report"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total",
+        "entity": "Case",
+        "method": "count",
+        "icon": "Box",
+        "color": "pink"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

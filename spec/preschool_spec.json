@@ -1,0 +1,527 @@
+{
+  "_meta": {
+    "app_name": "Preschool",
+    "description": "Preschool management"
+  },
+  "entities": [
+    {
+      "name": "Child",
+      "table": "children",
+      "description": "Child",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "dob",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "parent_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "parent_phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "classroom",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "enrolled",
+            "waitlist",
+            "graduated",
+            "withdrawn"
+          ],
+          "badge_colors": {
+            "enrolled": "pink",
+            "waitlist": "blue",
+            "graduated": "green",
+            "withdrawn": "amber"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "dob",
+            "parent_name",
+            "parent_phone",
+            "classroom",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Childs yet",
+            "subtext": "Add child",
+            "action_label": "Add Child"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "dob",
+            "parent_name",
+            "parent_phone",
+            "classroom",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "dob"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "dob",
+            "parent_name",
+            "parent_phone",
+            "classroom",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "dob"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/children/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "dob",
+            "parent_name",
+            "parent_phone"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "dob",
+                "parent_name",
+                "parent_phone",
+                "classroom",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Staff",
+      "table": "staff",
+      "description": "Staff",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "role",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "teacher",
+            "aide",
+            "director",
+            "admin"
+          ],
+          "badge_colors": {
+            "teacher": "pink",
+            "aide": "blue",
+            "director": "green",
+            "admin": "amber"
+          }
+        },
+        {
+          "name": "classroom",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "leave",
+            "terminated"
+          ],
+          "badge_colors": {
+            "active": "pink",
+            "leave": "blue",
+            "terminated": "green"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "role",
+            "classroom",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Staffs yet",
+            "subtext": "Add staff",
+            "action_label": "Add Staff"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "role",
+            "classroom",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "role"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "role",
+            "classroom",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "role"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/staff/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "role",
+            "classroom",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "role",
+                "classroom",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Childs",
+      "route": "/children",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Box",
+      "entity": "Child"
+    },
+    {
+      "name": "Staffs",
+      "route": "/staff",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Box",
+      "entity": "Staff"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total",
+        "entity": "Child",
+        "method": "count",
+        "icon": "Box",
+        "color": "pink"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

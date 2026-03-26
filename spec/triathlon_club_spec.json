@@ -1,0 +1,721 @@
+{
+  "_meta": {
+    "app_name": "Triathlon Club",
+    "description": "Triathlon Club management"
+  },
+  "entities": [
+    {
+      "name": "Member",
+      "table": "members",
+      "description": "Member",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "level",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "beginner",
+            "intermediate",
+            "advanced",
+            "elite"
+          ],
+          "badge_colors": {
+            "beginner": "pink",
+            "intermediate": "blue",
+            "advanced": "green",
+            "elite": "amber"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "injured",
+            "seasonal"
+          ],
+          "badge_colors": {
+            "active": "pink",
+            "injured": "blue",
+            "seasonal": "green"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "level",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Members yet",
+            "subtext": "Add member",
+            "action_label": "Add Member"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "level",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "level",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/members/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "level",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "level",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Training",
+      "table": "trainings",
+      "description": "Training",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "swim",
+            "bike",
+            "run",
+            "brick",
+            "strength"
+          ],
+          "badge_colors": {
+            "swim": "pink",
+            "bike": "blue",
+            "run": "green",
+            "brick": "amber",
+            "strength": "purple"
+          }
+        },
+        {
+          "name": "coach",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "location",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "date",
+            "type",
+            "coach",
+            "location"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Trainings yet",
+            "subtext": "Add training",
+            "action_label": "Add Training"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "date",
+            "type",
+            "coach",
+            "location"
+          ],
+          "required_fields": [
+            "date",
+            "type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "date",
+            "type",
+            "coach",
+            "location"
+          ],
+          "required_fields": [
+            "date",
+            "type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/trainings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "date"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "date",
+            "type",
+            "coach",
+            "location"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "date",
+                "type",
+                "coach",
+                "location"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Race",
+      "table": "races",
+      "description": "Race",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "distance",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "sprint",
+            "olympic",
+            "half_ironman",
+            "ironman"
+          ],
+          "badge_colors": {
+            "sprint": "pink",
+            "olympic": "blue",
+            "half_ironman": "green",
+            "ironman": "amber"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "registered",
+            "completed",
+            "dns",
+            "dnf"
+          ],
+          "badge_colors": {
+            "registered": "pink",
+            "completed": "blue",
+            "dns": "green",
+            "dnf": "amber"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "date",
+            "distance",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Races yet",
+            "subtext": "Add race",
+            "action_label": "Add Race"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "date",
+            "distance",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "date",
+            "distance",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/races/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "date",
+            "distance",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "date",
+                "distance",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Members",
+      "route": "/members",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Box",
+      "entity": "Member"
+    },
+    {
+      "name": "Trainings",
+      "route": "/trainings",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Box",
+      "entity": "Training"
+    },
+    {
+      "name": "Races",
+      "route": "/races",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 4,
+      "sidebar_icon": "Box",
+      "entity": "Race"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total",
+        "entity": "Member",
+        "method": "count",
+        "icon": "Box",
+        "color": "pink"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}

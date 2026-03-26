@@ -1,0 +1,573 @@
+{
+  "_meta": {
+    "app_name": "Estate Sale",
+    "description": "Estate Sale management"
+  },
+  "entities": [
+    {
+      "name": "Sale",
+      "table": "sales",
+      "description": "Sale",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "address",
+          "db_type": "VARCHAR(500) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "executor",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "sale_dates",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "items_count",
+          "db_type": "INTEGER",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total_revenue",
+          "db_type": "NUMERIC(14,2) DEFAULT 0",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "commission_pct",
+          "db_type": "NUMERIC(5,2)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "cataloging",
+            "pricing",
+            "advertising",
+            "day1",
+            "day2",
+            "cleanup",
+            "settled"
+          ],
+          "badge_colors": {
+            "cataloging": "pink",
+            "pricing": "blue",
+            "advertising": "green",
+            "day1": "amber",
+            "day2": "purple",
+            "cleanup": "red",
+            "settled": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "address",
+            "executor",
+            "sale_dates",
+            "items_count",
+            "total_revenue",
+            "commission_pct"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Sales yet",
+            "subtext": "Add sale",
+            "action_label": "Add Sale"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "address",
+            "executor",
+            "sale_dates",
+            "items_count",
+            "total_revenue",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "address",
+            "executor"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "address",
+            "executor",
+            "sale_dates",
+            "items_count",
+            "total_revenue",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "address",
+            "executor"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/sales/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "address"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "address",
+            "executor",
+            "sale_dates",
+            "items_count"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "address",
+                "executor",
+                "sale_dates",
+                "items_count",
+                "total_revenue",
+                "commission_pct"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Item",
+      "table": "items",
+      "description": "Item",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "sale_address",
+          "db_type": "VARCHAR(500)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text"
+        },
+        {
+          "name": "category",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "furniture",
+            "art",
+            "jewelry",
+            "china",
+            "tools",
+            "electronics",
+            "clothing",
+            "books",
+            "kitchen",
+            "collectible"
+          ],
+          "badge_colors": {
+            "furniture": "pink",
+            "art": "blue",
+            "jewelry": "green",
+            "china": "amber",
+            "tools": "purple",
+            "electronics": "red",
+            "clothing": "slate",
+            "books": "pink",
+            "kitchen": "blue",
+            "collectible": "green"
+          }
+        },
+        {
+          "name": "price",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "priced",
+            "sold",
+            "donated",
+            "unsold"
+          ],
+          "badge_colors": {
+            "priced": "pink",
+            "sold": "blue",
+            "donated": "green",
+            "unsold": "amber"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "sale_address",
+            "category",
+            "price",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Items yet",
+            "subtext": "Add item",
+            "action_label": "Add Item"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "sale_address",
+            "description",
+            "category",
+            "price",
+            "status"
+          ],
+          "required_fields": [
+            "sale_address",
+            "description"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "sale_address",
+            "description",
+            "category",
+            "price",
+            "status"
+          ],
+          "required_fields": [
+            "sale_address",
+            "description"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/items/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "sale_address"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "sale_address",
+            "category",
+            "price",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "sale_address",
+                "category",
+                "price",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "modules": [
+    {
+      "name": "Dashboard",
+      "route": "/dashboard",
+      "component": "DashboardPage",
+      "layout": "app",
+      "sidebar_order": 1,
+      "sidebar_icon": "LayoutDashboard"
+    },
+    {
+      "name": "Sales",
+      "route": "/sales",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Box",
+      "entity": "Sale"
+    },
+    {
+      "name": "Items",
+      "route": "/items",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "Box",
+      "entity": "Item"
+    }
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total",
+        "entity": "Sale",
+        "method": "count",
+        "icon": "Box",
+        "color": "pink"
+      }
+    ]
+  },
+  "design_system": {
+    "theme": "light",
+    "colors": {
+      "primary": "#ec4899",
+      "secondary": "#64748b",
+      "background": "#ffffff",
+      "surface": "#f8fafc",
+      "text": "#0f172a",
+      "muted": "#94a3b8"
+    },
+    "spacing": {
+      "page_padding": "24px",
+      "card_padding": "16px",
+      "gap": "16px"
+    },
+    "buttons": {
+      "primary": {
+        "bg": "bg-pink-500",
+        "text": "text-white",
+        "hover": "hover:bg-pink-600"
+      }
+    },
+    "table": {
+      "header_bg": "bg-gray-50",
+      "row_hover": "hover:bg-gray-50",
+      "border": "border-gray-200"
+    },
+    "typography": {
+      "heading": "text-gray-900 font-semibold",
+      "body": "text-gray-700",
+      "muted": "text-gray-400"
+    }
+  },
+  "pagination": {
+    "type": "cursor",
+    "default_page_size": 25,
+    "max_page_size": 100
+  }
+}
