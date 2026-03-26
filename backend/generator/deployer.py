@@ -1689,6 +1689,98 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
   font-weight:500;color:var(--primary);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;
   background:var(--primary-light);padding:2px 6px;border-radius:4px;
 }}
+
+/* ── Group-By / Pivot Table ── */
+.group-by-bar {{
+  display:flex;align-items:center;gap:8px;padding:8px 0;font-size:13px;color:var(--text-secondary);
+}}
+.group-by-bar select {{
+  padding:5px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;
+  background:var(--bg-card);color:var(--text);font-family:inherit;cursor:pointer;outline:none;
+}}
+.group-by-bar select:focus {{ border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light); }}
+.group-by-bar .clear-group {{
+  font-size:12px;color:var(--primary);cursor:pointer;border:none;background:none;font-family:inherit;
+  text-decoration:underline;padding:0;
+}}
+.group-section {{ margin-bottom:4px; }}
+.group-header {{
+  display:flex;align-items:center;gap:8px;padding:10px 14px;
+  background:var(--bg);border:1px solid var(--border-light);border-radius:var(--radius-sm);
+  cursor:pointer;font-size:13px;font-weight:600;color:var(--text);user-select:none;
+  transition:background var(--transition);
+}}
+.group-header:hover {{ background:var(--border-light); }}
+.group-header .group-chevron {{
+  transition:transform var(--transition);width:16px;height:16px;flex-shrink:0;
+}}
+.group-header .group-chevron.collapsed {{ transform:rotate(-90deg); }}
+.group-header .group-count {{
+  font-weight:400;color:var(--text-muted);font-size:12px;
+}}
+.group-header .group-aggregates {{
+  margin-left:auto;font-weight:400;color:var(--text-secondary);font-size:12px;
+  display:flex;gap:12px;
+}}
+.group-header .group-aggregates span {{ white-space:nowrap; }}
+.group-body {{ overflow:hidden;transition:max-height 0.25s ease; }}
+.group-body.collapsed {{ max-height:0 !important;overflow:hidden; }}
+
+/* ── Inline Editing ── */
+.inline-edit-cell {{
+  position:relative;
+}}
+.inline-edit-cell input,
+.inline-edit-cell select {{
+  width:100%;padding:4px 8px;border:2px solid var(--info);border-radius:var(--radius-sm);
+  font-size:13px;font-family:inherit;color:var(--text);background:var(--bg-card);outline:none;
+  box-shadow:0 0 0 3px rgba(59,130,246,0.15);
+}}
+.inline-save-check {{
+  position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  color:var(--success);font-size:16px;opacity:0;transition:opacity 0.3s ease;
+  pointer-events:none;
+}}
+.inline-save-check.show {{
+  opacity:1;
+  animation:inlineCheckPop 0.5s ease;
+}}
+@keyframes inlineCheckPop {{
+  0% {{ transform:translateY(-50%) scale(0.5);opacity:0; }}
+  50% {{ transform:translateY(-50%) scale(1.2);opacity:1; }}
+  100% {{ transform:translateY(-50%) scale(1);opacity:1; }}
+}}
+
+/* ── Row Coloring Rules ── */
+tr.row-overdue {{ background:rgba(239,68,68,0.06) !important; }}
+tr.row-success {{ background:rgba(16,185,129,0.06) !important; }}
+tr.row-cancelled {{ background:rgba(239,68,68,0.06) !important; }}
+tr.row-cancelled td:nth-child(2) {{ text-decoration:line-through;color:var(--text-muted); }}
+tr.row-urgent {{ background:rgba(245,158,11,0.08) !important; }}
+
+/* ── Rich Text Toolbar ── */
+.rt-toolbar {{
+  display:flex;gap:2px;padding:4px 6px;background:var(--bg);
+  border:1px solid var(--border);border-bottom:none;border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+}}
+.rt-toolbar button {{
+  width:28px;height:28px;border:none;background:none;cursor:pointer;border-radius:4px;
+  display:inline-flex;align-items:center;justify-content:center;color:var(--text-secondary);
+  font-size:13px;font-weight:700;font-family:inherit;transition:all var(--transition);
+}}
+.rt-toolbar button:hover {{ background:var(--border-light);color:var(--text); }}
+.rt-toolbar button.active {{ background:var(--primary-light);color:var(--primary); }}
+.rt-editable {{
+  min-height:80px;padding:10px 14px;border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);
+  font-size:14px;color:var(--text);background:var(--bg-card);outline:none;font-family:inherit;
+  line-height:1.6;overflow-y:auto;max-height:200px;
+  transition:border-color var(--transition), box-shadow var(--transition);
+}}
+.rt-editable:focus {{
+  border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);
+}}
+.rt-editable ul, .rt-editable ol {{ margin:4px 0 4px 20px; }}
+.rt-editable b, .rt-editable strong {{ font-weight:600; }}
 </style>
 </head>
 <body>
@@ -2749,6 +2841,22 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       '<span class="sort-icon">&#x25B4;&#x25BE;</span></th>'
     ).join('') + '<th style="text-align:right;cursor:default">Actions</th>';
 
+    // Build Group By dropdown with enum fields
+    const enumFields = fields.filter(f => f.enum_values && f.enum_values.length > 0 &&
+      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name));
+    let groupByHtml = '';
+    if (enumFields.length > 0) {{
+      const currentGroupBy = groupByState[moduleName] || "";
+      const groupOpts = '<option value="">No grouping</option>' + enumFields.map(f =>
+        '<option value="' + f.name + '"' + (f.name === currentGroupBy ? ' selected' : '') + '>' + escHtml(f.name.replace(/_/g, " ")) + '</option>'
+      ).join('');
+      groupByHtml = '<div class="group-by-bar">' +
+        '<span>Group by:</span>' +
+        '<select onchange="setGroupBy(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\',this.value)">' + groupOpts + '</select>' +
+        (currentGroupBy ? '<button class="clear-group" onclick="setGroupBy(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\',\\'\\')">Clear grouping</button>' : '') +
+      '</div>';
+    }}
+
     const html =
       '<div class="table-container">' +
         '<div class="table-toolbar">' +
@@ -2758,7 +2866,8 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
           '</div>' +
           tabsHtml +
         '</div>' +
-        '<div style="overflow-x:auto"><table>' +
+        groupByHtml +
+        '<div style="overflow-x:auto"><table id="table-' + moduleName + '">' +
           '<thead><tr>' + headers + '</tr></thead>' +
           '<tbody id="tbody-' + moduleName + '"></tbody>' +
         '</table></div>' +
@@ -2853,8 +2962,10 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
     // Detect name-like field for avatar
     const nameFieldIdx = visibleFields.findIndex(f => /^(name|full_name|client_name|customer_name|contact_name|user_name|title)$/i.test(f.name));
 
-    tbody.innerHTML = pageRows.map(row => {{
+    // Helper to build a single row's HTML
+    function buildRowHtml(row) {{
       const rowId = row.id || row.ID || "";
+      const rowColorClass = getRowColorClass(row, fields);
       const cells = visibleFields.map((f, idx) => {{
         let val = row[f.name] ?? "";
 
@@ -2870,42 +2981,131 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
           val = getFkDisplayName(relEntity, val);
         }}
 
+        // Inline edit handler attribute (double-click) for editable fields
+        const canEdit = !NON_EDITABLE_FIELDS.includes(f.name) && !f.computed && !relEntity;
+        const dblClick = canEdit ? ' ondblclick="startInlineEdit(\'' + escHtml(entity) + '\',\'' + rowId + '\',\'' + f.name + '\',this,event)"' : '';
+
         // Status badge for enum fields
         if (f.enum_values && f.enum_values.length) {{
           const badgeClass = getBadgeClass(String(val));
-          return '<td><span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(val)) + '</span></td>';
+          return '<td' + dblClick + '><span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(val)) + '</span></td>';
         }}
 
         // Avatar for name fields
         if (idx === nameFieldIdx && val) {{
           const initials = String(val).split(/\\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2);
           const avatarColor = stringToColor(String(val));
-          return '<td><div class="cell-with-avatar"><div class="avatar" style="background:' + avatarColor + '">' + escHtml(initials) + '</div><span>' + escHtml(String(val)) + '</span></div></td>';
+          return '<td' + dblClick + '><div class="cell-with-avatar"><div class="avatar" style="background:' + avatarColor + '">' + escHtml(initials) + '</div><span>' + escHtml(String(val)) + '</span></div></td>';
         }}
 
-        // Currency formatting
-        if (/amount|value|price|cost|revenue|total|salary|fee|budget/i.test(f.name) && val !== "") {{
-          const num = parseFloat(val);
-          return '<td>' + (isNaN(num) ? escHtml(String(val)) : '$' + num.toLocaleString(undefined, {{minimumFractionDigits: 2, maximumFractionDigits: 2}})) + '</td>';
+        // Rich text fields — strip HTML and truncate
+        if (isRichTextField(f.name) && val) {{
+          const plainText = truncateText(stripHtml(String(val)), 50);
+          return '<td' + dblClick + '>' + escHtml(plainText) + '</td>';
+        }}
+
+        // Custom number formatting via formatValue
+        const formatted = formatValue(val, f.name, f.type);
+        if (formatted !== String(val) && formatted !== "") {{
+          return '<td' + dblClick + '>' + escHtml(formatted) + '</td>';
         }}
 
         // Boolean
         if (f.type === "boolean" || val === true || val === false) {{
-          return '<td>' + (val && val !== "false" ? '<span style="color:var(--success)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>') + '</td>';
+          return '<td' + dblClick + '>' + (val && val !== "false" ? '<span style="color:var(--success)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>') + '</td>';
         }}
 
-        return '<td>' + escHtml(String(val)) + '</td>';
+        return '<td' + dblClick + '>' + escHtml(String(val)) + '</td>';
       }}).join("");
 
       const isChecked = bulkSelected[entity] && bulkSelected[entity].has(String(rowId));
-      return '<tr onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')" data-id="' + rowId + '"' + (isChecked ? ' class="bulk-selected"' : '') + '>' +
+      const trClasses = [rowColorClass, isChecked ? "bulk-selected" : ""].filter(Boolean).join(" ");
+      return '<tr onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')" data-id="' + rowId + '"' + (trClasses ? ' class="' + trClasses + '"' : '') + '>' +
         '<td onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" ' + (isChecked ? 'checked' : '') + ' onchange="bulkToggleRow(\'' + escHtml(entity) + '\',\'' + rowId + '\',\'' + escHtml(currentModule) + '\',this.checked)"></td>' +
         cells +
         '<td style="text-align:right" onclick="event.stopPropagation()">' +
           '<button class="btn btn-ghost btn-sm" onclick="openEdit(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
           '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteRecord(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
         '</td></tr>';
-    }}).join("");
+    }}
+
+    // Check if we are in group-by mode
+    const groupField = groupByState[moduleName] || "";
+    if (groupField) {{
+      // Group rows by the selected field
+      const groups = {{}};
+      const groupOrder = [];
+      pageRows.forEach(row => {{
+        const gVal = String(row[groupField] || "(empty)");
+        if (!groups[gVal]) {{ groups[gVal] = []; groupOrder.push(gVal); }}
+        groups[gVal].push(row);
+      }});
+
+      // Find numeric fields for aggregation
+      const numericFields = visibleFields.filter(f =>
+        f.type === "number" || f.type === "integer" || f.type === "float" || f.type === "decimal" ||
+        /amount|value|price|cost|revenue|total|salary|fee|budget|quantity|count/i.test(f.name)
+      );
+
+      let groupedHtml = '';
+      groupOrder.forEach(gVal => {{
+        const gRows = groups[gVal];
+        const gKey = moduleName + ":" + gVal;
+        const isCollapsed = groupCollapsed[gKey] || false;
+
+        // Compute aggregates for numeric fields
+        let aggHtml = '';
+        if (numericFields.length > 0) {{
+          const aggs = numericFields.map(nf => {{
+            const vals = gRows.map(r => parseFloat(r[nf.name])).filter(v => !isNaN(v));
+            if (vals.length === 0) return '';
+            const sum = vals.reduce((a, b) => a + b, 0);
+            const avg = sum / vals.length;
+            const formatted = formatValue(sum, nf.name, nf.type);
+            const label = nf.name.replace(/_/g, " ");
+            return '<span>' + escHtml(label) + ': ' + escHtml(formatted !== String(sum) ? formatted : '$' + sum.toLocaleString(undefined, {{maximumFractionDigits:2}})) + '</span>';
+          }}).filter(Boolean).join('');
+          if (aggs) aggHtml = '<div class="group-aggregates">' + aggs + '</div>';
+        }}
+
+        groupedHtml += '<div class="group-section">' +
+          '<div class="group-header" onclick="toggleGroupCollapse(\'' + escHtml(gKey) + '\')">' +
+            '<svg class="group-chevron' + (isCollapsed ? ' collapsed' : '') + '" data-chevron-key="' + escHtml(gKey) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
+            '<span>' + escHtml(gVal) + '</span>' +
+            '<span class="group-count">(' + gRows.length + ')</span>' +
+            aggHtml +
+          '</div>' +
+          '<div class="group-body' + (isCollapsed ? ' collapsed' : '') + '" data-group-key="' + escHtml(gKey) + '">' +
+            gRows.map(buildRowHtml).join('') +
+          '</div>' +
+        '</div>';
+      }});
+
+      // Wrap grouped sections inside a container — we use tbody innerHTML with a special structure
+      // Since tbody can only contain tr elements, we'll use the table parent container
+      const tableEl = document.getElementById("table-" + moduleName);
+      if (tableEl) {{
+        // Hide thead and tbody, inject grouped view after the table
+        tbody.innerHTML = '';
+        let groupContainer = document.getElementById("group-container-" + moduleName);
+        if (!groupContainer) {{
+          groupContainer = document.createElement("div");
+          groupContainer.id = "group-container-" + moduleName;
+          tableEl.parentElement.insertBefore(groupContainer, tableEl.nextSibling);
+        }}
+        tableEl.style.display = "none";
+        groupContainer.innerHTML = groupedHtml;
+      }}
+    }} else {{
+      // Normal (non-grouped) table rendering
+      // Restore table visibility if it was hidden by grouping
+      const tableEl = document.getElementById("table-" + moduleName);
+      if (tableEl) tableEl.style.display = "";
+      const groupContainer = document.getElementById("group-container-" + moduleName);
+      if (groupContainer) groupContainer.innerHTML = "";
+
+      tbody.innerHTML = pageRows.map(buildRowHtml).join("");
+    }}
 
     // Footer with pagination
     if (footer) {{
@@ -3013,13 +3213,15 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       if (f.enum_values && f.enum_values.length) {{
         const badgeClass = getBadgeClass(String(val));
         displayVal = '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(val)) + '</span>';
-      }} else if (/amount|value|price|cost|revenue|total|salary|fee|budget/i.test(f.name) && val !== "") {{
-        const num = parseFloat(val);
-        displayVal = isNaN(num) ? escHtml(String(val)) : '$' + num.toLocaleString(undefined, {{minimumFractionDigits: 2, maximumFractionDigits: 2}});
       }} else if (f.type === "boolean" || val === true || val === false) {{
         displayVal = val && val !== "false" ? '<span style="color:var(--success)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>';
+      }} else if (isRichTextField(f.name) && val && (String(val).includes("<") || String(val).includes("&lt;"))) {{
+        // Rich text field: render HTML content directly in detail view
+        displayVal = '<div style="line-height:1.6">' + String(val) + '</div>';
       }} else {{
-        displayVal = escHtml(String(val));
+        // Use formatValue for custom number/phone formatting
+        const formatted = formatValue(val, f.name, f.type);
+        displayVal = escHtml(formatted);
       }}
 
       detailHtml += '<div class="detail-field"><div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + fxBadge + '</div><div class="detail-field-value">' + displayVal + '</div></div>';
@@ -3174,6 +3376,12 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
   function getFormData() {{
     const body = document.getElementById("modal-body");
     if (!body) return {{}};
+    // Sync rich text contenteditable divs to their hidden inputs
+    body.querySelectorAll(".rt-editable").forEach(div => {{
+      const fieldName = div.dataset.rtField;
+      const hidden = body.querySelector('input[name="' + fieldName + '"]');
+      if (hidden) hidden.value = div.innerHTML;
+    }});
     const inputs = body.querySelectorAll("input, select, textarea");
     const data = {{}};
     inputs.forEach(inp => {{
@@ -3288,9 +3496,13 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
         return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><div class="form-check"><input type="checkbox" name="' + f.name + '"' + checked + '><label>' + label + '</label></div></div>';
       }}
 
-      // Textarea for description/notes/body
+      // Rich text / Textarea for description/notes/body
       if (/description|notes|body|comment|content|message|details|summary|bio|about/i.test(f.name)) {{
-        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><textarea name="' + f.name + '" placeholder="Enter ' + label.toLowerCase() + '...">' + escHtml(String(val)) + '</textarea><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
+        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label>' +
+          buildRichTextToolbar() +
+          '<div class="rt-editable" contenteditable="true" data-rt-field="' + f.name + '" data-placeholder="Enter ' + label.toLowerCase() + '...">' + (val ? String(val) : '') + '</div>' +
+          '<input type="hidden" name="' + f.name + '" value="' + escHtml(String(val)) + '">' +
+          '<div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
       }}
 
       // Input type mapping
@@ -3348,12 +3560,34 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
 
     // Initial apply of visibility and computed fields
     applyFormRules();
+
+    // Attach rich text keyboard shortcuts and sync to hidden inputs
+    body.querySelectorAll(".rt-editable").forEach(div => {{
+      div.addEventListener("keydown", function(e) {{
+        if (e.ctrlKey || e.metaKey) {{
+          if (e.key === "b") {{ e.preventDefault(); document.execCommand("bold", false, null); }}
+          if (e.key === "i") {{ e.preventDefault(); document.execCommand("italic", false, null); }}
+        }}
+      }});
+      div.addEventListener("input", function() {{
+        const fieldName = div.dataset.rtField;
+        const hidden = body.querySelector('input[name="' + fieldName + '"]');
+        if (hidden) hidden.value = div.innerHTML;
+        applyFormRules();
+      }});
+    }});
   }}
 
   // ── Save record ──
   window.saveRecord = async function() {{
     if (!currentEntity) return;
     const body = document.getElementById("modal-body");
+    // Sync rich text contenteditable divs to their hidden inputs before collecting data
+    body.querySelectorAll(".rt-editable").forEach(div => {{
+      const fieldName = div.dataset.rtField;
+      const hidden = body.querySelector('input[name="' + fieldName + '"]');
+      if (hidden) hidden.value = div.innerHTML;
+    }});
     const inputs = body.querySelectorAll("input, select, textarea");
     const record = {{}};
     inputs.forEach(inp => {{
@@ -4216,6 +4450,214 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
         }}).join("");
       }}
     }}
+  }}
+
+  // ── Feature: Custom Number Formatting ──
+  function formatValue(value, fieldName, dbType) {{
+    if (value === null || value === undefined || value === "") return "";
+    const fn = fieldName.toLowerCase();
+    // Currency fields
+    if (/price|amount|cost|revenue|total|fee|salary|budget/.test(fn) && !(/percent|pct/.test(fn))) {{
+      const num = parseFloat(value);
+      if (!isNaN(num)) return "$" + num.toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}});
+    }}
+    // Percentage fields (rate that is not price-related)
+    if ((/percent|pct/.test(fn)) || (/rate/.test(fn) && !/price|amount|cost|revenue|total|fee|salary|budget/.test(fn))) {{
+      const num = parseFloat(value);
+      if (!isNaN(num)) return num.toLocaleString(undefined, {{minimumFractionDigits:1, maximumFractionDigits:1}}) + "%";
+    }}
+    // Count / quantity fields
+    if (/count|quantity|stock|units/.test(fn)) {{
+      const num = parseFloat(value);
+      if (!isNaN(num)) return Math.round(num).toLocaleString();
+    }}
+    // Phone formatting
+    if (/phone/.test(fn)) {{
+      const digits = String(value).replace(/\\D/g, "");
+      if (digits.length === 10) return "(" + digits.slice(0,3) + ") " + digits.slice(3,6) + "-" + digits.slice(6);
+      if (digits.length === 11 && digits[0] === "1") return "(" + digits.slice(1,4) + ") " + digits.slice(4,7) + "-" + digits.slice(7);
+    }}
+    return String(value);
+  }}
+
+  // ── Feature: Row Coloring Rules ──
+  function getRowColorClass(row, fields) {{
+    const classes = [];
+    // Check for date fields — overdue detection
+    for (const f of fields) {{
+      if (/date|_at$|deadline|due/i.test(f.name) && !/(created|updated|deleted)_at/i.test(f.name)) {{
+        const val = row[f.name];
+        if (val) {{
+          const d = new Date(val);
+          if (!isNaN(d) && d < new Date()) classes.push("row-overdue");
+        }}
+      }}
+    }}
+    // Check for status/enum fields
+    for (const f of fields) {{
+      if (f.enum_values && f.enum_values.length) {{
+        const val = String(row[f.name] || "").toLowerCase();
+        if (["completed","done","closed","paid","delivered","resolved"].includes(val)) {{
+          // Success overrides overdue
+          const idx = classes.indexOf("row-overdue");
+          if (idx > -1) classes.splice(idx, 1);
+          classes.push("row-success");
+        }}
+        if (["cancelled","failed","rejected","lost"].includes(val)) {{
+          const idx = classes.indexOf("row-overdue");
+          if (idx > -1) classes.splice(idx, 1);
+          classes.push("row-cancelled");
+        }}
+        if (["urgent","critical","high","emergency"].includes(val)) {{
+          if (!classes.includes("row-success") && !classes.includes("row-cancelled")) {{
+            classes.push("row-urgent");
+          }}
+        }}
+      }}
+    }}
+    return classes.join(" ");
+  }}
+
+  // ── Feature: Inline Editing ──
+  const NON_EDITABLE_FIELDS = ["id","created_at","updated_at","org_id","deleted_at","version"];
+
+  window.startInlineEdit = function(entity, rowId, fieldName, cell, evt) {{
+    if (evt) evt.stopPropagation();
+    if (NON_EDITABLE_FIELDS.includes(fieldName)) return;
+    if (cell.querySelector("input, select")) return; // already editing
+
+    const fields = ENTITY_FIELDS[entity] || [];
+    const fieldDef = fields.find(f => f.name === fieldName);
+    if (!fieldDef) return;
+    if (fieldDef.computed) return;
+
+    const rows = dataCache[entity] || [];
+    const record = rows.find(r => String(r.id || r.ID) === String(rowId));
+    if (!record) return;
+
+    const currentVal = record[fieldName] ?? "";
+    const originalHtml = cell.innerHTML;
+    cell.classList.add("inline-edit-cell");
+
+    let inputHtml;
+    if (fieldDef.enum_values && fieldDef.enum_values.length) {{
+      const opts = fieldDef.enum_values.map(v =>
+        '<option value="' + escHtml(v) + '"' + (v === String(currentVal) ? ' selected' : '') + '>' + escHtml(v) + '</option>'
+      ).join("");
+      inputHtml = '<select class="inline-input">' + opts + '</select>';
+    }} else if (fieldDef.type === "boolean") {{
+      inputHtml = '<select class="inline-input"><option value="true"' + (currentVal ? ' selected' : '') + '>Yes</option><option value="false"' + (!currentVal ? ' selected' : '') + '>No</option></select>';
+    }} else {{
+      let inputType = "text";
+      if (/amount|value|price|cost|revenue|total|salary|fee|budget|quantity|count|number|age|score|rating/i.test(fieldName) || fieldDef.type === "number" || fieldDef.type === "integer" || fieldDef.type === "float") inputType = "number";
+      else if (/date|_at$/i.test(fieldName)) inputType = "date";
+      inputHtml = '<input type="' + inputType + '" class="inline-input" value="' + escHtml(String(currentVal)) + '">';
+    }}
+    inputHtml += '<span class="inline-save-check">&#x2713;</span>';
+    cell.innerHTML = inputHtml;
+
+    const inp = cell.querySelector(".inline-input");
+    inp.focus();
+    if (inp.tagName === "INPUT") inp.select();
+
+    function cancelEdit() {{
+      cell.innerHTML = originalHtml;
+      cell.classList.remove("inline-edit-cell");
+    }}
+
+    async function saveEdit() {{
+      let newVal = inp.value;
+      if (fieldDef.type === "boolean") newVal = newVal === "true";
+      else if (inp.type === "number" && newVal !== "") newVal = Number(newVal);
+
+      if (newVal === currentVal || (newVal === "" && currentVal === "")) {{
+        cancelEdit();
+        return;
+      }}
+
+      const patch = {{}};
+      patch[fieldName] = newVal;
+      const result = await apiUpdate(entity.toLowerCase(), rowId, patch);
+      if (result) {{
+        // Update cache
+        const cached = (dataCache[entity] || []).find(r => String(r.id || r.ID) === String(rowId));
+        if (cached) cached[fieldName] = newVal;
+        // Show checkmark animation
+        const check = cell.querySelector(".inline-save-check");
+        if (check) {{
+          check.classList.add("show");
+          setTimeout(() => {{
+            renderTableRows(entity, currentModule);
+          }}, 600);
+        }}
+      }} else {{
+        cancelEdit();
+      }}
+    }}
+
+    inp.addEventListener("keydown", function(e) {{
+      if (e.key === "Enter") {{ e.preventDefault(); saveEdit(); }}
+      if (e.key === "Escape") {{ e.preventDefault(); cancelEdit(); }}
+    }});
+    inp.addEventListener("blur", function() {{
+      // Slight delay to allow click events on the check icon
+      setTimeout(() => {{
+        if (cell.querySelector(".inline-input")) saveEdit();
+      }}, 150);
+    }});
+  }};
+
+  // ── Feature: Pivot Table / Group-By View ──
+  const groupByState = {{}};  // moduleName -> fieldName or ""
+  let groupCollapsed = {{}};  // "moduleName:groupValue" -> boolean
+
+  window.setGroupBy = function(moduleName, entity, fieldName) {{
+    groupByState[moduleName] = fieldName;
+    groupCollapsed = {{}};
+    pageState[moduleName] = 1;
+    renderTableRows(entity, moduleName);
+  }};
+
+  window.toggleGroupCollapse = function(key) {{
+    groupCollapsed[key] = !groupCollapsed[key];
+    const body = document.querySelector('[data-group-key="' + key + '"]');
+    const chevron = document.querySelector('[data-chevron-key="' + key + '"]');
+    if (body) body.classList.toggle("collapsed", groupCollapsed[key]);
+    if (chevron) chevron.classList.toggle("collapsed", groupCollapsed[key]);
+  }};
+
+  // ── Feature: Rich Text Fields ──
+  function stripHtml(html) {{
+    if (!html) return "";
+    const tmp = document.createElement("div");
+    tmp.innerHTML = html;
+    return (tmp.textContent || tmp.innerText || "").trim();
+  }}
+
+  function truncateText(text, maxLen) {{
+    if (!text || text.length <= maxLen) return text || "";
+    return text.substring(0, maxLen) + "...";
+  }}
+
+  window.rtExec = function(cmd, val) {{
+    document.execCommand(cmd, false, val || null);
+  }};
+
+  window.rtInsertList = function(type) {{
+    document.execCommand(type === "ol" ? "insertOrderedList" : "insertUnorderedList", false, null);
+  }};
+
+  function buildRichTextToolbar() {{
+    return '<div class="rt-toolbar">' +
+      '<button type="button" title="Bold (Ctrl+B)" onmousedown="event.preventDefault();rtExec(\'bold\')"><b>B</b></button>' +
+      '<button type="button" title="Italic (Ctrl+I)" onmousedown="event.preventDefault();rtExec(\'italic\')"><i>I</i></button>' +
+      '<button type="button" title="Bullet List" onmousedown="event.preventDefault();rtInsertList(\'ul\')">&#x2022;</button>' +
+      '<button type="button" title="Numbered List" onmousedown="event.preventDefault();rtInsertList(\'ol\')">1.</button>' +
+    '</div>';
+  }}
+
+  function isRichTextField(fieldName) {{
+    return /description|notes|body|comment|content|message|details|summary|bio|about/i.test(fieldName);
   }}
 
   // ── Init ──

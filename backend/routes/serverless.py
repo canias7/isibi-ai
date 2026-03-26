@@ -46,6 +46,9 @@ class FunctionUpdateBody(BaseModel):
 class InvokeBody(BaseModel):
     input: Optional[dict] = None
 
+    class Config:
+        extra = "allow"  # Accept any additional JSON fields
+
 
 def _serialize(f: ServerlessFunction) -> dict:
     return {
@@ -205,26 +208,63 @@ async def invoke_function(
     if not func_obj.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Function is not active")
 
-    # In production, this would execute the code in a sandboxed environment.
-    # For now, we record the invocation and return a placeholder result.
+    # Build the full input payload (body.input + any extra fields)
+    invoke_input = body.input or {}
+    if hasattr(body, "model_extra") and body.model_extra:
+        invoke_input = {**invoke_input, **body.model_extra}
+
+    # Execute the function code in a sandboxed restricted environment
+    exec_output = None
+    exec_error = None
+    try:
+        # Restricted builtins — no file I/O, no imports, no eval/exec nesting
+        safe_builtins = {
+            "abs": abs, "all": all, "any": any, "bool": bool,
+            "dict": dict, "enumerate": enumerate, "filter": filter,
+            "float": float, "int": int, "isinstance": isinstance,
+            "len": len, "list": list, "map": map, "max": max,
+            "min": min, "print": print, "range": range, "round": round,
+            "set": set, "sorted": sorted, "str": str, "sum": sum,
+            "tuple": tuple, "type": type, "zip": zip,
+            "True": True, "False": False, "None": None,
+        }
+        sandbox_globals = {"__builtins__": safe_builtins}
+        sandbox_locals = {"input_data": invoke_input, "result": None}
+
+        # Execute the stored code (Python runtime)
+        exec(func_obj.code, sandbox_globals, sandbox_locals)
+
+        # If the code defines a handler(input_data) function, call it
+        if "handler" in sandbox_locals and callable(sandbox_locals["handler"]):
+            exec_output = sandbox_locals["handler"](invoke_input)
+        elif sandbox_locals.get("result") is not None:
+            exec_output = sandbox_locals["result"]
+        else:
+            exec_output = {"status": "executed", "message": "Function executed (no handler or result found)"}
+    except Exception as e:
+        exec_error = str(e)
+
     func_obj.last_invoked_at = datetime.utcnow()
     func_obj.invoke_count = (func_obj.invoke_count or 0) + 1
 
     await db.commit()
     await db.refresh(func_obj)
 
-    return {
+    response = {
         "function_id": str(func_obj.id),
         "function_name": func_obj.name,
         "runtime": func_obj.runtime,
         "invoke_count": func_obj.invoke_count,
         "invoked_at": func_obj.last_invoked_at.isoformat() if func_obj.last_invoked_at else None,
-        "input": body.input,
-        "output": {
-            "status": "executed",
-            "message": f"Function '{func_obj.name}' invoked successfully. Sandboxed execution pending runtime setup.",
-        },
+        "input": invoke_input,
     }
+
+    if exec_error:
+        response["output"] = {"status": "error", "error": exec_error}
+    else:
+        response["output"] = exec_output
+
+    return response
 
 
 @router.get("/{project_id}/functions/{func_id}/logs")

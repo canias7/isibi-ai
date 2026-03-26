@@ -74,6 +74,13 @@ from models.app_record_comment import AppRecordComment  # noqa: F401
 from models.app_record_file import AppRecordFile  # noqa: F401
 from models.marketplace_template import MarketplaceTemplate, MarketplaceRating  # noqa: F401
 from models.app_embed import AppEmbed  # noqa: F401
+from models.app_auto_assign_rule import AppAutoAssignRule  # noqa: F401
+from models.app_deadline_reminder import AppDeadlineReminder  # noqa: F401
+from models.app_status_rule import AppStatusRule  # noqa: F401
+from models.app_duplicate_rule import AppDuplicateRule  # noqa: F401
+from models.app_message import AppMessage  # noqa: F401
+from models.app_email import AppEmail  # noqa: F401
+from models.app_snapshot import AppSnapshot  # noqa: F401
 
 # Import embeds public router (no auth, mounted without /api prefix)
 from routes.app_embeds import public_router as app_embeds_public_router
@@ -84,6 +91,14 @@ from routes.app_import_wizard import router as app_import_wizard_router
 from routes.app_activity_log import router as app_activity_log_router
 from routes.app_record_comments import router as app_record_comments_router
 from routes.app_record_files import router as app_record_files_router
+from routes.app_auto_assign import router as app_auto_assign_router
+from routes.app_deadline_reminders import router as app_deadline_reminders_router
+from routes.app_status_rules import router as app_status_rules_router
+from routes.app_duplicate_detection import router as app_duplicate_detection_router
+from routes.app_messaging import router as app_messaging_router
+from routes.app_email_inbox import router as app_email_inbox_router
+from routes.app_snapshots import router as app_snapshots_router
+from routes.app_ui_language import router as app_ui_language_router
 
 
 @asynccontextmanager
@@ -168,6 +183,14 @@ app.include_router(app_import_wizard_router, prefix="/api")
 app.include_router(app_activity_log_router, prefix="/api")
 app.include_router(app_record_comments_router, prefix="/api")
 app.include_router(app_record_files_router, prefix="/api")
+app.include_router(app_auto_assign_router, prefix="/api")
+app.include_router(app_deadline_reminders_router, prefix="/api")
+app.include_router(app_status_rules_router, prefix="/api")
+app.include_router(app_duplicate_detection_router, prefix="/api")
+app.include_router(app_messaging_router, prefix="/api")
+app.include_router(app_email_inbox_router, prefix="/api")
+app.include_router(app_snapshots_router, prefix="/api")
+app.include_router(app_ui_language_router, prefix="/api")
 
 # Register embeddable widgets public router (serves JS at /embed/{id}.js, no auth)
 app.include_router(app_embeds_public_router)
