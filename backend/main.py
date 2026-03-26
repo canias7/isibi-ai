@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import os
 
@@ -13,6 +15,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+from starlette.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request as StarletteRequest
+from fastapi import Path as FastAPIPath
+from fastapi.responses import HTMLResponse
 from db import engine, Base, async_session
 from routes import all_routers
 
@@ -200,9 +207,6 @@ app.add_middleware(
 
 # ── Custom Domain Middleware ──
 # Resolves custom domains via the Host header and serves the matching project
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request as StarletteRequest
-
 
 class CustomDomainMiddleware(BaseHTTPMiddleware):
     """If the Host header matches a registered custom domain, serve that project's HTML."""
@@ -332,10 +336,7 @@ async def health():
 
 # ── Serve deployed apps via path-based routing ──
 # /live/{project_id} serves the generated app's index.html
-from fastapi import Path as FastAPIPath
-from fastapi.responses import HTMLResponse
 from generator.deployer import BUILDS_DIR
-
 
 import json as _json
 from sqlalchemy import select as sa_select
@@ -443,7 +444,6 @@ async def serve_icon(project_id: str):
 # ── Serve embeddable apps via iframe-friendly route ──
 # /embed/{project_id} serves the deployed app without X-Frame-Options
 # and includes a postMessage API for cross-origin communication.
-from starlette.responses import Response
 
 
 @app.get("/embed/{project_id}", response_class=HTMLResponse)

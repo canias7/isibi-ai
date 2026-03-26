@@ -52,6 +52,17 @@ from .app_goal import AppGoal
 from .app_funnel import AppFunnel
 from .app_dashboard_widget import AppDashboardWidget
 from .app_session import AppSession
+from .app_email_trigger import AppEmailTrigger
+from .app_scheduled_report import AppScheduledReport
+from .app_webhook_trigger import AppWebhookTrigger
+from .app_auto_assign_rule import AppAutoAssignRule
+from .app_deadline_reminder import AppDeadlineReminder
+from .app_status_rule import AppStatusRule
+from .app_duplicate_rule import AppDuplicateRule
+from .app_message import AppMessage
+from .app_email import AppEmail
+from .app_snapshot import AppSnapshot
+from .sso_config import SSOConfig
 
 __all__ = [
     "Lead", "Task", "Deal", "User", "Conversation", "PipelineStage",
@@ -73,4 +84,9 @@ __all__ = [
     "AppIntegration",
     "AppCustomReport", "AppGoal", "AppFunnel",
     "AppDashboardWidget", "AppSession",
+    "AppEmailTrigger", "AppScheduledReport", "AppWebhookTrigger",
+    "AppAutoAssignRule", "AppDeadlineReminder",
+    "AppStatusRule", "AppDuplicateRule",
+    "AppMessage", "AppEmail", "AppSnapshot",
+    "SSOConfig",
 ]
