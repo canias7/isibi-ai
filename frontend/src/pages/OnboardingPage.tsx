@@ -87,10 +87,10 @@ interface ChatSession {
 }
 
 const MODELS = [
-  { id: "anias-1.0", label: "Anias 1.0", description: "Software builder" },
-  { id: "ambar-1.0", label: "Ambar 1.0", description: "Website builder" },
-  { id: "mario-1.0", label: "Mario 1.0", description: "App builder" },
-  { id: "claw-1.0", label: "Claw 1.0", description: "Agent builder" },
+  { id: "anias-1.0", label: "Anias 1.0", description: "Software builder", active: true },
+  { id: "ambar-1.0", label: "Ambar 1.0", description: "Website builder", active: false },
+  { id: "mario-1.0", label: "Mario 1.0", description: "App builder", active: false },
+  { id: "claw-1.0", label: "Claw 1.0", description: "Agent builder", active: false },
 ];
 
 type View = "chat" | "marketplace" | "projects" | "myapps" | "templates" | "docs" | "history" | "mylistings";
@@ -1589,18 +1589,30 @@ npx electron .`;
                       <button
                         key={model.id}
                         onClick={() => {
+                          if (!model.active) return;
                           setSelectedModel(model);
                           setModelOpen(false);
                         }}
-                        className="flex w-full items-center justify-between px-3 py-2.5 text-left transition hover:bg-gray-50"
+                        disabled={!model.active}
+                        className={`flex w-full items-center justify-between px-3 py-2.5 text-left transition ${
+                          model.active
+                            ? "hover:bg-gray-50 cursor-pointer"
+                            : "opacity-50 cursor-not-allowed"
+                        }`}
                       >
                         <div>
                           <p className="text-sm font-medium text-black">{model.label}</p>
-                          <p className="text-xs text-gray-400">{model.description}</p>
+                          <p className="text-xs text-gray-400">
+                            {model.active ? model.description : "Coming soon"}
+                          </p>
                         </div>
-                        {selectedModel.id === model.id && (
+                        {model.active && selectedModel.id === model.id ? (
                           <Check className="h-4 w-4 shrink-0 text-black" />
-                        )}
+                        ) : !model.active ? (
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[9px] font-medium text-gray-400">
+                            SOON
+                          </span>
+                        ) : null}
                       </button>
                     ))}
                   </div>
