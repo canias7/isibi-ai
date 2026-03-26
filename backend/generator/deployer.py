@@ -3462,10 +3462,16 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       state.asc = true;
     }}
     sortState[moduleName] = state;
-    // Update header styling
+    // Update header styling and sort arrow
     const table = thEl.closest("table");
-    table.querySelectorAll("th").forEach(th => th.classList.remove("sorted"));
+    table.querySelectorAll("th").forEach(th => {{
+      th.classList.remove("sorted");
+      const icon = th.querySelector(".sort-icon");
+      if (icon) icon.innerHTML = "\\u25B4\\u25BE";
+    }});
     thEl.classList.add("sorted");
+    const sortIcon = thEl.querySelector(".sort-icon");
+    if (sortIcon) sortIcon.innerHTML = state.asc ? "\\u25B2" : "\\u25BC";
     pageState[moduleName] = 1;
     renderTableRows(entity, moduleName);
   }};
@@ -3865,7 +3871,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
       // Rich text / Textarea for description/notes/body
       if (/description|notes|body|comment|content|message|details|summary|bio|about/i.test(f.name)) {{
-        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label>' +
+        return divider + '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label>' +
           buildRichTextToolbar() +
           '<div class="rt-editable" contenteditable="true" data-rt-field="' + f.name + '" data-placeholder="Enter ' + label.toLowerCase() + '...">' + (val ? String(val) : '') + '</div>' +
           '<input type="hidden" name="' + f.name + '" value="' + escHtml(String(val)) + '">' +
@@ -3883,7 +3889,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       let step = '';
       if (type === "number" && /amount|value|price|cost|revenue|total|salary|fee|budget/i.test(f.name)) step = ' step="0.01"';
 
-      return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><input type="' + type + '" name="' + f.name + '" value="' + escHtml(String(val)) + '" placeholder="Enter ' + label.toLowerCase() + '..."' + step + (f.required ? ' required' : '') + '><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
+      return divider + '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><input type="' + type + '" name="' + f.name + '" value="' + escHtml(String(val)) + '" placeholder="Enter ' + label.toLowerCase() + '..."' + step + (f.required ? ' required' : '') + '><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
     }}).join("");
 
     // Attach change/input listeners for visibility, computed fields, and validation
