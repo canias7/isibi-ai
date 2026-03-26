@@ -37,6 +37,7 @@ import {
   Sun,
   Moon,
   Keyboard,
+  Trash2,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -450,11 +451,10 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setSelectedVersionSpec(null);
   };
 
-  const loadChat = (session: ChatSession) => {
+  const loadChat = async (session: ChatSession) => {
     saveCurrentChat();
     setMessages(session.messages);
     setActiveChatId(session.id);
-    setBuiltSpec(session.spec || null);
     setBuiltProjectId(session.projectId || null);
     setDeployUrl(session.deployUrl || null);
     setDeploying(false);
@@ -464,6 +464,57 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setPreviewTab("preview");
     setVersions([]);
     setSelectedVersionSpec(null);
+
+    // If session has a spec already, use it
+    if (session.spec) {
+      setBuiltSpec(session.spec);
+    } else if (session.projectId) {
+      // Fetch full project from API to get the spec
+      setBuiltSpec(null);
+      try {
+        const project = await get<{ spec: any; status: string }>(`/projects/${session.projectId}`);
+        if (project?.spec) {
+          setBuiltSpec(project.spec);
+          // Update session with fetched spec
+          setChatSessions((prev) =>
+            prev.map((s) => (s.id === session.id ? { ...s, spec: project.spec } : s))
+          );
+        }
+      } catch {
+        // Project might have been deleted
+      }
+    } else {
+      setBuiltSpec(null);
+    }
+  };
+
+  const deleteProject = async (sessionId: string, projectId: string | null) => {
+    // Remove from local state
+    setChatSessions((prev) => prev.filter((s) => s.id !== sessionId));
+
+    // If it has a project ID, delete from server too
+    if (projectId) {
+      try {
+        await post(`/projects/${projectId}/delete`, {});
+      } catch {
+        // Try DELETE method
+        try {
+          const { del } = await import("@/api/client");
+          await del(`/projects/${projectId}`);
+        } catch {
+          // Ignore — already removed from UI
+        }
+      }
+    }
+
+    // If we just deleted the active chat, reset
+    if (activeChatId === sessionId) {
+      setMessages([]);
+      setActiveChatId(null);
+      setBuiltSpec(null);
+      setBuiltProjectId(null);
+      setDeployUrl(null);
+    }
   };
 
   const handleOptionSelect = (option: string) => {
@@ -1232,51 +1283,56 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     const timeAgo = getTimeAgo(date);
 
                     return (
-                      <button
+                      <div
                         key={session.id}
-                        onClick={() => loadChat(session)}
-                        className={`flex w-full items-start gap-4 rounded-xl border bg-white px-4 py-3.5 text-left transition hover:shadow-sm ${
+                        className={`group flex w-full items-start gap-4 rounded-xl border bg-white px-4 py-3.5 text-left transition hover:shadow-sm ${
                           activeChatId === session.id
                             ? "border-black shadow-sm"
                             : "border-gray-200 hover:border-gray-300"
                         }`}
                       >
-                        {/* Icon */}
-                        <div
-                          className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
-                            isBuilt ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
-                          }`}
+                        {/* Click area to open project */}
+                        <button
+                          onClick={() => loadChat(session)}
+                          className="flex min-w-0 flex-1 items-start gap-4"
                         >
-                          {isBuilt ? (
-                            <Check className="h-4 w-4" />
-                          ) : (
-                            <MessageSquare className="h-4 w-4" />
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-black">
-                            {session.title}
-                          </p>
-                          <div className="mt-1 flex items-center gap-2">
-                            <span className="text-[11px] text-gray-400">
-                              {modelInfo?.label || session.model}
-                            </span>
-                            <span className="text-[11px] text-gray-300">·</span>
-                            <span className="text-[11px] text-gray-400">{timeAgo}</span>
-                            <span className="text-[11px] text-gray-300">·</span>
-                            <span className="text-[11px] text-gray-400">
-                              {session.messages.length} messages
-                            </span>
+                          {/* Icon */}
+                          <div
+                            className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                              isBuilt ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-400"
+                            }`}
+                          >
+                            {isBuilt ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <MessageSquare className="h-4 w-4" />
+                            )}
                           </div>
-                        </div>
 
-                        {/* Status badges */}
-                        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
+                          {/* Info */}
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-black">
+                              {session.title}
+                            </p>
+                            <div className="mt-1 flex items-center gap-2">
+                              <span className="text-[11px] text-gray-400">
+                                {modelInfo?.label || session.model}
+                              </span>
+                              <span className="text-[11px] text-gray-300">·</span>
+                              <span className="text-[11px] text-gray-400">{timeAgo}</span>
+                              <span className="text-[11px] text-gray-300">·</span>
+                              <span className="text-[11px] text-gray-400">
+                                {session.messages.length} messages
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+
+                        {/* Status + Delete */}
+                        <div className="flex shrink-0 items-center gap-2 pt-0.5">
                           {isDeployed && (
                             <span className="rounded-full bg-green-50 px-2 py-0.5 text-[10px] font-medium text-green-700">
-                              Live
+                              Listed
                             </span>
                           )}
                           {isBuilt && !isDeployed && (
@@ -1289,8 +1345,20 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                               In Progress
                             </span>
                           )}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm("Delete this project? This cannot be undone.")) {
+                                deleteProject(session.id, session.projectId);
+                              }
+                            }}
+                            className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
+                            title="Delete project"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
                         </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
