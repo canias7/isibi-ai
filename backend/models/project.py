@@ -9,8 +9,12 @@ The spec JSON is stored in the database and served to the frontend via GET /api/
 import uuid
 from datetime import datetime
 
+from typing import Optional
+
 from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID as pgUUID, JSONB
+from sqlalchemy.orm import Mapped
+
 from db import Base
 
 
@@ -35,6 +39,9 @@ class Project(Base):
 
     # Build output path (where the generated backend code lives)
     build_path = Column(String(500), nullable=True)
+
+    # GitHub repo URL (set after export)
+    github_repo: Mapped[Optional[str]] = Column(String(500), nullable=True)
 
     # Conversation history for multi-turn refinement
     conversation_history = Column(JSONB, nullable=True, default=list)

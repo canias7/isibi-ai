@@ -60,3 +60,23 @@ for router in all_routers:
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+# ── Serve deployed apps via path-based routing ──
+# /live/{project_id} serves the generated app's index.html
+from fastapi import Path as FastAPIPath
+from fastapi.responses import HTMLResponse
+from generator.deployer import BUILDS_DIR
+
+
+@app.get("/live/{project_id}", response_class=HTMLResponse)
+async def serve_live_app(project_id: str):
+    """Serve a deployed app's generated HTML."""
+    build_path = BUILDS_DIR / project_id / "index.html"
+    if not build_path.exists():
+        return HTMLResponse(
+            content="<html><body><h1>App not found</h1>"
+            "<p>This app has not been deployed yet.</p></body></html>",
+            status_code=404,
+        )
+    return HTMLResponse(content=build_path.read_text(encoding="utf-8"))

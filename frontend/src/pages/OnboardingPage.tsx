@@ -28,6 +28,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Download,
+  History,
+  Upload,
+  RotateCcw,
+  Eye,
+  Rocket,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -112,10 +117,31 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // Preview state
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [previewTab, setPreviewTab] = useState<"preview" | "code">("preview");
+  const [previewTab, setPreviewTab] = useState<"preview" | "code" | "history">("preview");
   const [chatPanelOpen, setChatPanelOpen] = useState(true);
   const [builtSpec, setBuiltSpec] = useState<any>(null);
   const [builtProjectId, setBuiltProjectId] = useState<string | null>(null);
+
+  // Deploy state
+  const [deploying, setDeploying] = useState(false);
+  const [deployUrl, setDeployUrl] = useState<string | null>(null);
+
+  // Version history state
+  const [versions, setVersions] = useState<Array<{
+    id: string;
+    version_number: number;
+    change_description: string | null;
+    created_at: string;
+  }>>([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
+  const [selectedVersionSpec, setSelectedVersionSpec] = useState<any>(null);
+  const [restoringVersionId, setRestoringVersionId] = useState<string | null>(null);
+
+  // GitHub export modal state
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportRepoName, setExportRepoName] = useState("");
+  const [exportLoading, setExportLoading] = useState(false);
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
   const hasStartedChat = messages.length > 0 && activeView === "chat";
 
@@ -240,6 +266,95 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       setError(detail);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ─── Version history handlers ───
+  const loadVersions = async () => {
+    if (!builtProjectId) return;
+    setVersionsLoading(true);
+    try {
+      const data = await get<Array<{
+        id: string;
+        version_number: number;
+        change_description: string | null;
+        created_at: string;
+      }>>(`/projects/${builtProjectId}/versions`);
+      setVersions(data || []);
+    } catch {
+      setVersions([]);
+    } finally {
+      setVersionsLoading(false);
+    }
+  };
+
+  const previewVersion = async (versionId: string) => {
+    if (!builtProjectId) return;
+    try {
+      const data = await get<{ spec_snapshot: any }>(
+        `/projects/${builtProjectId}/versions/${versionId}`
+      );
+      if (data?.spec_snapshot) {
+        setSelectedVersionSpec(data.spec_snapshot);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const restoreVersion = async (versionId: string) => {
+    if (!builtProjectId) return;
+    setRestoringVersionId(versionId);
+    try {
+      await post(`/projects/${builtProjectId}/versions/${versionId}/restore`, {});
+      const project = await get<{ spec: any }>(`/projects/${builtProjectId}`);
+      if (project?.spec) {
+        setBuiltSpec(project.spec);
+        setSelectedVersionSpec(null);
+      }
+      await loadVersions();
+    } catch {
+      // ignore
+    } finally {
+      setRestoringVersionId(null);
+    }
+  };
+
+  // ─── GitHub export handler ───
+  const handleExport = async () => {
+    if (!builtProjectId || !exportRepoName.trim()) return;
+    setExportLoading(true);
+    setExportSuccess(null);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_API_URL || "/api"}/projects/${builtProjectId}/export/github`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ repo_name: exportRepoName.trim() }),
+        }
+      );
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${exportRepoName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setExportSuccess(exportRepoName.trim());
+      setTimeout(() => {
+        setExportModalOpen(false);
+        setExportSuccess(null);
+        setExportRepoName("");
+      }, 2000);
+    } catch {
+      setExportSuccess(null);
+    } finally {
+      setExportLoading(false);
     }
   };
 
@@ -389,6 +504,28 @@ npx electron .`;
     });
   };
 
+  const handleDeploy = async () => {
+    if (!builtProjectId || deploying) return;
+    setDeploying(true);
+    setDeployUrl(null);
+    try {
+      const res = await post<{ url: string; status: string }>(
+        `/projects/${builtProjectId}/deploy`,
+        {}
+      );
+      if (res?.url) {
+        const fullUrl = res.url.startsWith("http")
+          ? res.url
+          : `${window.location.origin}${res.url}`;
+        setDeployUrl(fullUrl);
+      }
+    } catch (err: any) {
+      setError(err?.detail || "Deploy failed. Please try again.");
+    } finally {
+      setDeploying(false);
+    }
+  };
+
   const previewPanel = (
     <div className="flex flex-1 flex-col overflow-hidden bg-gray-50">
       {/* Preview toolbar */}
@@ -413,6 +550,22 @@ npx electron .`;
               Code
             </span>
           </button>
+          {builtProjectId && (
+            <button
+              onClick={() => {
+                setPreviewTab("history");
+                loadVersions();
+              }}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                previewTab === "history" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <History className="h-3 w-3" />
+                History
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -452,6 +605,48 @@ npx electron .`;
             >
               <Download className="h-3.5 w-3.5" />
               Download
+            </button>
+          )}
+          {builtSpec && builtProjectId && isDev && (
+            <>
+              <button
+                onClick={handleDeploy}
+                disabled={deploying}
+                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Deploy to live URL"
+              >
+                {deploying ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Rocket className="h-3.5 w-3.5" />
+                )}
+                {deploying ? "Deploying..." : "Deploy"}
+              </button>
+              {deployUrl && (
+                <a
+                  href={deployUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 rounded-lg bg-green-50 border border-green-200 px-2.5 py-1.5 text-[11px] font-medium text-green-700 transition hover:bg-green-100"
+                  title="Open deployed app"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Live
+                </a>
+              )}
+            </>
+          )}
+          {builtSpec && builtProjectId && isDev && (
+            <button
+              onClick={() => {
+                setExportRepoName(builtSpec?.app_name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "my-app");
+                setExportModalOpen(true);
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2.5 py-1.5 text-[11px] font-medium text-black transition hover:bg-gray-50"
+              title="Export as GitHub project"
+            >
+              <Upload className="h-3.5 w-3.5" />
+              Export
             </button>
           )}
         </div>
@@ -523,8 +718,146 @@ npx electron .`;
               </code>
             </pre>
           </div>
-        )}
+        ) : previewTab === "history" ? (
+          <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-white p-4">
+            <h3 className="mb-4 text-sm font-semibold text-black">Version History</h3>
+            {versionsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+              </div>
+            ) : versions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <History className="mb-3 h-8 w-8 text-gray-300" />
+                <p className="text-sm text-gray-500">No versions yet</p>
+                <p className="mt-1 text-xs text-gray-400">
+                  Versions are created each time your spec is generated or refined.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {versions.map((v) => (
+                  <div
+                    key={v.id}
+                    className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">
+                          v{v.version_number}
+                        </span>
+                        <span className="truncate text-xs font-medium text-black">
+                          {v.change_description || `Version ${v.version_number}`}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-gray-400">
+                        {new Date(v.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="ml-2 flex items-center gap-1">
+                      <button
+                        onClick={() => previewVersion(v.id)}
+                        className="rounded-md p-1.5 text-gray-400 transition hover:bg-gray-200 hover:text-black"
+                        title="Preview this version"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => restoreVersion(v.id)}
+                        disabled={restoringVersionId === v.id}
+                        className="rounded-md p-1.5 text-gray-400 transition hover:bg-gray-200 hover:text-black disabled:opacity-50"
+                        title="Restore this version"
+                      >
+                        {restoringVersionId === v.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {selectedVersionSpec && (
+              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-medium text-blue-700">Version Preview</p>
+                  <button
+                    onClick={() => setSelectedVersionSpec(null)}
+                    className="text-blue-400 hover:text-blue-600"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <pre className="max-h-60 overflow-auto rounded bg-white p-2 text-[11px] text-gray-700">
+                  {JSON.stringify(selectedVersionSpec, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
+
+      {/* Export Modal */}
+      {exportModalOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-[360px] rounded-xl border border-gray-200 bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-black">Export Project</h3>
+              <button
+                onClick={() => {
+                  setExportModalOpen(false);
+                  setExportSuccess(null);
+                  setExportRepoName("");
+                }}
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-black"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            {exportSuccess ? (
+              <div className="rounded-lg bg-green-50 p-3 text-center">
+                <Check className="mx-auto mb-2 h-6 w-6 text-green-500" />
+                <p className="text-sm font-medium text-green-700">Downloaded!</p>
+                <p className="mt-1 text-xs text-green-600">{exportSuccess}.zip</p>
+              </div>
+            ) : (
+              <>
+                <div className="mb-4">
+                  <label className="mb-1.5 block text-xs font-medium text-gray-600">
+                    Project name
+                  </label>
+                  <input
+                    type="text"
+                    value={exportRepoName}
+                    onChange={(e) => setExportRepoName(e.target.value)}
+                    placeholder="my-app"
+                    className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") handleExport();
+                    }}
+                  />
+                  <p className="mt-1 text-[11px] text-gray-400">
+                    Downloads the full generated codebase as a zip file.
+                  </p>
+                </div>
+                <button
+                  onClick={handleExport}
+                  disabled={!exportRepoName.trim() || exportLoading}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {exportLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {exportLoading ? "Exporting..." : "Export & Download"}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 

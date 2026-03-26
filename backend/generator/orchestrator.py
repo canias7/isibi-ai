@@ -18,16 +18,21 @@ The user can then refine:
 
 import os
 import json
+import logging
 from uuid import UUID
 from datetime import datetime
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
+
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from db import DATABASE_URL
 from models.project import Project
 from .ai_generator import generate_spec, refine_spec
 from .builder import build_backend
+from .app_db import create_app_schema, drop_app_schema
 
 # Where generated projects are stored on disk
 PROJECTS_DIR = os.getenv(
@@ -77,6 +82,19 @@ async def create_project(
         build_dir = os.path.join(PROJECTS_DIR, str(project.id), "backend")
         build_backend(spec, build_dir)
         project.build_path = build_dir
+
+        # 4b. Create isolated database schema + tables for the app
+        try:
+            app_schema = await create_app_schema(
+                project_id=str(project.id),
+                spec=spec,
+                db_url=DATABASE_URL,
+            )
+            spec.setdefault("_meta", {})
+            spec["_meta"]["db_schema"] = app_schema
+        except Exception as schema_err:
+            logger.warning("Schema creation failed for project %s: %s", project.id, schema_err)
+            # Non-fatal: the app can still work, schema can be retried later
 
         # 5. Also save spec.json for the frontend to load
         spec_dir = os.path.join(PROJECTS_DIR, str(project.id))
@@ -136,6 +154,21 @@ async def refine_project(
         # Rebuild backend
         build_dir = os.path.join(PROJECTS_DIR, str(project.id), "backend")
         build_backend(updated_spec, build_dir)
+
+        # Recreate database schema (drop + create to reflect entity changes)
+        try:
+            from .app_db import get_schema_name
+            old_schema = get_schema_name(str(project.id))
+            await drop_app_schema(old_schema, DATABASE_URL)
+            app_schema = await create_app_schema(
+                project_id=str(project.id),
+                spec=updated_spec,
+                db_url=DATABASE_URL,
+            )
+            updated_spec.setdefault("_meta", {})
+            updated_spec["_meta"]["db_schema"] = app_schema
+        except Exception as schema_err:
+            logger.warning("Schema recreation failed for project %s: %s", project.id, schema_err)
 
         # Update spec.json
         spec_dir = os.path.join(PROJECTS_DIR, str(project.id))
