@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
-from db import engine, Base
+from db import engine, Base, async_session
 from routes import all_routers
 
 # Import all models so Base.metadata knows every table
@@ -141,44 +141,65 @@ from fastapi.responses import HTMLResponse
 from generator.deployer import BUILDS_DIR
 
 
+import json as _json
+from sqlalchemy import select as sa_select
+from models.project import Project as ProjectModel
+
+
+async def _get_build_data(project_id: str) -> dict | None:
+    """Get build data from DB (stored in build_path as JSON)."""
+    async with async_session() as session:
+        result = await session.execute(
+            sa_select(ProjectModel.build_path).where(
+                ProjectModel.id == project_id,
+                ProjectModel.status == "deployed",
+                ProjectModel.deleted_at.is_(None),
+            )
+        )
+        row = result.scalar_one_or_none()
+        if not row:
+            return None
+        try:
+            return _json.loads(row)
+        except (TypeError, _json.JSONDecodeError):
+            return None
+
+
 @app.get("/live/{project_id}", response_class=HTMLResponse)
 async def serve_live_app(project_id: str):
-    """Serve a deployed app's generated HTML."""
-    build_path = BUILDS_DIR / project_id / "index.html"
-    if not build_path.exists():
+    """Serve a deployed app's generated HTML from DB."""
+    data = await _get_build_data(project_id)
+    if not data or "index_html" not in data:
         return HTMLResponse(
-            content="<html><body><h1>App not found</h1>"
-            "<p>This app has not been deployed yet.</p></body></html>",
+            content="<html><body style='font-family:system-ui;display:flex;align-items:center;justify-content:center;height:100vh;margin:0'>"
+            "<div style='text-align:center'><h2>App not found</h2><p style='color:#888'>This app has not been deployed yet.</p></div></body></html>",
             status_code=404,
         )
-    return HTMLResponse(content=build_path.read_text(encoding="utf-8"))
+    return HTMLResponse(content=data["index_html"])
 
 
 @app.get("/live/{project_id}/manifest.json")
 async def serve_manifest(project_id: str):
-    """Serve PWA manifest for a deployed app."""
-    manifest_path = BUILDS_DIR / project_id / "manifest.json"
-    if not manifest_path.exists():
+    data = await _get_build_data(project_id)
+    if not data or "manifest_json" not in data:
         return Response(content="{}", media_type="application/json", status_code=404)
-    return Response(content=manifest_path.read_text(encoding="utf-8"), media_type="application/manifest+json")
+    return Response(content=data["manifest_json"], media_type="application/manifest+json")
 
 
 @app.get("/live/{project_id}/sw.js")
 async def serve_sw(project_id: str):
-    """Serve PWA service worker for a deployed app."""
-    sw_path = BUILDS_DIR / project_id / "sw.js"
-    if not sw_path.exists():
+    data = await _get_build_data(project_id)
+    if not data or "sw_js" not in data:
         return Response(content="", media_type="application/javascript", status_code=404)
-    return Response(content=sw_path.read_text(encoding="utf-8"), media_type="application/javascript")
+    return Response(content=data["sw_js"], media_type="application/javascript")
 
 
 @app.get("/live/{project_id}/icon.svg")
 async def serve_icon(project_id: str):
-    """Serve PWA icon for a deployed app."""
-    icon_path = BUILDS_DIR / project_id / "icon.svg"
-    if not icon_path.exists():
+    data = await _get_build_data(project_id)
+    if not data or "icon_svg" not in data:
         return Response(content="", media_type="image/svg+xml", status_code=404)
-    return Response(content=icon_path.read_text(encoding="utf-8"), media_type="image/svg+xml")
+    return Response(content=data["icon_svg"], media_type="image/svg+xml")
 
 
 # ── Serve embeddable apps via iframe-friendly route ──

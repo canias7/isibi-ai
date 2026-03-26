@@ -803,9 +803,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   // Resolve live URL to the correct backend domain
   const resolveAppUrl = (url: string) => {
     if (url.startsWith("http")) return url;
-    // API base from env or default
-    const apiBase = (import.meta as any).env?.VITE_API_URL?.replace("/api", "") || "https://api.isibi.ai";
-    return `${apiBase}${url}`;
+    return `https://api.isibi.ai${url}`;
   };
 
   const handleDownloadApp = async () => {

@@ -95,13 +95,22 @@ self.addEventListener('fetch', (e) => {
     else:
         deploy_url = f"/live/{project_id}"
 
-    # Update project status in DB
+    # Store build artifacts in the spec metadata so they survive Render restarts
+    import json as _json
+    build_data = {
+        "index_html": html_content,
+        "manifest_json": _json.dumps(manifest, indent=2),
+        "sw_js": sw_content.strip(),
+        "icon_svg": icon_svg,
+    }
+
+    # Update project status + store build in DB
     await db.execute(
         update(Project)
         .where(Project.id == uuid.UUID(str(project_id)))
         .values(
             status="deployed",
-            build_path=str(index_path),
+            build_path=_json.dumps(build_data),
             updated_at=datetime.utcnow(),
         )
     )
@@ -111,7 +120,6 @@ self.addEventListener('fetch', (e) => {
         "project_id": str(project_id),
         "status": "deployed",
         "url": deploy_url,
-        "build_path": str(index_path),
     }
 
 
