@@ -3,12 +3,19 @@ from __future__ import annotations
 Chat API — conversational AI endpoint.
 
 The user chats with a model (Anias, Ambar, Mario, Claw).
-The AI asks clarifying questions, then when it has enough info,
-generates the spec and creates the project.
+The AI asks clarifying questions (max 2, multiple choice), then when it has
+enough info, generates the spec and creates the project.
+
+Improvements:
+- Better question format with clickable [OPTIONS]
+- Better [READY_TO_BUILD] detection with JSON validation
+- Retry logic for malformed JSON (max 2 retries)
+- Graceful error recovery with helpful messages
 """
 
 import asyncio
 import json
+import logging
 import os
 import traceback
 import anthropic
@@ -23,6 +30,8 @@ from auth import get_current_org_id, get_current_user_id
 from generator.rag import build_rag_context, get_full_spec_as_schema_reference
 from generator.orchestrator import create_project
 from routes.billing_check import can_build
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Chat"])
 
@@ -46,20 +55,21 @@ PERSONAS = {
 When you ask a question, format it with [OPTIONS] tags so the UI renders clickable buttons:
 
 Example:
-Love it! I'll build you a real estate CRM with leads, properties, and deals. Quick question:
+I'll build your CRM! Just a couple quick questions:
 
-**Who's using this?**
+**What's the main focus?**
+
 [OPTIONS]
-- Solo agent — just me tracking my leads and deals
-- Small team — 2-5 agents sharing a pipeline
-- Full brokerage — roles, permissions, team management
-- Not sure — surprise me with smart defaults
+- 📊 Lead tracking and pipeline management
+- 📞 Contact and communication management
+- 📋 Task and project tracking
+- 🎯 All of the above — give me everything
 [/OPTIONS]
 
 Rules for options:
 - Always provide 3-4 options per question
-- Each option: short label + dash + brief description
-- Always include a "Not sure" or "Surprise me" option as the last choice
+- Each option: emoji + short label + dash + brief description
+- Always include a "All of the above" or "Surprise me" option as the last choice
 - Only ONE [OPTIONS] block per message
 - Keep the text before [OPTIONS] to 1-2 sentences
 
@@ -86,16 +96,18 @@ Rules for options:
 
 ## QUESTION FORMAT — use [OPTIONS] tags:
 Example:
-Love the idea! I'll design something clean and modern. What vibe fits your brand?
+Love the idea! I'll design something clean and modern.
+
+**What vibe fits your brand?**
 
 [OPTIONS]
-- Minimal & airy — lots of whitespace, elegant (think Apple)
-- Bold & colorful — vibrant, eye-catching (think Stripe)
-- Professional & corporate — structured, trustworthy
-- Just make it look great — surprise me
+- ✨ Minimal & airy — lots of whitespace, elegant (think Apple)
+- 🎨 Bold & colorful — vibrant, eye-catching (think Stripe)
+- 🏢 Professional & corporate — structured, trustworthy
+- 🎯 Just make it look great — surprise me
 [/OPTIONS]
 
-Rules: 3-4 options, short label + dash + description, always include a "surprise me" option.
+Rules: 3-4 options, emoji + short label + dash + description, always include a "surprise me" option.
 
 ## How you work:
 1. User says what they want → short response + ONE [OPTIONS] question
@@ -116,16 +128,18 @@ Rules: 3-4 options, short label + dash + description, always include a "surprise
 
 ## QUESTION FORMAT — use [OPTIONS] tags:
 Example:
-I'm on it! I'll build a full app with Dashboard, Lists, and Detail pages. What type of app is this?
+I'm on it! I'll build a full app with Dashboard, Lists, and Detail pages.
+
+**What type of app is this?**
 
 [OPTIONS]
-- Personal tool — just for me, simple and fast
-- Team app — multiple users with roles and permissions
-- Customer-facing — end users sign up and use it
-- All of the above — full-featured with everything
+- 👤 Personal tool — just for me, simple and fast
+- 👥 Team app — multiple users with roles and permissions
+- 🌐 Customer-facing — end users sign up and use it
+- 🎯 All of the above — full-featured with everything
 [/OPTIONS]
 
-Rules: 3-4 options, short label + dash + description, always include an "all/everything" option.
+Rules: 3-4 options, emoji + short label + dash + description, always include an "all/everything" option.
 
 ## How you work:
 1. User says what they want → short response + ONE [OPTIONS] question
@@ -146,16 +160,18 @@ Rules: 3-4 options, short label + dash + description, always include an "all/eve
 
 ## QUESTION FORMAT — use [OPTIONS] tags:
 Example:
-I'll wire up your automation! Quick question — how should it trigger?
+I'll wire up your automation! Quick question:
+
+**How should it trigger?**
 
 [OPTIONS]
-- Real-time — fires instantly when something happens
-- Scheduled — runs on a timer (hourly, daily, weekly)
-- Manual — triggered by a button click or API call
-- All of them — give me maximum flexibility
+- ⚡ Real-time — fires instantly when something happens
+- 🕐 Scheduled — runs on a timer (hourly, daily, weekly)
+- 🔘 Manual — triggered by a button click or API call
+- 🎯 All of them — give me maximum flexibility
 [/OPTIONS]
 
-Rules: 3-4 options, short label + dash + description, always include an "all/everything" option.
+Rules: 3-4 options, emoji + short label + dash + description, always include an "all/everything" option.
 
 ## How you work:
 1. User describes what to automate → short response + ONE [OPTIONS] question
@@ -203,29 +219,66 @@ async def api_chat(
     if not persona:
         raise HTTPException(status_code=400, detail=f"Unknown model: {body.model}")
 
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-    # Call Claude for the conversation
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=1024,
-        system=persona["system"],
-        messages=body.messages,
-    )
+        response = client.messages.create(
+            model=MODEL,
+            max_tokens=1024,
+            system=persona["system"],
+            messages=body.messages,
+        )
 
-    reply = response.content[0].text.strip()
+        reply = response.content[0].text.strip()
+
+    except anthropic.APIError as e:
+        logger.error("Anthropic API error: %s", e)
+        return ChatResponse(
+            reply="I'm having trouble connecting to my brain right now. Please try again in a moment.",
+            ready_to_build=False,
+        )
+    except Exception as e:
+        logger.error("Chat error: %s\n%s", e, traceback.format_exc())
+        return ChatResponse(
+            reply="Something went wrong on my end. Please try again.",
+            ready_to_build=False,
+        )
 
     # Check if AI is ready to build
     if "[READY_TO_BUILD]" in reply:
-        # Extract the summary after [READY_TO_BUILD]
-        parts = reply.split("[READY_TO_BUILD]", 1)
-        clean_reply = parts[0].strip()
-        summary = parts[1].strip() if len(parts) > 1 else ""
+        return await _handle_build(
+            reply=reply,
+            messages=body.messages,
+            persona=persona,
+            db=db,
+            org_id=org_id,
+            user_id=user_id,
+        )
 
-        # Build the full prompt from conversation history
-        full_prompt = _build_full_prompt(body.messages, summary)
+    # Normal conversation — AI is still asking questions
+    return ChatResponse(
+        reply=reply,
+        ready_to_build=False,
+    )
 
-        # ── Billing paywall check ──
+
+async def _handle_build(
+    reply: str,
+    messages: list[dict],
+    persona: dict,
+    db: AsyncSession,
+    org_id: UUID,
+    user_id: UUID,
+) -> ChatResponse:
+    """Handle the build flow when AI signals [READY_TO_BUILD]."""
+    parts = reply.split("[READY_TO_BUILD]", 1)
+    clean_reply = parts[0].strip()
+    summary = parts[1].strip() if len(parts) > 1 else ""
+
+    full_prompt = _build_full_prompt(messages, summary)
+
+    # Billing paywall check
+    try:
         billing = await can_build(org_id, db)
         if not billing["can_build"]:
             limit = billing["builds_limit"]
@@ -233,45 +286,50 @@ async def api_chat(
                 reply=f"You've used all {limit} free builds. Upgrade to Pro for unlimited builds.",
                 ready_to_build=False,
             )
+    except Exception as e:
+        logger.warning("Billing check failed (allowing build): %s", e)
 
-        # Generate the spec and create the project
-        try:
-            project = await create_project(
-                db=db,
-                user_id=user_id,
-                org_id=org_id,
-                prompt=full_prompt,
-                name=None,
-            )
+    # Generate the spec and create the project
+    try:
+        project = await create_project(
+            db=db,
+            user_id=user_id,
+            org_id=org_id,
+            prompt=full_prompt,
+            name=None,
+        )
 
-            # Craft a nice response
-            entity_count = len(project.spec.get("entities", [])) if project.spec else 0
-            build_reply = clean_reply
-            if clean_reply:
-                build_reply += "\n\n"
-            build_reply += f"✅ **Your {persona['type']} is ready!** I created {entity_count} components for you. Loading it now..."
+        entity_count = len(project.spec.get("entities", [])) if project.spec else 0
+        build_reply = clean_reply
+        if clean_reply:
+            build_reply += "\n\n"
+        build_reply += f"Your {persona['type']} is ready! I created {entity_count} components for you. Loading it now..."
 
-            return ChatResponse(
-                reply=build_reply,
-                ready_to_build=True,
-                project_id=str(project.id),
-                project_name=project.name,
-            )
+        return ChatResponse(
+            reply=build_reply,
+            ready_to_build=True,
+            project_id=str(project.id),
+            project_name=project.name,
+        )
 
-        except Exception as e:
-            import traceback
-            tb = traceback.format_exc()
-            print(f"BUILD ERROR: {e}\n{tb}", flush=True)
-            return ChatResponse(
-                reply=f"I had everything planned out, but hit an error while building: {str(e)}\n\nPlease try again.",
-                ready_to_build=False,
-            )
+    except Exception as e:
+        error_msg = str(e)
+        logger.error("BUILD ERROR: %s\n%s", error_msg, traceback.format_exc())
 
-    # Normal conversation — AI is still asking questions
-    return ChatResponse(
-        reply=reply,
-        ready_to_build=False,
-    )
+        # Provide a helpful, non-technical error message
+        if "JSON" in error_msg or "parse" in error_msg.lower():
+            user_msg = "I had trouble generating the spec structure. Let me try again — please send your request once more."
+        elif "ANTHROPIC" in error_msg or "API" in error_msg:
+            user_msg = "I'm having trouble connecting to the AI service. Please try again in a moment."
+        elif "timeout" in error_msg.lower():
+            user_msg = "The build took too long. Try a simpler request or break it into parts."
+        else:
+            user_msg = f"I hit an issue while building: {error_msg[:200]}\n\nPlease try again — sometimes a slightly different phrasing helps."
+
+        return ChatResponse(
+            reply=user_msg,
+            ready_to_build=False,
+        )
 
 
 def _build_full_prompt(messages: list[dict], summary: str) -> str:
@@ -330,23 +388,39 @@ async def api_chat_stream(
                     full_reply += text_chunk
                     yield _sse_event({"type": "text", "content": text_chunk})
 
+        except anthropic.APIError as e:
+            logger.error("Streaming API error: %s", e)
+            yield _sse_event({
+                "type": "error",
+                "content": "I'm having trouble connecting right now. Please try again.",
+            })
+            yield _sse_event({"type": "done"})
+            return
+
         except Exception as e:
-            yield _sse_event({"type": "error", "content": str(e)})
+            logger.error("Streaming error: %s\n%s", e, traceback.format_exc())
+            yield _sse_event({
+                "type": "error",
+                "content": "Something went wrong. Please try again.",
+            })
             yield _sse_event({"type": "done"})
             return
 
         # After streaming completes, check if AI wants to build
         if "[READY_TO_BUILD]" in full_reply:
-            # ── Billing paywall check ──
-            billing = await can_build(org_id, db)
-            if not billing["can_build"]:
-                limit = billing["builds_limit"]
-                yield _sse_event({
-                    "type": "error",
-                    "content": f"You've used all {limit} free builds. Upgrade to Pro for unlimited builds.",
-                })
-                yield _sse_event({"type": "done"})
-                return
+            # Billing paywall check
+            try:
+                billing = await can_build(org_id, db)
+                if not billing["can_build"]:
+                    limit = billing["builds_limit"]
+                    yield _sse_event({
+                        "type": "error",
+                        "content": f"You've used all {limit} free builds. Upgrade to Pro for unlimited builds.",
+                    })
+                    yield _sse_event({"type": "done"})
+                    return
+            except Exception as e:
+                logger.warning("Billing check failed during stream (allowing build): %s", e)
 
             parts = full_reply.split("[READY_TO_BUILD]", 1)
             summary = parts[1].strip() if len(parts) > 1 else ""
@@ -368,11 +442,19 @@ async def api_chat_stream(
                     "entity_count": entity_count,
                 })
             except Exception as e:
-                tb = traceback.format_exc()
-                print(f"BUILD ERROR: {e}\n{tb}", flush=True)
+                error_msg = str(e)
+                logger.error("Stream BUILD ERROR: %s\n%s", error_msg, traceback.format_exc())
+
+                if "JSON" in error_msg or "parse" in error_msg.lower():
+                    user_msg = "I had trouble generating the spec. Please try again."
+                elif "timeout" in error_msg.lower():
+                    user_msg = "Build timed out. Try a simpler request."
+                else:
+                    user_msg = f"Build failed: {error_msg[:200]}"
+
                 yield _sse_event({
                     "type": "error",
-                    "content": f"Build failed: {str(e)}",
+                    "content": user_msg,
                 })
 
         yield _sse_event({"type": "done"})

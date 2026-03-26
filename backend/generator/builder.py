@@ -16,10 +16,13 @@ The generated code reuses the same patterns as the existing CRM backend —
 cursor-based pagination, soft delete, org_id filtering, optimistic locking.
 """
 
+import logging
 import os
 import json
 from pathlib import Path
 from textwrap import dedent
+
+logger = logging.getLogger(__name__)
 
 # ── Type mapping ────────────────────────────────────────────────────
 
@@ -580,33 +583,72 @@ def build_backend(spec: dict, output_dir: str) -> dict[str, str]:
 
     Returns:
         Dict mapping relative file paths to their content
+
+    Error recovery:
+    - Skips entities that aren't valid dicts
+    - Auto-fixes malformed field attributes (strings where dicts/lists expected)
+    - Auto-generates table names from entity names if missing
+    - Ensures every field has required db_type and ts_type defaults
+    - Logs warnings for skipped/fixed entities instead of crashing
     """
     entities = spec.get("entities", [])
-    # Sanitize: skip any entity that isn't a dict, fix fields that aren't dicts
-    clean_entities = []
-    for ent in entities:
-        if not isinstance(ent, dict):
-            continue
-        if "fields" in ent:
-            ent["fields"] = [f for f in ent["fields"] if isinstance(f, dict)]
-            for f in ent["fields"]:
-                # Fix validation if it's a string
-                if "validation" in f and not isinstance(f["validation"], dict):
-                    f["validation"] = {}
-                # Fix badge_colors if it's a string
-                if "badge_colors" in f and not isinstance(f["badge_colors"], dict):
-                    f["badge_colors"] = {}
-                # Fix enum_values if it's a string
-                if "enum_values" in f and not isinstance(f["enum_values"], list):
-                    if isinstance(f["enum_values"], str):
-                        f["enum_values"] = [v.strip() for v in f["enum_values"].split(",")]
-                    else:
-                        f["enum_values"] = []
-        if "name" not in ent or "table" not in ent:
-            continue
-        clean_entities.append(ent)
-    entities = clean_entities
+    if not isinstance(entities, list):
+        logger.warning("spec['entities'] is not a list (%s), defaulting to empty", type(entities).__name__)
+        entities = []
 
+    clean_entities = []
+    for i, ent in enumerate(entities):
+        if not isinstance(ent, dict):
+            logger.warning("Skipping entity at index %d: not a dict (%s)", i, type(ent).__name__)
+            continue
+
+        # Auto-generate table name from entity name if missing
+        if "name" not in ent:
+            logger.warning("Skipping entity at index %d: missing 'name'", i)
+            continue
+        if "table" not in ent:
+            import re as _re
+            ent["table"] = _re.sub(r"(?<!^)(?=[A-Z])", "_", ent["name"]).lower() + "s"
+            logger.info("Auto-generated table name '%s' for entity '%s'", ent["table"], ent["name"])
+
+        # Ensure fields is a list
+        if "fields" not in ent or not isinstance(ent.get("fields"), list):
+            ent["fields"] = []
+            logger.warning("Entity '%s' had no valid fields array, set to empty", ent["name"])
+
+        ent["fields"] = [f for f in ent["fields"] if isinstance(f, dict)]
+        for f in ent["fields"]:
+            # Fix validation if it's a string
+            if "validation" in f and not isinstance(f["validation"], dict):
+                f["validation"] = {}
+            # Fix badge_colors if it's a string
+            if "badge_colors" in f and not isinstance(f["badge_colors"], dict):
+                f["badge_colors"] = {}
+            # Fix enum_values if it's a string
+            if "enum_values" in f and not isinstance(f["enum_values"], list):
+                if isinstance(f["enum_values"], str):
+                    f["enum_values"] = [v.strip() for v in f["enum_values"].split(",")]
+                else:
+                    f["enum_values"] = []
+            # Ensure required field attributes have defaults
+            f.setdefault("db_type", "TEXT")
+            f.setdefault("ts_type", "string")
+            f.setdefault("nullable", True)
+            f.setdefault("editable", True)
+            f.setdefault("show_in_table", True)
+            f.setdefault("show_in_form", True)
+            f.setdefault("input_component", "TextInput")
+            f.setdefault("display_component", "Text")
+
+        # Ensure description
+        ent.setdefault("description", f"{ent['name']} management")
+
+        clean_entities.append(ent)
+
+    if not clean_entities:
+        logger.error("No valid entities found in spec — build will produce minimal output")
+
+    entities = clean_entities
     generated: dict[str, str] = {}
 
     # Ensure directories
@@ -618,13 +660,18 @@ def build_backend(spec: dict, output_dir: str) -> dict[str, str]:
     # Per-entity files
     for ent in entities:
         snake = _snake(ent["name"])
-        model_code = _gen_model(ent)
-        schema_code = _gen_schema(ent)
-        route_code = _gen_route(ent)
+        try:
+            model_code = _gen_model(ent)
+            schema_code = _gen_schema(ent)
+            route_code = _gen_route(ent)
 
-        generated[f"models/{snake}.py"] = model_code
-        generated[f"schemas/{snake}.py"] = schema_code
-        generated[f"routes/{snake}.py"] = route_code
+            generated[f"models/{snake}.py"] = model_code
+            generated[f"schemas/{snake}.py"] = schema_code
+            generated[f"routes/{snake}.py"] = route_code
+        except Exception as e:
+            logger.error("Failed to generate code for entity '%s': %s", ent["name"], e)
+            # Continue with other entities rather than crashing
+            continue
 
     # Init files
     generated["models/__init__.py"] = _gen_models_init(entities)
@@ -642,6 +689,9 @@ def build_backend(spec: dict, output_dir: str) -> dict[str, str]:
     for rel_path, content in generated.items():
         full_path = out / rel_path
         full_path.parent.mkdir(parents=True, exist_ok=True)
-        full_path.write_text(content)
+        try:
+            full_path.write_text(content)
+        except OSError as e:
+            logger.error("Failed to write %s: %s", full_path, e)
 
     return generated

@@ -66,6 +66,7 @@ async def create_project(
 
     try:
         # 2. Generate spec via AI + RAG
+        logger.info("Generating spec for project %s with prompt: %s", project.id, prompt[:100])
         spec = await generate_spec(prompt)
 
         # Safeguard: if spec came back as a string, parse it
@@ -121,8 +122,14 @@ async def create_project(
         await db.refresh(project)
 
     except Exception as e:
+        error_msg = str(e)
+        logger.error(
+            "Project generation failed for %s: %s",
+            project.id, error_msg,
+            exc_info=True,
+        )
         project.status = "error"
-        project.description = f"Generation failed: {str(e)}"
+        project.description = f"Generation failed: {error_msg[:500]}"
         await db.commit()
         await db.refresh(project)
         raise
