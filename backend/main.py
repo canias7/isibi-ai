@@ -81,6 +81,7 @@ from models.app_duplicate_rule import AppDuplicateRule  # noqa: F401
 from models.app_message import AppMessage  # noqa: F401
 from models.app_email import AppEmail  # noqa: F401
 from models.app_snapshot import AppSnapshot  # noqa: F401
+from models.app_view_config import AppViewConfig  # noqa: F401
 
 # Import embeds public router (no auth, mounted without /api prefix)
 from routes.app_embeds import public_router as app_embeds_public_router
@@ -99,6 +100,20 @@ from routes.app_messaging import router as app_messaging_router
 from routes.app_email_inbox import router as app_email_inbox_router
 from routes.app_snapshots import router as app_snapshots_router
 from routes.app_ui_language import router as app_ui_language_router
+
+# Import form/input feature models
+from models.app_field_file import AppFieldFile  # noqa: F401
+from models.app_signature import AppSignature  # noqa: F401
+
+# Import form/input feature routers
+from routes.app_multistep_forms import router as app_multistep_forms_router
+from routes.app_field_files import router as app_field_files_router
+from routes.app_signatures import router as app_signatures_router
+from routes.app_qr_codes import router as app_qr_codes_router
+from routes.app_barcode import router as app_barcode_router
+from routes.app_voice_config import router as app_voice_config_router
+from routes.app_field_types import router as app_field_types_router
+from routes.app_view_configs import router as app_view_configs_router
 
 
 @asynccontextmanager
@@ -191,6 +206,16 @@ app.include_router(app_messaging_router, prefix="/api")
 app.include_router(app_email_inbox_router, prefix="/api")
 app.include_router(app_snapshots_router, prefix="/api")
 app.include_router(app_ui_language_router, prefix="/api")
+
+# Register form/input feature routers
+app.include_router(app_multistep_forms_router, prefix="/api")
+app.include_router(app_field_files_router, prefix="/api")
+app.include_router(app_signatures_router, prefix="/api")
+app.include_router(app_qr_codes_router, prefix="/api")
+app.include_router(app_barcode_router, prefix="/api")
+app.include_router(app_voice_config_router, prefix="/api")
+app.include_router(app_field_types_router, prefix="/api")
+app.include_router(app_view_configs_router, prefix="/api")
 
 # Register embeddable widgets public router (serves JS at /embed/{id}.js, no auth)
 app.include_router(app_embeds_public_router)

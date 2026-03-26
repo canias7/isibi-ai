@@ -39,6 +39,9 @@ from .app_record_comment import AppRecordComment
 from .app_record_file import AppRecordFile
 from .marketplace_template import MarketplaceTemplate, MarketplaceRating
 from .app_embed import AppEmbed
+from .app_view_config import AppViewConfig
+from .app_field_file import AppFieldFile
+from .app_signature import AppSignature
 
 __all__ = [
     "Lead", "Task", "Deal", "User", "Conversation", "PipelineStage",
@@ -54,4 +57,6 @@ __all__ = [
     "ServerlessFunction",
     "AppRole", "AppActivityEntry", "AppRecordComment", "AppRecordFile",
     "MarketplaceTemplate", "MarketplaceRating", "AppEmbed",
+    "AppViewConfig",
+    "AppFieldFile", "AppSignature",
 ]
