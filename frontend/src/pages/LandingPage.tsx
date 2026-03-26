@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Zap, Shield, Globe, Code, Layers, Cpu, ChevronDown } from "lucide-react";
+import { useAuthStore } from "@/stores/authStore";
 
 // Animated counter hook
 function useCounter(end: number, duration = 2000, start = 0) {
@@ -38,6 +39,7 @@ function Orb({ className }: { className: string }) {
 }
 
 export function LandingPage() {
+  const { isAuthenticated } = useAuthStore();
   const [scrollY, setScrollY] = useState(0);
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
 
@@ -96,18 +98,29 @@ export function LandingPage() {
               <a href="#models" className="text-sm text-gray-500 transition hover:text-black">Models</a>
             </div>
             <div className="flex items-center gap-3">
-              <Link
-                to="/login"
-                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition hover:text-black"
-              >
-                Sign in
-              </Link>
-              <Link
-                to="/signup"
-                className="rounded-lg bg-black px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
-              >
-                Get started
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  to="/app"
+                  className="rounded-lg bg-black px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                >
+                  Go to Dashboard →
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/login"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 transition hover:text-black"
+                  >
+                    Sign in
+                  </Link>
+                  <Link
+                    to="/signup"
+                    className="rounded-lg bg-black px-5 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+                  >
+                    Get started
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
