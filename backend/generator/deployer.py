@@ -41,6 +41,44 @@ async def deploy_app(project_id: str, spec: dict, db: AsyncSession) -> dict:
     index_path = build_dir / "index.html"
     index_path.write_text(html_content, encoding="utf-8")
 
+    # Write PWA manifest
+    app_name = spec.get("app_name") or spec.get("name") or "My App"
+    primary_color = (spec.get("design_system") or {}).get("colors", {}).get("primary", "#ec4899")
+    manifest = {
+        "name": app_name,
+        "short_name": app_name[:12],
+        "start_url": ".",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": primary_color,
+        "description": f"{app_name} — built with isibi.ai",
+        "icons": [
+            {"src": f"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='{primary_color}'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-family='system-ui'>{app_name[0].upper()}</text></svg>", "sizes": "192x192", "type": "image/svg+xml"},
+            {"src": f"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='{primary_color}'/><text x='50' y='68' font-size='50' text-anchor='middle' fill='white' font-family='system-ui'>{app_name[0].upper()}</text></svg>", "sizes": "512x512", "type": "image/svg+xml"},
+        ],
+    }
+    import json
+    (build_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    # Write service worker for offline caching
+    sw_content = """
+const CACHE_NAME = 'app-v1';
+self.addEventListener('install', (e) => { self.skipWaiting(); });
+self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
+self.addEventListener('fetch', (e) => {
+  e.respondWith(
+    caches.match(e.request).then((r) => r || fetch(e.request).then((res) => {
+      if (res.status === 200 && e.request.method === 'GET') {
+        const clone = res.clone();
+        caches.open(CACHE_NAME).then((c) => c.put(e.request, clone));
+      }
+      return res;
+    })).catch(() => caches.match('/'))
+  );
+});
+"""
+    (build_dir / "sw.js").write_text(sw_content.strip(), encoding="utf-8")
+
     # Determine the live URL
     app_host = os.getenv("APP_HOST", "")
     if app_host:
@@ -117,11 +155,18 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
 
     pages_html = "\n    ".join(module_pages_html)
 
+    safe_name = (app_name or "app").lower().replace(" ", "-").replace("'", "")
+
     return f'''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="{app_name}">
+<meta name="theme-color" content="{primary_color}">
+<link rel="manifest" href="manifest.json">
 <title>{app_name}</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -773,6 +818,32 @@ tr:hover td {{ background: #f9fafb; }}
     first.click();
   }}
 }})();
+</script>
+<script>
+// Register PWA service worker
+if ('serviceWorker' in navigator) {{
+  navigator.serviceWorker.register('sw.js').catch(() => {{}});
+}}
+// Show install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {{
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner
+  const banner = document.createElement('div');
+  banner.id = 'install-banner';
+  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:{primary_color};color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;z-index:9999;font-family:inherit;font-size:14px;box-shadow:0 -2px 10px rgba(0,0,0,0.1)';
+  banner.innerHTML = '<span>Install {app_name} as an app</span><div><button onclick="installApp()" style="background:#fff;color:{primary_color};border:none;padding:8px 20px;border-radius:8px;font-weight:600;cursor:pointer;margin-right:8px">Install</button><button onclick="this.parentElement.parentElement.remove()" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.3);padding:8px 16px;border-radius:8px;cursor:pointer">Later</button></div>';
+  document.body.appendChild(banner);
+}});
+function installApp() {{
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.remove();
+  if (deferredPrompt) {{
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(() => {{ deferredPrompt = null; }});
+  }}
+}}
 </script>
 </body>
 </html>'''

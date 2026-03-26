@@ -693,62 +693,37 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   );
 
   // ─── Preview panel (right side when chat is active) ───
-  const handleDownloadApp = () => {
-    if (!builtSpec) return;
-    const appName = builtSpec.app_name || builtSpec.name || "my-app";
-    const safeName = appName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const entities = builtSpec.entities || [];
-    const modules = builtSpec.modules || [];
-    const primaryColor = builtSpec.design_system?.colors?.primary || "#000000";
+  const handleDownloadApp = async () => {
+    if (!builtSpec || !builtProjectId) return;
 
-    // Build a standalone Electron app with the spec baked in
-    const indexHtml = generateAppHtml(appName, entities, modules, primaryColor, builtSpec);
-    const mainJs = `const { app, BrowserWindow } = require("electron");
-const path = require("path");
-function createWindow() {
-  const win = new BrowserWindow({ width: 1200, height: 800, title: ${JSON.stringify(appName)}, webPreferences: { nodeIntegration: false } });
-  win.loadFile("index.html");
-  win.setMenuBarVisibility(false);
-}
-app.whenReady().then(createWindow);
-app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });`;
+    // If not deployed yet, deploy first
+    let liveUrl = deployUrl;
+    if (!liveUrl) {
+      setDeploying(true);
+      try {
+        const res = await post<{ url: string; status: string }>(
+          `/projects/${builtProjectId}/deploy`,
+          {}
+        );
+        if (res?.url) {
+          liveUrl = res.url.startsWith("http")
+            ? res.url
+            : `${window.location.origin}${res.url}`;
+          setDeployUrl(liveUrl);
+        }
+      } catch {
+        setError("Failed to deploy. Please try again.");
+        setDeploying(false);
+        return;
+      } finally {
+        setDeploying(false);
+      }
+    }
 
-    const packageJson = JSON.stringify({
-      name: safeName,
-      version: "1.0.0",
-      main: "main.js",
-      scripts: { start: "electron ." },
-      dependencies: { electron: "^28.0.0" },
-    }, null, 2);
-
-    const startCommand = `#!/bin/bash
-cd "$(dirname "$0")"
-if [ ! -d "node_modules" ]; then
-  echo "Installing dependencies (first run only)..."
-  npm install
-fi
-echo "Launching ${appName}..."
-npx electron .`;
-
-    // Create zip using JSZip-like approach via Blob
-    import("jszip").then(({ default: JSZip }) => {
-      const zip = new JSZip();
-      const folder = zip.folder(safeName)!;
-      folder.file("index.html", indexHtml);
-      folder.file("main.js", mainJs);
-      folder.file("package.json", packageJson);
-      folder.file("start.command", startCommand, { unixPermissions: "755" });
-      folder.file("spec.json", JSON.stringify(builtSpec, null, 2));
-
-      zip.generateAsync({ type: "blob", platform: "UNIX" }).then((blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${safeName}.zip`;
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-    });
+    if (liveUrl) {
+      // Open the deployed PWA URL — browser will prompt "Install App"
+      window.open(liveUrl, "_blank");
+    }
   };
 
   const handleDeploy = async () => {
@@ -858,14 +833,15 @@ npx electron .`;
           <button className="rounded-lg p-1.5 text-gray-400 transition hover:text-black">
             <ExternalLink className="h-4 w-4" />
           </button>
-          {builtSpec && isDev && (
+          {builtSpec && builtProjectId && isDev && (
             <button
               onClick={handleDownloadApp}
-              className="flex items-center gap-1.5 rounded-lg bg-black px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-gray-800"
-              title="Download as desktop app"
+              disabled={deploying}
+              className="flex items-center gap-1.5 rounded-lg bg-black px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-gray-800 disabled:opacity-50"
+              title="Install as app on your device"
             >
               <Download className="h-3.5 w-3.5" />
-              Download
+              Get App
             </button>
           )}
           {builtSpec && builtProjectId && isDev && (

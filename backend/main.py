@@ -154,6 +154,24 @@ async def serve_live_app(project_id: str):
     return HTMLResponse(content=build_path.read_text(encoding="utf-8"))
 
 
+@app.get("/live/{project_id}/manifest.json")
+async def serve_manifest(project_id: str):
+    """Serve PWA manifest for a deployed app."""
+    manifest_path = BUILDS_DIR / project_id / "manifest.json"
+    if not manifest_path.exists():
+        return Response(content="{}", media_type="application/json", status_code=404)
+    return Response(content=manifest_path.read_text(encoding="utf-8"), media_type="application/manifest+json")
+
+
+@app.get("/live/{project_id}/sw.js")
+async def serve_sw(project_id: str):
+    """Serve PWA service worker for a deployed app."""
+    sw_path = BUILDS_DIR / project_id / "sw.js"
+    if not sw_path.exists():
+        return Response(content="", media_type="application/javascript", status_code=404)
+    return Response(content=sw_path.read_text(encoding="utf-8"), media_type="application/javascript")
+
+
 # ── Serve embeddable apps via iframe-friendly route ──
 # /embed/{project_id} serves the deployed app without X-Frame-Options
 # and includes a postMessage API for cross-origin communication.
