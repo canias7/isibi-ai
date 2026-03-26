@@ -11,9 +11,13 @@ import os
 from pathlib import Path
 
 # Default directories to scan for spec files
+_backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_project_root = os.path.dirname(_backend_dir)
+
 DEFAULT_SPEC_DIRS = [
-    os.path.expanduser("~/Desktop"),  # where crm_spec.json lives
-    os.path.expanduser("~/Desktop/isibi.ai/specs"),  # dedicated specs dir
+    os.path.join(_project_root, "spec"),              # repo's spec/ folder (works on Render)
+    os.path.expanduser("~/Desktop"),                  # local dev: where crm_spec.json lives
+    os.path.expanduser("~/Desktop/isibi.ai/specs"),   # local dev: dedicated specs dir
 ]
 
 _spec_cache: dict[str, dict] = {}
