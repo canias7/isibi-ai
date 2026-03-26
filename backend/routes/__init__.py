@@ -6,6 +6,7 @@ from .conversations import router as conversations_router
 from .pipeline_stages import router as pipeline_stages_router
 from .generator import router as generator_router
 from .auth import router as auth_router
+from .chat import router as chat_router
 
 all_routers = [
     auth_router,
@@ -16,4 +17,5 @@ all_routers = [
     conversations_router,
     pipeline_stages_router,
     generator_router,
+    chat_router,
 ]

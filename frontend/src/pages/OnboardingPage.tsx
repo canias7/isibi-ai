@@ -120,20 +120,36 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     const userMsg = prompt.trim();
     setPrompt("");
     setError(null);
-    setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
+
+    const newMessages: Message[] = [...messages, { role: "user", content: userMsg }];
+    setMessages(newMessages);
     setLoading(true);
 
     try {
-      await post("/projects", { prompt: userMsg });
+      const res = await post<{
+        reply: string;
+        ready_to_build: boolean;
+        project_id?: string;
+        project_name?: string;
+      }>("/chat", {
+        model: selectedModel,
+        messages: newMessages,
+      });
+
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Your app is ready. Loading it now..." },
+        { role: "assistant", content: res.reply },
       ]);
-      setTimeout(() => onSpecCreated(), 1000);
+
+      if (res.ready_to_build && res.project_id) {
+        // Project was created — trigger the spec load
+        setTimeout(() => onSpecCreated(), 1500);
+      }
     } catch (err: any) {
       const detail = err?.detail || "Something went wrong. Please try again.";
       setMessages((prev) => [...prev, { role: "assistant", content: detail }]);
       setError(detail);
+    } finally {
       setLoading(false);
     }
   };
