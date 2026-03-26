@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "contact_email",
@@ -56,7 +58,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "contact_phone",
@@ -71,7 +75,9 @@
           "validation": {
             "rule": "phone",
             "message": "Valid phone number required"
-          }
+          },
+          "placeholder": "+1 (555) 123-4567",
+          "help_text": "Phone number with area code"
         },
         {
           "name": "company",
@@ -82,7 +88,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Company name",
+          "help_text": "Organization or company name"
         },
         {
           "name": "category",
@@ -107,7 +115,9 @@
             "distributor": "purple",
             "service_provider": "amber",
             "consultant": "pink"
-          }
+          },
+          "placeholder": "Select category",
+          "help_text": "Category classification"
         },
         {
           "name": "tax_id",
@@ -118,7 +128,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter tax id"
         },
         {
           "name": "payment_terms",
@@ -136,7 +147,9 @@
             "net_90",
             "upon_receipt",
             "advance"
-          ]
+          ],
+          "placeholder": "0.00",
+          "help_text": "Enter payment terms"
         },
         {
           "name": "total_spent",
@@ -151,7 +164,9 @@
           "computed": "SUM(purchase_orders.total)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "status",
@@ -174,7 +189,8 @@
             "on_hold": "amber",
             "blacklisted": "red",
             "archived": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -197,6 +213,120 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "category",
+          "columns": [
+            "supplier",
+            "manufacturer",
+            "distributor",
+            "service_provider",
+            "consultant"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "contact_email",
+            "contact_phone",
+            "company"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "tax_id",
+            "payment_terms"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "category",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "category",
+          "label": "Category",
+          "options": [
+            "all",
+            "supplier",
+            "manufacturer",
+            "distributor",
+            "service_provider",
+            "consultant"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "on_hold",
+            "blacklisted",
+            "archived"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "PurchaseOrders",
+          "type": "related_list",
+          "entity": "PurchaseOrder",
+          "foreign_key": "vendor_id"
+        },
+        {
+          "label": "Invoices",
+          "type": "related_list",
+          "entity": "Invoice",
+          "foreign_key": "vendor_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "contact_email",
+        "contact_phone",
+        "company"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -247,7 +377,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -258,7 +390,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "requester",
@@ -269,7 +403,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter requester"
         },
         {
           "name": "department",
@@ -280,7 +415,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Department",
+          "help_text": "Department or division"
         },
         {
           "name": "estimated_total",
@@ -294,7 +431,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "priority",
@@ -317,7 +456,9 @@
             "medium": "blue",
             "high": "amber",
             "critical": "red"
-          }
+          },
+          "placeholder": "Select priority",
+          "help_text": "Priority level"
         },
         {
           "name": "justification",
@@ -328,7 +469,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter justification..."
         },
         {
           "name": "status",
@@ -353,7 +495,8 @@
             "approved": "blue",
             "rejected": "red",
             "ordered": "green"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "rejection_reason",
@@ -369,7 +512,8 @@
             "field": "status",
             "operator": "eq",
             "value": "rejected"
-          }
+          },
+          "placeholder": "Enter rejection reason..."
         },
         {
           "name": "created_at",
@@ -392,6 +536,109 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "priority",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "requester",
+            "department",
+            "estimated_total",
+            "justification",
+            "rejection_reason"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "priority",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "priority",
+          "label": "Priority",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "submitted",
+            "approved",
+            "rejected",
+            "ordered"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "PurchaseOrders",
+          "type": "related_list",
+          "entity": "PurchaseOrder",
+          "foreign_key": "request_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "request_number",
+        "title",
+        "requester",
+        "department"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -466,7 +713,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "expected_delivery",
@@ -477,7 +725,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "subtotal",
@@ -492,7 +741,9 @@
           "computed": "SUM(line_items.total)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter subtotal"
         },
         {
           "name": "tax_rate",
@@ -503,7 +754,9 @@
           "show_in_table": true,
           "show_in_form": false,
           "input_component": "number_input",
-          "display_component": "percentage"
+          "display_component": "percentage",
+          "placeholder": "0.00",
+          "help_text": "Rate per unit"
         },
         {
           "name": "tax_amount",
@@ -518,7 +771,9 @@
           "computed": "subtotal * tax_rate / 100",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "total",
@@ -533,7 +788,9 @@
           "computed": "subtotal + tax_amount",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "shipping_cost",
@@ -544,7 +801,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Cost amount"
         },
         {
           "name": "status",
@@ -571,7 +830,8 @@
             "shipped": "purple",
             "received": "green",
             "cancelled": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -594,6 +854,134 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "draft",
+            "submitted",
+            "approved",
+            "shipped",
+            "received",
+            "cancelled"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "order_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "shipping_cost"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "vendor_id",
+            "request_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "order_date",
+            "expected_delivery",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "submitted",
+            "approved",
+            "shipped",
+            "received",
+            "cancelled"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "LineItems",
+          "type": "related_list",
+          "entity": "LineItem",
+          "foreign_key": "purchase_order_id"
+        },
+        {
+          "label": "Receipts",
+          "type": "related_list",
+          "entity": "Receipt",
+          "foreign_key": "purchase_order_id"
+        },
+        {
+          "label": "Invoices",
+          "type": "related_list",
+          "entity": "Invoice",
+          "foreign_key": "purchase_order_id"
+        }
+      ],
+      "default_sort": {
+        "field": "order_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "po_number",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Mark Approved",
+          "icon": "CheckCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "approved",
+          "confirm": true
+        },
+        {
+          "label": "Cancel",
+          "icon": "XCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "cancelled",
+          "confirm": true,
+          "variant": "danger"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -645,7 +1033,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "sku",
@@ -656,7 +1046,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter sku"
         },
         {
           "name": "quantity",
@@ -667,7 +1058,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "unit_price",
@@ -681,7 +1073,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Price in default currency"
         },
         {
           "name": "total",
@@ -696,7 +1090,9 @@
           "computed": "quantity * unit_price",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "unit",
@@ -717,7 +1113,8 @@
             "lb",
             "liter",
             "gallon"
-          ]
+          ],
+          "placeholder": "Select unit"
         },
         {
           "name": "received_qty",
@@ -728,7 +1125,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "received_pct",
@@ -763,6 +1161,71 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "cards",
+          "image_field": null,
+          "title_field": null,
+          "subtitle_field": null
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "description",
+            "sku",
+            "quantity",
+            "unit_price",
+            "unit",
+            "received_qty"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "purchase_order_id"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "description",
+        "sku",
+        "unit"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -814,7 +1277,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter receipt number"
         },
         {
           "name": "received_date",
@@ -825,7 +1289,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "received_by",
@@ -836,7 +1301,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter received by"
         },
         {
           "name": "items_received",
@@ -847,7 +1313,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "items_rejected",
@@ -858,7 +1325,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "condition",
@@ -881,7 +1349,8 @@
             "damaged": "red",
             "partial": "amber",
             "wrong_item": "purple"
-          }
+          },
+          "placeholder": "Select condition"
         },
         {
           "name": "notes",
@@ -892,7 +1361,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Add notes...",
+          "help_text": "Additional notes or comments"
         },
         {
           "name": "status",
@@ -915,7 +1386,8 @@
             "accepted": "green",
             "rejected": "red",
             "partial_accept": "blue"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -938,6 +1410,111 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "condition",
+          "columns": [
+            "good",
+            "damaged",
+            "partial",
+            "wrong_item"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "received_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "receipt_number",
+            "received_by",
+            "items_received",
+            "items_rejected",
+            "notes"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "purchase_order_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "received_date",
+            "condition",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "condition",
+          "label": "Condition",
+          "options": [
+            "all",
+            "good",
+            "damaged",
+            "partial",
+            "wrong_item"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "pending_inspection",
+            "accepted",
+            "rejected",
+            "partial_accept"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "received_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "receipt_number",
+        "received_by",
+        "condition",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -1001,7 +1578,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter invoice number"
         },
         {
           "name": "invoice_date",
@@ -1012,7 +1590,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "due_date",
@@ -1023,7 +1602,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "amount",
@@ -1037,7 +1617,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "paid_amount",
@@ -1048,7 +1630,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "balance",
@@ -1063,7 +1647,9 @@
           "computed": "amount - paid_amount",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter balance"
         },
         {
           "name": "status",
@@ -1088,7 +1674,8 @@
             "paid": "green",
             "overdue": "red",
             "disputed": "purple"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "dispute_reason",
@@ -1104,7 +1691,8 @@
             "field": "status",
             "operator": "eq",
             "value": "disputed"
-          }
+          },
+          "placeholder": "Enter dispute reason..."
         },
         {
           "name": "created_at",
@@ -1128,7 +1716,151 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "received",
+            "approved",
+            "paid",
+            "overdue",
+            "disputed"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "invoice_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "invoice_number",
+            "amount",
+            "paid_amount",
+            "dispute_reason"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "vendor_id",
+            "purchase_order_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "invoice_date",
+            "due_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "received",
+            "approved",
+            "paid",
+            "overdue",
+            "disputed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "invoice_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "invoice_number",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Mark Paid",
+          "icon": "CheckCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "paid",
+          "confirm": true
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Vendors",
+        "query": "COUNT(*) FROM procurement_vendors",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Payment Terms",
+        "query": "SUM(payment_terms) FROM procurement_vendors",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Vendors",
+        "query": "COUNT(*) FROM procurement_vendors WHERE category = 'supplier'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM procurement_vendors WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total PurchaseRequests",
+        "query": "COUNT(*) FROM purchase_requests",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Estimated Total",
+        "query": "SUM(estimated_total) FROM purchase_requests",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      }
+    ]
+  }
 }

@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "description",
@@ -55,7 +56,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "base_rate",
@@ -71,7 +73,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "max_occupancy",
@@ -192,7 +195,18 @@
             "heading": "No RoomTypes yet",
             "subtext": "Create your first roomtype",
             "action_label": "Add RoomType"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "bed_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -255,14 +269,10 @@
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "description",
-                "base_rate",
-                "max_occupancy",
-                "bed_type",
-                "amenities"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -400,7 +410,8 @@
             "field": "status",
             "operator": "not_equals",
             "value": "out_of_order"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "created_at",
@@ -464,7 +475,76 @@
             "heading": "No Rooms yet",
             "subtext": "Create your first room",
             "action_label": "Add Room"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "Occupied",
+              "filter": {
+                "field": "status",
+                "value": "occupied"
+              }
+            },
+            {
+              "label": "Maintenance",
+              "filter": {
+                "field": "status",
+                "value": "maintenance"
+              }
+            },
+            {
+              "label": "Reserved",
+              "filter": {
+                "field": "status",
+                "value": "reserved"
+              }
+            },
+            {
+              "label": "Out Of Order",
+              "filter": {
+                "field": "status",
+                "value": "out_of_order"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "room_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -525,20 +605,14 @@
                 "room_number",
                 "room_type_id",
                 "floor",
-                "status",
-                "is_smoking",
-                "rate_override"
+                "status"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "room_number",
-                "room_type_id",
-                "floor",
-                "status",
-                "is_smoking",
-                "rate_override"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -592,7 +666,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "First name"
         },
         {
           "name": "last_name",
@@ -605,7 +680,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Last name"
         },
         {
           "name": "email",
@@ -622,7 +698,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -639,7 +717,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "id_type",
@@ -729,7 +808,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -793,7 +873,20 @@
             "heading": "No Guests yet",
             "subtext": "Create your first guest",
             "action_label": "Add Guest"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -816,6 +909,32 @@
             "id_type",
             "id_number",
             "vip_level"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "id_number",
+                "nationality",
+                "vip_level",
+                "notes"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "id_type"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -840,7 +959,33 @@
             "id_number",
             "vip_level"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "id_number",
+                "nationality",
+                "vip_level",
+                "notes"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "id_type"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/guests/:id",
@@ -864,23 +1009,14 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone",
-                "id_type",
-                "nationality"
+                "phone"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "first_name",
-                "last_name",
-                "email",
-                "phone",
-                "id_type",
-                "id_number",
-                "nationality",
-                "vip_level",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1010,7 +1146,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -1135,7 +1272,87 @@
             "heading": "No Reservations yet",
             "subtext": "Create your first reservation",
             "action_label": "Add Reservation"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Checked In",
+              "filter": {
+                "field": "status",
+                "value": "checked_in"
+              }
+            },
+            {
+              "label": "Checked Out",
+              "filter": {
+                "field": "status",
+                "value": "checked_out"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1206,23 +1423,14 @@
                 "guest_id",
                 "room_id",
                 "check_in_date",
-                "check_out_date",
-                "num_guests",
-                "nightly_rate"
+                "check_out_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "guest_id",
-                "room_id",
-                "check_in_date",
-                "check_out_date",
-                "num_guests",
-                "nightly_rate",
-                "status",
-                "special_requests",
-                "cancellation_reason"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1414,7 +1622,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1478,7 +1687,74 @@
             "heading": "No Housekeepings yet",
             "subtext": "Create your first housekeeping",
             "action_label": "Add Housekeeping"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Skipped",
+              "filter": {
+                "field": "status",
+                "value": "skipped"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "task_type",
+            "status",
+            "priority"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1541,21 +1817,14 @@
                 "room_id",
                 "staff_id",
                 "task_type",
-                "scheduled_date",
-                "status",
-                "priority"
+                "scheduled_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "room_id",
-                "staff_id",
-                "task_type",
-                "scheduled_date",
-                "status",
-                "priority",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1697,7 +1966,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax_amount",
@@ -1711,7 +1981,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "payment_status",
@@ -1833,7 +2104,20 @@
             "heading": "No Billings yet",
             "subtext": "Create your first billing",
             "action_label": "Add Billing"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "item_description",
+            "category",
+            "payment_status",
+            "payment_method"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1902,22 +2186,14 @@
                 "reservation_id",
                 "guest_id",
                 "item_description",
-                "category",
-                "amount",
-                "tax_amount"
+                "category"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "reservation_id",
-                "guest_id",
-                "item_description",
-                "category",
-                "amount",
-                "tax_amount",
-                "payment_status",
-                "payment_method"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1985,7 +2261,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -2002,7 +2279,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -2019,7 +2298,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "department",
@@ -2103,7 +2383,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -2191,7 +2472,63 @@
             "heading": "No Staffs yet",
             "subtext": "Create your first staff",
             "action_label": "Add Staff"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Terminated",
+              "filter": {
+                "field": "status",
+                "value": "terminated"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "department"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2214,6 +2551,31 @@
             "shift",
             "hourly_rate",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "department",
+                "role",
+                "shift",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -2238,7 +2600,32 @@
             "hourly_rate",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "department",
+                "role",
+                "shift",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/staff/:id",
@@ -2262,27 +2649,63 @@
                 "name",
                 "email",
                 "phone",
-                "department",
-                "role",
-                "shift"
+                "department"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "department",
-                "role",
-                "shift",
-                "hourly_rate",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
         }
       }
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total RoomTypes",
+        "entity": "RoomType",
+        "method": "count",
+        "icon": "DoorOpen",
+        "color": "blue"
+      },
+      {
+        "label": "Total Rooms",
+        "entity": "Room",
+        "method": "count",
+        "icon": "DoorOpen",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Guests",
+        "entity": "Guest",
+        "method": "count",
+        "icon": "Users",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Billing",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Staffs",
+        "entity": "Staff",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

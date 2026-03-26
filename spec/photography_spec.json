@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -59,7 +60,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -76,7 +79,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "client_type",
@@ -116,7 +120,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "referral_source",
@@ -235,7 +240,70 @@
             "heading": "No Clients yet",
             "subtext": "Create your first client",
             "action_label": "Add Client"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Past",
+              "filter": {
+                "field": "status",
+                "value": "past"
+              }
+            },
+            {
+              "label": "Vip",
+              "filter": {
+                "field": "status",
+                "value": "vip"
+              }
+            },
+            {
+              "label": "Lead",
+              "filter": {
+                "field": "status",
+                "value": "lead"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "client_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -254,6 +322,30 @@
             "phone",
             "client_type",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "referral_source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "client_type",
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -274,7 +366,31 @@
             "client_type",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "referral_source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "client_type",
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/clients/:id",
@@ -298,21 +414,14 @@
                 "name",
                 "email",
                 "phone",
-                "client_type",
-                "referral_source",
-                "status"
+                "client_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "client_type",
-                "address",
-                "referral_source",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -357,7 +466,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "address",
@@ -370,7 +480,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "location_type",
@@ -413,7 +524,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "capacity",
@@ -456,7 +568,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -520,7 +633,18 @@
             "heading": "No Locations yet",
             "subtext": "Create your first location",
             "action_label": "Add Location"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "location_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -539,6 +663,30 @@
             "location_type",
             "hourly_rate",
             "has_lighting"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "hourly_rate",
+                "capacity",
+                "has_lighting",
+                "notes"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "location_type"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -559,7 +707,31 @@
             "hourly_rate",
             "has_lighting"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "hourly_rate",
+                "capacity",
+                "has_lighting",
+                "notes"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "location_type"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/locations/:id",
@@ -583,21 +755,14 @@
                 "name",
                 "address",
                 "location_type",
-                "hourly_rate",
-                "capacity",
-                "has_lighting"
+                "hourly_rate"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "address",
-                "location_type",
-                "hourly_rate",
-                "capacity",
-                "has_lighting",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -740,7 +905,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -799,7 +965,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -863,7 +1030,93 @@
             "heading": "No Sessions yet",
             "subtext": "Create your first session",
             "action_label": "Add Session"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Inquiry",
+              "filter": {
+                "field": "status",
+                "value": "inquiry"
+              }
+            },
+            {
+              "label": "Booked",
+              "filter": {
+                "field": "status",
+                "value": "booked"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Editing",
+              "filter": {
+                "field": "status",
+                "value": "editing"
+              }
+            },
+            {
+              "label": "Delivered",
+              "filter": {
+                "field": "status",
+                "value": "delivered"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "session_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -930,22 +1183,14 @@
                 "client_id",
                 "location_id",
                 "session_date",
-                "duration_hours",
-                "session_type",
-                "package_price"
+                "duration_hours"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "client_id",
-                "location_id",
-                "session_date",
-                "duration_hours",
-                "session_type",
-                "package_price",
-                "status",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1022,7 +1267,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "gallery_url",
@@ -1035,7 +1281,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "https://..."
         },
         {
           "name": "password",
@@ -1179,7 +1426,68 @@
             "heading": "No Gallerys yet",
             "subtext": "Create your first gallery",
             "action_label": "Add Gallery"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Published",
+              "filter": {
+                "field": "status",
+                "value": "published"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            },
+            {
+              "label": "Archived",
+              "filter": {
+                "field": "status",
+                "value": "archived"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1244,22 +1552,14 @@
                 "session_id",
                 "name",
                 "photo_count",
-                "download_enabled",
-                "expiry_date",
-                "status"
+                "download_enabled"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "session_id",
-                "name",
-                "gallery_url",
-                "password",
-                "photo_count",
-                "download_enabled",
-                "expiry_date",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1361,7 +1661,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax_amount",
@@ -1375,7 +1676,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "deposit_paid",
@@ -1494,7 +1796,80 @@
             "heading": "No Invoices yet",
             "subtext": "Create your first invoice",
             "action_label": "Add Invoice"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Unpaid",
+              "filter": {
+                "field": "status",
+                "value": "unpaid"
+              }
+            },
+            {
+              "label": "Partial",
+              "filter": {
+                "field": "status",
+                "value": "partial"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Void",
+              "filter": {
+                "field": "status",
+                "value": "void"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "invoice_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1565,22 +1940,14 @@
                 "session_id",
                 "client_id",
                 "invoice_number",
-                "amount",
-                "tax_amount",
-                "deposit_paid"
+                "amount"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "session_id",
-                "client_id",
-                "invoice_number",
-                "amount",
-                "tax_amount",
-                "deposit_paid",
-                "due_date",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1725,7 +2092,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "https://..."
         },
         {
           "name": "status",
@@ -1766,7 +2134,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1829,7 +2198,81 @@
             "heading": "No Contracts yet",
             "subtext": "Create your first contract",
             "action_label": "Add Contract"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Sent",
+              "filter": {
+                "field": "status",
+                "value": "sent"
+              }
+            },
+            {
+              "label": "Signed",
+              "filter": {
+                "field": "status",
+                "value": "signed"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "contract_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1888,20 +2331,14 @@
                 "client_id",
                 "session_id",
                 "contract_type",
-                "signed_date",
-                "status"
+                "signed_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "client_id",
-                "session_id",
-                "contract_type",
-                "signed_date",
-                "contract_url",
-                "status",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1962,7 +2399,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "category",
@@ -2037,7 +2475,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "purchase_date",
@@ -2155,7 +2594,20 @@
             "heading": "No Equipments yet",
             "subtext": "Create your first equipment",
             "action_label": "Add Equipment"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "category",
+            "brand",
+            "condition"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2222,27 +2674,63 @@
                 "name",
                 "category",
                 "brand",
-                "purchase_price",
-                "purchase_date",
-                "condition"
+                "purchase_price"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "category",
-                "brand",
-                "serial_number",
-                "purchase_price",
-                "purchase_date",
-                "condition",
-                "insurance_value"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
         }
       }
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Clients",
+        "entity": "Client",
+        "method": "count",
+        "icon": "Users",
+        "color": "blue"
+      },
+      {
+        "label": "Total Locations",
+        "entity": "Location",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Sessions",
+        "entity": "Session",
+        "method": "count",
+        "icon": "Clock",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Invoice",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Clients",
+        "entity": "Client",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

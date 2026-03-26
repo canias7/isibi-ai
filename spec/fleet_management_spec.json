@@ -267,7 +267,78 @@
             "heading": "No Vehicles yet",
             "subtext": "Create your first vehicle",
             "action_label": "Add Vehicle"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Maintenance",
+              "filter": {
+                "field": "status",
+                "value": "maintenance"
+              }
+            },
+            {
+              "label": "Retired",
+              "filter": {
+                "field": "status",
+                "value": "retired"
+              }
+            },
+            {
+              "label": "Sold",
+              "filter": {
+                "field": "status",
+                "value": "sold"
+              }
+            },
+            {
+              "label": "Reserved",
+              "filter": {
+                "field": "status",
+                "value": "reserved"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "plate_number",
+            "vin",
+            "make",
+            "model"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -342,23 +413,14 @@
                 "plate_number",
                 "vin",
                 "make",
-                "model",
-                "year",
-                "vehicle_type"
+                "model"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "plate_number",
-                "vin",
-                "make",
-                "model",
-                "year",
-                "vehicle_type",
-                "odometer_km",
-                "fuel_type",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -403,7 +465,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -420,7 +483,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -437,7 +502,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "license_number",
@@ -582,7 +648,77 @@
             "heading": "No Drivers yet",
             "subtext": "Create your first driver",
             "action_label": "Add Driver"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "On Trip",
+              "filter": {
+                "field": "status",
+                "value": "on_trip"
+              }
+            },
+            {
+              "label": "Off Duty",
+              "filter": {
+                "field": "status",
+                "value": "off_duty"
+              }
+            },
+            {
+              "label": "Suspended",
+              "filter": {
+                "field": "status",
+                "value": "suspended"
+              }
+            },
+            {
+              "label": "Terminated",
+              "filter": {
+                "field": "status",
+                "value": "terminated"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -603,6 +739,30 @@
             "license_expiry",
             "license_class",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "license_expiry",
+                "license_class"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -625,7 +785,31 @@
             "license_class",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "license_expiry",
+                "license_class"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/drivers/:id",
@@ -649,21 +833,14 @@
                 "name",
                 "email",
                 "phone",
-                "license_number",
-                "license_expiry",
-                "license_class"
+                "license_number"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "license_number",
-                "license_expiry",
-                "license_class",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -708,7 +885,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "start_location",
@@ -869,7 +1047,20 @@
             "heading": "No Routes yet",
             "subtext": "Create your first route",
             "action_label": "Add Route"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "start_location",
+            "end_location",
+            "route_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -936,21 +1127,14 @@
                 "name",
                 "start_location",
                 "end_location",
-                "distance_km",
-                "estimated_time_hrs",
-                "route_type"
+                "distance_km"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "start_location",
-                "end_location",
-                "distance_km",
-                "estimated_time_hrs",
-                "route_type",
-                "is_active"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1201,7 +1385,79 @@
             "heading": "No Trips yet",
             "subtext": "Create your first trip",
             "action_label": "Add Trip"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Planned",
+              "filter": {
+                "field": "status",
+                "value": "planned"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "purpose",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1270,23 +1526,14 @@
                 "vehicle_id",
                 "driver_id",
                 "route_id",
-                "start_time",
-                "end_time",
-                "start_odometer"
+                "start_time"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vehicle_id",
-                "driver_id",
-                "route_id",
-                "start_time",
-                "end_time",
-                "start_odometer",
-                "end_odometer",
-                "purpose",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1410,7 +1657,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "scheduled_date",
@@ -1457,7 +1705,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "odometer_at_service",
@@ -1578,7 +1827,87 @@
             "heading": "No Maintenances yet",
             "subtext": "Create your first maintenance",
             "action_label": "Add Maintenance"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "maintenance_type",
+            "vendor_name",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1649,23 +1978,14 @@
                 "vehicle_id",
                 "maintenance_type",
                 "scheduled_date",
-                "completed_date",
-                "cost",
-                "odometer_at_service"
+                "completed_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vehicle_id",
-                "maintenance_type",
-                "description",
-                "scheduled_date",
-                "completed_date",
-                "cost",
-                "odometer_at_service",
-                "vendor_name",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1783,7 +2103,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "odometer",
@@ -1902,7 +2223,17 @@
             "heading": "No FuelLogs yet",
             "subtext": "Create your first fuellog",
             "action_label": "Add FuelLog"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "fuel_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1973,22 +2304,14 @@
                 "vehicle_id",
                 "driver_id",
                 "date",
-                "liters",
-                "cost_per_liter",
-                "odometer"
+                "liters"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vehicle_id",
-                "driver_id",
-                "date",
-                "liters",
-                "cost_per_liter",
-                "odometer",
-                "fuel_type",
-                "is_full_tank"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2168,7 +2491,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "estimated_damage",
@@ -2285,7 +2609,70 @@
             "heading": "No Incidents yet",
             "subtext": "Create your first incident",
             "action_label": "Add Incident"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Reported",
+              "filter": {
+                "field": "status",
+                "value": "reported"
+              }
+            },
+            {
+              "label": "Under Investigation",
+              "filter": {
+                "field": "status",
+                "value": "under_investigation"
+              }
+            },
+            {
+              "label": "Resolved",
+              "filter": {
+                "field": "status",
+                "value": "resolved"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "location",
+            "incident_type",
+            "severity",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2362,24 +2749,14 @@
                 "vehicle_id",
                 "driver_id",
                 "incident_date",
-                "location",
-                "incident_type",
-                "severity"
+                "location"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vehicle_id",
-                "driver_id",
-                "incident_date",
-                "location",
-                "incident_type",
-                "severity",
-                "description",
-                "estimated_damage",
-                "insurance_claim_filed",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2402,5 +2779,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Vehicles",
+        "entity": "Vehicle",
+        "method": "count",
+        "icon": "Car",
+        "color": "blue"
+      },
+      {
+        "label": "Total Drivers",
+        "entity": "Driver",
+        "method": "count",
+        "icon": "Users",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Routes",
+        "entity": "Route",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Maintenance",
+        "method": "sum",
+        "field": "cost",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Vehicles",
+        "entity": "Vehicle",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

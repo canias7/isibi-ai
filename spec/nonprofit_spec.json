@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -59,7 +60,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -76,7 +79,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "donor_type",
@@ -160,7 +164,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "status",
@@ -250,7 +255,70 @@
             "heading": "No Donors yet",
             "subtext": "Create your first donor",
             "action_label": "Add Donor"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Lapsed",
+              "filter": {
+                "field": "status",
+                "value": "lapsed"
+              }
+            },
+            {
+              "label": "Deceased",
+              "filter": {
+                "field": "status",
+                "value": "deceased"
+              }
+            },
+            {
+              "label": "Opted Out",
+              "filter": {
+                "field": "status",
+                "value": "opted_out"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "donor_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -269,6 +337,30 @@
             "donor_type",
             "tier",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "tier"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "donor_type",
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -289,7 +381,31 @@
             "tier",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "tier"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "donor_type",
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/donors/:id",
@@ -313,21 +429,14 @@
                 "name",
                 "email",
                 "phone",
-                "donor_type",
-                "total_donated",
-                "tier"
+                "donor_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "donor_type",
-                "tier",
-                "address",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -372,7 +481,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "description",
@@ -385,7 +495,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "goal_amount",
@@ -401,7 +512,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "raised_amount",
@@ -415,7 +527,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "start_date",
@@ -562,7 +675,87 @@
             "heading": "No Campaigns yet",
             "subtext": "Create your first campaign",
             "action_label": "Add Campaign"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Planning",
+              "filter": {
+                "field": "status",
+                "value": "planning"
+              }
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Paused",
+              "filter": {
+                "field": "status",
+                "value": "paused"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "campaign_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -627,21 +820,14 @@
                 "name",
                 "goal_amount",
                 "raised_amount",
-                "start_date",
-                "end_date",
-                "campaign_type"
+                "start_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "description",
-                "goal_amount",
-                "start_date",
-                "end_date",
-                "campaign_type",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -733,7 +919,8 @@
           "filterable": true,
           "validation": {
             "min": 0.01
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "donation_date",
@@ -913,7 +1100,18 @@
             "heading": "No Donations yet",
             "subtext": "Create your first donation",
             "action_label": "Add Donation"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "payment_method",
+            "frequency"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -984,23 +1182,14 @@
                 "donor_id",
                 "campaign_id",
                 "amount",
-                "donation_date",
-                "payment_method",
-                "is_recurring"
+                "donation_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "donor_id",
-                "campaign_id",
-                "amount",
-                "donation_date",
-                "payment_method",
-                "is_recurring",
-                "frequency",
-                "is_anonymous",
-                "tax_receipt_sent"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1061,7 +1250,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "description",
@@ -1074,7 +1264,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "budget",
@@ -1253,7 +1444,81 @@
             "heading": "No Programs yet",
             "subtext": "Create your first program",
             "action_label": "Add Program"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Planning",
+              "filter": {
+                "field": "status",
+                "value": "planning"
+              }
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Paused",
+              "filter": {
+                "field": "status",
+                "value": "paused"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Discontinued",
+              "filter": {
+                "field": "status",
+                "value": "discontinued"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "category",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1316,21 +1581,14 @@
                 "name",
                 "budget",
                 "spent",
-                "start_date",
-                "end_date",
-                "category"
+                "start_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "description",
-                "budget",
-                "start_date",
-                "end_date",
-                "category",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1387,7 +1645,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -1404,7 +1663,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -1421,7 +1682,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "program_id",
@@ -1580,7 +1842,63 @@
             "heading": "No Volunteers yet",
             "subtext": "Create your first volunteer",
             "action_label": "Add Volunteer"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "availability"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1599,6 +1917,30 @@
             "phone",
             "availability",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "program_id",
+                "skills",
+                "availability"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -1619,7 +1961,31 @@
             "availability",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "program_id",
+                "skills",
+                "availability"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/volunteers/:id",
@@ -1643,21 +2009,14 @@
                 "name",
                 "email",
                 "phone",
-                "program_id",
-                "hours_logged",
-                "availability"
+                "program_id"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "program_id",
-                "skills",
-                "availability",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1743,7 +2102,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "disbursed_amount",
@@ -1757,7 +2117,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "start_date",
@@ -1937,7 +2298,84 @@
             "heading": "No Grants yet",
             "subtext": "Create your first grant",
             "action_label": "Add Grant"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Applied",
+              "filter": {
+                "field": "status",
+                "value": "applied"
+              }
+            },
+            {
+              "label": "Awarded",
+              "filter": {
+                "field": "status",
+                "value": "awarded"
+              }
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Reporting",
+              "filter": {
+                "field": "status",
+                "value": "reporting"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            },
+            {
+              "label": "Rejected",
+              "filter": {
+                "field": "status",
+                "value": "rejected"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "grantor_name",
+            "grant_type",
+            "status",
+            "reporting_frequency"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2010,23 +2448,14 @@
                 "program_id",
                 "grantor_name",
                 "amount",
-                "disbursed_amount",
-                "start_date",
-                "end_date"
+                "disbursed_amount"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "program_id",
-                "grantor_name",
-                "amount",
-                "disbursed_amount",
-                "start_date",
-                "end_date",
-                "grant_type",
-                "status",
-                "reporting_frequency"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2087,7 +2516,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "campaign_id",
@@ -2159,7 +2589,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "max_attendees",
@@ -2298,7 +2729,88 @@
             "heading": "No Events yet",
             "subtext": "Create your first event",
             "action_label": "Add Event"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Planning",
+              "filter": {
+                "field": "status",
+                "value": "planning"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "location",
+            "event_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2371,23 +2883,14 @@
                 "name",
                 "campaign_id",
                 "event_date",
-                "location",
-                "budget",
-                "ticket_price"
+                "location"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "campaign_id",
-                "event_date",
-                "location",
-                "budget",
-                "ticket_price",
-                "max_attendees",
-                "event_type",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2403,5 +2906,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Donors",
+        "entity": "Donor",
+        "method": "count",
+        "icon": "Users",
+        "color": "blue"
+      },
+      {
+        "label": "Total Campaigns",
+        "entity": "Campaign",
+        "method": "count",
+        "icon": "Megaphone",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Donations",
+        "entity": "Donation",
+        "method": "count",
+        "icon": "Heart",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Donation",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Donors",
+        "entity": "Donor",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

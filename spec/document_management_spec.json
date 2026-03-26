@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "parent_folder_id",
@@ -108,7 +110,8 @@
             "public": "green",
             "team": "blue",
             "private": "red"
-          }
+          },
+          "placeholder": "Select visibility"
         },
         {
           "name": "owner",
@@ -119,7 +122,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter owner"
         },
         {
           "name": "created_at",
@@ -142,6 +146,101 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "visibility",
+          "columns": [
+            "public",
+            "team",
+            "private"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "color",
+            "owner"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "parent_folder_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "visibility"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "visibility",
+          "label": "Visibility",
+          "options": [
+            "all",
+            "public",
+            "team",
+            "private"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Documents",
+          "type": "related_list",
+          "entity": "Document",
+          "foreign_key": "folder_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "path",
+        "color",
+        "visibility"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -181,7 +280,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "category",
@@ -208,7 +309,9 @@
             "letter": "amber",
             "memo": "pink",
             "sop": "slate"
-          }
+          },
+          "placeholder": "Select category",
+          "help_text": "Category classification"
         },
         {
           "name": "content",
@@ -219,7 +322,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter content..."
         },
         {
           "name": "format",
@@ -236,7 +340,8 @@
             "html",
             "plain_text",
             "rich_text"
-          ]
+          ],
+          "placeholder": "Select format"
         },
         {
           "name": "usage_count",
@@ -247,7 +352,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "is_active",
@@ -281,6 +387,102 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "category",
+          "columns": [
+            "contract",
+            "proposal",
+            "report",
+            "letter",
+            "memo",
+            "sop"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "content",
+            "format",
+            "usage_count",
+            "is_active"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "category"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "category",
+          "label": "Category",
+          "options": [
+            "all",
+            "contract",
+            "proposal",
+            "report",
+            "letter",
+            "memo",
+            "sop"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Documents",
+          "type": "related_list",
+          "entity": "Document",
+          "foreign_key": "template_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "category",
+        "format"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -344,7 +546,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "content",
@@ -355,7 +559,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter content..."
         },
         {
           "name": "doc_type",
@@ -382,7 +587,8 @@
             "pdf": "red",
             "image": "pink",
             "other": "slate"
-          }
+          },
+          "placeholder": "Select doc type"
         },
         {
           "name": "file_size_kb",
@@ -393,7 +599,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "author",
@@ -404,7 +611,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter author"
         },
         {
           "name": "version_number",
@@ -415,7 +623,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "status",
@@ -440,7 +649,8 @@
             "approved": "blue",
             "published": "green",
             "archived": "purple"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -463,6 +673,130 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "doc_type",
+          "columns": [
+            "document",
+            "spreadsheet",
+            "presentation",
+            "pdf",
+            "image",
+            "other"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "content",
+            "file_size_kb",
+            "author",
+            "version_number"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "folder_id",
+            "template_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "doc_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "doc_type",
+          "label": "Doc Type",
+          "options": [
+            "all",
+            "document",
+            "spreadsheet",
+            "presentation",
+            "pdf",
+            "image",
+            "other"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "review",
+            "approved",
+            "published",
+            "archived"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Versions",
+          "type": "related_list",
+          "entity": "Version",
+          "foreign_key": "document_id"
+        },
+        {
+          "label": "Shares",
+          "type": "related_list",
+          "entity": "Share",
+          "foreign_key": "document_id"
+        },
+        {
+          "label": "Workflows",
+          "type": "related_list",
+          "entity": "Workflow",
+          "foreign_key": "document_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "doc_type",
+        "author",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -514,7 +848,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "change_summary",
@@ -525,7 +860,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Brief summary...",
+          "help_text": "Short summary of the item"
         },
         {
           "name": "author",
@@ -536,7 +873,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter author"
         },
         {
           "name": "file_url",
@@ -547,7 +885,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "file_upload",
-          "display_component": "file_link"
+          "display_component": "file_link",
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
         },
         {
           "name": "file_size_kb",
@@ -558,7 +898,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "created_at_version",
@@ -603,6 +944,67 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "calendar",
+          "date_field": "created_at_version"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "version_number",
+            "change_summary",
+            "author",
+            "file_url",
+            "file_size_kb",
+            "is_current"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "document_id"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at_version",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "author"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -654,7 +1056,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter shared with"
         },
         {
           "name": "shared_with_email",
@@ -669,7 +1072,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "permission",
@@ -692,7 +1097,8 @@
             "comment": "blue",
             "edit": "green",
             "admin": "purple"
-          }
+          },
+          "placeholder": "Select permission"
         },
         {
           "name": "expires_at",
@@ -703,7 +1109,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "notify_on_change",
@@ -749,6 +1156,97 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "permission",
+          "columns": [
+            "view",
+            "comment",
+            "edit",
+            "admin"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "expires_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "shared_with",
+            "shared_with_email",
+            "notify_on_change"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "document_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "permission",
+            "expires_at"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "permission",
+          "label": "Permission",
+          "options": [
+            "all",
+            "view",
+            "comment",
+            "edit",
+            "admin"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "expires_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "shared_with",
+        "shared_with_email",
+        "permission",
+        "share_link"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     },
     {
@@ -787,7 +1285,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "color",
@@ -827,7 +1327,9 @@
             "project",
             "department",
             "custom"
-          ]
+          ],
+          "placeholder": "Select category",
+          "help_text": "Category classification"
         },
         {
           "name": "is_system",
@@ -861,6 +1363,62 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "color",
+            "category",
+            "is_system"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "color",
+        "category"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -924,7 +1482,8 @@
             "review": "green",
             "sign_off": "purple",
             "publish": "amber"
-          }
+          },
+          "placeholder": "Select workflow type"
         },
         {
           "name": "current_step",
@@ -935,7 +1494,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter current step"
         },
         {
           "name": "total_steps",
@@ -946,7 +1506,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "completed_steps",
@@ -957,7 +1519,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "progress_pct",
@@ -992,7 +1555,8 @@
             "in_progress": "blue",
             "approved": "green",
             "rejected": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "initiated_by",
@@ -1003,7 +1567,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter initiated by"
         },
         {
           "name": "created_at",
@@ -1027,7 +1592,146 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "workflow_type",
+          "columns": [
+            "approval",
+            "review",
+            "sign_off",
+            "publish"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "current_step",
+            "total_steps",
+            "completed_steps",
+            "initiated_by"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "document_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "workflow_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "workflow_type",
+          "label": "Workflow Type",
+          "options": [
+            "all",
+            "approval",
+            "review",
+            "sign_off",
+            "publish"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "pending",
+            "in_progress",
+            "approved",
+            "rejected"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "workflow_type",
+        "current_step",
+        "status",
+        "initiated_by"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Folders",
+        "query": "COUNT(*) FROM doc_folders",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Folders",
+        "query": "COUNT(*) FROM doc_folders WHERE visibility = 'public'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM doc_folders WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Templates",
+        "query": "COUNT(*) FROM doc_templates",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Templates",
+        "query": "COUNT(*) FROM doc_templates WHERE category = 'contract'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Documents",
+        "query": "COUNT(*) FROM documents",
+        "icon": "Hash",
+        "color": "blue"
+      }
+    ]
+  }
 }

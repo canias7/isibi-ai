@@ -55,7 +55,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -72,7 +73,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -89,7 +92,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "billing_address",
@@ -102,7 +106,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "tax_id",
@@ -247,7 +252,70 @@
             "heading": "No Customers yet",
             "subtext": "Create your first customer",
             "action_label": "Add Customer"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Suspended",
+              "filter": {
+                "field": "status",
+                "value": "suspended"
+              }
+            },
+            {
+              "label": "On Hold",
+              "filter": {
+                "field": "status",
+                "value": "on_hold"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -270,6 +338,32 @@
             "payment_terms",
             "credit_limit",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company_name",
+                "billing_address",
+                "tax_id",
+                "payment_terms",
+                "credit_limit"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -294,7 +388,33 @@
             "credit_limit",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company_name",
+                "billing_address",
+                "tax_id",
+                "payment_terms",
+                "credit_limit"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/customers/:id",
@@ -318,23 +438,14 @@
                 "company_name",
                 "contact_name",
                 "email",
-                "phone",
-                "payment_terms",
-                "status"
+                "phone"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "company_name",
-                "contact_name",
-                "email",
-                "phone",
-                "billing_address",
-                "tax_id",
-                "payment_terms",
-                "credit_limit",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -439,7 +550,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax_rate",
@@ -457,7 +569,8 @@
           "validation": {
             "min": 0,
             "max": 100
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax_amount",
@@ -471,7 +584,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "discount_pct",
@@ -534,7 +648,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -598,7 +713,87 @@
             "heading": "No Invoices yet",
             "subtext": "Create your first invoice",
             "action_label": "Add Invoice"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Sent",
+              "filter": {
+                "field": "status",
+                "value": "sent"
+              }
+            },
+            {
+              "label": "Viewed",
+              "filter": {
+                "field": "status",
+                "value": "viewed"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Void",
+              "filter": {
+                "field": "status",
+                "value": "void"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "invoice_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -667,22 +862,14 @@
                 "invoice_number",
                 "customer_id",
                 "issue_date",
-                "due_date",
-                "subtotal",
-                "tax_rate"
+                "due_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "invoice_number",
-                "customer_id",
-                "issue_date",
-                "due_date",
-                "tax_rate",
-                "discount_pct",
-                "status",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -764,7 +951,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "quantity",
@@ -796,7 +984,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax_rate_id",
@@ -812,7 +1001,8 @@
           "filterable": true,
           "is_fk": true,
           "fk_table": "tax_rates",
-          "fk_display": "name"
+          "fk_display": "name",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "discount_pct",
@@ -893,7 +1083,17 @@
             "heading": "No InvoiceLines yet",
             "subtext": "Create your first invoiceline",
             "action_label": "Add InvoiceLine"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "description"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -954,19 +1154,14 @@
                 "invoice_id",
                 "description",
                 "quantity",
-                "unit_price",
-                "tax_rate_id"
+                "unit_price"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "invoice_id",
-                "description",
-                "quantity",
-                "unit_price",
-                "tax_rate_id",
-                "discount_pct"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1069,7 +1264,8 @@
           "filterable": true,
           "validation": {
             "min": 0.01
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "payment_date",
@@ -1232,7 +1428,74 @@
             "heading": "No Payments yet",
             "subtext": "Create your first payment",
             "action_label": "Add Payment"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Failed",
+              "filter": {
+                "field": "status",
+                "value": "failed"
+              }
+            },
+            {
+              "label": "Refunded",
+              "filter": {
+                "field": "status",
+                "value": "refunded"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "payment_method",
+            "reference_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1299,22 +1562,14 @@
                 "invoice_id",
                 "customer_id",
                 "amount",
-                "payment_date",
-                "payment_method",
-                "reference_number"
+                "payment_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "invoice_id",
-                "customer_id",
-                "amount",
-                "payment_date",
-                "payment_method",
-                "reference_number",
-                "status",
-                "refund_reason"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1375,7 +1630,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "rate",
@@ -1392,7 +1648,8 @@
           "validation": {
             "min": 0,
             "max": 100
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "description",
@@ -1405,7 +1662,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "tax_type",
@@ -1523,7 +1781,18 @@
             "heading": "No TaxRates yet",
             "subtext": "Create your first taxrate",
             "action_label": "Add TaxRate"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "tax_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1584,19 +1853,14 @@
                 "name",
                 "rate",
                 "tax_type",
-                "is_default",
-                "is_active"
+                "is_default"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "rate",
-                "description",
-                "tax_type",
-                "is_default",
-                "is_active"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1641,7 +1905,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "start_date",
@@ -1729,7 +1994,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1792,7 +2058,62 @@
             "heading": "No FinancialPeriods yet",
             "subtext": "Create your first financialperiod",
             "action_label": "Add FinancialPeriod"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Open",
+              "filter": {
+                "field": "status",
+                "value": "open"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            },
+            {
+              "label": "Locked",
+              "filter": {
+                "field": "status",
+                "value": "locked"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "period_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1853,19 +2174,14 @@
                 "name",
                 "start_date",
                 "end_date",
-                "period_type",
-                "status"
+                "period_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "start_date",
-                "end_date",
-                "period_type",
-                "status",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1927,7 +2243,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "account_type",
@@ -1967,7 +2284,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "parent_account_id",
@@ -2060,7 +2378,19 @@
             "heading": "No RevenueAccounts yet",
             "subtext": "Create your first revenueaccount",
             "action_label": "Add RevenueAccount"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "account_code",
+            "name",
+            "account_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2119,19 +2449,14 @@
                 "account_code",
                 "name",
                 "account_type",
-                "parent_account_id",
-                "is_active"
+                "parent_account_id"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "account_code",
-                "name",
-                "account_type",
-                "description",
-                "parent_account_id",
-                "is_active"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2147,5 +2472,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Customers",
+        "entity": "Customer",
+        "method": "count",
+        "icon": "Users",
+        "color": "blue"
+      },
+      {
+        "label": "Total Invoices",
+        "entity": "Invoice",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total InvoiceLines",
+        "entity": "InvoiceLine",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Invoice",
+        "method": "sum",
+        "field": "subtotal",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Customers",
+        "entity": "Customer",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "description",
@@ -52,7 +54,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "category",
@@ -77,7 +81,9 @@
             "data_sync": "purple",
             "scheduling": "amber",
             "escalation": "red"
-          }
+          },
+          "placeholder": "Select category",
+          "help_text": "Category classification"
         },
         {
           "name": "status",
@@ -100,7 +106,8 @@
             "active": "green",
             "paused": "amber",
             "archived": "purple"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "step_count",
@@ -124,7 +131,9 @@
           "show_in_form": false,
           "input_component": "number_input",
           "display_component": "text",
-          "computed": "COUNT(runs)"
+          "computed": "COUNT(runs)",
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "success_rate_pct",
@@ -182,6 +191,122 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "category",
+          "columns": [
+            "approval",
+            "notification",
+            "data_sync",
+            "scheduling",
+            "escalation"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "description",
+            "is_template"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "category",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "category",
+          "label": "Category",
+          "options": [
+            "all",
+            "approval",
+            "notification",
+            "data_sync",
+            "scheduling",
+            "escalation"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "active",
+            "paused",
+            "archived"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Steps",
+          "type": "related_list",
+          "entity": "Step",
+          "foreign_key": "workflow_id"
+        },
+        {
+          "label": "Triggers",
+          "type": "related_list",
+          "entity": "Trigger",
+          "foreign_key": "workflow_id"
+        },
+        {
+          "label": "Runs",
+          "type": "related_list",
+          "entity": "Run",
+          "foreign_key": "workflow_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "category",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     },
     {
@@ -232,7 +357,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "step_order",
@@ -243,7 +370,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "step_type",
@@ -270,7 +398,8 @@
             "loop": "green",
             "parallel": "pink",
             "webhook": "slate"
-          }
+          },
+          "placeholder": "Select step type"
         },
         {
           "name": "config_json",
@@ -281,7 +410,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter config json..."
         },
         {
           "name": "timeout_seconds",
@@ -292,7 +422,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "on_failure",
@@ -315,7 +446,8 @@
             "skip": "amber",
             "retry": "blue",
             "fallback": "green"
-          }
+          },
+          "placeholder": "Select on failure"
         },
         {
           "name": "max_retries",
@@ -326,7 +458,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "created_at",
@@ -349,6 +482,126 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "step_type",
+          "columns": [
+            "action",
+            "condition",
+            "delay",
+            "loop",
+            "parallel",
+            "webhook"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "step_order",
+            "config_json",
+            "timeout_seconds",
+            "max_retries"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "workflow_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "step_type",
+            "on_failure"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "step_type",
+          "label": "Step Type",
+          "options": [
+            "all",
+            "action",
+            "condition",
+            "delay",
+            "loop",
+            "parallel",
+            "webhook"
+          ]
+        },
+        {
+          "field": "on_failure",
+          "label": "On Failure",
+          "options": [
+            "all",
+            "stop",
+            "skip",
+            "retry",
+            "fallback"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Actions",
+          "type": "related_list",
+          "entity": "Action",
+          "foreign_key": "step_id"
+        },
+        {
+          "label": "Logs",
+          "type": "related_list",
+          "entity": "Log",
+          "foreign_key": "step_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "step_type",
+        "on_failure"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -400,7 +653,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "trigger_type",
@@ -425,7 +680,8 @@
             "event": "purple",
             "manual": "amber",
             "api": "pink"
-          }
+          },
+          "placeholder": "Select trigger type"
         },
         {
           "name": "cron_expression",
@@ -441,7 +697,8 @@
             "field": "trigger_type",
             "operator": "eq",
             "value": "schedule"
-          }
+          },
+          "placeholder": "Enter cron expression"
         },
         {
           "name": "webhook_url",
@@ -457,7 +714,9 @@
             "field": "trigger_type",
             "operator": "eq",
             "value": "webhook"
-          }
+          },
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
         },
         {
           "name": "event_name",
@@ -473,7 +732,9 @@
             "field": "trigger_type",
             "operator": "eq",
             "value": "event"
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "is_active",
@@ -507,6 +768,101 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "trigger_type",
+          "columns": [
+            "schedule",
+            "webhook",
+            "event",
+            "manual",
+            "api"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "cron_expression",
+            "webhook_url",
+            "event_name",
+            "is_active"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "workflow_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "trigger_type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "trigger_type",
+          "label": "Trigger Type",
+          "options": [
+            "all",
+            "schedule",
+            "webhook",
+            "event",
+            "manual",
+            "api"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "trigger_type",
+        "cron_expression",
+        "event_name"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -558,7 +914,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "action_type",
@@ -585,7 +943,8 @@
             "create_record": "pink",
             "notify": "amber",
             "transform": "slate"
-          }
+          },
+          "placeholder": "Select action type"
         },
         {
           "name": "config_json",
@@ -596,7 +955,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter config json..."
         },
         {
           "name": "target_entity",
@@ -607,7 +967,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter target entity"
         },
         {
           "name": "execution_order",
@@ -618,7 +979,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "created_at",
@@ -641,6 +1003,101 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "action_type",
+          "columns": [
+            "send_email",
+            "api_call",
+            "update_record",
+            "create_record",
+            "notify",
+            "transform"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "config_json",
+            "target_entity",
+            "execution_order"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "step_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "action_type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "action_type",
+          "label": "Action Type",
+          "options": [
+            "all",
+            "send_email",
+            "api_call",
+            "update_record",
+            "create_record",
+            "notify",
+            "transform"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "action_type",
+        "target_entity"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -715,7 +1172,9 @@
           "show_in_form": false,
           "input_component": "number_input",
           "display_component": "text",
-          "computed": "EXTRACT(EPOCH FROM completed_at - started_at) * 1000"
+          "computed": "EXTRACT(EPOCH FROM completed_at - started_at) * 1000",
+          "placeholder": "e.g. 1h 30m",
+          "help_text": "Duration of the activity"
         },
         {
           "name": "status",
@@ -740,7 +1199,8 @@
             "failed": "red",
             "cancelled": "slate",
             "timeout": "amber"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "trigger_source",
@@ -751,7 +1211,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter trigger source"
         },
         {
           "name": "steps_completed",
@@ -762,7 +1223,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "steps_total",
@@ -773,7 +1235,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "error_message",
@@ -792,7 +1256,9 @@
               "failed",
               "timeout"
             ]
-          }
+          },
+          "placeholder": "Enter message...",
+          "help_text": "Message content"
         },
         {
           "name": "created_at",
@@ -815,6 +1281,112 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "running",
+            "success",
+            "failed",
+            "cancelled",
+            "timeout"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "started_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "trigger_source",
+            "steps_completed",
+            "steps_total",
+            "error_message"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "workflow_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "running",
+            "success",
+            "failed",
+            "cancelled",
+            "timeout"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Logs",
+          "type": "related_list",
+          "entity": "Log",
+          "foreign_key": "run_id"
+        }
+      ],
+      "default_sort": {
+        "field": "started_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "status",
+        "trigger_source"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Cancel",
+          "icon": "XCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "cancelled",
+          "confirm": true,
+          "variant": "danger"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -890,7 +1462,8 @@
             "info": "blue",
             "warn": "amber",
             "error": "red"
-          }
+          },
+          "placeholder": "Select level"
         },
         {
           "name": "message",
@@ -901,7 +1474,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter message...",
+          "help_text": "Message content"
         },
         {
           "name": "logged_at",
@@ -934,7 +1509,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "e.g. 1h 30m",
+          "help_text": "Duration of the activity"
         },
         {
           "name": "created_at",
@@ -958,7 +1535,135 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "level",
+          "columns": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "logged_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "message",
+            "duration_ms"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "run_id",
+            "step_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "level"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "level",
+          "label": "Level",
+          "options": [
+            "all",
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "logged_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "level"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Workflows",
+        "query": "COUNT(*) FROM workflows",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Total Runs",
+        "query": "SUM(total_runs) FROM workflows",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Workflows",
+        "query": "COUNT(*) FROM workflows WHERE category = 'approval'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM workflows WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Steps",
+        "query": "COUNT(*) FROM workflow_steps",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Steps",
+        "query": "COUNT(*) FROM workflow_steps WHERE step_type = 'action'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      }
+    ]
+  }
 }

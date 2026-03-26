@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -59,7 +60,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -76,7 +79,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "genre",
@@ -241,7 +245,63 @@
             "heading": "No Artists yet",
             "subtext": "Create your first artist",
             "action_label": "Add Artist"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Prospect",
+              "filter": {
+                "field": "status",
+                "value": "prospect"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "genre"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -261,6 +321,30 @@
             "genre",
             "artist_type",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "genre",
+                "label"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "artist_type",
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -282,7 +366,31 @@
             "artist_type",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "genre",
+                "label"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "artist_type",
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/artists/:id",
@@ -306,21 +414,14 @@
                 "name",
                 "email",
                 "phone",
-                "genre",
-                "artist_type",
-                "label"
+                "genre"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "genre",
-                "artist_type",
-                "label",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -365,7 +466,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "room_type",
@@ -410,7 +512,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "capacity",
@@ -531,7 +634,70 @@
             "heading": "No Rooms yet",
             "subtext": "Create your first room",
             "action_label": "Add Room"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "In Use",
+              "filter": {
+                "field": "status",
+                "value": "in_use"
+              }
+            },
+            {
+              "label": "Maintenance",
+              "filter": {
+                "field": "status",
+                "value": "maintenance"
+              }
+            },
+            {
+              "label": "Reserved",
+              "filter": {
+                "field": "status",
+                "value": "reserved"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "room_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -594,20 +760,14 @@
                 "name",
                 "room_type",
                 "hourly_rate",
-                "capacity",
-                "has_isolation",
-                "status"
+                "capacity"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "room_type",
-                "hourly_rate",
-                "capacity",
-                "has_isolation",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -652,7 +812,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -669,7 +830,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -686,7 +849,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "specialization",
@@ -731,7 +895,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "experience_years",
@@ -838,7 +1003,70 @@
             "heading": "No Engineers yet",
             "subtext": "Create your first engineer",
             "action_label": "Add Engineer"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "In Session",
+              "filter": {
+                "field": "status",
+                "value": "in_session"
+              }
+            },
+            {
+              "label": "Off Duty",
+              "filter": {
+                "field": "status",
+                "value": "off_duty"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "specialization"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -859,6 +1087,30 @@
             "hourly_rate",
             "experience_years",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialization",
+                "hourly_rate",
+                "experience_years"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -881,7 +1133,31 @@
             "experience_years",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialization",
+                "hourly_rate",
+                "experience_years"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/engineers/:id",
@@ -905,21 +1181,14 @@
                 "name",
                 "email",
                 "phone",
-                "specialization",
-                "hourly_rate",
-                "experience_years"
+                "specialization"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "specialization",
-                "hourly_rate",
-                "experience_years",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1099,7 +1368,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1163,7 +1433,86 @@
             "heading": "No Sessions yet",
             "subtext": "Create your first session",
             "action_label": "Add Session"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Booked",
+              "filter": {
+                "field": "status",
+                "value": "booked"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "session_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1232,22 +1581,14 @@
                 "artist_id",
                 "room_id",
                 "engineer_id",
-                "session_date",
-                "duration_hours",
-                "session_type"
+                "session_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "artist_id",
-                "room_id",
-                "engineer_id",
-                "session_date",
-                "duration_hours",
-                "session_type",
-                "status",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1338,7 +1679,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "project_type",
@@ -1533,7 +1875,83 @@
             "heading": "No Projects yet",
             "subtext": "Create your first project",
             "action_label": "Add Project"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pre Production",
+              "filter": {
+                "field": "status",
+                "value": "pre_production"
+              }
+            },
+            {
+              "label": "Recording",
+              "filter": {
+                "field": "status",
+                "value": "recording"
+              }
+            },
+            {
+              "label": "Mixing",
+              "filter": {
+                "field": "status",
+                "value": "mixing"
+              }
+            },
+            {
+              "label": "Mastering",
+              "filter": {
+                "field": "status",
+                "value": "mastering"
+              }
+            },
+            {
+              "label": "Complete",
+              "filter": {
+                "field": "status",
+                "value": "complete"
+              }
+            },
+            {
+              "label": "Released",
+              "filter": {
+                "field": "status",
+                "value": "released"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "project_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1602,22 +2020,14 @@
                 "artist_id",
                 "title",
                 "project_type",
-                "start_date",
-                "target_release",
-                "budget"
+                "start_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "artist_id",
-                "title",
-                "project_type",
-                "start_date",
-                "target_release",
-                "budget",
-                "track_count",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1726,7 +2136,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax_amount",
@@ -1740,7 +2151,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "issue_date",
@@ -1858,7 +2270,80 @@
             "heading": "No Invoices yet",
             "subtext": "Create your first invoice",
             "action_label": "Add Invoice"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Sent",
+              "filter": {
+                "field": "status",
+                "value": "sent"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Void",
+              "filter": {
+                "field": "status",
+                "value": "void"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "invoice_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1927,22 +2412,14 @@
                 "artist_id",
                 "project_id",
                 "invoice_number",
-                "amount",
-                "tax_amount",
-                "issue_date"
+                "amount"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "artist_id",
-                "project_id",
-                "invoice_number",
-                "amount",
-                "tax_amount",
-                "issue_date",
-                "due_date",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2010,7 +2487,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "category",
@@ -2100,7 +2578,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "room_id",
@@ -2208,7 +2687,20 @@
             "heading": "No Equipments yet",
             "subtext": "Create your first equipment",
             "action_label": "Add Equipment"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "category",
+            "brand",
+            "model"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2273,22 +2765,14 @@
                 "name",
                 "category",
                 "brand",
-                "model",
-                "purchase_price",
-                "room_id"
+                "model"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "category",
-                "brand",
-                "model",
-                "serial_number",
-                "purchase_price",
-                "room_id",
-                "condition"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2304,5 +2788,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Artists",
+        "entity": "Artist",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Rooms",
+        "entity": "Room",
+        "method": "count",
+        "icon": "DoorOpen",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Engineers",
+        "entity": "Engineer",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Invoice",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Artists",
+        "entity": "Artist",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

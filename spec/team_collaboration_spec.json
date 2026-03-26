@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "description",
@@ -52,7 +54,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "department",
@@ -73,7 +77,9 @@
             "operations",
             "hr",
             "finance"
-          ]
+          ],
+          "placeholder": "Department",
+          "help_text": "Department or division"
         },
         {
           "name": "member_count",
@@ -106,7 +112,8 @@
             "public": "green",
             "private": "amber",
             "secret": "red"
-          }
+          },
+          "placeholder": "Select visibility"
         },
         {
           "name": "color",
@@ -136,7 +143,8 @@
           "badge_colors": {
             "active": "green",
             "archived": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -159,6 +167,124 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "visibility",
+          "columns": [
+            "public",
+            "private",
+            "secret"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "description",
+            "department",
+            "color"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "visibility",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "visibility",
+          "label": "Visibility",
+          "options": [
+            "all",
+            "public",
+            "private",
+            "secret"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "archived"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Members",
+          "type": "related_list",
+          "entity": "Member",
+          "foreign_key": "team_id"
+        },
+        {
+          "label": "Channels",
+          "type": "related_list",
+          "entity": "Channel",
+          "foreign_key": "team_id"
+        },
+        {
+          "label": "Tasks",
+          "type": "related_list",
+          "entity": "Task",
+          "foreign_key": "team_id"
+        },
+        {
+          "label": "Files",
+          "type": "related_list",
+          "entity": "File",
+          "foreign_key": "team_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "department",
+        "visibility",
+        "color"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -210,7 +336,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "email",
@@ -225,7 +353,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "role",
@@ -248,7 +378,8 @@
             "admin": "blue",
             "member": "green",
             "guest": "slate"
-          }
+          },
+          "placeholder": "Select role"
         },
         {
           "name": "title",
@@ -259,7 +390,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "joined_at",
@@ -270,7 +403,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "status",
@@ -291,7 +425,8 @@
             "active": "green",
             "away": "amber",
             "offline": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -314,6 +449,113 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "role",
+          "columns": [
+            "owner",
+            "admin",
+            "member",
+            "guest"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "joined_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "email"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "title"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "team_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "role",
+            "joined_at",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "role",
+          "label": "Role",
+          "options": [
+            "all",
+            "owner",
+            "admin",
+            "member",
+            "guest"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "away",
+            "offline"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "joined_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "email",
+        "role",
+        "title"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -365,7 +607,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "description",
@@ -376,7 +620,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "type",
@@ -401,7 +647,8 @@
             "announcement": "amber",
             "social": "pink",
             "support": "purple"
-          }
+          },
+          "placeholder": "Select type"
         },
         {
           "name": "is_private",
@@ -424,7 +671,9 @@
           "show_in_form": false,
           "input_component": "number_input",
           "display_component": "text",
-          "computed": "COUNT(messages)"
+          "computed": "COUNT(messages)",
+          "placeholder": "Enter message...",
+          "help_text": "Message content"
         },
         {
           "name": "is_archived",
@@ -458,6 +707,111 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "type",
+          "columns": [
+            "general",
+            "project",
+            "announcement",
+            "social",
+            "support"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "description",
+            "is_private",
+            "is_archived"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "team_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "type",
+          "label": "Type",
+          "options": [
+            "all",
+            "general",
+            "project",
+            "announcement",
+            "social",
+            "support"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Messages",
+          "type": "related_list",
+          "entity": "Message",
+          "foreign_key": "channel_id"
+        },
+        {
+          "label": "Files",
+          "type": "related_list",
+          "entity": "File",
+          "foreign_key": "channel_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "description",
+        "type"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -509,7 +863,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "content",
@@ -520,7 +876,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter content"
         },
         {
           "name": "message_type",
@@ -545,7 +902,9 @@
             "file": "purple",
             "link": "amber",
             "system": "slate"
-          }
+          },
+          "placeholder": "Enter message...",
+          "help_text": "Message content"
         },
         {
           "name": "is_pinned",
@@ -614,6 +973,91 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "message_type",
+          "columns": [
+            "text",
+            "image",
+            "file",
+            "link",
+            "system"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "sent_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "sender_name",
+            "content",
+            "is_pinned",
+            "is_edited"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "channel_id"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "message_type",
+          "label": "Message Type",
+          "options": [
+            "all",
+            "text",
+            "image",
+            "file",
+            "link",
+            "system"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "sent_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "sender_name",
+        "message_type"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     },
     {
@@ -664,7 +1108,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -675,7 +1121,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "assignee",
@@ -686,7 +1134,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter assignee"
         },
         {
           "name": "priority",
@@ -709,7 +1158,9 @@
             "medium": "blue",
             "high": "amber",
             "critical": "red"
-          }
+          },
+          "placeholder": "Select priority",
+          "help_text": "Priority level"
         },
         {
           "name": "status",
@@ -732,7 +1183,8 @@
             "in_progress": "blue",
             "review": "amber",
             "done": "green"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "due_date",
@@ -743,7 +1195,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "estimated_hours",
@@ -754,7 +1207,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "created_at",
@@ -777,6 +1231,110 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "priority",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "due_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "assignee",
+            "estimated_hours"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "team_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "priority",
+            "status",
+            "due_date"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "priority",
+          "label": "Priority",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "todo",
+            "in_progress",
+            "review",
+            "done"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "due_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "assignee",
+        "priority",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -840,7 +1398,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "file_url",
@@ -851,7 +1411,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "file_upload",
-          "display_component": "file_link"
+          "display_component": "file_link",
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
         },
         {
           "name": "file_type",
@@ -889,7 +1451,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "uploaded_by",
@@ -900,7 +1463,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter uploaded by"
         },
         {
           "name": "download_count",
@@ -911,7 +1475,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "created_at",
@@ -935,7 +1500,138 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "file_type",
+          "columns": [
+            "document",
+            "spreadsheet",
+            "presentation",
+            "image",
+            "video",
+            "other"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "file_url",
+            "file_size_kb",
+            "uploaded_by",
+            "download_count"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "channel_id",
+            "team_id"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "file_type",
+          "label": "File Type",
+          "options": [
+            "all",
+            "document",
+            "spreadsheet",
+            "presentation",
+            "image",
+            "video",
+            "other"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "file_type",
+        "uploaded_by"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Teams",
+        "query": "COUNT(*) FROM teams",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Teams",
+        "query": "COUNT(*) FROM teams WHERE visibility = 'public'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM teams WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Members",
+        "query": "COUNT(*) FROM team_members",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Members",
+        "query": "COUNT(*) FROM team_members WHERE role = 'owner'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Channels",
+        "query": "COUNT(*) FROM team_channels",
+        "icon": "Hash",
+        "color": "blue"
+      }
+    ]
+  }
 }

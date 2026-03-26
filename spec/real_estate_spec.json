@@ -40,7 +40,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -55,7 +56,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -66,7 +69,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "license_number",
@@ -182,7 +186,56 @@
             "heading": "No Agents yet",
             "subtext": "Create your first agent",
             "action_label": "Add Agent"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -199,6 +252,30 @@
             "name",
             "email",
             "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "brokerage",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -217,7 +294,31 @@
             "email",
             "phone"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "brokerage",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/agents/:id",
@@ -241,10 +342,26 @@
                 "name",
                 "email",
                 "phone",
-                "license_number",
-                "brokerage",
-                "status"
+                "license_number"
               ]
+            },
+            {
+              "name": "Propertys",
+              "type": "related_list",
+              "entity": "Property",
+              "fk_field": "agent_id"
+            },
+            {
+              "name": "Leads",
+              "type": "related_list",
+              "entity": "Lead",
+              "fk_field": "agent_id"
+            },
+            {
+              "name": "Showings",
+              "type": "related_list",
+              "entity": "Showing",
+              "fk_field": "agent_id"
             },
             {
               "name": "Activity",
@@ -293,7 +410,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street address"
         },
         {
           "name": "city",
@@ -342,7 +460,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "bedrooms",
@@ -386,7 +505,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Add details..."
         },
         {
           "name": "agent_id",
@@ -498,7 +618,78 @@
             "heading": "No Propertys yet",
             "subtext": "Create your first property",
             "action_label": "Add Property"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Under Contract",
+              "filter": {
+                "field": "status",
+                "value": "under_contract"
+              }
+            },
+            {
+              "label": "Sold",
+              "filter": {
+                "field": "status",
+                "value": "sold"
+              }
+            },
+            {
+              "label": "Withdrawn",
+              "filter": {
+                "field": "status",
+                "value": "withdrawn"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "address",
+            "city",
+            "type",
+            "mls_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -565,14 +756,26 @@
                 "address",
                 "city",
                 "type",
-                "price",
-                "bedrooms",
-                "bathrooms",
-                "sqft",
-                "agent_id",
-                "mls_number",
-                "status"
+                "price"
               ]
+            },
+            {
+              "name": "Showings",
+              "type": "related_list",
+              "entity": "Showing",
+              "fk_field": "property_id"
+            },
+            {
+              "name": "Offers",
+              "type": "related_list",
+              "entity": "Offer",
+              "fk_field": "property_id"
+            },
+            {
+              "name": "OpenHouses",
+              "type": "related_list",
+              "entity": "OpenHouse",
+              "fk_field": "property_id"
             },
             {
               "name": "Activity",
@@ -621,7 +824,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -636,7 +840,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -647,7 +853,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "budget_max",
@@ -813,7 +1020,84 @@
             "heading": "No Leads yet",
             "subtext": "Create your first lead",
             "action_label": "Add Lead"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "New",
+              "filter": {
+                "field": "status",
+                "value": "new"
+              }
+            },
+            {
+              "label": "Contacted",
+              "filter": {
+                "field": "status",
+                "value": "contacted"
+              }
+            },
+            {
+              "label": "Qualified",
+              "filter": {
+                "field": "status",
+                "value": "qualified"
+              }
+            },
+            {
+              "label": "Showing",
+              "filter": {
+                "field": "status",
+                "value": "showing"
+              }
+            },
+            {
+              "label": "Offer",
+              "filter": {
+                "field": "status",
+                "value": "offer"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "preferred_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -831,6 +1115,31 @@
             "name",
             "email",
             "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "budget_max",
+                "agent_id",
+                "source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "preferred_type",
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -850,7 +1159,32 @@
             "email",
             "phone"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "budget_max",
+                "agent_id",
+                "source"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "preferred_type",
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/leads/:id",
@@ -874,12 +1208,26 @@
                 "name",
                 "email",
                 "phone",
-                "budget_max",
-                "preferred_type",
-                "agent_id",
-                "source",
-                "status"
+                "budget_max"
               ]
+            },
+            {
+              "name": "Showings",
+              "type": "related_list",
+              "entity": "Showing",
+              "fk_field": "lead_id"
+            },
+            {
+              "name": "Offers",
+              "type": "related_list",
+              "entity": "Offer",
+              "fk_field": "lead_id"
+            },
+            {
+              "name": "Transactions",
+              "type": "related_list",
+              "entity": "Transaction",
+              "fk_field": "buyer_id"
             },
             {
               "name": "Activity",
@@ -986,7 +1334,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "interest_level",
@@ -1103,7 +1452,86 @@
             "heading": "No Showings yet",
             "subtext": "Create your first showing",
             "action_label": "Add Showing"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "interest_level",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1164,10 +1592,7 @@
                 "property_id",
                 "lead_id",
                 "agent_id",
-                "date",
-                "time",
-                "interest_level",
-                "status"
+                "date"
               ]
             },
             {
@@ -1241,7 +1666,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "financing_type",
@@ -1364,7 +1790,75 @@
             "heading": "No Offers yet",
             "subtext": "Create your first offer",
             "action_label": "Add Offer"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Submitted",
+              "filter": {
+                "field": "status",
+                "value": "submitted"
+              }
+            },
+            {
+              "label": "Countered",
+              "filter": {
+                "field": "status",
+                "value": "countered"
+              }
+            },
+            {
+              "label": "Accepted",
+              "filter": {
+                "field": "status",
+                "value": "accepted"
+              }
+            },
+            {
+              "label": "Rejected",
+              "filter": {
+                "field": "status",
+                "value": "rejected"
+              }
+            },
+            {
+              "label": "Withdrawn",
+              "filter": {
+                "field": "status",
+                "value": "withdrawn"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "closing_date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "financing_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1421,9 +1915,7 @@
                 "property_id",
                 "lead_id",
                 "offer_price",
-                "financing_type",
-                "closing_date",
-                "status"
+                "financing_type"
               ]
             },
             {
@@ -1617,7 +2109,78 @@
             "heading": "No OpenHouses yet",
             "subtext": "Create your first openhouse",
             "action_label": "Add OpenHouse"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1676,10 +2239,7 @@
                 "property_id",
                 "agent_id",
                 "date",
-                "start_time",
-                "end_time",
-                "visitors",
-                "status"
+                "start_time"
               ]
             },
             {
@@ -1765,7 +2325,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "commission",
@@ -1875,7 +2436,67 @@
             "heading": "No Transactions yet",
             "subtext": "Create your first transaction",
             "action_label": "Add Transaction"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "In Escrow",
+              "filter": {
+                "field": "status",
+                "value": "in_escrow"
+              }
+            },
+            {
+              "label": "Closed",
+              "filter": {
+                "field": "status",
+                "value": "closed"
+              }
+            },
+            {
+              "label": "Fell Through",
+              "filter": {
+                "field": "status",
+                "value": "fell_through"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "closing_date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1934,10 +2555,7 @@
                 "property_id",
                 "buyer_id",
                 "agent_id",
-                "sale_price",
-                "commission",
-                "closing_date",
-                "status"
+                "sale_price"
               ]
             },
             {
@@ -2031,29 +2649,41 @@
         "label": "Total Agents",
         "entity": "Agent",
         "method": "count",
-        "icon": "Briefcase",
-        "color": "pink"
+        "icon": "FileText",
+        "color": "blue"
       },
       {
         "label": "Total Propertys",
         "entity": "Property",
         "method": "count",
-        "icon": "Building2",
-        "color": "pink"
+        "icon": "Building",
+        "color": "emerald"
       },
       {
         "label": "Total Leads",
         "entity": "Lead",
         "method": "count",
-        "icon": "UserPlus",
-        "color": "pink"
+        "icon": "FileText",
+        "color": "violet"
       },
       {
-        "label": "Total Showings",
-        "entity": "Showing",
+        "label": "Total Revenue",
+        "entity": "Property",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Agents",
+        "entity": "Agent",
         "method": "count",
-        "icon": "CalendarDays",
-        "color": "pink"
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
       }
     ]
   },

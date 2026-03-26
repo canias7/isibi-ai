@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "description",
@@ -55,7 +56,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "duration_weeks",
@@ -239,7 +241,75 @@
             "heading": "No Programs yet",
             "subtext": "Create your first program",
             "action_label": "Add Program"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Archived",
+              "filter": {
+                "field": "status",
+                "value": "archived"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "difficulty",
+            "program_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -304,21 +374,14 @@
                 "name",
                 "duration_weeks",
                 "difficulty",
-                "program_type",
-                "sessions_per_week",
-                "status"
+                "program_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "description",
-                "duration_weeks",
-                "difficulty",
-                "program_type",
-                "sessions_per_week",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -363,7 +426,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "description",
@@ -376,7 +440,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "goal_type",
@@ -569,7 +634,70 @@
             "heading": "No Goals yet",
             "subtext": "Create your first goal",
             "action_label": "Add Goal"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Achieved",
+              "filter": {
+                "field": "status",
+                "value": "achieved"
+              }
+            },
+            {
+              "label": "Missed",
+              "filter": {
+                "field": "status",
+                "value": "missed"
+              }
+            },
+            {
+              "label": "Paused",
+              "filter": {
+                "field": "status",
+                "value": "paused"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "goal_type",
+            "unit",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -638,22 +766,14 @@
                 "title",
                 "goal_type",
                 "target_value",
-                "current_value",
-                "unit",
-                "target_date"
+                "current_value"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "title",
-                "description",
-                "goal_type",
-                "target_value",
-                "current_value",
-                "unit",
-                "target_date",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -710,7 +830,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "description",
@@ -723,7 +844,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "muscle_group",
@@ -906,7 +1028,20 @@
             "heading": "No Exercises yet",
             "subtext": "Create your first exercise",
             "action_label": "Add Exercise"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "muscle_group",
+            "exercise_type",
+            "equipment_needed"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -967,21 +1102,14 @@
                 "name",
                 "muscle_group",
                 "exercise_type",
-                "equipment_needed",
-                "difficulty",
-                "calories_per_hour"
+                "equipment_needed"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "description",
-                "muscle_group",
-                "exercise_type",
-                "equipment_needed",
-                "difficulty",
-                "calories_per_hour"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1156,7 +1284,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "rating",
@@ -1237,7 +1366,18 @@
             "heading": "No Workouts yet",
             "subtext": "Create your first workout",
             "action_label": "Add Workout"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "workout_type",
+            "intensity"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1304,23 +1444,14 @@
                 "program_id",
                 "workout_date",
                 "start_time",
-                "duration_minutes",
-                "workout_type",
-                "calories_burned"
+                "duration_minutes"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "program_id",
-                "workout_date",
-                "start_time",
-                "duration_minutes",
-                "workout_type",
-                "calories_burned",
-                "intensity",
-                "notes",
-                "rating"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1416,7 +1547,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "calories",
@@ -1563,7 +1695,17 @@
             "heading": "No MealLogs yet",
             "subtext": "Create your first meallog",
             "action_label": "Add MealLog"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "meal_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1632,22 +1774,14 @@
                 "meal_date",
                 "meal_type",
                 "description",
-                "calories",
-                "protein_g",
-                "carbs_g"
+                "calories"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "meal_date",
-                "meal_type",
-                "description",
-                "calories",
-                "protein_g",
-                "carbs_g",
-                "fat_g",
-                "goal_id"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1834,7 +1968,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1898,7 +2033,15 @@
             "heading": "No BodyMetrics yet",
             "subtext": "Create your first bodymetric",
             "action_label": "Add BodyMetric"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": []
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1955,22 +2098,14 @@
                 "date",
                 "weight_kg",
                 "body_fat_pct",
-                "muscle_mass_kg",
-                "waist_cm",
-                "chest_cm"
+                "muscle_mass_kg"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "date",
-                "weight_kg",
-                "body_fat_pct",
-                "muscle_mass_kg",
-                "waist_cm",
-                "chest_cm",
-                "goal_id",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2024,7 +2159,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "description",
@@ -2037,7 +2173,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "achieved_date",
@@ -2208,7 +2345,20 @@
             "heading": "No Achievements yet",
             "subtext": "Create your first achievement",
             "action_label": "Add Achievement"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "achievement_type",
+            "category",
+            "unit"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2273,27 +2423,55 @@
                 "title",
                 "achieved_date",
                 "achievement_type",
-                "category",
-                "value",
-                "unit"
+                "category"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "title",
-                "description",
-                "achieved_date",
-                "achievement_type",
-                "category",
-                "value",
-                "unit",
-                "is_verified"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
         }
       }
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Programs",
+        "entity": "Program",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Goals",
+        "entity": "Goal",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Exercises",
+        "entity": "Exercise",
+        "method": "count",
+        "icon": "Activity",
+        "color": "violet"
+      },
+      {
+        "label": "Active Programs",
+        "entity": "Program",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

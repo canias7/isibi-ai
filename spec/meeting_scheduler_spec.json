@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "location",
@@ -52,7 +54,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter location",
+          "help_text": "Location or venue name"
         },
         {
           "name": "capacity",
@@ -63,7 +67,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "floor",
@@ -74,7 +79,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter floor"
         },
         {
           "name": "amenities",
@@ -85,7 +91,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter amenities..."
         },
         {
           "name": "has_video_conf",
@@ -130,7 +137,8 @@
             "occupied": "red",
             "maintenance": "amber",
             "retired": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -153,6 +161,107 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "available",
+            "occupied",
+            "maintenance",
+            "retired"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "location",
+            "capacity",
+            "floor",
+            "amenities",
+            "has_video_conf",
+            "has_whiteboard"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "available",
+            "occupied",
+            "maintenance",
+            "retired"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Meetings",
+          "type": "related_list",
+          "entity": "Meeting",
+          "foreign_key": "room_id"
+        },
+        {
+          "label": "RecurringMeetings",
+          "type": "related_list",
+          "entity": "RecurringMeeting",
+          "foreign_key": "room_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "location",
+        "floor",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -204,7 +313,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "start_time",
@@ -238,7 +349,9 @@
           "show_in_form": false,
           "input_component": "number_input",
           "display_component": "text",
-          "computed": "EXTRACT(EPOCH FROM end_time - start_time) / 60"
+          "computed": "EXTRACT(EPOCH FROM end_time - start_time) / 60",
+          "placeholder": "e.g. 1h 30m",
+          "help_text": "Duration of the activity"
         },
         {
           "name": "type",
@@ -265,7 +378,8 @@
             "one_on_one": "amber",
             "all_hands": "pink",
             "external": "slate"
-          }
+          },
+          "placeholder": "Select type"
         },
         {
           "name": "status",
@@ -288,7 +402,8 @@
             "in_progress": "green",
             "completed": "slate",
             "cancelled": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "meeting_url",
@@ -303,7 +418,9 @@
           "validation": {
             "rule": "url",
             "message": "Valid URL required"
-          }
+          },
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
         },
         {
           "name": "agenda",
@@ -314,7 +431,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter agenda..."
         },
         {
           "name": "is_recurring",
@@ -348,6 +466,132 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "type",
+          "columns": [
+            "standup",
+            "planning",
+            "review",
+            "one_on_one",
+            "all_hands",
+            "external"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "start_time"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "meeting_url",
+            "agenda",
+            "is_recurring"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "room_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "start_time",
+            "end_time",
+            "type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "type",
+          "label": "Type",
+          "options": [
+            "all",
+            "standup",
+            "planning",
+            "review",
+            "one_on_one",
+            "all_hands",
+            "external"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "scheduled",
+            "in_progress",
+            "completed",
+            "cancelled"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Attendees",
+          "type": "related_list",
+          "entity": "Attendee",
+          "foreign_key": "meeting_id"
+        },
+        {
+          "label": "Notes",
+          "type": "related_list",
+          "entity": "Note",
+          "foreign_key": "meeting_id"
+        },
+        {
+          "label": "Actions",
+          "type": "related_list",
+          "entity": "Action",
+          "foreign_key": "meeting_id"
+        }
+      ],
+      "default_sort": {
+        "field": "start_time",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "type",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -399,7 +643,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "email",
@@ -414,7 +660,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "role",
@@ -437,7 +685,8 @@
             "required": "blue",
             "optional": "slate",
             "presenter": "green"
-          }
+          },
+          "placeholder": "Select role"
         },
         {
           "name": "rsvp_status",
@@ -460,7 +709,8 @@
             "accepted": "green",
             "declined": "red",
             "tentative": "blue"
-          }
+          },
+          "placeholder": "Select rsvp status"
         },
         {
           "name": "is_external",
@@ -494,6 +744,109 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "role",
+          "columns": [
+            "organizer",
+            "required",
+            "optional",
+            "presenter"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "email"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "is_external"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "meeting_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "role",
+            "rsvp_status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "role",
+          "label": "Role",
+          "options": [
+            "all",
+            "organizer",
+            "required",
+            "optional",
+            "presenter"
+          ]
+        },
+        {
+          "field": "rsvp_status",
+          "label": "Rsvp Status",
+          "options": [
+            "all",
+            "pending",
+            "accepted",
+            "declined",
+            "tentative"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "email",
+        "role",
+        "rsvp_status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -545,7 +898,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "recurrence",
@@ -568,7 +923,8 @@
             "weekly": "green",
             "biweekly": "purple",
             "monthly": "amber"
-          }
+          },
+          "placeholder": "Select recurrence"
         },
         {
           "name": "day_of_week",
@@ -594,7 +950,8 @@
               "weekly",
               "biweekly"
             ]
-          }
+          },
+          "placeholder": "Select day of week"
         },
         {
           "name": "time_slot",
@@ -605,7 +962,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter time slot"
         },
         {
           "name": "duration_minutes",
@@ -616,7 +974,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "e.g. 1h 30m",
+          "help_text": "Duration of the activity"
         },
         {
           "name": "series_start",
@@ -627,7 +987,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "series_end",
@@ -638,7 +999,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "is_active",
@@ -672,6 +1034,100 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "recurrence",
+          "columns": [
+            "daily",
+            "weekly",
+            "biweekly",
+            "monthly"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "series_start"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "day_of_week",
+            "time_slot",
+            "duration_minutes",
+            "is_active"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "room_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "recurrence",
+            "series_start",
+            "series_end"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "recurrence",
+          "label": "Recurrence",
+          "options": [
+            "all",
+            "daily",
+            "weekly",
+            "biweekly",
+            "monthly"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "series_start",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "recurrence",
+        "day_of_week",
+        "time_slot"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -723,7 +1179,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "content",
@@ -734,7 +1192,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter content..."
         },
         {
           "name": "author",
@@ -745,7 +1204,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter author"
         },
         {
           "name": "visibility",
@@ -766,7 +1226,8 @@
             "public": "green",
             "private": "red",
             "team_only": "blue"
-          }
+          },
+          "placeholder": "Select visibility"
         },
         {
           "name": "is_pinned",
@@ -800,6 +1261,90 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "visibility",
+          "columns": [
+            "public",
+            "private",
+            "team_only"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "content",
+            "author",
+            "is_pinned"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "meeting_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "visibility"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "visibility",
+          "label": "Visibility",
+          "options": [
+            "all",
+            "public",
+            "private",
+            "team_only"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "author",
+        "visibility"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -851,7 +1396,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "assignee",
@@ -862,7 +1409,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter assignee"
         },
         {
           "name": "due_date",
@@ -873,7 +1421,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "priority",
@@ -896,7 +1445,9 @@
             "medium": "blue",
             "high": "amber",
             "critical": "red"
-          }
+          },
+          "placeholder": "Select priority",
+          "help_text": "Priority level"
         },
         {
           "name": "status",
@@ -919,7 +1470,8 @@
             "in_progress": "amber",
             "done": "green",
             "overdue": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "notes",
@@ -930,7 +1482,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Add notes...",
+          "help_text": "Additional notes or comments"
         },
         {
           "name": "created_at",
@@ -954,7 +1508,150 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "priority",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "due_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "assignee",
+            "notes"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "meeting_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "due_date",
+            "priority",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "priority",
+          "label": "Priority",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "open",
+            "in_progress",
+            "done",
+            "overdue"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "due_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "assignee",
+        "priority",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Rooms",
+        "query": "COUNT(*) FROM meeting_rooms",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Rooms",
+        "query": "COUNT(*) FROM meeting_rooms WHERE status = 'available'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM meeting_rooms WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Meetings",
+        "query": "COUNT(*) FROM meetings",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Meetings",
+        "query": "COUNT(*) FROM meetings WHERE type = 'standup'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Attendees",
+        "query": "COUNT(*) FROM meeting_attendees",
+        "icon": "Hash",
+        "color": "blue"
+      }
+    ]
+  }
 }

@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "email",
@@ -56,7 +58,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "phone",
@@ -71,7 +75,9 @@
           "validation": {
             "rule": "phone",
             "message": "Valid phone number required"
-          }
+          },
+          "placeholder": "+1 (555) 123-4567",
+          "help_text": "Phone number with area code"
         },
         {
           "name": "customer_id_code",
@@ -82,7 +88,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter code",
+          "help_text": "Unique identifier code"
         },
         {
           "name": "customer_type",
@@ -103,7 +111,8 @@
             "individual": "blue",
             "business": "green",
             "corporate": "purple"
-          }
+          },
+          "placeholder": "Select customer type"
         },
         {
           "name": "tax_id",
@@ -114,7 +123,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter tax id"
         },
         {
           "name": "total_credit_limit",
@@ -129,7 +139,9 @@
           "computed": "SUM(credit_lines.credit_limit)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "total_outstanding",
@@ -144,7 +156,9 @@
           "computed": "SUM(credit_lines.outstanding_balance)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "status",
@@ -167,7 +181,8 @@
             "suspended": "amber",
             "closed": "slate",
             "defaulted": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -190,6 +205,121 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "customer_type",
+          "columns": [
+            "individual",
+            "business",
+            "corporate"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "email",
+            "phone"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "customer_id_code",
+            "tax_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "customer_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "customer_type",
+          "label": "Customer Type",
+          "options": [
+            "all",
+            "individual",
+            "business",
+            "corporate"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "suspended",
+            "closed",
+            "defaulted"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Scores",
+          "type": "related_list",
+          "entity": "Score",
+          "foreign_key": "customer_id"
+        },
+        {
+          "label": "CreditLines",
+          "type": "related_list",
+          "entity": "CreditLine",
+          "foreign_key": "customer_id"
+        },
+        {
+          "label": "Alerts",
+          "type": "related_list",
+          "entity": "Alert",
+          "foreign_key": "customer_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "email",
+        "phone",
+        "customer_id_code"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -241,7 +371,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "score_model",
@@ -258,7 +389,8 @@
             "fico",
             "vantage",
             "custom"
-          ]
+          ],
+          "placeholder": "Select score model"
         },
         {
           "name": "risk_grade",
@@ -289,7 +421,8 @@
             "B": "amber",
             "CCC": "red",
             "D": "red"
-          }
+          },
+          "placeholder": "Select risk grade"
         },
         {
           "name": "assessed_date",
@@ -300,7 +433,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "previous_score",
@@ -311,7 +445,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "score_change",
@@ -334,7 +469,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter factors..."
         },
         {
           "name": "created_at",
@@ -357,6 +493,104 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "risk_grade",
+          "columns": [
+            "AAA",
+            "AA",
+            "A",
+            "BBB",
+            "BB",
+            "B",
+            "CCC",
+            "D"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "assessed_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "score",
+            "score_model",
+            "previous_score",
+            "factors"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "customer_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "risk_grade",
+            "assessed_date"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "risk_grade",
+          "label": "Risk Grade",
+          "options": [
+            "all",
+            "AAA",
+            "AA",
+            "A",
+            "BBB",
+            "BB",
+            "B",
+            "CCC",
+            "D"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "assessed_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "score_model",
+        "risk_grade"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -420,7 +654,8 @@
             "installment": "green",
             "line_of_credit": "purple",
             "overdraft": "amber"
-          }
+          },
+          "placeholder": "Select line type"
         },
         {
           "name": "credit_limit",
@@ -434,7 +669,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter credit limit"
         },
         {
           "name": "outstanding_balance",
@@ -448,7 +685,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter outstanding balance"
         },
         {
           "name": "available_credit",
@@ -463,7 +702,9 @@
           "computed": "credit_limit - outstanding_balance",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter available credit"
         },
         {
           "name": "utilization_pct",
@@ -486,7 +727,9 @@
           "show_in_table": true,
           "show_in_form": false,
           "input_component": "number_input",
-          "display_component": "percentage"
+          "display_component": "percentage",
+          "placeholder": "0.00",
+          "help_text": "Rate per unit"
         },
         {
           "name": "opened_date",
@@ -497,7 +740,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "maturity_date",
@@ -508,7 +752,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "status",
@@ -531,7 +776,8 @@
             "frozen": "amber",
             "closed": "slate",
             "default": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -554,6 +800,125 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "line_type",
+          "columns": [
+            "revolving",
+            "installment",
+            "line_of_credit",
+            "overdraft"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "opened_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "credit_limit",
+            "outstanding_balance"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "customer_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "line_type",
+            "opened_date",
+            "maturity_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "line_type",
+          "label": "Line Type",
+          "options": [
+            "all",
+            "revolving",
+            "installment",
+            "line_of_credit",
+            "overdraft"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "frozen",
+            "closed",
+            "default"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Transactions",
+          "type": "related_list",
+          "entity": "Transaction",
+          "foreign_key": "credit_line_id"
+        },
+        {
+          "label": "Payments",
+          "type": "related_list",
+          "entity": "Payment",
+          "foreign_key": "credit_line_id"
+        },
+        {
+          "label": "Alerts",
+          "type": "related_list",
+          "entity": "Alert",
+          "foreign_key": "credit_line_id"
+        }
+      ],
+      "default_sort": {
+        "field": "opened_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "line_type",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -621,7 +986,8 @@
             "fee": "purple",
             "adjustment": "blue",
             "refund": "pink"
-          }
+          },
+          "placeholder": "Select type"
         },
         {
           "name": "amount",
@@ -635,7 +1001,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "balance_after",
@@ -649,7 +1017,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter balance after"
         },
         {
           "name": "transaction_date",
@@ -660,7 +1030,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "description",
@@ -671,7 +1042,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "reference",
@@ -682,7 +1055,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Reference number",
+          "help_text": "Reference or tracking number"
         },
         {
           "name": "status",
@@ -703,7 +1078,8 @@
             "posted": "green",
             "pending": "amber",
             "reversed": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -726,6 +1102,113 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "type",
+          "columns": [
+            "charge",
+            "payment",
+            "interest",
+            "fee",
+            "adjustment",
+            "refund"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "transaction_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "amount",
+            "balance_after",
+            "description",
+            "reference"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "credit_line_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "type",
+            "transaction_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "type",
+          "label": "Type",
+          "options": [
+            "all",
+            "charge",
+            "payment",
+            "interest",
+            "fee",
+            "adjustment",
+            "refund"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "posted",
+            "pending",
+            "reversed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "transaction_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "type",
+        "description",
+        "reference",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -780,7 +1263,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "principal_portion",
@@ -794,7 +1279,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter principal portion"
         },
         {
           "name": "interest_portion",
@@ -809,7 +1296,9 @@
           "computed": "amount - principal_portion",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter interest portion"
         },
         {
           "name": "due_date",
@@ -820,7 +1309,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "paid_date",
@@ -831,7 +1321,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "days_late",
@@ -860,7 +1351,9 @@
             "check",
             "auto_debit",
             "online"
-          ]
+          ],
+          "placeholder": "0.00",
+          "help_text": "Enter payment method"
         },
         {
           "name": "status",
@@ -885,7 +1378,8 @@
             "late": "amber",
             "missed": "red",
             "partial": "purple"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -908,6 +1402,106 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "scheduled",
+            "paid",
+            "late",
+            "missed",
+            "partial"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "due_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "amount",
+            "principal_portion",
+            "payment_method"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "credit_line_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "due_date",
+            "paid_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "scheduled",
+            "paid",
+            "late",
+            "missed",
+            "partial"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "due_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "payment_method",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Mark Paid",
+          "icon": "CheckCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "paid",
+          "confirm": true
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -987,7 +1581,8 @@
             "limit_change": "blue",
             "fraud_suspected": "red",
             "maturity": "green"
-          }
+          },
+          "placeholder": "Select alert type"
         },
         {
           "name": "message",
@@ -998,7 +1593,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter message...",
+          "help_text": "Message content"
         },
         {
           "name": "severity",
@@ -1019,7 +1616,8 @@
             "info": "blue",
             "warning": "amber",
             "critical": "red"
-          }
+          },
+          "placeholder": "Select severity"
         },
         {
           "name": "is_acknowledged",
@@ -1065,7 +1663,152 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "alert_type",
+          "columns": [
+            "high_utilization",
+            "missed_payment",
+            "score_drop",
+            "limit_change",
+            "fraud_suspected",
+            "maturity"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "triggered_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "message",
+            "is_acknowledged"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "customer_id",
+            "credit_line_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "alert_type",
+            "severity"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "alert_type",
+          "label": "Alert Type",
+          "options": [
+            "all",
+            "high_utilization",
+            "missed_payment",
+            "score_drop",
+            "limit_change",
+            "fraud_suspected",
+            "maturity"
+          ]
+        },
+        {
+          "field": "severity",
+          "label": "Severity",
+          "options": [
+            "all",
+            "info",
+            "warning",
+            "critical"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "triggered_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "alert_type",
+        "message",
+        "severity"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Customers",
+        "query": "COUNT(*) FROM credit_customers",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Total Credit Limit",
+        "query": "SUM(total_credit_limit) FROM credit_customers",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Customers",
+        "query": "COUNT(*) FROM credit_customers WHERE customer_type = 'individual'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM credit_customers WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Scores",
+        "query": "COUNT(*) FROM credit_scores",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Scores",
+        "query": "COUNT(*) FROM credit_scores WHERE risk_grade = 'AAA'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      }
+    ]
+  }
 }

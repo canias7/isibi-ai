@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "description",
@@ -55,7 +56,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "color",
@@ -203,7 +205,67 @@
             "heading": "No TaskLists yet",
             "subtext": "Create your first tasklist",
             "action_label": "Add TaskList"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Archived",
+              "filter": {
+                "field": "status",
+                "value": "archived"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "color",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -268,14 +330,10 @@
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "description",
-                "color",
-                "sort_order",
-                "is_archived",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -320,7 +378,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "description",
@@ -333,7 +392,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "task_list_id",
@@ -554,7 +614,81 @@
             "heading": "No Tasks yet",
             "subtext": "Create your first task",
             "action_label": "Add Task"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Todo",
+              "filter": {
+                "field": "status",
+                "value": "todo"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Review",
+              "filter": {
+                "field": "status",
+                "value": "review"
+              }
+            },
+            {
+              "label": "Done",
+              "filter": {
+                "field": "status",
+                "value": "done"
+              }
+            },
+            {
+              "label": "Blocked",
+              "filter": {
+                "field": "status",
+                "value": "blocked"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "priority",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Done",
+              "action": "update_status",
+              "value": "done"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -623,24 +757,14 @@
                 "title",
                 "task_list_id",
                 "assignee_id",
-                "priority",
-                "status",
-                "due_date"
+                "priority"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "title",
-                "description",
-                "task_list_id",
-                "assignee_id",
-                "priority",
-                "status",
-                "due_date",
-                "estimated_hours",
-                "actual_hours",
-                "completion_pct"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -701,7 +825,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -718,7 +843,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "avatar_url",
@@ -731,7 +858,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "https://..."
         },
         {
           "name": "role",
@@ -861,7 +989,63 @@
             "heading": "No Assignees yet",
             "subtext": "Create your first assignee",
             "action_label": "Add Assignee"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Away",
+              "filter": {
+                "field": "status",
+                "value": "away"
+              }
+            },
+            {
+              "label": "Offline",
+              "filter": {
+                "field": "status",
+                "value": "offline"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "role",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -879,6 +1063,29 @@
             "role",
             "status",
             "capacity_hours_weekly"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "avatar_url",
+                "role",
+                "capacity_hours_weekly"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -898,7 +1105,30 @@
             "status",
             "capacity_hours_weekly"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "avatar_url",
+                "role",
+                "capacity_hours_weekly"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/assignees/:id",
@@ -926,14 +1156,10 @@
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "avatar_url",
-                "role",
-                "status",
-                "capacity_hours_weekly"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -978,7 +1204,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "color",
@@ -1024,7 +1251,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "is_active",
@@ -1099,7 +1327,18 @@
             "heading": "No Labels yet",
             "subtext": "Create your first label",
             "action_label": "Add Label"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "color"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1154,12 +1393,10 @@
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "color",
-                "description",
-                "is_active"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1220,7 +1457,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "is_completed",
@@ -1341,7 +1579,17 @@
             "heading": "No ChecklistItems yet",
             "subtext": "Create your first checklistitem",
             "action_label": "Add ChecklistItem"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1400,20 +1648,14 @@
                 "task_id",
                 "title",
                 "is_completed",
-                "sort_order",
-                "assigned_to_id",
-                "due_date"
+                "sort_order"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "task_id",
-                "title",
-                "is_completed",
-                "sort_order",
-                "assigned_to_id",
-                "due_date"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1609,7 +1851,17 @@
             "heading": "No Comments yet",
             "subtext": "Create your first comment",
             "action_label": "Add Comment"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "comment_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1664,17 +1916,14 @@
                 "task_id",
                 "author_id",
                 "body",
-                "is_edited",
-                "comment_type"
+                "is_edited"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "task_id",
-                "author_id",
-                "body",
-                "comment_type"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1830,7 +2079,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1894,7 +2144,69 @@
             "heading": "No Reminders yet",
             "subtext": "Create your first reminder",
             "action_label": "Add Reminder"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Triggered",
+              "filter": {
+                "field": "status",
+                "value": "triggered"
+              }
+            },
+            {
+              "label": "Dismissed",
+              "filter": {
+                "field": "status",
+                "value": "dismissed"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "reminder_type",
+            "status",
+            "message"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1955,20 +2267,14 @@
                 "task_id",
                 "assignee_id",
                 "remind_at",
-                "reminder_type",
-                "status",
-                "message"
+                "reminder_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "task_id",
-                "assignee_id",
-                "remind_at",
-                "reminder_type",
-                "status",
-                "message"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1991,5 +2297,41 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total TaskLists",
+        "entity": "TaskList",
+        "method": "count",
+        "icon": "CheckSquare",
+        "color": "blue"
+      },
+      {
+        "label": "Total Tasks",
+        "entity": "Task",
+        "method": "count",
+        "icon": "CheckSquare",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Assignees",
+        "entity": "Assignee",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Active TaskLists",
+        "entity": "TaskList",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

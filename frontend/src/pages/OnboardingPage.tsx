@@ -46,6 +46,11 @@ import {
   Mail,
   Link as LinkIcon,
   Users,
+  Paperclip,
+  Mic,
+  Search,
+  RefreshCw,
+  Network,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -160,6 +165,57 @@ function MessageContent({
   const optionsMatch = content.match(/\[OPTIONS\]([\s\S]*?)\[\/OPTIONS\]/);
 
   if (!optionsMatch) {
+    // Detect bullet/numbered list options after a bold question line
+    // Pattern: lines starting with "- ", "• ", or "1. " etc.
+    const lines = content.split("\n");
+    const listStartIdx = lines.findIndex((l) => /^(\s*[-•]\s|^\s*\d+\.\s)/.test(l));
+    const hasBoldBefore = listStartIdx > 0 && lines.slice(0, listStartIdx).some((l) => /\*\*.*\*\*/.test(l));
+
+    if (listStartIdx >= 0 && hasBoldBefore && isLastAssistant) {
+      const textLines = lines.slice(0, listStartIdx).join("\n").trim();
+      const listLines = lines.slice(listStartIdx).filter((l) => /^(\s*[-•]\s|^\s*\d+\.\s)/.test(l));
+      const afterListLines = lines.slice(listStartIdx).filter((l) => !/^(\s*[-•]\s|^\s*\d+\.\s)/.test(l)).join("\n").trim();
+
+      const renderText = (text: string) => {
+        const parts = text.split(/\*\*(.*?)\*\*/g);
+        return parts.map((part, i) =>
+          i % 2 === 1 ? (
+            <strong key={i} className="font-semibold text-black">{part}</strong>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        );
+      };
+
+      return (
+        <div>
+          {textLines && <p className="whitespace-pre-wrap mb-3">{renderText(textLines)}</p>}
+          <div className="flex flex-col gap-2">
+            {listLines.map((line, i) => {
+              const cleaned = line.replace(/^(\s*[-•]\s|^\s*\d+\.\s)/, "").trim();
+              const isLast = i === listLines.length - 1;
+              return (
+                <button
+                  key={i}
+                  onClick={() => onOptionClick(cleaned)}
+                  className={`group flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition cursor-pointer ${
+                    isLast
+                      ? "border-dashed border-gray-200 bg-gray-50/50 hover:border-gray-300 hover:bg-gray-50"
+                      : "border-gray-200 bg-white hover:border-black hover:shadow-sm"
+                  }`}
+                >
+                  <span className={`text-sm ${isLast ? "text-gray-500" : "font-medium text-black"}`}>
+                    {renderText(cleaned)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {afterListLines && <p className="mt-2 whitespace-pre-wrap">{renderText(afterListLines)}</p>}
+        </div>
+      );
+    }
+
     // Render markdown-like bold
     const parts = content.split(/\*\*(.*?)\*\*/g);
     return (
@@ -243,6 +299,151 @@ function MessageContent({
       {textAfter && (
         <p className="mt-2 whitespace-pre-wrap">{renderText(textAfter)}</p>
       )}
+    </div>
+  );
+}
+
+/** Group sessions by date */
+function groupSessionsByDate(sessions: ChatSession[]): { label: string; sessions: ChatSession[] }[] {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterdayStart = todayStart - 86400000;
+  const weekStart = todayStart - 7 * 86400000;
+
+  const groups: Record<string, ChatSession[]> = { Today: [], Yesterday: [], "This Week": [], Earlier: [] };
+
+  sessions.forEach((s) => {
+    const t = new Date(s.createdAt).getTime();
+    if (t >= todayStart) groups["Today"].push(s);
+    else if (t >= yesterdayStart) groups["Yesterday"].push(s);
+    else if (t >= weekStart) groups["This Week"].push(s);
+    else groups["Earlier"].push(s);
+  });
+
+  return Object.entries(groups)
+    .filter(([, arr]) => arr.length > 0)
+    .map(([label, arr]) => ({ label, sessions: arr }));
+}
+
+function getRelativeTime(date: Date): string {
+  const now = Date.now();
+  const diff = now - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** Sidebar project list with search, grouping, and status dots */
+function SidebarProjectList({
+  chatSessions,
+  activeChatId,
+  onLoadChat,
+}: {
+  chatSessions: ChatSession[];
+  activeChatId: string | null;
+  onLoadChat: (s: ChatSession) => void;
+}) {
+  const [search, setSearch] = useState("");
+
+  const filtered = search.trim()
+    ? chatSessions.filter((s) => s.title.toLowerCase().includes(search.toLowerCase()))
+    : chatSessions;
+
+  const groups = groupSessionsByDate(filtered);
+
+  return (
+    <div className="border-b border-gray-200 px-2 pb-2">
+      <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+        Projects
+      </p>
+      {/* Search box */}
+      <div className="mb-1.5 px-1">
+        <div className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-2 py-1.5">
+          <Search className="h-3 w-3 shrink-0 text-gray-400" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search projects..."
+            className="w-full bg-transparent text-[12px] text-black placeholder-gray-400 focus:outline-none"
+          />
+        </div>
+      </div>
+      <div className="max-h-56 space-y-1 overflow-y-auto">
+        {groups.length === 0 && (
+          <p className="px-2 py-2 text-[11px] text-gray-400">No matching projects</p>
+        )}
+        {groups.map((group) => (
+          <div key={group.label}>
+            <p className="px-2.5 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
+              {group.label}
+            </p>
+            {group.sessions.map((session) => (
+              <button
+                key={session.id}
+                onClick={() => onLoadChat(session)}
+                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition ${
+                  activeChatId === session.id
+                    ? "bg-white font-medium text-black shadow-sm"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <div className={`h-2 w-2 shrink-0 rounded-full ${
+                  session.deployUrl ? "bg-green-500" : session.spec ? "bg-green-400" : "bg-amber-400"
+                }`} title={session.deployUrl ? "Deployed" : session.spec ? "Built" : "In progress"} />
+                <span className="truncate flex-1">{session.title}</span>
+                <span className="shrink-0 text-[10px] text-gray-400">
+                  {getRelativeTime(new Date(session.createdAt))}
+                </span>
+              </button>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Typing indicator with phased messages */
+function TypingIndicator({ modelLabel }: { modelLabel: string }) {
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    const t1 = setTimeout(() => setPhase(1), 3000);
+    const t2 = setTimeout(() => setPhase(2), 6000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+
+  const messages = [
+    { text: "Anias is thinking", icon: "\uD83E\uDDE0" },
+    { text: "Designing your app", icon: "\uD83C\uDFA8" },
+    { text: "Almost ready", icon: "\u2728" },
+  ];
+  const current = messages[phase];
+
+  return (
+    <div className="flex gap-3">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-xs font-medium text-white">
+        A
+      </div>
+      <div className="pt-0.5">
+        <p className="text-xs font-medium text-black">{modelLabel}</p>
+        <div className="mt-2 flex items-center gap-2">
+          <span className="text-sm animate-pulse">{current.icon}</span>
+          <span className="text-sm text-gray-500 animate-pulse">{current.text}...</span>
+          <span className="flex items-center gap-1 ml-1">
+            <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
+            <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
+            <span className="h-1 w-1 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -573,7 +774,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     const ta = textareaRef.current;
     if (ta) {
       ta.style.height = "auto";
-      ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+      ta.style.height = Math.min(ta.scrollHeight, 144) + "px";
     }
   }, [prompt]);
 
@@ -920,16 +1121,20 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const isEmpty = messages.length === 0;
 
   // ─── Chat panel (used both centered and as left panel) ───
+  const MAX_CHARS = 4000;
   const chatInput = (
     <div className="bg-white px-3 pb-4 pt-2">
       <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
         <textarea
           ref={textareaRef}
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
+          onChange={(e) => {
+            if (e.target.value.length <= MAX_CHARS) setPrompt(e.target.value);
+          }}
           placeholder="Describe what you want to build..."
-          className="w-full resize-none bg-transparent px-4 pb-2 pt-3 text-sm text-black placeholder-gray-400 focus:outline-none"
+          className="w-full resize-none bg-transparent px-4 pb-2 pt-3 text-sm text-black placeholder-gray-400 focus:outline-none transition-all duration-150"
           rows={1}
+          style={{ maxHeight: "144px" }}
           disabled={loading}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
@@ -938,7 +1143,30 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             }
           }}
         />
-        <div className="flex items-center justify-end px-3 pb-2">
+        <div className="flex items-center justify-between px-3 pb-2">
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="relative group flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              title="Attach file (Coming soon)"
+              onClick={() => setComingSoonToast("File attachments coming soon!")}
+            >
+              <Paperclip className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              className="relative group flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+              title="Voice input (Coming soon)"
+              onClick={() => setComingSoonToast("Voice input coming soon!")}
+            >
+              <Mic className="h-3.5 w-3.5" />
+            </button>
+            {prompt.length > 0 && (
+              <span className="ml-1 text-[10px] text-gray-400">
+                {prompt.length} / {MAX_CHARS}
+              </span>
+            )}
+          </div>
           <button
             onClick={handleSubmit}
             disabled={!prompt.trim() || loading}
@@ -984,21 +1212,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           </div>
         </div>
       ))}
-      {loading && (
-        <div className="flex gap-3">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-black text-xs font-medium text-white">
-            A
-          </div>
-          <div className="pt-0.5">
-            <p className="text-xs font-medium text-black">{selectedModel.label}</p>
-            <div className="mt-2 flex items-center gap-1">
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:0ms]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:150ms]" />
-              <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400 [animation-delay:300ms]" />
-            </div>
-          </div>
-        </div>
-      )}
+      {loading && <TypingIndicator modelLabel={selectedModel.label} />}
       <div ref={messagesEndRef} />
     </div>
   );
@@ -1142,39 +1356,36 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     <div className="flex flex-1 flex-col overflow-hidden bg-gray-50">
       {/* Preview toolbar */}
       <div className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <button
             onClick={() => setPreviewTab("preview")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-              previewTab === "preview" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+            className={`rounded-lg p-2 transition ${
+              previewTab === "preview" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black hover:bg-gray-50"
             }`}
+            title="Preview"
           >
-            Preview
+            <Eye className="h-4 w-4" />
           </button>
           <button
             onClick={() => setPreviewTab("code")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-              previewTab === "code" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+            className={`rounded-lg p-2 transition ${
+              previewTab === "code" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black hover:bg-gray-50"
             }`}
+            title="Code"
           >
-            <span className="flex items-center gap-1">
-              <Code className="h-3 w-3" />
-              Code
-            </span>
+            <Code className="h-4 w-4" />
           </button>
           <button
             onClick={() => setPreviewTab("cloud")}
-            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-              previewTab === "cloud" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+            className={`relative rounded-lg p-2 transition ${
+              previewTab === "cloud" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black hover:bg-gray-50"
             }`}
+            title="Cloud IDE"
           >
-            <span className="flex items-center gap-1">
-              <Monitor className="h-3 w-3" />
-              Cloud
-              {isGenerating && (
-                <span className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-pulse" />
-              )}
-            </span>
+            <Monitor className="h-4 w-4" />
+            {isGenerating && (
+              <span className="absolute top-1 right-1 h-1.5 w-1.5 rounded-full bg-pink-500 animate-pulse" />
+            )}
           </button>
           {builtProjectId && (
             <button
@@ -1182,65 +1393,78 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 setPreviewTab("history");
                 loadVersions();
               }}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                previewTab === "history" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+              className={`rounded-lg p-2 transition ${
+                previewTab === "history" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black hover:bg-gray-50"
               }`}
+              title="Version History"
             >
-              <span className="flex items-center gap-1">
-                <History className="h-3 w-3" />
-                History
-              </span>
+              <History className="h-4 w-4" />
             </button>
           )}
           {builtSpec && isDev && (
             <button
               onClick={() => setPreviewTab("erd")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                previewTab === "erd" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+              className={`rounded-lg p-2 transition ${
+                previewTab === "erd" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black hover:bg-gray-50"
               }`}
+              title="Entity Relationship Diagram"
             >
-              <span className="flex items-center gap-1">
-                <Share2 className="h-3 w-3" />
-                ERD
-              </span>
+              <Network className="h-4 w-4" />
             </button>
           )}
           {builtSpec && isDev && (
             <button
               onClick={() => setPreviewTab("editor")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                previewTab === "editor" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+              className={`rounded-lg p-2 transition ${
+                previewTab === "editor" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black hover:bg-gray-50"
               }`}
+              title="Spec Editor"
             >
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                Editor
-              </span>
+              <FileText className="h-4 w-4" />
             </button>
           )}
           {builtSpec && builtProjectId && isDev && (
             <button
               onClick={() => setPreviewTab("settings")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
-                previewTab === "settings" ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200" : "text-gray-500 hover:text-black"
+              className={`rounded-lg p-2 transition ${
+                previewTab === "settings" ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200" : "text-gray-400 hover:text-black hover:bg-gray-50"
               }`}
+              title="Settings"
             >
-              <span className="flex items-center gap-1">
-                <Settings className="h-3 w-3" />
-                Settings
-              </span>
+              <Settings className="h-4 w-4" />
             </button>
           )}
+          <div className="mx-1 h-4 w-px bg-gray-200" />
+          {/* Refresh button */}
+          <button
+            onClick={() => {
+              // Force re-render by toggling tab
+              const current = previewTab;
+              setPreviewTab("code");
+              setTimeout(() => setPreviewTab(current), 50);
+            }}
+            className="rounded-lg p-2 text-gray-400 transition hover:text-black hover:bg-gray-50"
+            title="Refresh preview"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
           {builtSpec && builtProjectId && (
             <button
               onClick={() => setShareModalOpen(true)}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-black transition"
+              className="rounded-lg p-2 text-gray-400 hover:text-black hover:bg-gray-50 transition"
+              title="Share"
             >
-              <span className="flex items-center gap-1">
-                <Users className="h-3 w-3" />
-                Share
-              </span>
+              <Users className="h-4 w-4" />
             </button>
+          )}
+          {/* App name in URL bar style */}
+          {builtSpec && (
+            <div className="ml-1 flex items-center gap-1.5 rounded-md bg-gray-50 border border-gray-200 px-2.5 py-1">
+              <svg className="h-[10px] w-[10px] flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0110 0v4" /></svg>
+              <span className="text-[11px] text-gray-600 truncate max-w-[140px]">
+                {(builtSpec?.app_name || builtSpec?.name || "your-app").toLowerCase().replace(/\s+/g, "-")}.isibi.ai
+              </span>
+            </div>
           )}
         </div>
 
@@ -1275,30 +1499,35 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <span className="text-[10px] font-medium text-blue-700">{editingUser.name} is editing</span>
             </div>
           )}
-          <button
-            onClick={() => setPreviewDevice("desktop")}
-            className={`rounded-lg p-1.5 transition ${
-              previewDevice === "desktop" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black"
-            }`}
-          >
-            <Monitor className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setPreviewDevice("tablet")}
-            className={`rounded-lg p-1.5 transition ${
-              previewDevice === "tablet" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black"
-            }`}
-          >
-            <Tablet className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => setPreviewDevice("mobile")}
-            className={`rounded-lg p-1.5 transition ${
-              previewDevice === "mobile" ? "bg-gray-100 text-black" : "text-gray-400 hover:text-black"
-            }`}
-          >
-            <Smartphone className="h-4 w-4" />
-          </button>
+          <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+            <button
+              onClick={() => setPreviewDevice("desktop")}
+              className={`rounded-md p-1.5 transition ${
+                previewDevice === "desktop" ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-black"
+              }`}
+              title="Desktop"
+            >
+              <Monitor className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setPreviewDevice("tablet")}
+              className={`rounded-md p-1.5 transition ${
+                previewDevice === "tablet" ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-black"
+              }`}
+              title="Tablet"
+            >
+              <Tablet className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setPreviewDevice("mobile")}
+              className={`rounded-md p-1.5 transition ${
+                previewDevice === "mobile" ? "bg-white text-black shadow-sm" : "text-gray-400 hover:text-black"
+              }`}
+              title="Mobile"
+            >
+              <Smartphone className="h-4 w-4" />
+            </button>
+          </div>
           <div className="mx-2 h-4 w-px bg-gray-200" />
           {builtSpec && (
             <button
@@ -1394,7 +1623,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       </div>
 
       {/* Preview content */}
-      <div className="flex flex-1 items-center justify-center p-4">
+      <div className="flex flex-1 items-center justify-center p-4 animate-fade-in" key={previewTab}>
         {previewTab === "preview" ? (
           <div
             className={`flex h-full flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-all ${
@@ -2171,7 +2400,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     <span className="text-lg font-bold text-white">i</span>
                   </div>
                   <h1 className="text-2xl font-semibold text-black">
-                    What do you want to build?
+                    Hi {user?.first_name || "there"}! What would you like to build today?
                   </h1>
                   <p className="mt-2 text-sm text-gray-400">
                     Describe your idea and {selectedModel.label} will bring it to life.
@@ -2179,6 +2408,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 </div>
 
                 {/* Template quick-start cards */}
+                <p className="mb-3 text-xs font-medium text-gray-500">Or start from a template:</p>
                 <div className="mb-8 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {[
                     { icon: "🏢", title: "CRM", detail: "Leads, deals, contacts & tracking", prompt: "Build me a CRM with leads, deals pipeline, contacts, and activity tracking" },
@@ -2225,6 +2455,30 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   ))}
                 </div>
 
+                {/* Community prompts */}
+                <div className="mb-6">
+                  <p className="mb-2.5 text-xs font-medium text-gray-500">Recent prompts from the community:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      "A CRM for my real estate agency with lead tracking and deal pipeline",
+                      "An appointment booking system for my dental clinic",
+                      "An inventory management system for my restaurant with supplier tracking",
+                      "A project management tool for my construction company",
+                    ].map((examplePrompt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => {
+                          setPrompt(examplePrompt);
+                          submitMessage(examplePrompt);
+                        }}
+                        className="rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] text-gray-600 transition hover:border-gray-400 hover:bg-gray-50 hover:text-black hover:shadow-sm"
+                      >
+                        {examplePrompt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Recent projects quick access */}
                 {chatSessions.length > 0 && (
                   <div className="mb-6">
@@ -2254,10 +2508,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   <textarea
                     ref={textareaRef}
                     value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value.length <= MAX_CHARS) setPrompt(e.target.value);
+                    }}
                     placeholder="Describe what you want to build..."
-                    className="w-full resize-none bg-transparent px-4 pb-2 pt-4 text-sm text-black placeholder-gray-400 focus:outline-none"
+                    className="w-full resize-none bg-transparent px-4 pb-2 pt-4 text-sm text-black placeholder-gray-400 focus:outline-none transition-all duration-150"
                     rows={1}
+                    style={{ maxHeight: "144px" }}
                     disabled={loading}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" && !e.shiftKey) {
@@ -2267,10 +2524,31 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     }}
                   />
                   <div className="flex items-center justify-between px-3 pb-2">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <span className="rounded-md bg-gray-50 px-2 py-1 text-[10px] font-medium text-gray-400">
                         {selectedModel.label}
                       </span>
+                      <button
+                        type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                        title="Attach file (Coming soon)"
+                        onClick={() => setComingSoonToast("File attachments coming soon!")}
+                      >
+                        <Paperclip className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
+                        title="Voice input (Coming soon)"
+                        onClick={() => setComingSoonToast("Voice input coming soon!")}
+                      >
+                        <Mic className="h-3.5 w-3.5" />
+                      </button>
+                      {prompt.length > 0 && (
+                        <span className="text-[10px] text-gray-400">
+                          {prompt.length} / {MAX_CHARS}
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={handleSubmit}
@@ -2359,29 +2637,11 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           </div>
         )}
         {isDev && projectsLoaded && chatSessions.length > 0 && (
-          <div className="border-b border-gray-200 px-2 pb-2">
-            <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
-              Projects
-            </p>
-            <div className="max-h-56 space-y-0.5 overflow-y-auto">
-              {chatSessions.map((session) => (
-                <button
-                  key={session.id}
-                  onClick={() => loadChat(session)}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] transition ${
-                    activeChatId === session.id
-                      ? "bg-white font-medium text-black shadow-sm"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  <div className={`h-2 w-2 shrink-0 rounded-full ${
-                    session.deployUrl ? "bg-green-500" : session.spec ? "bg-pink-500" : "bg-amber-400"
-                  }`} />
-                  <span className="truncate">{session.title}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <SidebarProjectList
+            chatSessions={chatSessions}
+            activeChatId={activeChatId}
+            onLoadChat={loadChat}
+          />
         )}
 
         {/* Account type indicator */}

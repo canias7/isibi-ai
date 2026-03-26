@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -52,7 +54,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "category",
@@ -79,7 +83,9 @@
             "hr": "purple",
             "environmental": "amber",
             "safety": "pink"
-          }
+          },
+          "placeholder": "Select category",
+          "help_text": "Category classification"
         },
         {
           "name": "version",
@@ -90,7 +96,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter version"
         },
         {
           "name": "effective_date",
@@ -101,7 +108,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "review_date",
@@ -112,7 +120,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "owner",
@@ -123,7 +132,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter owner"
         },
         {
           "name": "status",
@@ -146,7 +156,8 @@
             "active": "green",
             "under_review": "amber",
             "deprecated": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -169,6 +180,115 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "category",
+          "columns": [
+            "data_privacy",
+            "security",
+            "financial",
+            "hr",
+            "environmental",
+            "safety"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "effective_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "version",
+            "owner"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "category",
+            "effective_date",
+            "review_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "category",
+          "label": "Category",
+          "options": [
+            "all",
+            "data_privacy",
+            "security",
+            "financial",
+            "hr",
+            "environmental",
+            "safety"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "active",
+            "under_review",
+            "deprecated"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Requirements",
+          "type": "related_list",
+          "entity": "Requirement",
+          "foreign_key": "policy_id"
+        }
+      ],
+      "default_sort": {
+        "field": "effective_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "category",
+        "version",
+        "owner"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -220,7 +340,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -231,7 +353,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "regulation",
@@ -251,7 +375,8 @@
             "ISO27001",
             "SOC2",
             "CCPA"
-          ]
+          ],
+          "placeholder": "Select regulation"
         },
         {
           "name": "criticality",
@@ -272,7 +397,8 @@
             "mandatory": "red",
             "recommended": "amber",
             "optional": "blue"
-          }
+          },
+          "placeholder": "Select criticality"
         },
         {
           "name": "status",
@@ -295,7 +421,8 @@
             "non_compliant": "red",
             "partial": "amber",
             "not_assessed": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "due_date",
@@ -306,7 +433,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "owner",
@@ -317,7 +445,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter owner"
         },
         {
           "name": "created_at",
@@ -340,6 +469,120 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "criticality",
+          "columns": [
+            "mandatory",
+            "recommended",
+            "optional"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "due_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "regulation",
+            "owner"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "policy_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "criticality",
+            "status",
+            "due_date"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "criticality",
+          "label": "Criticality",
+          "options": [
+            "all",
+            "mandatory",
+            "recommended",
+            "optional"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "compliant",
+            "non_compliant",
+            "partial",
+            "not_assessed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Findings",
+          "type": "related_list",
+          "entity": "Finding",
+          "foreign_key": "requirement_id"
+        },
+        {
+          "label": "Evidences",
+          "type": "related_list",
+          "entity": "Evidence",
+          "foreign_key": "requirement_id"
+        }
+      ],
+      "default_sort": {
+        "field": "due_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "regulation",
+        "criticality",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -379,7 +622,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "audit_type",
@@ -402,7 +647,8 @@
             "external": "purple",
             "regulatory": "red",
             "certification": "green"
-          }
+          },
+          "placeholder": "Select audit type"
         },
         {
           "name": "auditor",
@@ -413,7 +659,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter auditor"
         },
         {
           "name": "start_date",
@@ -424,7 +671,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "end_date",
@@ -435,7 +683,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "scope",
@@ -446,7 +695,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter scope..."
         },
         {
           "name": "finding_count",
@@ -481,7 +731,8 @@
             "in_progress": "blue",
             "completed": "green",
             "cancelled": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -504,6 +755,110 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "audit_type",
+          "columns": [
+            "internal",
+            "external",
+            "regulatory",
+            "certification"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "start_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "auditor",
+            "scope"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "audit_type",
+            "start_date",
+            "end_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "audit_type",
+          "label": "Audit Type",
+          "options": [
+            "all",
+            "internal",
+            "external",
+            "regulatory",
+            "certification"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "planned",
+            "in_progress",
+            "completed",
+            "cancelled"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Findings",
+          "type": "related_list",
+          "entity": "Finding",
+          "foreign_key": "audit_id"
+        }
+      ],
+      "default_sort": {
+        "field": "start_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "audit_type",
+        "auditor",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -567,7 +922,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -578,7 +935,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "severity",
@@ -601,7 +960,8 @@
             "major": "amber",
             "minor": "blue",
             "observation": "slate"
-          }
+          },
+          "placeholder": "Select severity"
         },
         {
           "name": "risk_level",
@@ -622,7 +982,8 @@
             "high": "red",
             "medium": "amber",
             "low": "green"
-          }
+          },
+          "placeholder": "Select risk level"
         },
         {
           "name": "status",
@@ -645,7 +1006,8 @@
             "in_remediation": "amber",
             "resolved": "green",
             "accepted": "blue"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "due_date",
@@ -656,7 +1018,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "created_at",
@@ -679,6 +1042,132 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "severity",
+          "columns": [
+            "critical",
+            "major",
+            "minor",
+            "observation"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "due_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "audit_id",
+            "requirement_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "severity",
+            "risk_level",
+            "status",
+            "due_date"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "severity",
+          "label": "Severity",
+          "options": [
+            "all",
+            "critical",
+            "major",
+            "minor",
+            "observation"
+          ]
+        },
+        {
+          "field": "risk_level",
+          "label": "Risk Level",
+          "options": [
+            "all",
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "open",
+            "in_remediation",
+            "resolved",
+            "accepted"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Actions",
+          "type": "related_list",
+          "entity": "Action",
+          "foreign_key": "finding_id"
+        },
+        {
+          "label": "Evidences",
+          "type": "related_list",
+          "entity": "Evidence",
+          "foreign_key": "finding_id"
+        }
+      ],
+      "default_sort": {
+        "field": "due_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "severity",
+        "risk_level",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -730,7 +1219,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -741,7 +1232,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "assignee",
@@ -752,7 +1245,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter assignee"
         },
         {
           "name": "priority",
@@ -775,7 +1269,9 @@
             "medium": "blue",
             "high": "amber",
             "critical": "red"
-          }
+          },
+          "placeholder": "Select priority",
+          "help_text": "Priority level"
         },
         {
           "name": "due_date",
@@ -786,7 +1282,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "completed_date",
@@ -802,7 +1299,8 @@
             "field": "status",
             "operator": "eq",
             "value": "completed"
-          }
+          },
+          "placeholder": "Select date"
         },
         {
           "name": "status",
@@ -827,7 +1325,8 @@
             "completed": "green",
             "overdue": "red",
             "cancelled": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "completion_pct",
@@ -861,6 +1360,111 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "priority",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "due_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "assignee"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "finding_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "priority",
+            "due_date",
+            "completed_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "priority",
+          "label": "Priority",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "open",
+            "in_progress",
+            "completed",
+            "overdue",
+            "cancelled"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "due_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "assignee",
+        "priority",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -924,7 +1528,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "evidence_type",
@@ -951,7 +1557,8 @@
             "report": "amber",
             "attestation": "pink",
             "test_result": "slate"
-          }
+          },
+          "placeholder": "Select evidence type"
         },
         {
           "name": "file_url",
@@ -962,7 +1569,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "file_upload",
-          "display_component": "file_link"
+          "display_component": "file_link",
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
         },
         {
           "name": "collected_date",
@@ -973,7 +1582,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "collector",
@@ -984,7 +1594,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter collector"
         },
         {
           "name": "status",
@@ -1007,7 +1618,8 @@
             "approved": "green",
             "rejected": "red",
             "expired": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -1031,7 +1643,155 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "evidence_type",
+          "columns": [
+            "document",
+            "screenshot",
+            "log",
+            "report",
+            "attestation",
+            "test_result"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "collected_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "file_url",
+            "collector"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "requirement_id",
+            "finding_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "evidence_type",
+            "collected_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "evidence_type",
+          "label": "Evidence Type",
+          "options": [
+            "all",
+            "document",
+            "screenshot",
+            "log",
+            "report",
+            "attestation",
+            "test_result"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "pending_review",
+            "approved",
+            "rejected",
+            "expired"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "collected_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "evidence_type",
+        "collector",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Policys",
+        "query": "COUNT(*) FROM compliance_policies",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Policys",
+        "query": "COUNT(*) FROM compliance_policies WHERE category = 'data_privacy'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM compliance_policies WHERE effective_date >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Requirements",
+        "query": "COUNT(*) FROM compliance_requirements",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Requirements",
+        "query": "COUNT(*) FROM compliance_requirements WHERE criticality = 'mandatory'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Audits",
+        "query": "COUNT(*) FROM compliance_audits",
+        "icon": "Hash",
+        "color": "blue"
+      }
+    ]
+  }
 }

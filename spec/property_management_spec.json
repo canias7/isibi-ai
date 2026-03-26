@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "address",
@@ -55,7 +56,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "city",
@@ -233,7 +235,71 @@
             "heading": "No Propertys yet",
             "subtext": "Create your first property",
             "action_label": "Add Property"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Under Renovation",
+              "filter": {
+                "field": "status",
+                "value": "under_renovation"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Sold",
+              "filter": {
+                "field": "status",
+                "value": "sold"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "city",
+            "state",
+            "property_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -255,6 +321,31 @@
             "property_type",
             "total_units",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "city",
+                "total_units",
+                "year_built"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "state",
+                "property_type",
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -278,7 +369,32 @@
             "total_units",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "city",
+                "total_units",
+                "year_built"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "state",
+                "property_type",
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/properties/:id",
@@ -302,22 +418,14 @@
                 "name",
                 "address",
                 "city",
-                "state",
-                "property_type",
-                "total_units"
+                "state"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "address",
-                "city",
-                "state",
-                "property_type",
-                "total_units",
-                "year_built",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -560,7 +668,68 @@
             "heading": "No Units yet",
             "subtext": "Create your first unit",
             "action_label": "Add Unit"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Occupied",
+              "filter": {
+                "field": "status",
+                "value": "occupied"
+              }
+            },
+            {
+              "label": "Vacant",
+              "filter": {
+                "field": "status",
+                "value": "vacant"
+              }
+            },
+            {
+              "label": "Maintenance",
+              "filter": {
+                "field": "status",
+                "value": "maintenance"
+              }
+            },
+            {
+              "label": "Reserved",
+              "filter": {
+                "field": "status",
+                "value": "reserved"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "unit_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -631,23 +800,14 @@
                 "property_id",
                 "unit_number",
                 "floor",
-                "bedrooms",
-                "bathrooms",
-                "sqft"
+                "bedrooms"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "property_id",
-                "unit_number",
-                "floor",
-                "bedrooms",
-                "bathrooms",
-                "sqft",
-                "monthly_rent",
-                "status",
-                "amenities"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -708,7 +868,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "First name"
         },
         {
           "name": "last_name",
@@ -721,7 +882,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Last name"
         },
         {
           "name": "email",
@@ -738,7 +900,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -755,7 +919,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "date_of_birth",
@@ -896,7 +1061,70 @@
             "heading": "No Tenants yet",
             "subtext": "Create your first tenant",
             "action_label": "Add Tenant"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Past",
+              "filter": {
+                "field": "status",
+                "value": "past"
+              }
+            },
+            {
+              "label": "Evicted",
+              "filter": {
+                "field": "status",
+                "value": "evicted"
+              }
+            },
+            {
+              "label": "Applicant",
+              "filter": {
+                "field": "status",
+                "value": "applicant"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -917,6 +1145,32 @@
             "email",
             "phone",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "emergency_contact"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "date_of_birth",
+                "employer",
+                "monthly_income"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -939,7 +1193,33 @@
             "phone",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "emergency_contact"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "date_of_birth",
+                "employer",
+                "monthly_income"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/tenants/:id",
@@ -963,22 +1243,14 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone",
-                "status"
+                "phone"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "first_name",
-                "last_name",
-                "email",
-                "phone",
-                "date_of_birth",
-                "employer",
-                "monthly_income",
-                "status",
-                "emergency_contact"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1240,7 +1512,75 @@
             "heading": "No Leases yet",
             "subtext": "Create your first lease",
             "action_label": "Add Lease"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            },
+            {
+              "label": "Terminated",
+              "filter": {
+                "field": "status",
+                "value": "terminated"
+              }
+            },
+            {
+              "label": "Renewed",
+              "filter": {
+                "field": "status",
+                "value": "renewed"
+              }
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "lease_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1313,23 +1653,14 @@
                 "unit_id",
                 "tenant_id",
                 "start_date",
-                "end_date",
-                "monthly_rent",
-                "security_deposit"
+                "end_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "unit_id",
-                "tenant_id",
-                "start_date",
-                "end_date",
-                "monthly_rent",
-                "security_deposit",
-                "lease_type",
-                "status",
-                "termination_reason"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1425,7 +1756,8 @@
           "filterable": true,
           "validation": {
             "min": 0.01
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "payment_date",
@@ -1528,7 +1860,8 @@
               "late",
               "bounced"
             ]
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "created_at",
@@ -1592,7 +1925,80 @@
             "heading": "No Payments yet",
             "subtext": "Create your first payment",
             "action_label": "Add Payment"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Late",
+              "filter": {
+                "field": "status",
+                "value": "late"
+              }
+            },
+            {
+              "label": "Bounced",
+              "filter": {
+                "field": "status",
+                "value": "bounced"
+              }
+            },
+            {
+              "label": "Partial",
+              "filter": {
+                "field": "status",
+                "value": "partial"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "payment_method",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1663,22 +2069,14 @@
                 "lease_id",
                 "tenant_id",
                 "amount",
-                "payment_date",
-                "due_date",
-                "payment_method"
+                "payment_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "lease_id",
-                "tenant_id",
-                "amount",
-                "payment_date",
-                "due_date",
-                "payment_method",
-                "status",
-                "late_fee"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1778,7 +2176,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "description",
@@ -1791,7 +2190,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "category",
@@ -1912,7 +2312,8 @@
             "field": "status",
             "operator": "equals",
             "value": "completed"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "created_at",
@@ -1976,7 +2377,88 @@
             "heading": "No MaintenanceRequests yet",
             "subtext": "Create your first maintenancerequest",
             "action_label": "Add MaintenanceRequest"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Submitted",
+              "filter": {
+                "field": "status",
+                "value": "submitted"
+              }
+            },
+            {
+              "label": "Assigned",
+              "filter": {
+                "field": "status",
+                "value": "assigned"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "category",
+            "priority",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2045,23 +2527,14 @@
                 "unit_id",
                 "tenant_id",
                 "title",
-                "category",
-                "priority",
-                "status"
+                "category"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "unit_id",
-                "tenant_id",
-                "title",
-                "description",
-                "category",
-                "priority",
-                "status",
-                "vendor_id",
-                "cost"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2142,7 +2615,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -2159,7 +2633,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -2176,7 +2652,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "specialty",
@@ -2223,7 +2700,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "rating",
@@ -2328,7 +2806,63 @@
             "heading": "No Vendors yet",
             "subtext": "Create your first vendor",
             "action_label": "Add Vendor"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Blacklisted",
+              "filter": {
+                "field": "status",
+                "value": "blacklisted"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "company_name",
+            "contact_name",
+            "email",
+            "phone"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2350,6 +2884,31 @@
             "specialty",
             "hourly_rate",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company_name",
+                "specialty",
+                "hourly_rate",
+                "rating"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -2373,7 +2932,32 @@
             "hourly_rate",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "company_name",
+                "specialty",
+                "hourly_rate",
+                "rating"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/vendors/:id",
@@ -2397,27 +2981,63 @@
                 "company_name",
                 "contact_name",
                 "email",
-                "phone",
-                "specialty",
-                "hourly_rate"
+                "phone"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "company_name",
-                "contact_name",
-                "email",
-                "phone",
-                "specialty",
-                "hourly_rate",
-                "rating",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
         }
       }
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Propertys",
+        "entity": "Property",
+        "method": "count",
+        "icon": "Building",
+        "color": "blue"
+      },
+      {
+        "label": "Total Units",
+        "entity": "Unit",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Tenants",
+        "entity": "Tenant",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Payment",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Propertys",
+        "entity": "Property",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

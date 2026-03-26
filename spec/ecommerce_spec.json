@@ -40,7 +40,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -55,7 +56,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -66,7 +69,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "address",
@@ -77,7 +81,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street address"
         },
         {
           "name": "total_spent",
@@ -88,7 +93,8 @@
           "show_in_table": true,
           "show_in_form": false,
           "input_component": "none",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -172,7 +178,63 @@
             "heading": "No Customers yet",
             "subtext": "Create your first customer",
             "action_label": "Add Customer"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Vip",
+              "filter": {
+                "field": "status",
+                "value": "vip"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -187,6 +249,27 @@
             "name",
             "email",
             "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": []
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -203,7 +286,28 @@
             "email",
             "phone"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": []
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/customers/:id",
@@ -227,9 +331,20 @@
                 "name",
                 "email",
                 "phone",
-                "total_spent",
-                "status"
+                "total_spent"
               ]
+            },
+            {
+              "name": "Orders",
+              "type": "related_list",
+              "entity": "Order",
+              "fk_field": "customer_id"
+            },
+            {
+              "name": "Reviews",
+              "type": "related_list",
+              "entity": "Review",
+              "fk_field": "customer_id"
             },
             {
               "name": "Activity",
@@ -278,7 +393,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "slug",
@@ -374,7 +490,18 @@
             "heading": "No Categorys yet",
             "subtext": "Create your first category",
             "action_label": "Add Category"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "slug"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -431,6 +558,12 @@
               ]
             },
             {
+              "name": "Products",
+              "type": "related_list",
+              "entity": "Product",
+              "fk_field": "category_id"
+            },
+            {
               "name": "Activity",
               "fields": [
                 "created_at",
@@ -477,7 +610,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "sku",
@@ -516,7 +650,8 @@
             "rule": "min",
             "value": 0,
             "message": "Must be positive"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "compare_at_price",
@@ -527,7 +662,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "cost",
@@ -538,7 +674,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "stock",
@@ -560,7 +697,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Add details..."
         },
         {
           "name": "status",
@@ -647,7 +785,70 @@
             "heading": "No Products yet",
             "subtext": "Create your first product",
             "action_label": "Add Product"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Out Of Stock",
+              "filter": {
+                "field": "status",
+                "value": "out_of_stock"
+              }
+            },
+            {
+              "label": "Discontinued",
+              "filter": {
+                "field": "status",
+                "value": "discontinued"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "sku",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -710,11 +911,26 @@
                 "name",
                 "sku",
                 "category_id",
-                "price",
-                "compare_at_price",
-                "stock",
-                "status"
+                "price"
               ]
+            },
+            {
+              "name": "OrderItems",
+              "type": "related_list",
+              "entity": "OrderItem",
+              "fk_field": "product_id"
+            },
+            {
+              "name": "Reviews",
+              "type": "related_list",
+              "entity": "Review",
+              "fk_field": "product_id"
+            },
+            {
+              "name": "InventoryLogs",
+              "type": "related_list",
+              "entity": "InventoryLog",
+              "fk_field": "product_id"
             },
             {
               "name": "Activity",
@@ -786,7 +1002,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax",
@@ -831,7 +1048,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "computed": "subtotal + tax + shipping - discount"
+          "computed": "subtotal + tax + shipping - discount",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tracking_number",
@@ -964,7 +1182,90 @@
             "heading": "No Orders yet",
             "subtext": "Create your first order",
             "action_label": "Add Order"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Processing",
+              "filter": {
+                "field": "status",
+                "value": "processing"
+              }
+            },
+            {
+              "label": "Shipped",
+              "filter": {
+                "field": "status",
+                "value": "shipped"
+              }
+            },
+            {
+              "label": "Delivered",
+              "filter": {
+                "field": "status",
+                "value": "delivered"
+              }
+            },
+            {
+              "label": "Refunded",
+              "filter": {
+                "field": "status",
+                "value": "refunded"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "order_number",
+            "tracking_number",
+            "status",
+            "payment_status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1029,14 +1330,14 @@
                 "order_number",
                 "customer_id",
                 "subtotal",
-                "tax",
-                "shipping",
-                "discount",
-                "total",
-                "tracking_number",
-                "status",
-                "payment_status"
+                "tax"
               ]
+            },
+            {
+              "name": "OrderItems",
+              "type": "related_list",
+              "entity": "OrderItem",
+              "fk_field": "order_id"
             },
             {
               "name": "Activity",
@@ -1120,7 +1421,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "total",
@@ -1132,7 +1434,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "computed": "quantity * unit_price"
+          "computed": "quantity * unit_price",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "created_at",
@@ -1195,7 +1498,15 @@
             "heading": "No OrderItems yet",
             "subtext": "Create your first orderitem",
             "action_label": "Add OrderItem"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": []
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1250,8 +1561,7 @@
                 "order_id",
                 "product_id",
                 "quantity",
-                "unit_price",
-                "total"
+                "unit_price"
               ]
             },
             {
@@ -1341,7 +1651,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title"
         },
         {
           "name": "comment",
@@ -1436,7 +1747,61 @@
             "heading": "No Reviews yet",
             "subtext": "Create your first review",
             "action_label": "Add Review"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Approved",
+              "filter": {
+                "field": "status",
+                "value": "approved"
+              }
+            },
+            {
+              "label": "Rejected",
+              "filter": {
+                "field": "status",
+                "value": "rejected"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1493,8 +1858,7 @@
                 "product_id",
                 "customer_id",
                 "rating",
-                "title",
-                "status"
+                "title"
               ]
             },
             {
@@ -1695,7 +2059,18 @@
             "heading": "No Coupons yet",
             "subtext": "Create your first coupon",
             "action_label": "Add Coupon"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "expires_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "code",
+            "type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1754,11 +2129,7 @@
                 "code",
                 "type",
                 "value",
-                "min_order",
-                "max_uses",
-                "uses_count",
-                "expires_at",
-                "is_active"
+                "min_order"
               ]
             },
             {
@@ -1856,7 +2227,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1917,7 +2289,17 @@
             "heading": "No InventoryLogs yet",
             "subtext": "Create your first inventorylog",
             "action_label": "Add InventoryLog"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2072,28 +2454,40 @@
         "entity": "Customer",
         "method": "count",
         "icon": "Users",
-        "color": "pink"
+        "color": "blue"
       },
       {
         "label": "Total Categorys",
         "entity": "Category",
         "method": "count",
         "icon": "FolderTree",
-        "color": "pink"
+        "color": "emerald"
       },
       {
         "label": "Total Products",
         "entity": "Product",
         "method": "count",
         "icon": "Package",
-        "color": "pink"
+        "color": "violet"
       },
       {
-        "label": "Total Orders",
-        "entity": "Order",
+        "label": "Total Revenue",
+        "entity": "Customer",
+        "method": "sum",
+        "field": "total_spent",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Customers",
+        "entity": "Customer",
         "method": "count",
-        "icon": "ShoppingCart",
-        "color": "pink"
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
       }
     ]
   },

@@ -40,7 +40,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "price",
@@ -51,7 +52,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "duration_days",
@@ -159,7 +161,17 @@
             "heading": "No MembershipPlans yet",
             "subtext": "Create your first membershipplan",
             "action_label": "Add MembershipPlan"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -216,10 +228,14 @@
                 "name",
                 "price",
                 "duration_days",
-                "max_classes_per_week",
-                "includes_pt",
-                "is_active"
+                "max_classes_per_week"
               ]
+            },
+            {
+              "name": "Members",
+              "type": "related_list",
+              "entity": "Member",
+              "fk_field": "membership_id"
             },
             {
               "name": "Activity",
@@ -268,7 +284,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -283,7 +300,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -294,7 +313,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "membership_id",
@@ -417,7 +437,83 @@
             "heading": "No Members yet",
             "subtext": "Create your first member",
             "action_label": "Add Member"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            },
+            {
+              "label": "Frozen",
+              "filter": {
+                "field": "status",
+                "value": "frozen"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "Trial",
+              "filter": {
+                "field": "status",
+                "value": "trial"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "join_date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -434,6 +530,30 @@
             "name",
             "email",
             "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "membership_id",
+                "join_date",
+                "expires_at"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -452,7 +572,31 @@
             "email",
             "phone"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "membership_id",
+                "join_date",
+                "expires_at"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/members/:id",
@@ -476,11 +620,26 @@
                 "name",
                 "email",
                 "phone",
-                "membership_id",
-                "join_date",
-                "expires_at",
-                "status"
+                "membership_id"
               ]
+            },
+            {
+              "name": "ClassBookings",
+              "type": "related_list",
+              "entity": "ClassBooking",
+              "fk_field": "member_id"
+            },
+            {
+              "name": "PTSessions",
+              "type": "related_list",
+              "entity": "PTSession",
+              "fk_field": "member_id"
+            },
+            {
+              "name": "Payments",
+              "type": "related_list",
+              "entity": "Payment",
+              "fk_field": "member_id"
             },
             {
               "name": "Activity",
@@ -529,7 +688,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -540,7 +700,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -551,7 +713,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "specialty",
@@ -589,7 +752,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -674,7 +838,63 @@
             "heading": "No Trainers yet",
             "subtext": "Create your first trainer",
             "action_label": "Add Trainer"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "specialty"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -690,6 +910,29 @@
             "name",
             "email",
             "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialty",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -707,7 +950,30 @@
             "email",
             "phone"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialty",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/trainers/:id",
@@ -731,10 +997,20 @@
                 "name",
                 "email",
                 "phone",
-                "specialty",
-                "hourly_rate",
-                "status"
+                "specialty"
               ]
+            },
+            {
+              "name": "Classs",
+              "type": "related_list",
+              "entity": "Class",
+              "fk_field": "instructor_id"
+            },
+            {
+              "name": "PTSessions",
+              "type": "related_list",
+              "entity": "PTSession",
+              "fk_field": "trainer_id"
             },
             {
               "name": "Activity",
@@ -783,7 +1059,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "instructor_id",
@@ -934,7 +1211,19 @@
             "heading": "No Classs yet",
             "subtext": "Create your first class",
             "action_label": "Add Class"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "type",
+            "schedule"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -991,11 +1280,14 @@
                 "name",
                 "instructor_id",
                 "type",
-                "schedule",
-                "duration_min",
-                "capacity",
-                "enrolled"
+                "schedule"
               ]
+            },
+            {
+              "name": "ClassBookings",
+              "type": "related_list",
+              "entity": "ClassBooking",
+              "fk_field": "class_id"
             },
             {
               "name": "Activity",
@@ -1153,7 +1445,73 @@
             "heading": "No ClassBookings yet",
             "subtext": "Create your first classbooking",
             "action_label": "Add ClassBooking"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Booked",
+              "filter": {
+                "field": "status",
+                "value": "booked"
+              }
+            },
+            {
+              "label": "Attended",
+              "filter": {
+                "field": "status",
+                "value": "attended"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1338,7 +1696,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Add details..."
         },
         {
           "name": "status",
@@ -1425,7 +1784,79 @@
             "heading": "No PTSessions yet",
             "subtext": "Create your first ptsession",
             "action_label": "Add PTSession"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "focus",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1486,10 +1917,7 @@
                 "member_id",
                 "trainer_id",
                 "date",
-                "time",
-                "duration_min",
-                "focus",
-                "status"
+                "time"
               ]
             },
             {
@@ -1551,7 +1979,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "type",
@@ -1683,7 +2112,74 @@
             "heading": "No Payments yet",
             "subtext": "Create your first payment",
             "action_label": "Add Payment"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Failed",
+              "filter": {
+                "field": "status",
+                "value": "failed"
+              }
+            },
+            {
+              "label": "Refunded",
+              "filter": {
+                "field": "status",
+                "value": "refunded"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "type",
+            "method",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1738,8 +2234,7 @@
                 "member_id",
                 "amount",
                 "type",
-                "method",
-                "status"
+                "method"
               ]
             },
             {
@@ -1833,29 +2328,41 @@
         "label": "Total MembershipPlans",
         "entity": "MembershipPlan",
         "method": "count",
-        "icon": "CreditCard",
-        "color": "pink"
+        "icon": "Users",
+        "color": "blue"
       },
       {
         "label": "Total Members",
         "entity": "Member",
         "method": "count",
         "icon": "Users",
-        "color": "pink"
+        "color": "emerald"
       },
       {
         "label": "Total Trainers",
         "entity": "Trainer",
         "method": "count",
-        "icon": "UserCheck",
-        "color": "pink"
+        "icon": "FileText",
+        "color": "violet"
       },
       {
-        "label": "Total Classs",
-        "entity": "Class",
+        "label": "Total Revenue",
+        "entity": "MembershipPlan",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Members",
+        "entity": "Member",
         "method": "count",
-        "icon": "Dumbbell",
-        "color": "pink"
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
       }
     ]
   },

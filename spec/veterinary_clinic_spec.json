@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "First name"
         },
         {
           "name": "last_name",
@@ -55,7 +56,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Last name"
         },
         {
           "name": "email",
@@ -72,7 +74,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -89,7 +93,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "address",
@@ -102,7 +107,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "preferred_contact",
@@ -212,7 +218,56 @@
             "heading": "No Owners yet",
             "subtext": "Create your first owner",
             "action_label": "Add Owner"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -232,6 +287,30 @@
             "phone",
             "preferred_contact",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "preferred_contact"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -253,7 +332,31 @@
             "preferred_contact",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "preferred_contact"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/owners/:id",
@@ -277,21 +380,14 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone",
-                "preferred_contact",
-                "status"
+                "phone"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "first_name",
-                "last_name",
-                "email",
-                "phone",
-                "address",
-                "preferred_contact",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -343,7 +439,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "owner_id",
@@ -561,7 +658,21 @@
             "heading": "No Pets yet",
             "subtext": "Create your first pet",
             "action_label": "Add Pet"
-          }
+          },
+          "views": [
+            "table",
+            "cards"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "species",
+            "breed",
+            "gender"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -630,24 +741,14 @@
                 "name",
                 "owner_id",
                 "species",
-                "breed",
-                "date_of_birth",
-                "weight_kg"
+                "breed"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "owner_id",
-                "species",
-                "breed",
-                "date_of_birth",
-                "weight_kg",
-                "gender",
-                "is_neutered",
-                "microchip_id",
-                "allergies"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -730,7 +831,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "visit_type",
@@ -906,7 +1008,88 @@
             "heading": "No Visits yet",
             "subtext": "Create your first visit",
             "action_label": "Add Visit"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "reason",
+            "visit_type",
+            "vet_name",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -975,23 +1158,14 @@
                 "pet_id",
                 "visit_date",
                 "reason",
-                "visit_type",
-                "weight_kg",
-                "vet_name"
+                "visit_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "pet_id",
-                "visit_date",
-                "reason",
-                "visit_type",
-                "diagnosis",
-                "treatment",
-                "weight_kg",
-                "vet_name",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1215,7 +1389,69 @@
             "heading": "No Vaccinations yet",
             "subtext": "Create your first vaccination",
             "action_label": "Add Vaccination"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Current",
+              "filter": {
+                "field": "status",
+                "value": "current"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Upcoming",
+              "filter": {
+                "field": "status",
+                "value": "upcoming"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "vaccine_name",
+            "administered_by",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1280,22 +1516,14 @@
                 "pet_id",
                 "vaccine_name",
                 "date_administered",
-                "next_due_date",
-                "administered_by",
-                "status"
+                "next_due_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "pet_id",
-                "vaccine_name",
-                "date_administered",
-                "next_due_date",
-                "batch_number",
-                "administered_by",
-                "status",
-                "reaction_notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1540,7 +1768,75 @@
             "heading": "No Prescriptions yet",
             "subtext": "Create your first prescription",
             "action_label": "Add Prescription"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Discontinued",
+              "filter": {
+                "field": "status",
+                "value": "discontinued"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "medication_name",
+            "dosage",
+            "frequency",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1613,23 +1909,14 @@
                 "visit_id",
                 "pet_id",
                 "medication_name",
-                "dosage",
-                "frequency",
-                "start_date"
+                "dosage"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "visit_id",
-                "pet_id",
-                "medication_name",
-                "dosage",
-                "frequency",
-                "start_date",
-                "end_date",
-                "refills_remaining",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1817,7 +2104,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "complications",
@@ -1899,7 +2187,88 @@
             "heading": "No Surgerys yet",
             "subtext": "Create your first surgery",
             "action_label": "Add Surgery"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "Post Op",
+              "filter": {
+                "field": "status",
+                "value": "post_op"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "procedure_name",
+            "surgeon_name",
+            "anesthesia_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1972,23 +2341,14 @@
                 "pet_id",
                 "visit_id",
                 "procedure_name",
-                "scheduled_date",
-                "surgeon_name",
-                "anesthesia_type"
+                "scheduled_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "pet_id",
-                "visit_id",
-                "procedure_name",
-                "scheduled_date",
-                "surgeon_name",
-                "anesthesia_type",
-                "status",
-                "cost",
-                "complications"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2110,7 +2470,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax_amount",
@@ -2124,7 +2485,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "discount",
@@ -2265,7 +2627,81 @@
             "heading": "No Invoices yet",
             "subtext": "Create your first invoice",
             "action_label": "Add Invoice"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Unpaid",
+              "filter": {
+                "field": "status",
+                "value": "unpaid"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Partial",
+              "filter": {
+                "field": "status",
+                "value": "partial"
+              }
+            },
+            {
+              "label": "Overdue",
+              "filter": {
+                "field": "status",
+                "value": "overdue"
+              }
+            },
+            {
+              "label": "Void",
+              "filter": {
+                "field": "status",
+                "value": "void"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "invoice_number",
+            "status",
+            "payment_method"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2338,23 +2774,14 @@
                 "visit_id",
                 "owner_id",
                 "invoice_number",
-                "issue_date",
-                "subtotal",
-                "tax_amount"
+                "issue_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "visit_id",
-                "owner_id",
-                "invoice_number",
-                "issue_date",
-                "subtotal",
-                "tax_amount",
-                "discount",
-                "status",
-                "payment_method"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2384,5 +2811,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Owners",
+        "entity": "Owner",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Pets",
+        "entity": "Pet",
+        "method": "count",
+        "icon": "PawPrint",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Visits",
+        "entity": "Visit",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Surgery",
+        "method": "sum",
+        "field": "cost",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Owners",
+        "entity": "Owner",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

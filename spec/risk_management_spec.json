@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -52,7 +54,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "category",
@@ -79,7 +83,9 @@
             "compliance": "amber",
             "reputational": "pink",
             "technical": "slate"
-          }
+          },
+          "placeholder": "Select category",
+          "help_text": "Category classification"
         },
         {
           "name": "likelihood",
@@ -104,7 +110,8 @@
             "possible": "amber",
             "likely": "red",
             "almost_certain": "purple"
-          }
+          },
+          "placeholder": "Select likelihood"
         },
         {
           "name": "impact",
@@ -129,7 +136,8 @@
             "moderate": "amber",
             "major": "red",
             "catastrophic": "purple"
-          }
+          },
+          "placeholder": "Select impact"
         },
         {
           "name": "risk_score",
@@ -152,7 +160,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter owner"
         },
         {
           "name": "status",
@@ -177,7 +186,8 @@
             "mitigating": "purple",
             "accepted": "green",
             "closed": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -200,6 +210,153 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "category",
+          "columns": [
+            "operational",
+            "financial",
+            "strategic",
+            "compliance",
+            "reputational",
+            "technical"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "owner"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "category",
+            "likelihood",
+            "impact",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "category",
+          "label": "Category",
+          "options": [
+            "all",
+            "operational",
+            "financial",
+            "strategic",
+            "compliance",
+            "reputational",
+            "technical"
+          ]
+        },
+        {
+          "field": "likelihood",
+          "label": "Likelihood",
+          "options": [
+            "all",
+            "rare",
+            "unlikely",
+            "possible",
+            "likely",
+            "almost_certain"
+          ]
+        },
+        {
+          "field": "impact",
+          "label": "Impact",
+          "options": [
+            "all",
+            "negligible",
+            "minor",
+            "moderate",
+            "major",
+            "catastrophic"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "identified",
+            "analyzing",
+            "mitigating",
+            "accepted",
+            "closed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Assessments",
+          "type": "related_list",
+          "entity": "Assessment",
+          "foreign_key": "risk_id"
+        },
+        {
+          "label": "Mitigations",
+          "type": "related_list",
+          "entity": "Mitigation",
+          "foreign_key": "risk_id"
+        },
+        {
+          "label": "Controls",
+          "type": "related_list",
+          "entity": "Control",
+          "foreign_key": "risk_id"
+        },
+        {
+          "label": "Incidents",
+          "type": "related_list",
+          "entity": "Incident",
+          "foreign_key": "risk_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "category",
+        "likelihood",
+        "impact"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -251,7 +408,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter assessor"
         },
         {
           "name": "assessment_date",
@@ -262,7 +420,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "likelihood_score",
@@ -273,7 +432,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "impact_score",
@@ -284,7 +444,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "risk_rating",
@@ -312,7 +473,8 @@
             "qualitative",
             "quantitative",
             "semi_quantitative"
-          ]
+          ],
+          "placeholder": "Select methodology"
         },
         {
           "name": "findings",
@@ -323,7 +485,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter findings..."
         },
         {
           "name": "recommendations",
@@ -334,7 +497,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter recommendations..."
         },
         {
           "name": "created_at",
@@ -357,6 +521,74 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "calendar",
+          "date_field": "assessment_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "assessor",
+            "likelihood_score",
+            "impact_score",
+            "methodology",
+            "findings",
+            "recommendations"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "assessment_date"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "assessment_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "assessor",
+        "methodology"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -408,7 +640,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "strategy",
@@ -431,7 +665,8 @@
             "transfer": "blue",
             "reduce": "amber",
             "accept": "green"
-          }
+          },
+          "placeholder": "Select strategy"
         },
         {
           "name": "estimated_cost",
@@ -442,7 +677,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Cost amount"
         },
         {
           "name": "actual_cost",
@@ -453,7 +690,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Cost amount"
         },
         {
           "name": "target_date",
@@ -464,7 +703,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "owner",
@@ -475,7 +715,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter owner"
         },
         {
           "name": "status",
@@ -498,7 +739,8 @@
             "in_progress": "amber",
             "completed": "green",
             "deferred": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "effectiveness_pct",
@@ -532,6 +774,110 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "strategy",
+          "columns": [
+            "avoid",
+            "transfer",
+            "reduce",
+            "accept"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "target_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "estimated_cost",
+            "actual_cost",
+            "owner"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "strategy",
+            "target_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "strategy",
+          "label": "Strategy",
+          "options": [
+            "all",
+            "avoid",
+            "transfer",
+            "reduce",
+            "accept"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "planned",
+            "in_progress",
+            "completed",
+            "deferred"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "target_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "strategy",
+        "owner",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -583,7 +929,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "control_type",
@@ -606,7 +954,8 @@
             "detective": "blue",
             "corrective": "amber",
             "compensating": "purple"
-          }
+          },
+          "placeholder": "Select control type"
         },
         {
           "name": "frequency",
@@ -625,7 +974,8 @@
             "monthly",
             "quarterly",
             "annual"
-          ]
+          ],
+          "placeholder": "Select frequency"
         },
         {
           "name": "owner",
@@ -636,7 +986,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter owner"
         },
         {
           "name": "status",
@@ -659,7 +1010,8 @@
             "partially_effective": "amber",
             "ineffective": "red",
             "not_tested": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "last_tested",
@@ -670,7 +1022,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "evidence",
@@ -681,7 +1034,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter evidence..."
         },
         {
           "name": "created_at",
@@ -704,6 +1058,115 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "control_type",
+          "columns": [
+            "preventive",
+            "detective",
+            "corrective",
+            "compensating"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "last_tested"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "frequency",
+            "owner",
+            "evidence"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "control_type",
+            "status",
+            "last_tested"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "control_type",
+          "label": "Control Type",
+          "options": [
+            "all",
+            "preventive",
+            "detective",
+            "corrective",
+            "compensating"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "effective",
+            "partially_effective",
+            "ineffective",
+            "not_tested"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "last_tested",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "control_type",
+        "frequency",
+        "owner"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -755,7 +1218,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -766,7 +1231,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "occurred_at",
@@ -800,7 +1267,8 @@
             "medium": "amber",
             "high": "red",
             "critical": "purple"
-          }
+          },
+          "placeholder": "Select severity"
         },
         {
           "name": "financial_impact",
@@ -811,7 +1279,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter financial impact"
         },
         {
           "name": "reported_by",
@@ -822,7 +1292,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter reported by"
         },
         {
           "name": "status",
@@ -845,7 +1316,8 @@
             "investigating": "blue",
             "resolved": "green",
             "closed": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -868,6 +1340,110 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "severity",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "occurred_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "description",
+            "financial_impact",
+            "reported_by"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "risk_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "occurred_at",
+            "severity",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "severity",
+          "label": "Severity",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "reported",
+            "investigating",
+            "resolved",
+            "closed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "occurred_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "severity",
+        "reported_by",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -907,7 +1483,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "report_type",
@@ -930,7 +1508,8 @@
             "heat_map": "red",
             "trend_analysis": "green",
             "executive_summary": "purple"
-          }
+          },
+          "placeholder": "Select report type"
         },
         {
           "name": "period_start",
@@ -941,7 +1520,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "period_end",
@@ -952,7 +1532,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "total_risks",
@@ -964,7 +1545,9 @@
           "show_in_form": false,
           "input_component": "number_input",
           "display_component": "text",
-          "computed": "COUNT(risks)"
+          "computed": "COUNT(risks)",
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "high_risks",
@@ -999,7 +1582,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Brief summary...",
+          "help_text": "Short summary of the item"
         },
         {
           "name": "prepared_by",
@@ -1010,7 +1595,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter prepared by"
         },
         {
           "name": "created_at",
@@ -1034,7 +1620,133 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "report_type",
+          "columns": [
+            "risk_register",
+            "heat_map",
+            "trend_analysis",
+            "executive_summary"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "period_start"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "summary",
+            "prepared_by"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "report_type",
+            "period_start",
+            "period_end"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "report_type",
+          "label": "Report Type",
+          "options": [
+            "all",
+            "risk_register",
+            "heat_map",
+            "trend_analysis",
+            "executive_summary"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "period_start",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "report_type",
+        "prepared_by"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Risks",
+        "query": "COUNT(*) FROM risks",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Risks",
+        "query": "COUNT(*) FROM risks WHERE category = 'operational'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM risks WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Assessments",
+        "query": "COUNT(*) FROM risk_assessments",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Mitigations",
+        "query": "COUNT(*) FROM risk_mitigations",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Estimated Cost",
+        "query": "SUM(estimated_cost) FROM risk_mitigations",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      }
+    ]
+  }
 }

@@ -134,7 +134,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "cost",
@@ -150,7 +151,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "condition",
@@ -267,7 +269,78 @@
             "heading": "No Vehicles yet",
             "subtext": "Create your first vehicle",
             "action_label": "Add Vehicle"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "cards"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "Reserved",
+              "filter": {
+                "field": "status",
+                "value": "reserved"
+              }
+            },
+            {
+              "label": "Sold",
+              "filter": {
+                "field": "status",
+                "value": "sold"
+              }
+            },
+            {
+              "label": "In Transit",
+              "filter": {
+                "field": "status",
+                "value": "in_transit"
+              }
+            },
+            {
+              "label": "Service",
+              "filter": {
+                "field": "status",
+                "value": "service"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "vin",
+            "make",
+            "model",
+            "color"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -346,24 +419,14 @@
                 "vin",
                 "make",
                 "model",
-                "year",
-                "color",
-                "mileage"
+                "year"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vin",
-                "make",
-                "model",
-                "year",
-                "color",
-                "mileage",
-                "price",
-                "cost",
-                "condition",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -415,7 +478,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "First name"
         },
         {
           "name": "last_name",
@@ -428,7 +492,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Last name"
         },
         {
           "name": "email",
@@ -445,7 +510,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -462,7 +529,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "address",
@@ -475,7 +543,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "drivers_license",
@@ -592,7 +661,20 @@
             "heading": "No Customers yet",
             "subtext": "Create your first customer",
             "action_label": "Add Customer"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -612,6 +694,31 @@
             "email",
             "phone",
             "customer_type"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "drivers_license",
+                "credit_score"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "customer_type"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -633,7 +740,32 @@
             "phone",
             "customer_type"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone",
+                "address"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "drivers_license",
+                "credit_score"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "customer_type"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/customers/:id",
@@ -657,21 +789,14 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone",
-                "customer_type"
+                "phone"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "first_name",
-                "last_name",
-                "email",
-                "phone",
-                "address",
-                "drivers_license",
-                "customer_type",
-                "credit_score"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -723,7 +848,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -740,7 +866,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -757,7 +885,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "hire_date",
@@ -788,7 +917,8 @@
           "validation": {
             "min": 0,
             "max": 100
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "monthly_quota",
@@ -890,7 +1020,63 @@
             "heading": "No Salespersons yet",
             "subtext": "Create your first salesperson",
             "action_label": "Add Salesperson"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Terminated",
+              "filter": {
+                "field": "status",
+                "value": "terminated"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -911,6 +1097,30 @@
             "commission_rate",
             "monthly_quota",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "hire_date",
+                "commission_rate",
+                "monthly_quota"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -933,7 +1143,31 @@
             "monthly_quota",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "hire_date",
+                "commission_rate",
+                "monthly_quota"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/salespeople/:id",
@@ -957,21 +1191,14 @@
                 "name",
                 "email",
                 "phone",
-                "hire_date",
-                "commission_rate",
-                "monthly_quota"
+                "hire_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "hire_date",
-                "commission_rate",
-                "monthly_quota",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1080,7 +1307,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "trade_in_id",
@@ -1230,7 +1458,79 @@
             "heading": "No Sales yet",
             "subtext": "Create your first sale",
             "action_label": "Add Sale"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Financed",
+              "filter": {
+                "field": "status",
+                "value": "financed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "financing_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1303,23 +1603,14 @@
                 "vehicle_id",
                 "customer_id",
                 "salesperson_id",
-                "sale_date",
-                "sale_price",
-                "trade_in_id"
+                "sale_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vehicle_id",
-                "customer_id",
-                "salesperson_id",
-                "sale_date",
-                "sale_price",
-                "trade_in_id",
-                "financing_type",
-                "status",
-                "down_payment"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1513,7 +1804,8 @@
             "field": "status",
             "operator": "equals",
             "value": "completed"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "created_at",
@@ -1577,7 +1869,85 @@
             "heading": "No TestDrives yet",
             "subtext": "Create your first testdrive",
             "action_label": "Add TestDrive"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1642,21 +2012,14 @@
                 "vehicle_id",
                 "customer_id",
                 "salesperson_id",
-                "scheduled_date",
-                "duration_minutes",
-                "status"
+                "scheduled_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vehicle_id",
-                "customer_id",
-                "salesperson_id",
-                "scheduled_date",
-                "duration_minutes",
-                "status",
-                "feedback"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1805,7 +2168,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "actual_cost",
@@ -1823,7 +2187,8 @@
             "field": "status",
             "operator": "equals",
             "value": "completed"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -1862,7 +2227,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "created_at",
@@ -1926,7 +2292,79 @@
             "heading": "No ServiceAppointments yet",
             "subtext": "Create your first serviceappointment",
             "action_label": "Add ServiceAppointment"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "service_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1993,22 +2431,14 @@
                 "vehicle_id",
                 "customer_id",
                 "service_type",
-                "scheduled_date",
-                "estimated_cost",
-                "actual_cost"
+                "scheduled_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "vehicle_id",
-                "customer_id",
-                "service_type",
-                "scheduled_date",
-                "estimated_cost",
-                "actual_cost",
-                "status",
-                "notes"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2279,7 +2709,75 @@
             "heading": "No TradeIns yet",
             "subtext": "Create your first tradein",
             "action_label": "Add TradeIn"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Accepted",
+              "filter": {
+                "field": "status",
+                "value": "accepted"
+              }
+            },
+            {
+              "label": "Rejected",
+              "filter": {
+                "field": "status",
+                "value": "rejected"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "vin",
+            "make",
+            "model",
+            "condition"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2354,23 +2852,14 @@
                 "customer_id",
                 "vin",
                 "make",
-                "model",
-                "year",
-                "mileage"
+                "model"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "customer_id",
-                "vin",
-                "make",
-                "model",
-                "year",
-                "mileage",
-                "condition",
-                "appraised_value",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2386,5 +2875,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Vehicles",
+        "entity": "Vehicle",
+        "method": "count",
+        "icon": "Car",
+        "color": "blue"
+      },
+      {
+        "label": "Total Customers",
+        "entity": "Customer",
+        "method": "count",
+        "icon": "Users",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Salespersons",
+        "entity": "Salesperson",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Vehicle",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Salespersons",
+        "entity": "Salesperson",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

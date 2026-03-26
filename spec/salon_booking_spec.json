@@ -43,7 +43,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "label": "First Name"
+          "label": "First Name",
+          "placeholder": "First name"
         },
         {
           "name": "last_name",
@@ -57,7 +58,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "label": "Last Name"
+          "label": "Last Name",
+          "placeholder": "Last name"
         },
         {
           "name": "email",
@@ -74,7 +76,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -91,7 +95,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "gender",
@@ -172,7 +177,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "status",
@@ -260,7 +266,63 @@
             "heading": "No Clients yet",
             "subtext": "Create your first client",
             "action_label": "Add Client"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Vip",
+              "filter": {
+                "field": "status",
+                "value": "vip"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -280,6 +342,32 @@
             "last_name",
             "phone",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "gender",
+                "date_of_birth",
+                "preferred_stylist_id",
+                "notes"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -301,7 +389,33 @@
             "phone",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "gender",
+                "date_of_birth",
+                "preferred_stylist_id",
+                "notes"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/clients/:id",
@@ -325,23 +439,14 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone",
-                "gender",
-                "loyalty_points"
+                "phone"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "first_name",
-                "last_name",
-                "email",
-                "phone",
-                "gender",
-                "date_of_birth",
-                "preferred_stylist_id",
-                "notes",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -402,7 +507,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "category",
@@ -446,7 +552,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "duration_minutes",
@@ -481,7 +588,8 @@
           "validation": {
             "min": 0,
             "message": "Price must be positive"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "is_active",
@@ -582,7 +690,19 @@
             "heading": "No Services yet",
             "subtext": "Create your first service",
             "action_label": "Add Service"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "category",
+            "skill_level_required"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -647,21 +767,14 @@
                 "name",
                 "category",
                 "duration_minutes",
-                "price",
-                "is_active",
-                "skill_level_required"
+                "price"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "category",
-                "description",
-                "duration_minutes",
-                "price",
-                "is_active",
-                "skill_level_required"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -706,7 +819,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -723,7 +837,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -740,7 +856,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "specialization",
@@ -800,7 +917,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -907,7 +1025,70 @@
             "heading": "No Stylists yet",
             "subtext": "Create your first stylist",
             "action_label": "Add Stylist"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "Busy",
+              "filter": {
+                "field": "status",
+                "value": "busy"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Terminated",
+              "filter": {
+                "field": "status",
+                "value": "terminated"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "specialization"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -930,6 +1111,31 @@
             "hourly_rate",
             "status",
             "commission_pct"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialization",
+                "experience_years",
+                "hourly_rate",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -954,7 +1160,32 @@
             "status",
             "commission_pct"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "specialization",
+                "experience_years",
+                "hourly_rate",
+                "commission_pct"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/stylists/:id",
@@ -978,22 +1209,14 @@
                 "name",
                 "email",
                 "phone",
-                "specialization",
-                "experience_years",
-                "hourly_rate"
+                "specialization"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "specialization",
-                "experience_years",
-                "hourly_rate",
-                "status",
-                "commission_pct"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1155,7 +1378,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "cancellation_reason",
@@ -1237,7 +1461,92 @@
             "heading": "No Appointments yet",
             "subtext": "Create your first appointment",
             "action_label": "Add Appointment"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1306,23 +1615,14 @@
                 "client_id",
                 "stylist_id",
                 "service_id",
-                "appointment_date",
-                "start_time",
-                "end_time"
+                "appointment_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "client_id",
-                "stylist_id",
-                "service_id",
-                "appointment_date",
-                "start_time",
-                "end_time",
-                "status",
-                "notes",
-                "cancellation_reason"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1390,7 +1690,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "brand",
@@ -1465,7 +1766,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "retail_price",
@@ -1481,7 +1783,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "stock_qty",
@@ -1576,7 +1879,21 @@
             "heading": "No Products yet",
             "subtext": "Create your first product",
             "action_label": "Add Product"
-          }
+          },
+          "views": [
+            "table",
+            "cards"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "brand",
+            "category",
+            "sku"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1647,22 +1964,14 @@
                 "name",
                 "brand",
                 "category",
-                "sku",
-                "cost_price",
-                "retail_price"
+                "sku"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "brand",
-                "category",
-                "sku",
-                "cost_price",
-                "retail_price",
-                "stock_qty",
-                "reorder_level"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1750,7 +2059,8 @@
           "validation": {
             "min": 0.01,
             "message": "Amount must be positive"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tip_amount",
@@ -1764,7 +2074,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "payment_method",
@@ -1899,7 +2210,73 @@
             "heading": "No Payments yet",
             "subtext": "Create your first payment",
             "action_label": "Add Payment"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Refunded",
+              "filter": {
+                "field": "status",
+                "value": "refunded"
+              }
+            },
+            {
+              "label": "Failed",
+              "filter": {
+                "field": "status",
+                "value": "failed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "payment_method",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1962,21 +2339,14 @@
                 "client_id",
                 "appointment_id",
                 "amount",
-                "tip_amount",
-                "payment_method",
-                "status"
+                "tip_amount"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "client_id",
-                "appointment_id",
-                "amount",
-                "tip_amount",
-                "payment_method",
-                "status",
-                "refund_reason"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2206,7 +2576,15 @@
             "heading": "No Reviews yet",
             "subtext": "Create your first review",
             "action_label": "Add Review"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": []
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2267,21 +2645,14 @@
                 "client_id",
                 "stylist_id",
                 "appointment_id",
-                "rating",
-                "comment",
-                "is_public"
+                "rating"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "client_id",
-                "stylist_id",
-                "appointment_id",
-                "rating",
-                "comment",
-                "is_public",
-                "response"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2311,5 +2682,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Clients",
+        "entity": "Client",
+        "method": "count",
+        "icon": "Users",
+        "color": "blue"
+      },
+      {
+        "label": "Total Services",
+        "entity": "Service",
+        "method": "count",
+        "icon": "FileText",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Stylists",
+        "entity": "Stylist",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Service",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Clients",
+        "entity": "Client",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

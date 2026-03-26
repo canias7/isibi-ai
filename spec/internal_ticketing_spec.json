@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "code",
@@ -52,7 +54,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter code",
+          "help_text": "Unique identifier code"
         },
         {
           "name": "description",
@@ -63,7 +67,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "color",
@@ -133,6 +139,70 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "code",
+            "description",
+            "color",
+            "is_active"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Tickets",
+          "type": "related_list",
+          "entity": "Ticket",
+          "foreign_key": "category_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "code",
+        "description",
+        "color"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     },
     {
@@ -171,7 +241,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "email",
@@ -186,7 +258,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "department",
@@ -197,7 +271,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Department",
+          "help_text": "Department or division"
         },
         {
           "name": "skill_level",
@@ -220,7 +296,8 @@
             "tier_2": "blue",
             "tier_3": "purple",
             "specialist": "green"
-          }
+          },
+          "placeholder": "Select skill level"
         },
         {
           "name": "open_tickets",
@@ -265,7 +342,8 @@
             "available": "green",
             "busy": "amber",
             "offline": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -288,6 +366,108 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "skill_level",
+          "columns": [
+            "tier_1",
+            "tier_2",
+            "tier_3",
+            "specialist"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "email"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "department"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "skill_level",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "skill_level",
+          "label": "Skill Level",
+          "options": [
+            "all",
+            "tier_1",
+            "tier_2",
+            "tier_3",
+            "specialist"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "available",
+            "busy",
+            "offline"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Tickets",
+          "type": "related_list",
+          "entity": "Ticket",
+          "foreign_key": "agent_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "email",
+        "department",
+        "skill_level"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -327,7 +507,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "priority_level",
@@ -350,7 +532,9 @@
             "medium": "blue",
             "high": "amber",
             "critical": "red"
-          }
+          },
+          "placeholder": "Select priority",
+          "help_text": "Priority level"
         },
         {
           "name": "response_time_hrs",
@@ -361,7 +545,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "resolution_time_hrs",
@@ -372,7 +557,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "escalation_policy",
@@ -383,7 +569,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter escalation policy"
         },
         {
           "name": "is_active",
@@ -429,6 +616,98 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "priority_level",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "response_time_hrs",
+            "resolution_time_hrs",
+            "escalation_policy",
+            "is_active"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "priority_level"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "priority_level",
+          "label": "Priority Level",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Tickets",
+          "type": "related_list",
+          "entity": "Ticket",
+          "foreign_key": "sla_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "priority_level",
+        "escalation_policy"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -481,7 +760,9 @@
           "show_in_form": true,
           "input_component": "relation_select",
           "display_component": "relation_link",
-          "fk_entity": "Category"
+          "fk_entity": "Category",
+          "placeholder": "Select category",
+          "help_text": "Category classification"
         },
         {
           "name": "sla_id",
@@ -515,7 +796,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter subject",
+          "help_text": "Brief subject line"
         },
         {
           "name": "description",
@@ -526,7 +809,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "requester_name",
@@ -537,7 +822,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "requester_email",
@@ -552,7 +839,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "priority",
@@ -575,7 +864,9 @@
             "medium": "blue",
             "high": "amber",
             "critical": "red"
-          }
+          },
+          "placeholder": "Select priority",
+          "help_text": "Priority level"
         },
         {
           "name": "status",
@@ -602,7 +893,8 @@
             "waiting": "pink",
             "resolved": "green",
             "closed": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "satisfaction_rating",
@@ -618,7 +910,8 @@
             "field": "status",
             "operator": "eq",
             "value": "closed"
-          }
+          },
+          "placeholder": "0"
         },
         {
           "name": "sla_breached",
@@ -652,6 +945,123 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "priority",
+          "columns": [
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "subject",
+            "description",
+            "requester_name",
+            "requester_email",
+            "satisfaction_rating",
+            "sla_breached"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "agent_id",
+            "category_id",
+            "sla_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "priority",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "priority",
+          "label": "Priority",
+          "options": [
+            "all",
+            "low",
+            "medium",
+            "high",
+            "critical"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "new",
+            "assigned",
+            "in_progress",
+            "waiting",
+            "resolved",
+            "closed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Comments",
+          "type": "related_list",
+          "entity": "Comment",
+          "foreign_key": "ticket_id"
+        },
+        {
+          "label": "Attachments",
+          "type": "related_list",
+          "entity": "Attachment",
+          "foreign_key": "ticket_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "ticket_number",
+        "subject",
+        "requester_name",
+        "requester_email"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -703,7 +1113,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter author"
         },
         {
           "name": "content",
@@ -714,7 +1125,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter content..."
         },
         {
           "name": "comment_type",
@@ -737,7 +1149,9 @@
             "internal_note": "amber",
             "status_change": "green",
             "escalation": "red"
-          }
+          },
+          "placeholder": "Add a comment...",
+          "help_text": "Your comment"
         },
         {
           "name": "is_internal",
@@ -782,6 +1196,100 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "comment_type",
+          "columns": [
+            "reply",
+            "internal_note",
+            "status_change",
+            "escalation"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "posted_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "author",
+            "content",
+            "is_internal"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "ticket_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "comment_type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "comment_type",
+          "label": "Comment Type",
+          "options": [
+            "all",
+            "reply",
+            "internal_note",
+            "status_change",
+            "escalation"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Attachments",
+          "type": "related_list",
+          "entity": "Attachment",
+          "foreign_key": "comment_id"
+        }
+      ],
+      "default_sort": {
+        "field": "posted_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "author",
+        "comment_type"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -834,7 +1342,9 @@
           "show_in_form": true,
           "input_component": "relation_select",
           "display_component": "relation_link",
-          "fk_entity": "Comment"
+          "fk_entity": "Comment",
+          "placeholder": "Add a comment...",
+          "help_text": "Your comment"
         },
         {
           "name": "file_name",
@@ -845,7 +1355,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "file_url",
@@ -856,7 +1368,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "file_upload",
-          "display_component": "file_link"
+          "display_component": "file_link",
+          "placeholder": "https://example.com",
+          "help_text": "Enter a valid URL"
         },
         {
           "name": "file_type",
@@ -892,7 +1406,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "uploaded_by",
@@ -903,7 +1418,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter uploaded by"
         },
         {
           "name": "created_at",
@@ -927,7 +1443,130 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "file_type",
+          "columns": [
+            "image",
+            "document",
+            "log",
+            "screenshot",
+            "other"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "file_name",
+            "file_url",
+            "file_size_kb",
+            "uploaded_by"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "ticket_id",
+            "comment_id"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "file_type",
+          "label": "File Type",
+          "options": [
+            "all",
+            "image",
+            "document",
+            "log",
+            "screenshot",
+            "other"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "file_name",
+        "file_type",
+        "uploaded_by"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Categorys",
+        "query": "COUNT(*) FROM ticket_categories",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM ticket_categories WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Agents",
+        "query": "COUNT(*) FROM ticket_agents",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Agents",
+        "query": "COUNT(*) FROM ticket_agents WHERE skill_level = 'tier_1'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total SLAs",
+        "query": "COUNT(*) FROM ticket_slas",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active SLAs",
+        "query": "COUNT(*) FROM ticket_slas WHERE priority_level = 'low'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      }
+    ]
+  }
 }

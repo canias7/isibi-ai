@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "email",
@@ -56,7 +58,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "employee_id_code",
@@ -67,7 +71,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter code",
+          "help_text": "Unique identifier code"
         },
         {
           "name": "department",
@@ -78,7 +84,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Department",
+          "help_text": "Department or division"
         },
         {
           "name": "employment_type",
@@ -101,7 +109,8 @@
             "part_time": "blue",
             "contractor": "amber",
             "temporary": "pink"
-          }
+          },
+          "placeholder": "Select employment type"
         },
         {
           "name": "pay_type",
@@ -122,7 +131,9 @@
             "salaried": "blue",
             "hourly": "green",
             "commission": "purple"
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter pay type"
         },
         {
           "name": "base_salary",
@@ -136,7 +147,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Salary amount"
         },
         {
           "name": "hourly_rate",
@@ -152,7 +165,9 @@
             "field": "pay_type",
             "operator": "eq",
             "value": "hourly"
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Hourly billing rate"
         },
         {
           "name": "status",
@@ -173,7 +188,8 @@
             "active": "green",
             "on_leave": "amber",
             "terminated": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -196,6 +212,128 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "employment_type",
+          "columns": [
+            "full_time",
+            "part_time",
+            "contractor",
+            "temporary"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "email"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "employee_id_code",
+            "department",
+            "base_salary",
+            "hourly_rate"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "employment_type",
+            "pay_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "employment_type",
+          "label": "Employment Type",
+          "options": [
+            "all",
+            "full_time",
+            "part_time",
+            "contractor",
+            "temporary"
+          ]
+        },
+        {
+          "field": "pay_type",
+          "label": "Pay Type",
+          "options": [
+            "all",
+            "salaried",
+            "hourly",
+            "commission"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "on_leave",
+            "terminated"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "PayStubs",
+          "type": "related_list",
+          "entity": "PayStub",
+          "foreign_key": "employee_id"
+        },
+        {
+          "label": "Bonus",
+          "type": "related_list",
+          "entity": "Bonus",
+          "foreign_key": "employee_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "email",
+        "employee_id_code",
+        "department"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -235,7 +373,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "frequency",
@@ -258,7 +398,8 @@
             "biweekly": "green",
             "semi_monthly": "purple",
             "monthly": "amber"
-          }
+          },
+          "placeholder": "Select frequency"
         },
         {
           "name": "start_date",
@@ -269,7 +410,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "end_date",
@@ -280,7 +422,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "pay_date",
@@ -291,7 +434,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "0.00",
+          "help_text": "Enter pay date"
         },
         {
           "name": "employee_count",
@@ -318,7 +463,9 @@
           "computed": "SUM(pay_stubs.gross_pay)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "total_net",
@@ -333,7 +480,9 @@
           "computed": "SUM(pay_stubs.net_pay)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "status",
@@ -356,7 +505,8 @@
             "processing": "amber",
             "closed": "slate",
             "paid": "green"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -379,6 +529,114 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "frequency",
+          "columns": [
+            "weekly",
+            "biweekly",
+            "semi_monthly",
+            "monthly"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "start_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "frequency",
+            "start_date",
+            "end_date",
+            "pay_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "frequency",
+          "label": "Frequency",
+          "options": [
+            "all",
+            "weekly",
+            "biweekly",
+            "semi_monthly",
+            "monthly"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "open",
+            "processing",
+            "closed",
+            "paid"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "PayStubs",
+          "type": "related_list",
+          "entity": "PayStub",
+          "foreign_key": "pay_period_id"
+        },
+        {
+          "label": "Bonus",
+          "type": "related_list",
+          "entity": "Bonus",
+          "foreign_key": "pay_period_id"
+        }
+      ],
+      "default_sort": {
+        "field": "start_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "frequency",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -431,7 +689,9 @@
           "show_in_form": true,
           "input_component": "relation_select",
           "display_component": "relation_link",
-          "fk_entity": "PayPeriod"
+          "fk_entity": "PayPeriod",
+          "placeholder": "0.00",
+          "help_text": "Enter pay period id"
         },
         {
           "name": "hours_worked",
@@ -442,7 +702,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "overtime_hours",
@@ -453,7 +714,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "gross_pay",
@@ -467,7 +729,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter gross pay"
         },
         {
           "name": "total_deductions",
@@ -482,7 +746,9 @@
           "computed": "SUM(deductions.amount)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "total_taxes",
@@ -497,7 +763,9 @@
           "computed": "SUM(taxes.amount)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "net_pay",
@@ -512,7 +780,9 @@
           "computed": "gross_pay - total_deductions - total_taxes",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter net pay"
         },
         {
           "name": "status",
@@ -535,7 +805,8 @@
             "approved": "blue",
             "paid": "green",
             "void": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "payment_method",
@@ -551,7 +822,9 @@
             "direct_deposit",
             "check",
             "wire"
-          ]
+          ],
+          "placeholder": "0.00",
+          "help_text": "Enter payment method"
         },
         {
           "name": "created_at",
@@ -574,6 +847,121 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "draft",
+            "approved",
+            "paid",
+            "void"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "hours_worked",
+            "overtime_hours",
+            "gross_pay",
+            "payment_method"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "employee_id",
+            "pay_period_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "approved",
+            "paid",
+            "void"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Deductions",
+          "type": "related_list",
+          "entity": "Deduction",
+          "foreign_key": "pay_stub_id"
+        },
+        {
+          "label": "Taxs",
+          "type": "related_list",
+          "entity": "Tax",
+          "foreign_key": "pay_stub_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "status",
+        "payment_method"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Mark Paid",
+          "icon": "CheckCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "paid",
+          "confirm": true
+        },
+        {
+          "label": "Cancel",
+          "icon": "XCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "void",
+          "confirm": true,
+          "variant": "danger"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -614,7 +1002,9 @@
           "show_in_form": true,
           "input_component": "relation_select",
           "display_component": "relation_link",
-          "fk_entity": "PayStub"
+          "fk_entity": "PayStub",
+          "placeholder": "0.00",
+          "help_text": "Enter pay stub id"
         },
         {
           "name": "name",
@@ -625,7 +1015,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "deduction_type",
@@ -654,7 +1046,8 @@
             "hsa": "pink",
             "life_insurance": "slate",
             "other": "red"
-          }
+          },
+          "placeholder": "Select deduction type"
         },
         {
           "name": "amount",
@@ -668,7 +1061,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "is_pre_tax",
@@ -714,6 +1109,102 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "deduction_type",
+          "columns": [
+            "health_insurance",
+            "dental",
+            "vision",
+            "retirement_401k",
+            "hsa",
+            "life_insurance",
+            "other"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "amount",
+            "is_pre_tax",
+            "is_recurring"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "pay_stub_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "deduction_type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "deduction_type",
+          "label": "Deduction Type",
+          "options": [
+            "all",
+            "health_insurance",
+            "dental",
+            "vision",
+            "retirement_401k",
+            "hsa",
+            "life_insurance",
+            "other"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "deduction_type"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     },
     {
@@ -753,7 +1244,9 @@
           "show_in_form": true,
           "input_component": "relation_select",
           "display_component": "relation_link",
-          "fk_entity": "PayStub"
+          "fk_entity": "PayStub",
+          "placeholder": "0.00",
+          "help_text": "Enter pay stub id"
         },
         {
           "name": "tax_type",
@@ -782,7 +1275,8 @@
             "medicare": "pink",
             "suta": "slate",
             "futa": "red"
-          }
+          },
+          "placeholder": "Select tax type"
         },
         {
           "name": "taxable_amount",
@@ -796,7 +1290,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "rate",
@@ -807,7 +1303,9 @@
           "show_in_table": true,
           "show_in_form": false,
           "input_component": "number_input",
-          "display_component": "percentage"
+          "display_component": "percentage",
+          "placeholder": "0.00",
+          "help_text": "Rate per unit"
         },
         {
           "name": "amount",
@@ -822,7 +1320,9 @@
           "computed": "taxable_amount * rate / 100",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "jurisdiction",
@@ -833,7 +1333,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter jurisdiction"
         },
         {
           "name": "created_at",
@@ -856,6 +1357,95 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "tax_type",
+          "columns": [
+            "federal",
+            "state",
+            "local",
+            "social_security",
+            "medicare",
+            "suta",
+            "futa"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "taxable_amount",
+            "jurisdiction"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "pay_stub_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "tax_type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "tax_type",
+          "label": "Tax Type",
+          "options": [
+            "all",
+            "federal",
+            "state",
+            "local",
+            "social_security",
+            "medicare",
+            "suta",
+            "futa"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "tax_type",
+        "jurisdiction"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -908,7 +1498,9 @@
           "show_in_form": true,
           "input_component": "relation_select",
           "display_component": "relation_link",
-          "fk_entity": "PayPeriod"
+          "fk_entity": "PayPeriod",
+          "placeholder": "0.00",
+          "help_text": "Enter pay period id"
         },
         {
           "name": "bonus_type",
@@ -935,7 +1527,8 @@
             "holiday": "amber",
             "spot": "pink",
             "retention": "slate"
-          }
+          },
+          "placeholder": "Select bonus type"
         },
         {
           "name": "amount",
@@ -949,7 +1542,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "reason",
@@ -960,7 +1555,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter reason..."
         },
         {
           "name": "effective_date",
@@ -971,7 +1567,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "status",
@@ -994,7 +1591,8 @@
             "approved": "blue",
             "paid": "green",
             "cancelled": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -1018,7 +1616,154 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "bonus_type",
+          "columns": [
+            "performance",
+            "signing",
+            "referral",
+            "holiday",
+            "spot",
+            "retention"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "effective_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "amount",
+            "reason"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "employee_id",
+            "pay_period_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "bonus_type",
+            "effective_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "bonus_type",
+          "label": "Bonus Type",
+          "options": [
+            "all",
+            "performance",
+            "signing",
+            "referral",
+            "holiday",
+            "spot",
+            "retention"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "pending",
+            "approved",
+            "paid",
+            "cancelled"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "effective_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "bonus_type",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Employees",
+        "query": "COUNT(*) FROM payroll_employees",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Pay Type",
+        "query": "SUM(pay_type) FROM payroll_employees",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Employees",
+        "query": "COUNT(*) FROM payroll_employees WHERE employment_type = 'full_time'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM payroll_employees WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total PayPeriods",
+        "query": "COUNT(*) FROM pay_periods",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Pay Date",
+        "query": "SUM(pay_date) FROM pay_periods",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      }
+    ]
+  }
 }

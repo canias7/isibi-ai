@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -59,7 +60,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -76,7 +79,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "license_number",
@@ -136,7 +140,8 @@
           "validation": {
             "min": 0,
             "max": 100
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -224,7 +229,63 @@
             "heading": "No Agents yet",
             "subtext": "Create your first agent",
             "action_label": "Add Agent"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Inactive",
+              "filter": {
+                "field": "status",
+                "value": "inactive"
+              }
+            },
+            {
+              "label": "Suspended",
+              "filter": {
+                "field": "status",
+                "value": "suspended"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -245,6 +306,30 @@
             "specialization",
             "commission_rate",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "specialization",
+                "commission_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -267,7 +352,31 @@
             "commission_rate",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "license_number",
+                "specialization",
+                "commission_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/agents/:id",
@@ -291,21 +400,14 @@
                 "name",
                 "email",
                 "phone",
-                "license_number",
-                "specialization",
-                "commission_rate"
+                "license_number"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "license_number",
-                "specialization",
-                "commission_rate",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -396,7 +498,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "policy_type",
@@ -443,7 +547,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "coverage_amount",
@@ -459,7 +564,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "deductible",
@@ -591,7 +697,83 @@
             "heading": "No Policys yet",
             "subtext": "Create your first policy",
             "action_label": "Add Policy"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "Suspended",
+              "filter": {
+                "field": "status",
+                "value": "suspended"
+              }
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "policy_number",
+            "holder_name",
+            "holder_email",
+            "policy_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -674,25 +856,14 @@
                 "policy_number",
                 "agent_id",
                 "holder_name",
-                "holder_email",
-                "policy_type",
-                "premium_amount"
+                "holder_email"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "policy_number",
-                "agent_id",
-                "holder_name",
-                "holder_email",
-                "policy_type",
-                "premium_amount",
-                "coverage_amount",
-                "deductible",
-                "start_date",
-                "end_date",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -801,7 +972,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "claimed_amount",
@@ -817,7 +989,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "approved_amount",
@@ -838,7 +1011,8 @@
               "approved",
               "paid"
             ]
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -950,7 +1124,87 @@
             "heading": "No Claims yet",
             "subtext": "Create your first claim",
             "action_label": "Add Claim"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Filed",
+              "filter": {
+                "field": "status",
+                "value": "filed"
+              }
+            },
+            {
+              "label": "Under Review",
+              "filter": {
+                "field": "status",
+                "value": "under_review"
+              }
+            },
+            {
+              "label": "Approved",
+              "filter": {
+                "field": "status",
+                "value": "approved"
+              }
+            },
+            {
+              "label": "Denied",
+              "filter": {
+                "field": "status",
+                "value": "denied"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Appealed",
+              "filter": {
+                "field": "status",
+                "value": "appealed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "claim_number",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1021,23 +1275,14 @@
                 "claim_number",
                 "policy_id",
                 "date_of_incident",
-                "date_filed",
-                "claimed_amount",
-                "approved_amount"
+                "date_filed"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "claim_number",
-                "policy_id",
-                "date_of_incident",
-                "date_filed",
-                "description",
-                "claimed_amount",
-                "approved_amount",
-                "status",
-                "denial_reason"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1110,7 +1355,8 @@
           "filterable": true,
           "validation": {
             "min": 0.01
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "payment_date",
@@ -1210,7 +1456,8 @@
             "field": "status",
             "operator": "equals",
             "value": "late"
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "created_at",
@@ -1274,7 +1521,80 @@
             "heading": "No Payments yet",
             "subtext": "Create your first payment",
             "action_label": "Add Payment"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Failed",
+              "filter": {
+                "field": "status",
+                "value": "failed"
+              }
+            },
+            {
+              "label": "Refunded",
+              "filter": {
+                "field": "status",
+                "value": "refunded"
+              }
+            },
+            {
+              "label": "Late",
+              "filter": {
+                "field": "status",
+                "value": "late"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "payment_method",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1341,21 +1661,14 @@
                 "policy_id",
                 "amount",
                 "payment_date",
-                "due_date",
-                "payment_method",
-                "status"
+                "due_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "policy_id",
-                "amount",
-                "payment_date",
-                "due_date",
-                "payment_method",
-                "status",
-                "late_fee"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1441,7 +1754,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "document_type",
@@ -1485,7 +1799,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "https://..."
         },
         {
           "name": "uploaded_date",
@@ -1586,7 +1901,62 @@
             "heading": "No Documents yet",
             "subtext": "Create your first document",
             "action_label": "Add Document"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "Archived",
+              "filter": {
+                "field": "status",
+                "value": "archived"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "document_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1649,21 +2019,14 @@
                 "policy_id",
                 "claim_id",
                 "title",
-                "document_type",
-                "uploaded_date",
-                "status"
+                "document_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "policy_id",
-                "claim_id",
-                "title",
-                "document_type",
-                "file_url",
-                "uploaded_date",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1740,7 +2103,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "relationship",
@@ -1805,7 +2169,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "email",
@@ -1822,7 +2187,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "is_primary",
@@ -1900,7 +2267,20 @@
             "heading": "No Beneficiarys yet",
             "subtext": "Create your first beneficiary",
             "action_label": "Add Beneficiary"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "relationship",
+            "phone",
+            "email"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1919,6 +2299,25 @@
             "relationship",
             "percentage",
             "is_primary"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "phone",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "policy_id",
+                "relationship",
+                "percentage",
+                "is_primary"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -1939,7 +2338,26 @@
             "percentage",
             "is_primary"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "phone",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "policy_id",
+                "relationship",
+                "percentage",
+                "is_primary"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/beneficiaries/:id",
@@ -1963,21 +2381,14 @@
                 "policy_id",
                 "name",
                 "relationship",
-                "percentage",
-                "phone",
-                "email"
+                "percentage"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "policy_id",
-                "name",
-                "relationship",
-                "percentage",
-                "phone",
-                "email",
-                "is_primary"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2064,7 +2475,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "policy_type",
@@ -2125,7 +2538,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "valid_until",
@@ -2230,7 +2644,77 @@
             "heading": "No Quotes yet",
             "subtext": "Create your first quote",
             "action_label": "Add Quote"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Draft",
+              "filter": {
+                "field": "status",
+                "value": "draft"
+              }
+            },
+            {
+              "label": "Sent",
+              "filter": {
+                "field": "status",
+                "value": "sent"
+              }
+            },
+            {
+              "label": "Accepted",
+              "filter": {
+                "field": "status",
+                "value": "accepted"
+              }
+            },
+            {
+              "label": "Declined",
+              "filter": {
+                "field": "status",
+                "value": "declined"
+              }
+            },
+            {
+              "label": "Expired",
+              "filter": {
+                "field": "status",
+                "value": "expired"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "applicant_name",
+            "applicant_email",
+            "policy_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2301,22 +2785,14 @@
                 "agent_id",
                 "applicant_name",
                 "applicant_email",
-                "policy_type",
-                "estimated_premium",
-                "coverage_amount"
+                "policy_type"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "agent_id",
-                "applicant_name",
-                "applicant_email",
-                "policy_type",
-                "estimated_premium",
-                "coverage_amount",
-                "valid_until",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2332,5 +2808,49 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Agents",
+        "entity": "Agent",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Policys",
+        "entity": "Policy",
+        "method": "count",
+        "icon": "FileCheck",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Claims",
+        "entity": "Claim",
+        "method": "count",
+        "icon": "Shield",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Payment",
+        "method": "sum",
+        "field": "amount",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Agents",
+        "entity": "Agent",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
+      }
+    ]
+  }
 }

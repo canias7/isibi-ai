@@ -40,7 +40,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "display_order",
@@ -123,7 +124,17 @@
             "heading": "No MenuCategorys yet",
             "subtext": "Create your first menucategory",
             "action_label": "Add MenuCategory"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -176,6 +187,12 @@
               ]
             },
             {
+              "name": "MenuItems",
+              "type": "related_list",
+              "entity": "MenuItem",
+              "fk_field": "category_id"
+            },
+            {
               "name": "Activity",
               "fields": [
                 "created_at",
@@ -222,7 +239,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "category_id",
@@ -245,7 +263,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "cost",
@@ -256,7 +275,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "description",
@@ -267,7 +287,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Add details..."
         },
         {
           "name": "calories",
@@ -374,7 +395,18 @@
             "heading": "No MenuItems yet",
             "subtext": "Create your first menuitem",
             "action_label": "Add MenuItem"
-          }
+          },
+          "views": [
+            "table",
+            "cards"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -437,9 +469,14 @@
                 "name",
                 "category_id",
                 "price",
-                "prep_time_min",
-                "is_available"
+                "prep_time_min"
               ]
+            },
+            {
+              "name": "OrderItems",
+              "type": "related_list",
+              "entity": "OrderItem",
+              "fk_field": "menu_item_id"
             },
             {
               "name": "Activity",
@@ -609,7 +646,68 @@
             "heading": "No Tables yet",
             "subtext": "Create your first table",
             "action_label": "Add Table"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Available",
+              "filter": {
+                "field": "status",
+                "value": "available"
+              }
+            },
+            {
+              "label": "Occupied",
+              "filter": {
+                "field": "status",
+                "value": "occupied"
+              }
+            },
+            {
+              "label": "Reserved",
+              "filter": {
+                "field": "status",
+                "value": "reserved"
+              }
+            },
+            {
+              "label": "Cleaning",
+              "filter": {
+                "field": "status",
+                "value": "cleaning"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "section",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -666,6 +764,18 @@
               ]
             },
             {
+              "name": "Reservations",
+              "type": "related_list",
+              "entity": "Reservation",
+              "fk_field": "table_id"
+            },
+            {
+              "name": "Orders",
+              "type": "related_list",
+              "entity": "Order",
+              "fk_field": "table_id"
+            },
+            {
               "name": "Activity",
               "fields": [
                 "created_at",
@@ -712,7 +822,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "guest_phone",
@@ -723,7 +834,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "party_size",
@@ -868,7 +980,88 @@
             "heading": "No Reservations yet",
             "subtext": "Create your first reservation",
             "action_label": "Add Reservation"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "calendar"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Seated",
+              "filter": {
+                "field": "status",
+                "value": "seated"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "guest_name",
+            "guest_phone",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -929,10 +1122,7 @@
                 "guest_name",
                 "guest_phone",
                 "party_size",
-                "table_id",
-                "date",
-                "time",
-                "status"
+                "table_id"
               ]
             },
             {
@@ -982,7 +1172,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -993,7 +1184,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "phone",
@@ -1004,7 +1197,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "role",
@@ -1044,7 +1238,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -1128,7 +1323,63 @@
             "heading": "No Staffs yet",
             "subtext": "Create your first staff",
             "action_label": "Add Staff"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Active",
+              "filter": {
+                "field": "status",
+                "value": "active"
+              }
+            },
+            {
+              "label": "On Leave",
+              "filter": {
+                "field": "status",
+                "value": "on_leave"
+              }
+            },
+            {
+              "label": "Terminated",
+              "filter": {
+                "field": "status",
+                "value": "terminated"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "role"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1144,6 +1395,29 @@
             "name",
             "email",
             "phone"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "role",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -1161,7 +1435,30 @@
             "email",
             "phone"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email",
+                "phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "role",
+                "hourly_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/staff/:id",
@@ -1185,9 +1482,20 @@
                 "name",
                 "email",
                 "phone",
-                "role",
-                "status"
+                "role"
               ]
+            },
+            {
+              "name": "Orders",
+              "type": "related_list",
+              "entity": "Order",
+              "fk_field": "server_id"
+            },
+            {
+              "name": "Shifts",
+              "type": "related_list",
+              "entity": "Shift",
+              "fk_field": "staff_id"
             },
             {
               "name": "Activity",
@@ -1292,7 +1600,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "tax",
@@ -1326,7 +1635,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "computed": "subtotal + tax + tip"
+          "computed": "subtotal + tax + tip",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -1417,7 +1727,94 @@
             "heading": "No Orders yet",
             "subtext": "Create your first order",
             "action_label": "Add Order"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pending",
+              "filter": {
+                "field": "status",
+                "value": "pending"
+              }
+            },
+            {
+              "label": "Preparing",
+              "filter": {
+                "field": "status",
+                "value": "preparing"
+              }
+            },
+            {
+              "label": "Ready",
+              "filter": {
+                "field": "status",
+                "value": "ready"
+              }
+            },
+            {
+              "label": "Served",
+              "filter": {
+                "field": "status",
+                "value": "served"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "order_number",
+            "type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1480,13 +1877,14 @@
                 "order_number",
                 "table_id",
                 "server_id",
-                "type",
-                "subtotal",
-                "tax",
-                "tip",
-                "total",
-                "status"
+                "type"
               ]
+            },
+            {
+              "name": "OrderItems",
+              "type": "related_list",
+              "entity": "OrderItem",
+              "fk_field": "order_id"
             },
             {
               "name": "Activity",
@@ -1570,7 +1968,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "modifications",
@@ -1593,7 +1992,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "computed": "quantity * unit_price"
+          "computed": "quantity * unit_price",
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -1680,7 +2080,67 @@
             "heading": "No OrderItems yet",
             "subtext": "Create your first orderitem",
             "action_label": "Add OrderItem"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Ordered",
+              "filter": {
+                "field": "status",
+                "value": "ordered"
+              }
+            },
+            {
+              "label": "Preparing",
+              "filter": {
+                "field": "status",
+                "value": "preparing"
+              }
+            },
+            {
+              "label": "Ready",
+              "filter": {
+                "field": "status",
+                "value": "ready"
+              }
+            },
+            {
+              "label": "Served",
+              "filter": {
+                "field": "status",
+                "value": "served"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1739,9 +2199,7 @@
                 "order_id",
                 "menu_item_id",
                 "quantity",
-                "unit_price",
-                "total",
-                "status"
+                "unit_price"
               ]
             },
             {
@@ -1935,7 +2393,69 @@
             "heading": "No Shifts yet",
             "subtext": "Create your first shift",
             "action_label": "Add Shift"
-          }
+          },
+          "views": [
+            "table",
+            "kanban",
+            "calendar"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Scheduled",
+              "filter": {
+                "field": "status",
+                "value": "scheduled"
+              }
+            },
+            {
+              "label": "Clocked In",
+              "filter": {
+                "field": "status",
+                "value": "clocked_in"
+              }
+            },
+            {
+              "label": "Clocked Out",
+              "filter": {
+                "field": "status",
+                "value": "clocked_out"
+              }
+            },
+            {
+              "label": "No Show",
+              "filter": {
+                "field": "status",
+                "value": "no_show"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "date",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "role",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1992,9 +2512,7 @@
                 "staff_id",
                 "date",
                 "start_time",
-                "end_time",
-                "role",
-                "status"
+                "end_time"
               ]
             },
             {
@@ -2097,29 +2615,41 @@
         "label": "Total MenuCategorys",
         "entity": "MenuCategory",
         "method": "count",
-        "icon": "LayoutList",
-        "color": "pink"
+        "icon": "FolderTree",
+        "color": "blue"
       },
       {
         "label": "Total MenuItems",
         "entity": "MenuItem",
         "method": "count",
         "icon": "UtensilsCrossed",
-        "color": "pink"
+        "color": "emerald"
       },
       {
         "label": "Total Tables",
         "entity": "Table",
         "method": "count",
-        "icon": "LayoutGrid",
-        "color": "pink"
+        "icon": "FileText",
+        "color": "violet"
       },
       {
-        "label": "Total Reservations",
-        "entity": "Reservation",
+        "label": "Total Revenue",
+        "entity": "MenuItem",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      },
+      {
+        "label": "Active Staffs",
+        "entity": "Staff",
         "method": "count",
-        "icon": "CalendarDays",
-        "color": "pink"
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "cyan"
       }
     ]
   },

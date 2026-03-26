@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "type",
@@ -68,7 +70,8 @@
             "licensing": "amber",
             "advertising": "pink",
             "consulting": "slate"
-          }
+          },
+          "placeholder": "Select type"
         },
         {
           "name": "currency",
@@ -79,7 +82,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter currency"
         },
         {
           "name": "monthly_revenue",
@@ -94,7 +98,9 @@
           "computed": "calculated",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter monthly revenue"
         },
         {
           "name": "annual_revenue",
@@ -109,7 +115,9 @@
           "computed": "monthly_revenue * 12",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter annual revenue"
         },
         {
           "name": "growth_rate",
@@ -120,7 +128,9 @@
           "show_in_table": true,
           "show_in_form": false,
           "input_component": "number_input",
-          "display_component": "percentage"
+          "display_component": "percentage",
+          "placeholder": "0.00",
+          "help_text": "Rate per unit"
         },
         {
           "name": "margin_pct",
@@ -142,7 +152,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Cost amount"
         },
         {
           "name": "status",
@@ -167,7 +179,8 @@
             "growing": "blue",
             "new": "purple",
             "sunset": "amber"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -190,6 +203,125 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "type",
+          "columns": [
+            "subscription",
+            "one_time",
+            "usage_based",
+            "licensing",
+            "advertising",
+            "consulting"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "currency",
+            "cost_of_revenue"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "type",
+          "label": "Type",
+          "options": [
+            "all",
+            "subscription",
+            "one_time",
+            "usage_based",
+            "licensing",
+            "advertising",
+            "consulting"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "declining",
+            "growing",
+            "new",
+            "sunset"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Forecasts",
+          "type": "related_list",
+          "entity": "Forecast",
+          "foreign_key": "stream_id"
+        },
+        {
+          "label": "Metrics",
+          "type": "related_list",
+          "entity": "Metric",
+          "foreign_key": "stream_id"
+        },
+        {
+          "label": "Targets",
+          "type": "related_list",
+          "entity": "Target",
+          "foreign_key": "stream_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "type",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -229,7 +361,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "segment_type",
@@ -254,7 +388,8 @@
             "customer_size": "purple",
             "industry": "amber",
             "channel": "pink"
-          }
+          },
+          "placeholder": "Select segment type"
         },
         {
           "name": "total_revenue",
@@ -269,7 +404,9 @@
           "computed": "SUM(metrics.value WHERE metric=revenue)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "revenue_share_pct",
@@ -280,7 +417,9 @@
           "show_in_table": true,
           "show_in_form": false,
           "input_component": "number_input",
-          "display_component": "percentage"
+          "display_component": "percentage",
+          "placeholder": "0.00",
+          "help_text": "Enter revenue share pct"
         },
         {
           "name": "customer_count",
@@ -291,7 +430,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "arpu",
@@ -306,7 +446,9 @@
           "computed": "total_revenue / customer_count",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter arpu"
         },
         {
           "name": "description",
@@ -317,7 +459,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Detailed description or notes"
         },
         {
           "name": "created_at",
@@ -340,6 +484,91 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "segment_type",
+          "columns": [
+            "geography",
+            "product",
+            "customer_size",
+            "industry",
+            "channel"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "customer_count",
+            "description"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "segment_type"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "segment_type",
+          "label": "Segment Type",
+          "options": [
+            "all",
+            "geography",
+            "product",
+            "customer_size",
+            "industry",
+            "channel"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "segment_type"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -396,7 +625,8 @@
             "monthly",
             "quarterly",
             "annual"
-          ]
+          ],
+          "placeholder": "Select period"
         },
         {
           "name": "forecast_date",
@@ -407,7 +637,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "predicted_revenue",
@@ -421,7 +652,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter predicted revenue"
         },
         {
           "name": "actual_revenue",
@@ -432,7 +665,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter actual revenue"
         },
         {
           "name": "variance",
@@ -447,7 +682,9 @@
           "computed": "actual_revenue - predicted_revenue",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter variance"
         },
         {
           "name": "accuracy_pct",
@@ -477,7 +714,8 @@
             "seasonal",
             "ml_based",
             "manual"
-          ]
+          ],
+          "placeholder": "Select model"
         },
         {
           "name": "confidence",
@@ -498,7 +736,8 @@
             "high": "green",
             "medium": "amber",
             "low": "red"
-          }
+          },
+          "placeholder": "Select confidence"
         },
         {
           "name": "created_at",
@@ -521,6 +760,95 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "confidence",
+          "columns": [
+            "high",
+            "medium",
+            "low"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "forecast_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "period",
+            "predicted_revenue",
+            "actual_revenue",
+            "model"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "stream_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "forecast_date",
+            "confidence"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "confidence",
+          "label": "Confidence",
+          "options": [
+            "all",
+            "high",
+            "medium",
+            "low"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "forecast_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "period",
+        "model",
+        "confidence"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -592,7 +920,9 @@
             "cac": "pink",
             "nrr": "slate",
             "expansion_revenue": "teal"
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "value",
@@ -603,7 +933,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "0"
         },
         {
           "name": "unit",
@@ -620,7 +951,8 @@
             "percentage",
             "count",
             "ratio"
-          ]
+          ],
+          "placeholder": "Select unit"
         },
         {
           "name": "measured_date",
@@ -631,7 +963,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "previous_value",
@@ -699,6 +1032,113 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "metric_name",
+          "columns": [
+            "mrr",
+            "arr",
+            "arpu",
+            "churn_rate",
+            "ltv",
+            "cac",
+            "nrr",
+            "expansion_revenue"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "measured_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "value",
+            "unit"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "stream_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "metric_name",
+            "measured_date"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "metric_name",
+          "label": "Metric Name",
+          "options": [
+            "all",
+            "mrr",
+            "arr",
+            "arpu",
+            "churn_rate",
+            "ltv",
+            "cac",
+            "nrr",
+            "expansion_revenue"
+          ]
+        },
+        {
+          "field": "trend",
+          "label": "Trend",
+          "options": [
+            "all",
+            "up",
+            "down",
+            "flat"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "measured_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "metric_name",
+        "unit",
+        "trend"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     },
     {
@@ -754,7 +1194,8 @@
             "monthly",
             "quarterly",
             "annual"
-          ]
+          ],
+          "placeholder": "Select period"
         },
         {
           "name": "target_date",
@@ -765,7 +1206,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "target_amount",
@@ -779,7 +1221,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "achieved_amount",
@@ -790,7 +1234,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "achievement_pct",
@@ -817,7 +1263,9 @@
           "computed": "target_amount - achieved_amount",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter gap"
         },
         {
           "name": "status",
@@ -840,7 +1288,8 @@
             "at_risk": "amber",
             "behind": "red",
             "exceeded": "blue"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -863,6 +1312,95 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "on_track",
+            "at_risk",
+            "behind",
+            "exceeded"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "target_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "period",
+            "target_amount",
+            "achieved_amount"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "stream_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "target_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "on_track",
+            "at_risk",
+            "behind",
+            "exceeded"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "target_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "period",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -902,7 +1440,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "report_type",
@@ -927,7 +1467,8 @@
             "annual_report": "purple",
             "cohort_analysis": "amber",
             "forecast_vs_actual": "pink"
-          }
+          },
+          "placeholder": "Select report type"
         },
         {
           "name": "period_start",
@@ -938,7 +1479,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "period_end",
@@ -949,7 +1491,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "total_revenue",
@@ -964,7 +1507,9 @@
           "computed": "SUM(streams.monthly_revenue)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "total_cost",
@@ -979,7 +1524,9 @@
           "computed": "SUM(streams.cost_of_revenue)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Cost amount"
         },
         {
           "name": "gross_profit",
@@ -994,7 +1541,9 @@
           "computed": "total_revenue - total_cost",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter gross profit"
         },
         {
           "name": "gross_margin",
@@ -1017,7 +1566,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter prepared by"
         },
         {
           "name": "created_at",
@@ -1041,7 +1591,135 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "report_type",
+          "columns": [
+            "monthly_summary",
+            "quarterly_review",
+            "annual_report",
+            "cohort_analysis",
+            "forecast_vs_actual"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "period_start"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "prepared_by"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "report_type",
+            "period_start",
+            "period_end"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "report_type",
+          "label": "Report Type",
+          "options": [
+            "all",
+            "monthly_summary",
+            "quarterly_review",
+            "annual_report",
+            "cohort_analysis",
+            "forecast_vs_actual"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "period_start",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "report_type",
+        "prepared_by"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Streams",
+        "query": "COUNT(*) FROM revenue_streams",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Monthly Revenue",
+        "query": "SUM(monthly_revenue) FROM revenue_streams",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Streams",
+        "query": "COUNT(*) FROM revenue_streams WHERE type = 'subscription'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM revenue_streams WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total Segments",
+        "query": "COUNT(*) FROM revenue_segments",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Total Revenue",
+        "query": "SUM(total_revenue) FROM revenue_segments",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      }
+    ]
+  }
 }

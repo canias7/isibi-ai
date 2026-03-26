@@ -42,7 +42,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "address",
@@ -55,7 +56,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Street address"
         },
         {
           "name": "city",
@@ -132,7 +134,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "contact_email",
@@ -149,7 +152,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "contact_phone",
@@ -166,7 +171,8 @@
           "validation": {
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
-          }
+          },
+          "placeholder": "(555) 123-4567"
         },
         {
           "name": "created_at",
@@ -230,7 +236,20 @@
             "heading": "No Venues yet",
             "subtext": "Create your first venue",
             "action_label": "Add Venue"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "city",
+            "venue_type",
+            "contact_email"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -251,6 +270,31 @@
             "capacity",
             "venue_type",
             "daily_rate"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "address",
+                "contact_email",
+                "contact_phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "city",
+                "capacity",
+                "daily_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "venue_type"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -273,7 +317,32 @@
             "venue_type",
             "daily_rate"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "address",
+                "contact_email",
+                "contact_phone"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "city",
+                "capacity",
+                "daily_rate"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "venue_type"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/venues/:id",
@@ -297,22 +366,14 @@
                 "name",
                 "address",
                 "city",
-                "capacity",
-                "venue_type",
-                "daily_rate"
+                "capacity"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "address",
-                "city",
-                "capacity",
-                "venue_type",
-                "daily_rate",
-                "contact_email",
-                "contact_phone"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -357,7 +418,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "description",
@@ -370,7 +432,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "venue_id",
@@ -590,7 +653,94 @@
             "heading": "No Events yet",
             "subtext": "Create your first event",
             "action_label": "Add Event"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Planning",
+              "filter": {
+                "field": "status",
+                "value": "planning"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "In Progress",
+              "filter": {
+                "field": "status",
+                "value": "in_progress"
+              }
+            },
+            {
+              "label": "Completed",
+              "filter": {
+                "field": "status",
+                "value": "completed"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            },
+            {
+              "label": "Postponed",
+              "filter": {
+                "field": "status",
+                "value": "postponed"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "event_type",
+            "status"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Completed",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -665,24 +815,14 @@
                 "name",
                 "venue_id",
                 "start_date",
-                "end_date",
-                "event_type",
-                "status"
+                "end_date"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "name",
-                "description",
-                "venue_id",
-                "start_date",
-                "end_date",
-                "event_type",
-                "status",
-                "budget",
-                "max_attendees",
-                "cancellation_reason"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -784,7 +924,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "quantity_available",
@@ -904,7 +1045,17 @@
             "heading": "No Tickets yet",
             "subtext": "Create your first ticket",
             "action_label": "Add Ticket"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "tier"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -967,20 +1118,14 @@
                 "event_id",
                 "tier",
                 "price",
-                "quantity_available",
-                "quantity_sold",
-                "sale_start_date"
+                "quantity_available"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "event_id",
-                "tier",
-                "price",
-                "quantity_available",
-                "sale_start_date",
-                "sale_end_date"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1062,7 +1207,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "email",
@@ -1079,7 +1225,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "bio",
@@ -1092,7 +1240,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "topic",
@@ -1146,7 +1295,8 @@
           "display_component": "currency",
           "sortable": true,
           "filterable": true,
-          "default": 0
+          "default": 0,
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -1236,7 +1386,76 @@
             "heading": "No Speakers yet",
             "subtext": "Create your first speaker",
             "action_label": "Add Speaker"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Invited",
+              "filter": {
+                "field": "status",
+                "value": "invited"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Declined",
+              "filter": {
+                "field": "status",
+                "value": "declined"
+              }
+            },
+            {
+              "label": "Cancelled",
+              "filter": {
+                "field": "status",
+                "value": "cancelled"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "topic",
+            "speaker_type"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Cancel",
+              "action": "update_status",
+              "value": "cancelled",
+              "confirm": true
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1258,6 +1477,31 @@
             "speaker_type",
             "fee",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "event_id",
+                "bio",
+                "topic",
+                "fee"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "speaker_type",
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -1281,7 +1525,32 @@
             "fee",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "name",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "event_id",
+                "bio",
+                "topic",
+                "fee"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "speaker_type",
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/speakers/:id",
@@ -1305,22 +1574,14 @@
                 "event_id",
                 "name",
                 "email",
-                "topic",
-                "speaker_type",
-                "fee"
+                "topic"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "event_id",
-                "name",
-                "email",
-                "bio",
-                "topic",
-                "speaker_type",
-                "fee",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1403,7 +1664,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Full name"
         },
         {
           "name": "contact_email",
@@ -1420,7 +1682,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "tier",
@@ -1465,7 +1729,8 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "help_text": "Enter amount in USD"
         },
         {
           "name": "status",
@@ -1555,7 +1820,75 @@
             "heading": "No Sponsors yet",
             "subtext": "Create your first sponsor",
             "action_label": "Add Sponsor"
-          }
+          },
+          "views": [
+            "table",
+            "kanban"
+          ],
+          "quick_filters": [
+            {
+              "label": "All",
+              "filter": null
+            },
+            {
+              "label": "Pledged",
+              "filter": {
+                "field": "status",
+                "value": "pledged"
+              }
+            },
+            {
+              "label": "Confirmed",
+              "filter": {
+                "field": "status",
+                "value": "confirmed"
+              }
+            },
+            {
+              "label": "Paid",
+              "filter": {
+                "field": "status",
+                "value": "paid"
+              }
+            },
+            {
+              "label": "Withdrawn",
+              "filter": {
+                "field": "status",
+                "value": "withdrawn"
+              }
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "company_name",
+            "contact_name",
+            "contact_email",
+            "tier"
+          ],
+          "row_actions": [
+            {
+              "label": "Edit",
+              "action": "edit"
+            },
+            {
+              "label": "View",
+              "action": "detail"
+            },
+            {
+              "label": "Mark Paid",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "label": "Delete",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1576,6 +1909,30 @@
             "tier",
             "amount",
             "status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "contact_email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "event_id",
+                "company_name",
+                "tier",
+                "amount"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -1598,7 +1955,31 @@
             "amount",
             "status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "contact_name",
+                "contact_email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "event_id",
+                "company_name",
+                "tier",
+                "amount"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/sponsors/:id",
@@ -1622,21 +2003,14 @@
                 "event_id",
                 "company_name",
                 "contact_name",
-                "contact_email",
-                "tier",
-                "amount"
+                "contact_email"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "event_id",
-                "company_name",
-                "contact_name",
-                "contact_email",
-                "tier",
-                "amount",
-                "status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -1706,7 +2080,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Enter title"
         },
         {
           "name": "description",
@@ -1719,7 +2094,8 @@
           "input_component": "textarea",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Add details..."
         },
         {
           "name": "start_time",
@@ -1869,7 +2245,19 @@
             "heading": "No Schedules yet",
             "subtext": "Create your first schedule",
             "action_label": "Add Schedule"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "location",
+            "session_type"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1934,22 +2322,14 @@
                 "event_id",
                 "title",
                 "start_time",
-                "end_time",
-                "location",
-                "session_type"
+                "end_time"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "event_id",
-                "title",
-                "description",
-                "start_time",
-                "end_time",
-                "location",
-                "session_type",
-                "speaker_id"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2042,7 +2422,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "First name"
         },
         {
           "name": "last_name",
@@ -2055,7 +2436,8 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Last name"
         },
         {
           "name": "email",
@@ -2072,7 +2454,9 @@
           "validation": {
             "pattern": "^[^@]+@[^@]+\\.[^@]+$",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "john@example.com",
+          "help_text": "Used for notifications"
         },
         {
           "name": "company",
@@ -2204,7 +2588,20 @@
             "heading": "No Attendees yet",
             "subtext": "Create your first attendee",
             "action_label": "Add Attendee"
-          }
+          },
+          "views": [
+            "table"
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "first_name",
+            "last_name",
+            "email",
+            "company"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2225,6 +2622,31 @@
             "last_name",
             "email",
             "check_in_status"
+          ],
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "event_id",
+                "ticket_id",
+                "company",
+                "dietary_restrictions"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "check_in_status"
+              ]
+            }
           ]
         },
         "edit_form": {
@@ -2247,7 +2669,32 @@
             "email",
             "check_in_status"
           ],
-          "prefilled": true
+          "prefilled": true,
+          "field_groups": [
+            {
+              "label": "Contact Information",
+              "fields": [
+                "first_name",
+                "last_name",
+                "email"
+              ]
+            },
+            {
+              "label": "Details",
+              "fields": [
+                "event_id",
+                "ticket_id",
+                "company",
+                "dietary_restrictions"
+              ]
+            },
+            {
+              "label": "Status",
+              "fields": [
+                "check_in_status"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "route": "/attendees/:id",
@@ -2271,22 +2718,14 @@
                 "event_id",
                 "ticket_id",
                 "first_name",
-                "last_name",
-                "email",
-                "company"
+                "last_name"
               ]
             },
             {
-              "name": "Details",
+              "name": "Activity",
               "fields": [
-                "event_id",
-                "ticket_id",
-                "first_name",
-                "last_name",
-                "email",
-                "company",
-                "dietary_restrictions",
-                "check_in_status"
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -2316,5 +2755,38 @@
         }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Venues",
+        "entity": "Venue",
+        "method": "count",
+        "icon": "FileText",
+        "color": "blue"
+      },
+      {
+        "label": "Total Events",
+        "entity": "Event",
+        "method": "count",
+        "icon": "CalendarDays",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Tickets",
+        "entity": "Ticket",
+        "method": "count",
+        "icon": "FileText",
+        "color": "violet"
+      },
+      {
+        "label": "Total Revenue",
+        "entity": "Ticket",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "emerald"
+      }
+    ]
+  }
 }

@@ -41,7 +41,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "contact_email",
@@ -56,7 +58,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "contact_phone",
@@ -71,7 +75,9 @@
           "validation": {
             "rule": "phone",
             "message": "Valid phone number required"
-          }
+          },
+          "placeholder": "+1 (555) 123-4567",
+          "help_text": "Phone number with area code"
         },
         {
           "name": "company",
@@ -82,7 +88,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Company name",
+          "help_text": "Organization or company name"
         },
         {
           "name": "tax_id",
@@ -93,7 +101,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter tax id"
         },
         {
           "name": "vendor_type",
@@ -118,7 +127,8 @@
             "service_provider": "purple",
             "consultant": "amber",
             "freelancer": "pink"
-          }
+          },
+          "placeholder": "Select vendor type"
         },
         {
           "name": "payment_terms",
@@ -137,7 +147,9 @@
             "net_60",
             "upon_receipt",
             "advance"
-          ]
+          ],
+          "placeholder": "0.00",
+          "help_text": "Enter payment terms"
         },
         {
           "name": "total_paid",
@@ -152,7 +164,9 @@
           "computed": "SUM(payments.amount)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "outstanding_balance",
@@ -167,7 +181,9 @@
           "computed": "SUM(invoices.balance)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter outstanding balance"
         },
         {
           "name": "status",
@@ -190,7 +206,8 @@
             "suspended": "amber",
             "inactive": "slate",
             "blacklisted": "red"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -213,6 +230,126 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "vendor_type",
+          "columns": [
+            "supplier",
+            "contractor",
+            "service_provider",
+            "consultant",
+            "freelancer"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Contact Info",
+          "fields": [
+            "name",
+            "contact_email",
+            "contact_phone",
+            "company"
+          ]
+        },
+        {
+          "label": "Details",
+          "fields": [
+            "tax_id",
+            "payment_terms"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "vendor_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "vendor_type",
+          "label": "Vendor Type",
+          "options": [
+            "all",
+            "supplier",
+            "contractor",
+            "service_provider",
+            "consultant",
+            "freelancer"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "suspended",
+            "inactive",
+            "blacklisted"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "BankAccounts",
+          "type": "related_list",
+          "entity": "BankAccount",
+          "foreign_key": "vendor_id"
+        },
+        {
+          "label": "Contracts",
+          "type": "related_list",
+          "entity": "Contract",
+          "foreign_key": "vendor_id"
+        },
+        {
+          "label": "Invoices",
+          "type": "related_list",
+          "entity": "Invoice",
+          "foreign_key": "vendor_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "name",
+        "contact_email",
+        "contact_phone",
+        "company"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -264,7 +401,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "bank_name",
@@ -275,7 +414,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name or title"
         },
         {
           "name": "account_number_last4",
@@ -286,7 +427,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter account number last4"
         },
         {
           "name": "routing_number",
@@ -297,7 +439,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter routing number"
         },
         {
           "name": "account_type",
@@ -318,7 +461,8 @@
             "checking": "blue",
             "savings": "green",
             "business": "purple"
-          }
+          },
+          "placeholder": "Select account type"
         },
         {
           "name": "currency",
@@ -329,7 +473,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter currency"
         },
         {
           "name": "is_primary",
@@ -361,7 +506,8 @@
             "active": "green",
             "inactive": "slate",
             "unverified": "amber"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -384,6 +530,110 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "account_type",
+          "columns": [
+            "checking",
+            "savings",
+            "business"
+          ]
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "account_name",
+            "bank_name",
+            "account_number_last4",
+            "routing_number",
+            "currency",
+            "is_primary"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "vendor_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "account_type",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "account_type",
+          "label": "Account Type",
+          "options": [
+            "all",
+            "checking",
+            "savings",
+            "business"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "active",
+            "inactive",
+            "unverified"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Payments",
+          "type": "related_list",
+          "entity": "Payment",
+          "foreign_key": "bank_account_id"
+        }
+      ],
+      "default_sort": {
+        "field": "created_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "account_name",
+        "bank_name",
+        "account_number_last4",
+        "routing_number"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -435,7 +685,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "contract_number",
@@ -446,7 +698,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter contract number"
         },
         {
           "name": "contract_type",
@@ -471,7 +724,8 @@
             "retainer": "purple",
             "sow": "amber",
             "msa": "pink"
-          }
+          },
+          "placeholder": "Select contract type"
         },
         {
           "name": "total_value",
@@ -485,7 +739,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "billed_to_date",
@@ -500,7 +756,9 @@
           "computed": "SUM(invoices.amount)",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter billed to date"
         },
         {
           "name": "remaining_value",
@@ -515,7 +773,9 @@
           "computed": "total_value - billed_to_date",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter remaining value"
         },
         {
           "name": "utilization_pct",
@@ -538,7 +798,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "end_date",
@@ -549,7 +810,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "status",
@@ -574,7 +836,8 @@
             "expired": "amber",
             "terminated": "red",
             "renewed": "blue"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -597,6 +860,119 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "contract_type",
+          "columns": [
+            "fixed_price",
+            "time_and_materials",
+            "retainer",
+            "sow",
+            "msa"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "billed_to_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "title",
+            "contract_number",
+            "total_value"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "vendor_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "contract_type",
+            "start_date",
+            "end_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "contract_type",
+          "label": "Contract Type",
+          "options": [
+            "all",
+            "fixed_price",
+            "time_and_materials",
+            "retainer",
+            "sow",
+            "msa"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "draft",
+            "active",
+            "expired",
+            "terminated",
+            "renewed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Invoices",
+          "type": "related_list",
+          "entity": "Invoice",
+          "foreign_key": "contract_id"
+        }
+      ],
+      "default_sort": {
+        "field": "billed_to_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "title",
+        "contract_number",
+        "contract_type",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -660,7 +1036,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter invoice number"
         },
         {
           "name": "invoice_date",
@@ -671,7 +1048,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "due_date",
@@ -682,7 +1060,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "Select date"
         },
         {
           "name": "subtotal",
@@ -696,7 +1075,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter subtotal"
         },
         {
           "name": "tax_amount",
@@ -707,7 +1088,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "total",
@@ -722,7 +1105,9 @@
           "computed": "subtotal + tax_amount",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount"
         },
         {
           "name": "paid_amount",
@@ -733,7 +1118,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "balance",
@@ -748,7 +1135,9 @@
           "computed": "total - paid_amount",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter balance"
         },
         {
           "name": "days_outstanding",
@@ -789,7 +1178,8 @@
             "overdue": "red",
             "disputed": "pink",
             "void": "slate"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "created_at",
@@ -812,6 +1202,133 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "status",
+          "columns": [
+            "received",
+            "approved",
+            "partial_paid",
+            "paid",
+            "overdue",
+            "disputed",
+            "void"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "invoice_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "invoice_number",
+            "subtotal",
+            "tax_amount",
+            "paid_amount"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "vendor_id",
+            "contract_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "invoice_date",
+            "due_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "received",
+            "approved",
+            "partial_paid",
+            "paid",
+            "overdue",
+            "disputed",
+            "void"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        },
+        {
+          "label": "Payments",
+          "type": "related_list",
+          "entity": "Payment",
+          "foreign_key": "invoice_id"
+        },
+        {
+          "label": "ApprovalRequests",
+          "type": "related_list",
+          "entity": "ApprovalRequest",
+          "foreign_key": "invoice_id"
+        }
+      ],
+      "default_sort": {
+        "field": "invoice_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "invoice_number",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Mark Paid",
+          "icon": "CheckCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "paid",
+          "confirm": true
+        },
+        {
+          "label": "Cancel",
+          "icon": "XCircle",
+          "action": "update_field",
+          "field": "status",
+          "value": "void",
+          "confirm": true,
+          "variant": "danger"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -878,7 +1395,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "payment_method",
@@ -903,7 +1422,9 @@
             "check": "amber",
             "credit_card": "purple",
             "virtual_card": "pink"
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter payment method"
         },
         {
           "name": "payment_date",
@@ -914,7 +1435,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "date_picker",
-          "display_component": "date"
+          "display_component": "date",
+          "placeholder": "0.00",
+          "help_text": "Enter payment date"
         },
         {
           "name": "reference_number",
@@ -925,7 +1448,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Reference number",
+          "help_text": "Reference or tracking number"
         },
         {
           "name": "fee",
@@ -936,7 +1461,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "currency"
+          "display_component": "currency",
+          "placeholder": "0.00",
+          "help_text": "Enter fee"
         },
         {
           "name": "net_amount",
@@ -951,7 +1478,9 @@
           "computed": "amount - fee",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "status",
@@ -976,7 +1505,8 @@
             "completed": "green",
             "failed": "red",
             "reversed": "amber"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "failure_reason",
@@ -992,7 +1522,8 @@
             "field": "status",
             "operator": "eq",
             "value": "failed"
-          }
+          },
+          "placeholder": "Enter failure reason..."
         },
         {
           "name": "created_at",
@@ -1015,6 +1546,113 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "date"
+        }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "payment_method",
+          "columns": [
+            "ach",
+            "wire",
+            "check",
+            "credit_card",
+            "virtual_card"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "payment_date"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "amount",
+            "reference_number",
+            "fee",
+            "failure_reason"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "invoice_id",
+            "bank_account_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "payment_method",
+            "payment_date",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "payment_method",
+          "label": "Payment Method",
+          "options": [
+            "all",
+            "ach",
+            "wire",
+            "check",
+            "credit_card",
+            "virtual_card"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "scheduled",
+            "processing",
+            "completed",
+            "failed",
+            "reversed"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "payment_date",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "payment_method",
+        "reference_number",
+        "status"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
         }
       ]
     },
@@ -1066,7 +1704,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter requested by"
         },
         {
           "name": "approver",
@@ -1077,7 +1716,8 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter approver"
         },
         {
           "name": "approver_email",
@@ -1092,7 +1732,9 @@
           "validation": {
             "rule": "email",
             "message": "Valid email required"
-          }
+          },
+          "placeholder": "user@example.com",
+          "help_text": "Enter a valid email address"
         },
         {
           "name": "amount",
@@ -1106,7 +1748,9 @@
           "display_component": "currency",
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Enter the amount"
         },
         {
           "name": "approval_level",
@@ -1129,7 +1773,8 @@
             "level_2": "green",
             "level_3": "purple",
             "executive": "amber"
-          }
+          },
+          "placeholder": "Select approval level"
         },
         {
           "name": "status",
@@ -1152,7 +1797,8 @@
             "approved": "green",
             "rejected": "red",
             "escalated": "purple"
-          }
+          },
+          "placeholder": "Select status"
         },
         {
           "name": "comments",
@@ -1163,7 +1809,8 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter comments..."
         },
         {
           "name": "rejection_reason",
@@ -1179,7 +1826,8 @@
             "field": "status",
             "operator": "eq",
             "value": "rejected"
-          }
+          },
+          "placeholder": "Enter rejection reason..."
         },
         {
           "name": "decided_at",
@@ -1214,7 +1862,153 @@
           "input_component": "none",
           "display_component": "date"
         }
+      ],
+      "views": [
+        {
+          "type": "table",
+          "default": true
+        },
+        {
+          "type": "kanban",
+          "group_by": "approval_level",
+          "columns": [
+            "level_1",
+            "level_2",
+            "level_3",
+            "executive"
+          ]
+        },
+        {
+          "type": "calendar",
+          "date_field": "decided_at"
+        }
+      ],
+      "field_groups": [
+        {
+          "label": "Details",
+          "fields": [
+            "requested_by",
+            "approver",
+            "approver_email",
+            "amount",
+            "comments",
+            "rejection_reason"
+          ]
+        },
+        {
+          "label": "Relationships",
+          "fields": [
+            "invoice_id"
+          ]
+        },
+        {
+          "label": "Status",
+          "fields": [
+            "approval_level",
+            "status"
+          ]
+        }
+      ],
+      "quick_filters": [
+        {
+          "field": "approval_level",
+          "label": "Approval Level",
+          "options": [
+            "all",
+            "level_1",
+            "level_2",
+            "level_3",
+            "executive"
+          ]
+        },
+        {
+          "field": "status",
+          "label": "Status",
+          "options": [
+            "all",
+            "pending",
+            "approved",
+            "rejected",
+            "escalated"
+          ]
+        }
+      ],
+      "detail_tabs": [
+        {
+          "label": "Details",
+          "type": "fields"
+        }
+      ],
+      "default_sort": {
+        "field": "decided_at",
+        "direction": "desc"
+      },
+      "searchable_fields": [
+        "requested_by",
+        "approver",
+        "approver_email",
+        "approval_level"
+      ],
+      "row_actions": [
+        {
+          "label": "View",
+          "icon": "Eye",
+          "action": "navigate_detail"
+        },
+        {
+          "label": "Edit",
+          "icon": "Pencil",
+          "action": "navigate_edit"
+        },
+        {
+          "label": "Delete",
+          "icon": "Trash2",
+          "action": "delete",
+          "confirm": true,
+          "variant": "danger"
+        }
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Vendors",
+        "query": "COUNT(*) FROM vp_vendors",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Payment Terms",
+        "query": "SUM(payment_terms) FROM vp_vendors",
+        "icon": "DollarSign",
+        "format": "currency",
+        "color": "green"
+      },
+      {
+        "label": "Active Vendors",
+        "query": "COUNT(*) FROM vp_vendors WHERE vendor_type = 'supplier'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "This Week",
+        "query": "COUNT(*) FROM vp_vendors WHERE created_at >= date_trunc('week', NOW())",
+        "icon": "Calendar",
+        "color": "purple"
+      },
+      {
+        "label": "Total BankAccounts",
+        "query": "COUNT(*) FROM vp_bank_accounts",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active BankAccounts",
+        "query": "COUNT(*) FROM vp_bank_accounts WHERE account_type = 'checking'",
+        "icon": "CheckCircle",
+        "color": "emerald"
+      }
+    ]
+  }
 }
