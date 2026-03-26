@@ -45,6 +45,9 @@ from models.review import Review  # noqa: F401
 from models.app_analytics import AppEvent  # noqa: F401
 from models.push_subscription import PushSubscription, PushNotificationLog  # noqa: F401
 from models.serverless_function import ServerlessFunction  # noqa: F401
+from models.app_email_trigger import AppEmailTrigger  # noqa: F401
+from models.app_scheduled_report import AppScheduledReport  # noqa: F401
+from models.app_webhook_trigger import AppWebhookTrigger  # noqa: F401
 
 # Import new feature routers
 from routes.plugins import router as plugins_router, project_plugins_router
@@ -59,6 +62,28 @@ from routes.billing_check import router as billing_check_router
 from routes.app_subdomain import router as app_subdomain_router
 from routes.app_ai_chat import router as app_ai_chat_router
 from routes.app_dashboard import router as app_dashboard_router
+from routes.app_branding import router as app_branding_router
+from routes.app_email_triggers import router as app_email_triggers_router
+from routes.app_scheduled_reports import router as app_scheduled_reports_router
+from routes.app_webhook_config import router as app_webhook_config_router
+
+# Import new app feature models
+from models.app_role import AppRole  # noqa: F401
+from models.app_activity_entry import AppActivityEntry  # noqa: F401
+from models.app_record_comment import AppRecordComment  # noqa: F401
+from models.app_record_file import AppRecordFile  # noqa: F401
+from models.marketplace_template import MarketplaceTemplate, MarketplaceRating  # noqa: F401
+from models.app_embed import AppEmbed  # noqa: F401
+
+# Import embeds public router (no auth, mounted without /api prefix)
+from routes.app_embeds import public_router as app_embeds_public_router
+
+# Import new app feature routers
+from routes.app_roles import router as app_roles_router
+from routes.app_import_wizard import router as app_import_wizard_router
+from routes.app_activity_log import router as app_activity_log_router
+from routes.app_record_comments import router as app_record_comments_router
+from routes.app_record_files import router as app_record_files_router
 
 
 @asynccontextmanager
@@ -132,6 +157,20 @@ app.include_router(billing_check_router, prefix="/api")
 app.include_router(app_subdomain_router, prefix="/api")
 app.include_router(app_ai_chat_router, prefix="/api")
 app.include_router(app_dashboard_router, prefix="/api")
+app.include_router(app_branding_router, prefix="/api")
+app.include_router(app_email_triggers_router, prefix="/api")
+app.include_router(app_scheduled_reports_router, prefix="/api")
+app.include_router(app_webhook_config_router, prefix="/api")
+
+# Register new app feature routers
+app.include_router(app_roles_router, prefix="/api")
+app.include_router(app_import_wizard_router, prefix="/api")
+app.include_router(app_activity_log_router, prefix="/api")
+app.include_router(app_record_comments_router, prefix="/api")
+app.include_router(app_record_files_router, prefix="/api")
+
+# Register embeddable widgets public router (serves JS at /embed/{id}.js, no auth)
+app.include_router(app_embeds_public_router)
 
 # ── Serve uploaded files ──
 _uploads_dir = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(__file__), "uploads")))

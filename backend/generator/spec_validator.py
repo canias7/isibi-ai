@@ -37,6 +37,14 @@ REQUIRED_FIELD_ATTRIBUTES = [
     "display_component",
 ]
 
+VALID_VISIBLE_WHEN_OPERATORS = {
+    "eq", "neq", "gt", "lt", "gte", "lte", "in", "not_in", "contains", "not_empty",
+}
+
+VALID_VALIDATION_RULES = {
+    "required", "email", "min", "max", "minLength", "maxLength", "pattern", "url",
+}
+
 SYSTEM_FIELDS = {
     "id": {
         "name": "id",
@@ -343,6 +351,32 @@ def get_validation_report(spec: dict) -> list[str]:
                         f"'{field.get('db_type')}' (expected '{expected}')"
                     )
 
+            # Check visible_when references
+            vw = field.get("visible_when")
+            if vw and isinstance(vw, dict):
+                ref_field = vw.get("field", "")
+                if ref_field and ref_field not in field_names:
+                    issues.append(
+                        f"Entity '{ent_name}', field '{fname}': "
+                        f"visible_when references unknown field '{ref_field}'"
+                    )
+                op = vw.get("operator", "")
+                if op and op not in VALID_VISIBLE_WHEN_OPERATORS:
+                    issues.append(
+                        f"Entity '{ent_name}', field '{fname}': "
+                        f"visible_when has invalid operator '{op}'"
+                    )
+
+            # Check validation rule
+            val_rule = field.get("validation")
+            if val_rule and isinstance(val_rule, dict):
+                rule = val_rule.get("rule", "")
+                if rule and rule not in VALID_VALIDATION_RULES:
+                    issues.append(
+                        f"Entity '{ent_name}', field '{fname}': "
+                        f"validation has unknown rule '{rule}'"
+                    )
+
     # Dashboard checks
     dashboard = spec.get("dashboard", {})
     if isinstance(dashboard, dict):
@@ -426,6 +460,16 @@ def validate_and_repair(spec: dict) -> dict:
 
             # 10. Foreign key detection
             _detect_foreign_key(field, entity_tables)
+
+            # 14. Validate visible_when references
+            _validate_visible_when(field, ent)
+
+            # 15. Auto-add validation rules to common fields
+            _ensure_validation_rules(field)
+
+            # 16. Ensure computed fields are not editable
+            if field.get("computed"):
+                field["editable"] = False
 
         # 7. UI config auto-generation
         if "ui_config" not in ent or not isinstance(ent.get("ui_config"), dict):
@@ -907,3 +951,81 @@ def _ensure_design_system(spec: dict) -> None:
             # Fill in missing sub-keys within each section
             for sub_key, sub_val in default_val.items():
                 ds[key].setdefault(sub_key, sub_val)
+
+
+def _validate_visible_when(field: dict, entity: dict) -> None:
+    """Validate visible_when references — fix invalid operator, remove if field doesn't exist."""
+    vw = field.get("visible_when")
+    if not vw or not isinstance(vw, dict):
+        return
+
+    field_names = {f.get("name") for f in entity.get("fields", []) if isinstance(f, dict)}
+    ref_field = vw.get("field", "")
+
+    # If the referenced field doesn't exist in this entity, remove the rule
+    if ref_field and ref_field not in field_names:
+        logger.warning(
+            "visible_when on '%s' references unknown field '%s' — removing rule",
+            field.get("name", ""), ref_field,
+        )
+        del field["visible_when"]
+        return
+
+    # Fix invalid operator
+    op = vw.get("operator", "")
+    if op and op not in VALID_VISIBLE_WHEN_OPERATORS:
+        logger.warning(
+            "visible_when on '%s' has invalid operator '%s' — defaulting to 'eq'",
+            field.get("name", ""), op,
+        )
+        vw["operator"] = "eq"
+
+
+def _ensure_validation_rules(field: dict) -> None:
+    """Auto-add validation rules to common fields if not already present."""
+    if field.get("validation"):
+        return  # Already has a validation rule
+
+    fname = field.get("name", "")
+    db_type = (field.get("db_type") or "").upper()
+
+    # Don't add validation to system fields
+    if fname in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version"):
+        return
+
+    # Fields named "email" get email validation
+    if fname == "email" or fname.endswith("_email"):
+        field["validation"] = {
+            "rule": "email",
+            "message": "Please enter a valid email address",
+        }
+        return
+
+    # Fields named "phone" get pattern validation
+    if fname == "phone" or fname.endswith("_phone"):
+        field["validation"] = {
+            "rule": "pattern",
+            "value": "^[+]?[0-9\\s\\-().]{7,20}$",
+            "message": "Please enter a valid phone number",
+        }
+        return
+
+    # Fields with NOT NULL in db_type that are editable get required validation
+    if "NOT NULL" in db_type and field.get("editable") and not field.get("nullable"):
+        # Don't add required if there's already a DEFAULT
+        if "DEFAULT" not in db_type:
+            field["validation"] = {
+                "rule": "required",
+                "message": f"{fname.replace('_', ' ').title()} is required",
+            }
+            return
+
+    # Numeric price/amount fields get min: 0 validation
+    if ("NUMERIC" in db_type or "DECIMAL" in db_type or "INTEGER" in db_type):
+        if any(kw in fname for kw in ("price", "amount", "cost", "fee", "total", "revenue", "salary")):
+            field["validation"] = {
+                "rule": "min",
+                "value": 0,
+                "message": f"{fname.replace('_', ' ').title()} must be a positive value",
+            }
+            return

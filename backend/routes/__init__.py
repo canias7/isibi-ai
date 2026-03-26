@@ -49,6 +49,11 @@ from .app_analytics import router as app_analytics_router
 from .db_gui import router as db_gui_router
 from .push_notifications import router as push_notifications_router
 from .serverless import router as serverless_router
+from .template_marketplace import router as template_marketplace_router
+from .white_label import router as white_label_router
+from .app_embeds import router as app_embeds_router
+from .app_embeds import public_router as app_embeds_public_router
+from .app_api_docs import router as app_api_docs_router
 
 all_routers = [
     auth_router,
@@ -102,4 +107,8 @@ all_routers = [
     db_gui_router,
     push_notifications_router,
     serverless_router,
+    template_marketplace_router,
+    white_label_router,
+    app_embeds_router,
+    app_api_docs_router,
 ]

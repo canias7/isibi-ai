@@ -1560,6 +1560,135 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
   background:var(--bg-card);border:1px solid var(--border);
   color:var(--text-muted);margin-left:auto;font-family:inherit;
 }}
+/* ── AI Chat Widget ── */
+.chat-widget-btn {{
+  position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;
+  background:#ec4899;color:#fff;border:none;cursor:pointer;z-index:10000;
+  box-shadow:0 4px 20px rgba(236,72,153,0.4);display:flex;align-items:center;justify-content:center;
+  font-size:24px;transition:transform 0.2s,box-shadow 0.2s;
+}}
+.chat-widget-btn:hover {{ transform:scale(1.1);box-shadow:0 6px 28px rgba(236,72,153,0.5); }}
+.chat-panel {{
+  position:fixed;bottom:90px;right:24px;width:350px;height:500px;
+  background:#fff;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.15);
+  z-index:10001;display:none;flex-direction:column;overflow:hidden;
+  animation:chatSlideUp 0.25s ease-out;
+}}
+.chat-panel.open {{ display:flex; }}
+@keyframes chatSlideUp {{
+  from {{ opacity:0;transform:translateY(20px); }}
+  to {{ opacity:1;transform:translateY(0); }}
+}}
+.chat-panel-header {{
+  padding:16px 20px;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:#fff;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}}
+.chat-panel-header h3 {{ font-size:15px;font-weight:600;margin:0; }}
+.chat-panel-close {{
+  background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;
+  border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:background 0.2s;
+}}
+.chat-panel-close:hover {{ background:rgba(255,255,255,0.35); }}
+.chat-messages {{
+  flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;
+}}
+.chat-msg {{
+  max-width:85%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;
+  word-wrap:break-word;
+}}
+.chat-msg.bot {{
+  background:#f3f4f6;color:#374151;align-self:flex-start;border-bottom-left-radius:4px;
+}}
+.chat-msg.user {{
+  background:#ec4899;color:#fff;align-self:flex-end;border-bottom-right-radius:4px;
+}}
+.chat-typing {{
+  align-self:flex-start;padding:10px 14px;background:#f3f4f6;border-radius:12px;
+  border-bottom-left-radius:4px;display:none;
+}}
+.chat-typing.show {{ display:block; }}
+.chat-typing-dots {{ display:flex;gap:4px; }}
+.chat-typing-dots span {{
+  width:6px;height:6px;background:#9ca3af;border-radius:50%;
+  animation:chatDot 1.2s infinite ease-in-out;
+}}
+.chat-typing-dots span:nth-child(2) {{ animation-delay:0.2s; }}
+.chat-typing-dots span:nth-child(3) {{ animation-delay:0.4s; }}
+@keyframes chatDot {{
+  0%,80%,100% {{ transform:scale(0.6);opacity:0.4; }}
+  40% {{ transform:scale(1);opacity:1; }}
+}}
+.chat-input-wrap {{
+  padding:12px 16px;border-top:1px solid #e5e7eb;display:flex;gap:8px;flex-shrink:0;
+}}
+.chat-input-wrap input {{
+  flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:13px;
+  outline:none;font-family:inherit;
+}}
+.chat-input-wrap input:focus {{ border-color:#ec4899; }}
+.chat-input-wrap button {{
+  background:#ec4899;color:#fff;border:none;border-radius:8px;padding:8px 14px;
+  cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;white-space:nowrap;
+}}
+.chat-input-wrap button:hover {{ background:#db2777; }}
+/* ── Overview Page ── */
+.overview-stat-row {{ display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px; }}
+.overview-stat-card {{
+  background:#fff;border-radius:12px;padding:20px;border:1px solid var(--border-light);
+  display:flex;flex-direction:column;gap:4px;
+}}
+.overview-stat-card .stat-entity {{ font-size:13px;color:var(--text-secondary);font-weight:500; }}
+.overview-stat-card .stat-num {{ font-size:28px;font-weight:700;color:var(--text); }}
+.overview-mini-tables {{ display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:20px;margin-bottom:24px; }}
+.overview-mini-table {{
+  background:#fff;border-radius:12px;border:1px solid var(--border-light);overflow:hidden;
+}}
+.overview-mini-table-header {{
+  padding:14px 18px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border-light);
+}}
+.overview-mini-table-header h4 {{ font-size:14px;font-weight:600;margin:0; }}
+.overview-mini-table-actions {{ display:flex;gap:6px; }}
+.overview-mini-table-actions button {{
+  font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);
+  background:#fff;cursor:pointer;font-family:inherit;color:var(--text-secondary);
+}}
+.overview-mini-table-actions button:hover {{ background:var(--bg); }}
+.overview-mini-table table {{ width:100%;border-collapse:collapse;font-size:13px; }}
+.overview-mini-table th {{
+  text-align:left;padding:8px 16px;font-weight:500;color:var(--text-secondary);
+  background:var(--bg);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;
+}}
+.overview-mini-table td {{ padding:8px 16px;border-top:1px solid var(--border-light);color:var(--text); }}
+.overview-quick-add {{
+  background:#fff;border-radius:12px;border:1px solid var(--border-light);
+  padding:20px;margin-bottom:24px;
+}}
+.overview-quick-add h4 {{ font-size:14px;font-weight:600;margin:0 0 14px; }}
+.overview-quick-add-btns {{ display:flex;flex-wrap:wrap;gap:8px; }}
+.overview-quick-add-btns button {{
+  padding:8px 16px;border-radius:8px;border:1px solid var(--border);
+  background:#fff;cursor:pointer;font-size:13px;font-family:inherit;
+  display:flex;align-items:center;gap:6px;color:var(--text);transition:all 0.15s;
+}}
+.overview-quick-add-btns button:hover {{ border-color:var(--primary);color:var(--primary);background:var(--primary-light); }}
+.overview-recent-activity {{
+  background:#fff;border-radius:12px;border:1px solid var(--border-light);padding:20px;
+}}
+.overview-recent-activity h4 {{ font-size:14px;font-weight:600;margin:0 0 14px; }}
+.overview-activity-item {{
+  padding:10px 0;border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:10px;
+  font-size:13px;
+}}
+.overview-activity-item:last-child {{ border-bottom:none; }}
+.overview-activity-dot {{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;
+}}
+.overview-activity-entity {{
+  font-weight:500;color:var(--primary);font-size:11px;text-transform:uppercase;letter-spacing:0.3px;
+  background:var(--primary-light);padding:2px 6px;border-radius:4px;
+}}
 </style>
 </head>
 <body>
@@ -1717,6 +1846,21 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
 
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
+
+<!-- AI Chat Widget -->
+<button class="chat-widget-btn" id="chat-widget-btn" onclick="toggleChatWidget()" title="App Assistant">&#128172;</button>
+<div class="chat-panel" id="chat-panel">
+  <div class="chat-panel-header">
+    <h3>Ask anything</h3>
+    <button class="chat-panel-close" onclick="toggleChatWidget()">&times;</button>
+  </div>
+  <div class="chat-messages" id="chat-messages"></div>
+  <div class="chat-typing" id="chat-typing"><div class="chat-typing-dots"><span></span><span></span><span></span></div></div>
+  <div class="chat-input-wrap">
+    <input type="text" id="chat-input" placeholder="Ask about this app..." onkeydown="if(event.key==='Enter')sendChatMsg()">
+    <button onclick="sendChatMsg()">Send</button>
+  </div>
+</div>
 
 <script>
 (function() {{
@@ -2026,6 +2170,15 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       if (nav.children.length > 1) nav.insertBefore(analyticsBtn, nav.children[1]);
       else nav.appendChild(analyticsBtn);
     }}
+    // Add Overview item if 3+ entities
+    if (Object.keys(ENTITY_FIELDS).length >= 3) {{
+      const overviewBtn = document.createElement("button");
+      overviewBtn.className = "sidebar-item";
+      overviewBtn.dataset.module = "__overview__";
+      overviewBtn.innerHTML = getModuleIcon("grid") + '<span>Overview</span>';
+      overviewBtn.onclick = () => showModule("__overview__");
+      nav.appendChild(overviewBtn);
+    }}
     // Detect Cmd vs Ctrl for search shortcut label
     const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
     const shortcutEl = document.getElementById("search-shortcut-label");
@@ -2064,6 +2217,22 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       document.getElementById("topbar-actions").innerHTML = "";
       bulkDeselectAll();
       renderAnalyticsPage(document.getElementById("content-area"));
+      return;
+    }}
+
+    // Handle Overview page
+    if (name === "__overview__") {{
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("sidebar-overlay").classList.remove("show");
+      document.querySelectorAll(".sidebar-item").forEach(b => {{
+        b.classList.toggle("active", b.dataset.module === "__overview__");
+      }});
+      document.getElementById("page-title").textContent = "Overview";
+      currentModule = "__overview__";
+      currentEntity = null;
+      document.getElementById("topbar-actions").innerHTML = "";
+      bulkDeselectAll();
+      renderOverviewPage(document.getElementById("content-area"));
       return;
     }}
 
@@ -2689,6 +2858,12 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       const cells = visibleFields.map((f, idx) => {{
         let val = row[f.name] ?? "";
 
+        // Computed field: calculate value from row data
+        if (f.computed) {{
+          const computedVal = evalComputed(f.computed, row);
+          val = computedVal !== "" ? computedVal : "";
+        }}
+
         // FK display: show related entity name instead of UUID
         const relEntity = getRelatedEntityForField(f.name, f);
         if (relEntity && val) {{
@@ -2821,11 +2996,19 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       let val = record[f.name] ?? "";
       let displayVal;
 
+      // Computed field: calculate value from record data
+      if (f.computed) {{
+        const computedVal = evalComputed(f.computed, record);
+        val = computedVal !== "" ? computedVal : "";
+      }}
+
       // FK display
       const relEntity = getRelatedEntityForField(f.name, f);
       if (relEntity && val) {{
         val = getFkDisplayName(relEntity, val);
       }}
+
+      const fxBadge = f.computed ? ' <span style="display:inline-block;background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;vertical-align:middle">fx</span>' : '';
 
       if (f.enum_values && f.enum_values.length) {{
         const badgeClass = getBadgeClass(String(val));
@@ -2839,7 +3022,7 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
         displayVal = escHtml(String(val));
       }}
 
-      detailHtml += '<div class="detail-field"><div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + '</div><div class="detail-field-value">' + displayVal + '</div></div>';
+      detailHtml += '<div class="detail-field"><div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + fxBadge + '</div><div class="detail-field-value">' + displayVal + '</div></div>';
     }});
 
     detailHtml += '</div>' +
@@ -2878,6 +3061,162 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
   }};
 
   // ── Render form (with FK dropdowns) ──
+  // ── Conditional Visibility: evaluate a visible_when rule ──
+  function evalVisibleWhen(rule, formData) {{
+    if (!rule || !rule.field) return true;
+    const val = formData[rule.field];
+    const target = rule.value;
+    switch (rule.operator) {{
+      case "eq": return val == target;
+      case "neq": return val != target;
+      case "gt": return Number(val) > Number(target);
+      case "lt": return Number(val) < Number(target);
+      case "gte": return Number(val) >= Number(target);
+      case "lte": return Number(val) <= Number(target);
+      case "in": return Array.isArray(target) ? target.includes(val) : false;
+      case "not_in": return Array.isArray(target) ? !target.includes(val) : true;
+      case "contains": return String(val || "").includes(String(target || ""));
+      case "not_empty": return val !== "" && val !== null && val !== undefined;
+      default: return true;
+    }}
+  }}
+
+  // ── Computed Fields: evaluate a computed formula ──
+  function evalComputed(formula, formData) {{
+    if (!formula) return "";
+    try {{
+      // Handle built-in functions
+      let expr = formula;
+      expr = expr.replace(/DAYS_UNTIL\\(([^)]+)\\)/g, function(_, field) {{
+        const d = formData[field.trim()];
+        if (!d) return "0";
+        const diff = (new Date(d) - new Date()) / (1000 * 60 * 60 * 24);
+        return String(Math.ceil(diff));
+      }});
+      expr = expr.replace(/DAYS_SINCE\\(([^)]+)\\)/g, function(_, field) {{
+        const d = formData[field.trim()];
+        if (!d) return "0";
+        const diff = (new Date() - new Date(d)) / (1000 * 60 * 60 * 24);
+        return String(Math.floor(diff));
+      }});
+      expr = expr.replace(/NOW\\(\\)/g, '"' + new Date().toISOString().slice(0, 10) + '"');
+      expr = expr.replace(/UPPER\\(([^)]+)\\)/g, function(_, field) {{
+        return '"' + String(formData[field.trim()] || "").toUpperCase() + '"';
+      }});
+      expr = expr.replace(/LOWER\\(([^)]+)\\)/g, function(_, field) {{
+        return '"' + String(formData[field.trim()] || "").toLowerCase() + '"';
+      }});
+      expr = expr.replace(/CONCAT\\(([^,]+),([^)]+)\\)/g, function(_, a, b) {{
+        const va = a.trim().startsWith("'") || a.trim().startsWith('"') ? a.trim().slice(1, -1) : (formData[a.trim()] || "");
+        const vb = b.trim().startsWith("'") || b.trim().startsWith('"') ? b.trim().slice(1, -1) : (formData[b.trim()] || "");
+        return '"' + va + vb + '"';
+      }});
+      // Replace field references with their values
+      const allFields = Object.keys(formData);
+      allFields.sort((a, b) => b.length - a.length); // longest first to avoid partial matches
+      for (const fname of allFields) {{
+        const fval = formData[fname];
+        if (fval === "" || fval === null || fval === undefined) {{
+          expr = expr.split(fname).join("0");
+        }} else if (typeof fval === "number" || !isNaN(Number(fval))) {{
+          expr = expr.split(fname).join(String(Number(fval)));
+        }} else {{
+          expr = expr.split(fname).join('"' + String(fval) + '"');
+        }}
+      }}
+      // Evaluate the expression safely (only math and string ops)
+      const result = Function('"use strict"; return (' + expr + ')')();
+      if (typeof result === "number" && !isNaN(result)) {{
+        return Math.round(result * 100) / 100;
+      }}
+      return result;
+    }} catch (e) {{
+      return "";
+    }}
+  }}
+
+  // ── Validation: validate a field value against its rule ──
+  function validateField(value, validation) {{
+    if (!validation || !validation.rule) return null;
+    const v = value;
+    const rule = validation.rule;
+    const ruleVal = validation.value;
+    switch (rule) {{
+      case "required":
+        if (v === "" || v === null || v === undefined) return validation.message || "This field is required";
+        break;
+      case "email":
+        if (v && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v)) return validation.message || "Invalid email";
+        break;
+      case "min":
+        if (v !== "" && v !== null && Number(v) < Number(ruleVal)) return validation.message || "Value too small";
+        break;
+      case "max":
+        if (v !== "" && v !== null && Number(v) > Number(ruleVal)) return validation.message || "Value too large";
+        break;
+      case "minLength":
+        if (v && String(v).length < Number(ruleVal)) return validation.message || "Too short";
+        break;
+      case "maxLength":
+        if (v && String(v).length > Number(ruleVal)) return validation.message || "Too long";
+        break;
+      case "pattern":
+        if (v && !new RegExp(ruleVal).test(v)) return validation.message || "Invalid format";
+        break;
+      case "url":
+        if (v && !/^https?:\\/\\/[^\\s]+$/.test(v)) return validation.message || "Invalid URL";
+        break;
+    }}
+    return null;
+  }}
+
+  // ── Gather current form data from inputs ──
+  function getFormData() {{
+    const body = document.getElementById("modal-body");
+    if (!body) return {{}};
+    const inputs = body.querySelectorAll("input, select, textarea");
+    const data = {{}};
+    inputs.forEach(inp => {{
+      if (inp.type === "checkbox") {{
+        data[inp.name] = inp.checked;
+      }} else {{
+        data[inp.name] = inp.value;
+      }}
+    }});
+    return data;
+  }}
+
+  // ── Apply visibility and computed fields on form change ──
+  function applyFormRules() {{
+    if (!currentEntity) return;
+    const fields = ENTITY_FIELDS[currentEntity] || [];
+    const formData = getFormData();
+    const body = document.getElementById("modal-body");
+    if (!body) return;
+
+    fields.forEach(f => {{
+      const container = body.querySelector('[data-field="' + f.name + '"]');
+      if (!container) return;
+
+      // Conditional visibility
+      if (f.visible_when) {{
+        const visible = evalVisibleWhen(f.visible_when, formData);
+        container.style.display = visible ? "" : "none";
+        container.style.transition = "all 0.2s ease";
+      }}
+
+      // Computed fields — update the displayed value
+      if (f.computed) {{
+        const computedVal = evalComputed(f.computed, formData);
+        const display = container.querySelector(".computed-value");
+        if (display) display.textContent = computedVal !== "" ? String(computedVal) : "—";
+        // Also set a hidden input so the value is included in form submission
+        const hidden = container.querySelector('input[type="hidden"]');
+        if (hidden) hidden.value = computedVal !== "" ? String(computedVal) : "";
+      }}
+    }});
+  }}
+
   async function renderForm(entity, record) {{
     const fields = (ENTITY_FIELDS[entity] || []).filter(f =>
       !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)
@@ -2897,8 +3236,20 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
 
     body.innerHTML = fields.map(f => {{
       const val = record[f.name] ?? f.default_value ?? "";
-      const req = f.required ? '<span class="required">*</span>' : '';
+      const req = f.required || (f.nullable === false && !f.computed) ? '<span class="required">*</span>' : '';
       const label = escHtml(f.name.replace(/_/g, " "));
+      const vwAttr = f.visible_when ? ' data-visible-when=\\'true\\'' : '';
+      const vwStyle = f.visible_when ? ' style="transition:all 0.2s ease"' : '';
+
+      // Computed field — read-only display with fx badge
+      if (f.computed) {{
+        const computedVal = evalComputed(f.computed, record);
+        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '>' +
+          '<label>' + label + ' <span style="display:inline-block;background:var(--primary-light);color:var(--primary);font-size:10px;font-weight:700;padding:1px 5px;border-radius:3px;vertical-align:middle">fx</span></label>' +
+          '<div class="computed-value" style="padding:9px 14px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;min-height:38px">' + escHtml(String(computedVal !== "" ? computedVal : "\\u2014")) + '</div>' +
+          '<input type="hidden" name="' + f.name + '" value="' + escHtml(String(computedVal)) + '">' +
+          '</div>';
+      }}
 
       // FK dropdown
       const relEntity = getRelatedEntityForField(f.name, f);
@@ -2920,7 +3271,7 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
           if (!displayName) displayName = String(rId).slice(0, 8);
           return '<option value="' + escHtml(String(rId)) + '"' + (String(rId) === String(val) ? ' selected' : '') + '>' + escHtml(displayName) + '</option>';
         }}).join("");
-        return '<div class="form-group"><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select></div>';
+        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
       }}
 
       // Select for enums
@@ -2928,18 +3279,18 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
         const opts = '<option value="">Select...</option>' + f.enum_values.map(v =>
           '<option value="' + escHtml(v) + '"' + (v === val ? ' selected' : '') + '>' + escHtml(v) + '</option>'
         ).join("");
-        return '<div class="form-group"><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select></div>';
+        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
       }}
 
       // Checkbox for boolean
       if (f.type === "boolean") {{
         const checked = val && val !== "false" && val !== "0" ? ' checked' : '';
-        return '<div class="form-group"><div class="form-check"><input type="checkbox" name="' + f.name + '"' + checked + '><label>' + label + '</label></div></div>';
+        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><div class="form-check"><input type="checkbox" name="' + f.name + '"' + checked + '><label>' + label + '</label></div></div>';
       }}
 
       // Textarea for description/notes/body
       if (/description|notes|body|comment|content|message|details|summary|bio|about/i.test(f.name)) {{
-        return '<div class="form-group"><label>' + label + req + '</label><textarea name="' + f.name + '" placeholder="Enter ' + label.toLowerCase() + '...">' + escHtml(String(val)) + '</textarea></div>';
+        return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><textarea name="' + f.name + '" placeholder="Enter ' + label.toLowerCase() + '...">' + escHtml(String(val)) + '</textarea><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
       }}
 
       // Input type mapping
@@ -2953,8 +3304,50 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       let step = '';
       if (type === "number" && /amount|value|price|cost|revenue|total|salary|fee|budget/i.test(f.name)) step = ' step="0.01"';
 
-      return '<div class="form-group"><label>' + label + req + '</label><input type="' + type + '" name="' + f.name + '" value="' + escHtml(String(val)) + '" placeholder="Enter ' + label.toLowerCase() + '..."' + step + (f.required ? ' required' : '') + '></div>';
+      return '<div class="form-group" data-field="' + f.name + '"' + vwAttr + vwStyle + '><label>' + label + req + '</label><input type="' + type + '" name="' + f.name + '" value="' + escHtml(String(val)) + '" placeholder="Enter ' + label.toLowerCase() + '..."' + step + (f.required ? ' required' : '') + '><div class="field-error" style="display:none;color:var(--danger);font-size:12px;margin-top:4px"></div></div>';
     }}).join("");
+
+    // Attach change/input listeners for visibility, computed fields, and validation
+    const allInputs = body.querySelectorAll("input, select, textarea");
+    allInputs.forEach(inp => {{
+      inp.addEventListener("input", applyFormRules);
+      inp.addEventListener("change", applyFormRules);
+      // Validation on blur
+      inp.addEventListener("blur", function() {{
+        const fieldName = inp.name;
+        const fieldDef = (ENTITY_FIELDS[entity] || []).find(fd => fd.name === fieldName);
+        if (!fieldDef) return;
+        const container = body.querySelector('[data-field="' + fieldName + '"]');
+        if (!container) return;
+        const errorDiv = container.querySelector(".field-error");
+        if (!errorDiv) return;
+
+        let error = null;
+        // Check validation rule
+        if (fieldDef.validation) {{
+          error = validateField(inp.value, fieldDef.validation);
+        }}
+        // Check required (nullable: false)
+        if (!error && fieldDef.nullable === false && !fieldDef.computed) {{
+          if (inp.value === "" || inp.value === null || inp.value === undefined) {{
+            error = fieldDef.validation && fieldDef.validation.message ? fieldDef.validation.message : (fieldName.replace(/_/g, " ") + " is required");
+          }}
+        }}
+
+        if (error) {{
+          errorDiv.textContent = error;
+          errorDiv.style.display = "block";
+          inp.style.borderColor = "var(--danger)";
+        }} else {{
+          errorDiv.textContent = "";
+          errorDiv.style.display = "none";
+          inp.style.borderColor = "";
+        }}
+      }});
+    }});
+
+    // Initial apply of visibility and computed fields
+    applyFormRules();
   }}
 
   // ── Save record ──
@@ -2964,6 +3357,9 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
     const inputs = body.querySelectorAll("input, select, textarea");
     const record = {{}};
     inputs.forEach(inp => {{
+      // Skip hidden fields in invisible containers (visible_when hidden)
+      const container = inp.closest("[data-field]");
+      if (container && container.style.display === "none") return;
       if (inp.type === "checkbox") {{
         record[inp.name] = inp.checked;
       }} else if (inp.value !== "") {{
@@ -2971,15 +3367,50 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
       }}
     }});
 
-    // Validate required fields
+    // Validate all visible fields
     const fields = ENTITY_FIELDS[currentEntity] || [];
+    let hasErrors = false;
     for (const f of fields) {{
-      if (f.required && !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)) {{
-        if (!record[f.name] && record[f.name] !== 0 && record[f.name] !== false) {{
-          showToast(f.name.replace(/_/g, " ") + " is required", "error");
-          return;
+      if (["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)) continue;
+      if (f.computed) continue;
+
+      const container = body.querySelector('[data-field="' + f.name + '"]');
+      if (!container || container.style.display === "none") continue;
+
+      const inp = container.querySelector("input, select, textarea");
+      if (!inp) continue;
+      const errorDiv = container.querySelector(".field-error");
+
+      let error = null;
+
+      // Check validation rule
+      if (f.validation) {{
+        error = validateField(inp.value, f.validation);
+      }}
+      // Check required (nullable: false or f.required)
+      if (!error && (f.required || f.nullable === false)) {{
+        if (inp.type !== "checkbox" && (inp.value === "" || inp.value === null || inp.value === undefined)) {{
+          error = f.validation && f.validation.message ? f.validation.message : (f.name.replace(/_/g, " ") + " is required");
         }}
       }}
+
+      if (error) {{
+        hasErrors = true;
+        if (errorDiv) {{
+          errorDiv.textContent = error;
+          errorDiv.style.display = "block";
+          inp.style.borderColor = "var(--danger)";
+        }}
+      }} else if (errorDiv) {{
+        errorDiv.textContent = "";
+        errorDiv.style.display = "none";
+        inp.style.borderColor = "";
+      }}
+    }}
+
+    if (hasErrors) {{
+      showToast("Please fix the validation errors before saving", "error");
+      return;
     }}
 
     const saveBtn = document.getElementById("modal-save");
@@ -3534,6 +3965,259 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
     if (currentModule) showModule(currentModule);
   }};
 
+  // ── AI Chat Widget ──
+  const chatKnowledge = (() => {{
+    const entities = Object.keys(ENTITY_FIELDS);
+    const fieldMap = {{}};
+    entities.forEach(e => {{
+      fieldMap[e.toLowerCase()] = (ENTITY_FIELDS[e] || []).map(f => f.label || f.name);
+    }});
+    const moduleMap = {{}};
+    SIDEBAR_ITEMS.forEach(item => {{
+      if (item.entity) moduleMap[item.entity.toLowerCase()] = item.name;
+    }});
+    return {{ entities, fieldMap, moduleMap }};
+  }})();
+
+  let chatOpen = false;
+  let chatInited = false;
+
+  function chatHistory() {{
+    try {{ return JSON.parse(sessionStorage.getItem("_chat_hist") || "[]"); }} catch {{ return []; }}
+  }}
+  function saveChatHistory(msgs) {{
+    try {{ sessionStorage.setItem("_chat_hist", JSON.stringify(msgs)); }} catch {{}}
+  }}
+
+  function addChatMsg(text, role) {{
+    const area = document.getElementById("chat-messages");
+    const div = document.createElement("div");
+    div.className = "chat-msg " + role;
+    div.textContent = text;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+    const hist = chatHistory();
+    hist.push({{ text, role }});
+    saveChatHistory(hist);
+  }}
+
+  function chatRespond(question) {{
+    const q = question.toLowerCase().trim();
+    const ents = chatKnowledge.entities;
+
+    // Find referenced entity
+    let matchedEntity = null;
+    for (const e of ents) {{
+      if (q.includes(e.toLowerCase()) || q.includes(e.toLowerCase() + "s")) {{
+        matchedEntity = e;
+        break;
+      }}
+    }}
+
+    // Pattern matching
+    if (/how\s+(do\s+i\s+|to\s+)?(add|create|new)/i.test(q)) {{
+      if (matchedEntity) {{
+        const mod = chatKnowledge.moduleMap[matchedEntity.toLowerCase()] || (matchedEntity + "s");
+        return "Click '" + mod + "' in the sidebar, then click the 'Add New' button at the top right.";
+      }}
+      return "To add a new record, click the entity name in the sidebar, then click the 'Add New' button at the top right.";
+    }}
+
+    if (/where\s+(is|can\s+i\s+find|are)/i.test(q)) {{
+      if (matchedEntity) {{
+        const mod = chatKnowledge.moduleMap[matchedEntity.toLowerCase()] || (matchedEntity + "s");
+        return "You can find " + matchedEntity + " in the sidebar under '" + mod + "'. Click it to see all records.";
+      }}
+      return "Check the sidebar on the left \u2014 all modules and entities are listed there.";
+    }}
+
+    if (/what\s+fields?\s+(does|are|has)/i.test(q) || /fields?\s+(of|for|in)/i.test(q)) {{
+      if (matchedEntity) {{
+        const fields = chatKnowledge.fieldMap[matchedEntity.toLowerCase()] || [];
+        if (fields.length > 0) return matchedEntity + " has these fields: " + fields.join(", ") + ".";
+        return "I couldn't find field details for " + matchedEntity + ".";
+      }}
+      return "Please specify which entity you'd like to know the fields for. Available entities: " + ents.join(", ") + ".";
+    }}
+
+    if (/how\s+(do\s+i\s+|to\s+)?(edit|update|modify|change)/i.test(q)) {{
+      return "Click on any row in the table to see its details, then click the Edit button to modify the record.";
+    }}
+
+    if (/how\s+(do\s+i\s+|to\s+)?(delete|remove)/i.test(q)) {{
+      return "Click the \u22ef menu on any row and select Delete, or select multiple rows and use the bulk Delete button.";
+    }}
+
+    if (/how\s+(do\s+i\s+|to\s+)?search/i.test(q) || /find\s+(a\s+)?record/i.test(q)) {{
+      return "Use the search bar at the top of any table, or press Cmd+K (Ctrl+K on Windows) for global search across all entities.";
+    }}
+
+    if (/how\s+(do\s+i\s+|to\s+)?export/i.test(q) || /csv|pdf|download/i.test(q)) {{
+      return "Click the CSV or PDF button above the table to export your data.";
+    }}
+
+    if (/what\s+(entities|modules|sections)/i.test(q) || /list.*(entities|modules)/i.test(q)) {{
+      return "This app has the following entities: " + ents.join(", ") + ".";
+    }}
+
+    if (/help|what\s+can\s+you/i.test(q)) {{
+      return "I can help you navigate the app! Try asking:\\n- How do I add a new [entity]?\\n- Where can I find [entity]?\\n- What fields does [entity] have?\\n- How to edit, delete, search, or export?";
+    }}
+
+    return "I can help you navigate the app! Try asking: 'How do I add a new " + (ents[0] || "record") + "?' or 'Where can I find " + (ents.length > 1 ? ents[1] : "records") + "?' or 'What fields does " + (ents[0] || "an entity") + " have?'";
+  }}
+
+  window.toggleChatWidget = function() {{
+    chatOpen = !chatOpen;
+    document.getElementById("chat-panel").classList.toggle("open", chatOpen);
+    if (chatOpen && !chatInited) {{
+      chatInited = true;
+      const hist = chatHistory();
+      if (hist.length > 0) {{
+        const area = document.getElementById("chat-messages");
+        hist.forEach(m => {{
+          const div = document.createElement("div");
+          div.className = "chat-msg " + m.role;
+          div.textContent = m.text;
+          area.appendChild(div);
+        }});
+        area.scrollTop = area.scrollHeight;
+      }} else {{
+        addChatMsg("Hi! I'm your app assistant. Ask me anything about how to use " + APP_NAME + ".", "bot");
+      }}
+    }}
+    if (chatOpen) document.getElementById("chat-input").focus();
+  }};
+
+  window.sendChatMsg = function() {{
+    const input = document.getElementById("chat-input");
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    addChatMsg(text, "user");
+    const typing = document.getElementById("chat-typing");
+    typing.classList.add("show");
+    document.getElementById("chat-messages").scrollTop = document.getElementById("chat-messages").scrollHeight;
+    setTimeout(() => {{
+      typing.classList.remove("show");
+      const reply = chatRespond(text);
+      addChatMsg(reply, "bot");
+    }}, 500);
+  }};
+
+  // ── Overview Page ──
+  async function renderOverviewPage(container) {{
+    const entityNames = Object.keys(ENTITY_FIELDS);
+    if (entityNames.length < 3) {{
+      container.innerHTML = '<div class="empty-state"><h3>Overview</h3><p>Overview requires 3 or more entities.</p></div>';
+      return;
+    }}
+
+    // Stat cards row (skeleton first)
+    let html = '<div class="overview-stat-row">';
+    entityNames.forEach(e => {{
+      html += '<div class="overview-stat-card"><div class="stat-entity">' + escHtml(e) + 's</div>' +
+        '<div class="stat-num" id="ov-stat-' + e + '"><span class="skeleton skeleton-line" style="width:40px;display:inline-block">&nbsp;</span></div></div>';
+    }});
+    html += '</div>';
+
+    // Mini tables for top 2 entities
+    const top2 = entityNames.slice(0, 2);
+    html += '<div class="overview-mini-tables">';
+    top2.forEach(e => {{
+      const fields = (ENTITY_FIELDS[e] || []).slice(0, 4);
+      const modName = (SIDEBAR_ITEMS.find(si => si.entity === e) || {{}}).name || e;
+      html += '<div class="overview-mini-table">' +
+        '<div class="overview-mini-table-header"><h4>' + escHtml(e) + 's</h4>' +
+        '<div class="overview-mini-table-actions">' +
+        '<button onclick="showModule(\'' + escHtml(modName) + '\')">View All</button>' +
+        '<button onclick="showModule(\'' + escHtml(modName) + '\');setTimeout(()=>openCreate(),100)">+ Add</button>' +
+        '</div></div>' +
+        '<table><thead><tr>';
+      fields.forEach(f => {{
+        html += '<th>' + escHtml(f.label || f.name) + '</th>';
+      }});
+      html += '</tr></thead><tbody id="ov-mini-' + e + '"><tr><td colspan="' + fields.length + '" style="text-align:center;padding:20px;color:var(--text-muted)">Loading...</td></tr></tbody></table></div>';
+    }});
+    html += '</div>';
+
+    // Quick add row
+    html += '<div class="overview-quick-add"><h4>Quick Add</h4><div class="overview-quick-add-btns">';
+    entityNames.forEach(e => {{
+      const modName = (SIDEBAR_ITEMS.find(si => si.entity === e) || {{}}).name || e;
+      html += '<button onclick="showModule(\'' + escHtml(modName) + '\');setTimeout(()=>openCreate(),100)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New ' + escHtml(e) + '</button>';
+    }});
+    html += '</div></div>';
+
+    // Recent activity area (placeholder)
+    html += '<div class="overview-recent-activity"><h4>Recent Activity</h4><div id="ov-activity"><div style="color:var(--text-muted);font-size:13px;padding:8px 0">Loading...</div></div></div>';
+
+    container.innerHTML = html;
+
+    // Fetch data for all entities
+    const allData = {{}};
+    const fetchPromises = entityNames.map(async e => {{
+      const rows = await apiGet(e.toLowerCase());
+      dataCache[e] = rows;
+      allData[e] = rows;
+    }});
+    await Promise.all(fetchPromises);
+
+    // Update stat cards
+    entityNames.forEach(e => {{
+      const el = document.getElementById("ov-stat-" + e);
+      if (el) el.textContent = (allData[e] || []).length;
+    }});
+
+    // Update mini tables
+    top2.forEach(e => {{
+      const tbody = document.getElementById("ov-mini-" + e);
+      if (!tbody) return;
+      const fields = (ENTITY_FIELDS[e] || []).slice(0, 4);
+      const rows = (allData[e] || []).slice(-5).reverse();
+      if (rows.length === 0) {{
+        tbody.innerHTML = '<tr><td colspan="' + fields.length + '" style="text-align:center;padding:20px;color:var(--text-muted)">No records yet</td></tr>';
+        return;
+      }}
+      tbody.innerHTML = rows.map(r => {{
+        return '<tr>' + fields.map(f => '<td>' + escHtml(String(r[f.name] || r[f.name.toLowerCase()] || "")) + '</td>').join("") + '</tr>';
+      }}).join("");
+    }});
+
+    // Update recent activity
+    const actEl = document.getElementById("ov-activity");
+    if (actEl) {{
+      const actColors = ["var(--primary)", "var(--success)", "var(--warning)", "var(--info)", "var(--danger)"];
+      let allRecords = [];
+      entityNames.forEach((e, idx) => {{
+        (allData[e] || []).forEach(r => {{
+          allRecords.push({{ entity: e, record: r, color: actColors[idx % actColors.length] }});
+        }});
+      }});
+      // Sort by created_at or id descending, take last 10
+      allRecords.sort((a, b) => {{
+        const da = a.record.created_at || a.record.id || 0;
+        const db = b.record.created_at || b.record.id || 0;
+        return da > db ? -1 : da < db ? 1 : 0;
+      }});
+      allRecords = allRecords.slice(0, 10);
+      if (allRecords.length === 0) {{
+        actEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:8px 0">No activity yet</div>';
+      }} else {{
+        actEl.innerHTML = allRecords.map(a => {{
+          const fields = ENTITY_FIELDS[a.entity] || [];
+          const nameField = fields.find(f => /name|title|subject|label/i.test(f.name));
+          const displayVal = nameField ? (a.record[nameField.name] || a.record[nameField.name.toLowerCase()] || "Record") : ("ID: " + (a.record.id || "?"));
+          return '<div class="overview-activity-item">' +
+            '<div class="overview-activity-dot" style="background:' + a.color + '"></div>' +
+            '<span class="overview-activity-entity">' + escHtml(a.entity) + '</span>' +
+            '<span>' + escHtml(String(displayVal)) + '</span>' +
+            '</div>';
+        }}).join("");
+      }}
+    }}
+  }}
+
   // ── Init ──
   function initApp() {{
     buildSidebar();
@@ -3879,8 +4563,9 @@ def _build_entity_fields_js(entities: list) -> str:
     for entity in entities:
         name = entity.get("name", "")
         fields = entity.get("fields", [])
-        fields_map[name] = [
-            {
+        field_list = []
+        for f in fields:
+            fd = {
                 "name": f.get("name", ""),
                 "type": f.get("type", "string"),
                 "required": f.get("required", False),
@@ -3888,6 +4573,19 @@ def _build_entity_fields_js(entities: list) -> str:
                 "default_value": f.get("default_value", ""),
                 "fk_entity": f.get("fk_entity", ""),
             }
-            for f in fields
-        ]
+            # Conditional visibility
+            if f.get("visible_when"):
+                fd["visible_when"] = f["visible_when"]
+            # Computed fields
+            if f.get("computed"):
+                fd["computed"] = f["computed"]
+                fd["editable"] = False
+            # Validation rules
+            if f.get("validation"):
+                fd["validation"] = f["validation"]
+            # Pass nullable for required validation
+            if f.get("nullable") is not None:
+                fd["nullable"] = f["nullable"]
+            field_list.append(fd)
+        fields_map[name] = field_list
     return json.dumps(fields_map)

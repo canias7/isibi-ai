@@ -191,3 +191,61 @@ async def restore_version(
         message=f"Restored to version {version.version_number}",
         restored_version=version.version_number,
     )
+
+
+class RollbackResponse(BaseModel):
+    message: str
+    restored_version: int
+    spec: dict
+
+
+@router.post(
+    "/projects/{project_id}/rollback",
+    response_model=RollbackResponse,
+)
+async def rollback_to_previous(
+    project_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    org_id: UUID = Depends(get_current_org_id),
+):
+    """Roll back to the immediately previous version (one-click rollback)."""
+    project = await _get_project_for_org(db, project_id, org_id)
+
+    # Find the two most recent versions
+    result = await db.execute(
+        select(ProjectVersion)
+        .where(
+            ProjectVersion.project_id == project_id,
+            ProjectVersion.org_id == org_id,
+        )
+        .order_by(ProjectVersion.version_number.desc())
+        .limit(2)
+    )
+    versions = result.scalars().all()
+
+    if len(versions) < 1:
+        raise HTTPException(status_code=404, detail="No versions available to roll back to")
+
+    # If there's only one version, restore to that one
+    # If there are two or more, restore to the second most recent
+    # (the most recent is likely the current state)
+    target = versions[-1] if len(versions) > 1 else versions[0]
+
+    # Save current state before restoring
+    if project.spec:
+        await save_version(
+            db,
+            project,
+            change_description=f"Auto-save before rollback to v{target.version_number}",
+        )
+
+    # Restore the spec
+    project.spec = target.spec_snapshot
+    project.updated_at = datetime.utcnow()
+    await db.commit()
+
+    return RollbackResponse(
+        message=f"Rolled back to version {target.version_number}",
+        restored_version=target.version_number,
+        spec=target.spec_snapshot,
+    )

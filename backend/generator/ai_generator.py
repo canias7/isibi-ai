@@ -268,6 +268,76 @@ ALWAYS include a Dashboard module at sidebar_order: 1:
   "pagination": {"type": "cursor", "default_page_size": 25}
 }
 
+## Conditional Field Visibility
+Fields can have a "visible_when" rule to show/hide based on other field values:
+
+{
+  "name": "tracking_number",
+  "visible_when": {"field": "status", "operator": "eq", "value": "shipped"},
+  ...other attributes...
+}
+
+{
+  "name": "discount_reason",
+  "visible_when": {"field": "discount", "operator": "gt", "value": 0},
+  ...other attributes...
+}
+
+Operators: eq, neq, gt, lt, gte, lte, in, not_in, contains, not_empty
+Use visible_when when it makes logical sense (tracking numbers only when shipped, etc.)
+
+## Computed Fields
+Fields can have a "computed" formula that auto-calculates from other fields:
+
+{
+  "name": "total",
+  "computed": "quantity * price",
+  "editable": false,
+  "show_in_form": true,
+  ...
+}
+
+{
+  "name": "full_name",
+  "computed": "first_name + ' ' + last_name",
+  "editable": false,
+  ...
+}
+
+{
+  "name": "days_until_due",
+  "computed": "DAYS_UNTIL(due_date)",
+  "editable": false,
+  ...
+}
+
+Supported functions: DAYS_UNTIL(date), DAYS_SINCE(date), NOW(), UPPER(text), LOWER(text), CONCAT(a, b)
+Computed fields are always editable: false and auto-update when dependencies change.
+
+## Validation Rules
+Fields can have a "validation" object for client-side validation:
+
+{
+  "name": "email",
+  "validation": {"rule": "email", "message": "Please enter a valid email"},
+  ...
+}
+
+{
+  "name": "price",
+  "validation": {"rule": "min", "value": 0, "message": "Price must be positive"},
+  ...
+}
+
+{
+  "name": "phone",
+  "validation": {"rule": "pattern", "value": "^[0-9]{10}$", "message": "Phone must be 10 digits"},
+  ...
+}
+
+Rules: required, email, min, max, minLength, maxLength, pattern, url
+Use validation on fields where it makes sense (emails, prices, phones, dates).
+
 ## RULES
 
 1. Output ONLY the JSON object. No text before or after. No markdown code fences.
@@ -277,7 +347,10 @@ ALWAYS include a Dashboard module at sidebar_order: 1:
 5. Every entity MUST have id, org_id, created_at, updated_at, deleted_at, and version system fields.
 6. Every module needs a valid Lucide icon name (PascalCase).
 7. Dashboard stat_cards should cover 3-5 key metrics from the entities.
-8. Use the RAG reference examples as structural templates — match their field format exactly."""
+8. Use the RAG reference examples as structural templates — match their field format exactly.
+9. Use visible_when on fields that should only appear based on another field's value.
+10. Use computed fields for auto-calculated values (totals, full names, date differences).
+11. Use validation rules on fields where input validation makes sense (emails, phones, prices, URLs)."""
 
 
 async def generate_spec(user_prompt: str, conversation_history: list[dict] | None = None) -> dict:

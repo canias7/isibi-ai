@@ -33,6 +33,12 @@ from .review import Review
 from .app_analytics import AppEvent
 from .push_subscription import PushSubscription, PushNotificationLog
 from .serverless_function import ServerlessFunction
+from .app_role import AppRole
+from .app_activity_entry import AppActivityEntry
+from .app_record_comment import AppRecordComment
+from .app_record_file import AppRecordFile
+from .marketplace_template import MarketplaceTemplate, MarketplaceRating
+from .app_embed import AppEmbed
 
 __all__ = [
     "Lead", "Task", "Deal", "User", "Conversation", "PipelineStage",
@@ -46,4 +52,6 @@ __all__ = [
     "Plugin", "ProjectPlugin", "SharedComponent", "Review",
     "AppEvent", "PushSubscription", "PushNotificationLog",
     "ServerlessFunction",
+    "AppRole", "AppActivityEntry", "AppRecordComment", "AppRecordFile",
+    "MarketplaceTemplate", "MarketplaceRating", "AppEmbed",
 ]
