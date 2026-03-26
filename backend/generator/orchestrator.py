@@ -33,6 +33,7 @@ from models.project import Project
 from .ai_generator import generate_spec, refine_spec
 from .builder import build_backend
 from .app_db import create_app_schema, drop_app_schema
+from .spec_validator import validate_and_repair
 
 # Where generated projects are stored on disk
 PROJECTS_DIR = os.getenv(
@@ -77,6 +78,9 @@ async def create_project(
 
         # Deep sanitize — fix every value that should be dict/list but is string
         spec = _sanitize_spec(spec)
+
+        # Validate and auto-repair the spec before building
+        spec = validate_and_repair(spec)
 
         # Inject project metadata into spec
         spec.setdefault("_meta", {})
@@ -158,6 +162,9 @@ async def refine_project(
 
         # Refine spec
         updated_spec = await refine_spec(project.spec, feedback)
+
+        # Validate and auto-repair the refined spec
+        updated_spec = validate_and_repair(updated_spec)
 
         # Update metadata
         updated_spec.setdefault("_meta", {})

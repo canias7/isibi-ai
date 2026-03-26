@@ -148,16 +148,20 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
     that calls the backend API.
 
     The generated app includes:
+    - Login / Signup auth screen (email + password)
     - Collapsible sidebar with all modules, app logo, active states
     - Dashboard with stat cards, CSS bar chart, recent activity
-    - Table view with sort, search, status tabs, pagination
+    - Smart layout detection: Kanban, Calendar, Card Grid, or Table view
+    - View toggle to switch between Table and smart alternate view
     - Slide-over create/edit modals with proper field types
+    - Foreign key dropdowns with related entity names
     - Detail view for individual records
     - Delete confirmation dialog
     - Toast notifications (success/error, auto-dismiss)
     - Skeleton loaders
     - Responsive layout (hamburger menu on mobile)
-    - Auth token handling (localStorage + URL param)
+    - Auth token handling (localStorage)
+    - PWA support (manifest, service worker)
     """
     import json
 
@@ -169,8 +173,12 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
     primary_color = colors.get("primary") or "#6366f1"
     secondary_color = colors.get("secondary") or "#8b5cf6"
 
-    # Build entity field maps for JS
+    # Build entity field maps for JS (include fk_entity for FK dropdowns)
     entity_fields_js = _build_entity_fields_js(entities)
+
+    # Build smart layout detection map
+    layout_hints = _detect_smart_layouts(entities, modules)
+    layout_hints_js = json.dumps(layout_hints)
 
     # Build sidebar items data for JS
     sidebar_items = []
@@ -259,6 +267,94 @@ body {{
   overflow:hidden;
 }}
 
+/* ── Auth Screen ── */
+.auth-screen {{
+  position:fixed;inset:0;z-index:9000;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+}}
+.auth-card {{
+  width:400px;max-width:90vw;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-lg);
+  overflow:hidden;
+}}
+.auth-header {{
+  padding:32px 32px 24px;text-align:center;
+}}
+.auth-logo {{
+  width:56px;height:56px;
+  border-radius:var(--radius-lg);
+  background:var(--primary);
+  display:inline-flex;align-items:center;justify-content:center;
+  color:#fff;font-weight:700;font-size:24px;
+  margin-bottom:16px;
+  box-shadow: 0 4px 12px {primary_color}40;
+}}
+.auth-header h2 {{
+  font-size:20px;font-weight:700;margin-bottom:4px;
+}}
+.auth-header p {{
+  font-size:13px;color:var(--text-muted);
+}}
+.auth-tabs {{
+  display:flex;border-bottom:1px solid var(--border);
+  padding:0 32px;
+}}
+.auth-tab {{
+  flex:1;padding:10px 0;text-align:center;
+  font-size:13px;font-weight:600;
+  color:var(--text-muted);
+  cursor:pointer;border:none;background:none;
+  border-bottom:2px solid transparent;
+  transition:all var(--transition);
+  font-family:inherit;
+}}
+.auth-tab:hover {{ color:var(--text); }}
+.auth-tab.active {{
+  color:var(--primary);border-bottom-color:var(--primary);
+}}
+.auth-body {{
+  padding:24px 32px 32px;
+}}
+.auth-body .form-group {{ margin-bottom:16px; }}
+.auth-body .form-group label {{
+  display:block;font-size:13px;font-weight:500;
+  color:var(--text);margin-bottom:6px;
+}}
+.auth-body .form-group input {{
+  width:100%;padding:10px 14px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  font-size:14px;color:var(--text);
+  background:var(--bg-card);
+  outline:none;font-family:inherit;
+  transition:border-color var(--transition), box-shadow var(--transition);
+}}
+.auth-body .form-group input:focus {{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px var(--primary-light);
+}}
+.auth-submit {{
+  width:100%;padding:11px 0;
+  background:var(--primary);color:#fff;
+  border:none;border-radius:var(--radius);
+  font-size:14px;font-weight:600;
+  cursor:pointer;font-family:inherit;
+  transition:background var(--transition);
+  margin-top:8px;
+}}
+.auth-submit:hover {{ background:var(--primary-hover); }}
+.auth-submit:disabled {{ opacity:0.6;cursor:not-allowed; }}
+.auth-error {{
+  background:var(--danger-light);color:var(--danger);
+  padding:8px 12px;border-radius:var(--radius);
+  font-size:12px;margin-bottom:12px;
+  display:none;
+}}
+
 /* ── Sidebar ── */
 .sidebar {{
   width:var(--sidebar-width);
@@ -333,6 +429,7 @@ body {{
   margin-bottom:1px;
   transition:all var(--transition);
   position:relative;
+  font-family:inherit;
 }}
 .sidebar-item:hover {{ background:var(--bg);color:var(--text); }}
 .sidebar-item.active {{
@@ -351,9 +448,22 @@ body {{
   padding:16px 20px;
   border-top:1px solid var(--border-light);
   font-size:11px;color:var(--text-muted);
-  display:flex;align-items:center;gap:6px;
+  display:flex;align-items:center;justify-content:space-between;
 }}
 .sidebar-footer svg {{ width:12px;height:12px;opacity:0.5; }}
+.sidebar-footer-left {{
+  display:flex;align-items:center;gap:6px;
+}}
+.logout-btn {{
+  background:none;border:1px solid var(--border);
+  padding:4px 10px;border-radius:var(--radius-sm);
+  font-size:11px;color:var(--text-muted);cursor:pointer;
+  transition:all var(--transition);font-family:inherit;
+}}
+.logout-btn:hover {{
+  color:var(--danger);border-color:var(--danger);
+  background:var(--danger-light);
+}}
 
 /* ── Mobile overlay ── */
 .sidebar-overlay {{
@@ -399,6 +509,28 @@ body {{
 .content {{
   flex:1;overflow:auto;padding:24px;
 }}
+
+/* ── View toggle ── */
+.view-toggle {{
+  display:inline-flex;align-items:center;gap:2px;
+  background:var(--bg);border-radius:var(--radius);
+  padding:3px;margin-right:8px;
+}}
+.view-toggle-btn {{
+  padding:5px 12px;border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;
+  cursor:pointer;border:none;background:none;
+  color:var(--text-secondary);
+  transition:all var(--transition);
+  display:flex;align-items:center;gap:4px;
+  font-family:inherit;
+}}
+.view-toggle-btn:hover {{ color:var(--text); }}
+.view-toggle-btn.active {{
+  background:var(--bg-card);color:var(--text);
+  box-shadow:var(--shadow-xs);
+}}
+.view-toggle-btn svg {{ width:14px;height:14px; }}
 
 /* ── Cards ── */
 .card {{
@@ -567,6 +699,7 @@ body {{
   cursor:pointer;border:none;background:none;
   color:var(--text-secondary);
   transition:all var(--transition);
+  font-family:inherit;
 }}
 .status-tab:hover {{ color:var(--text); }}
 .status-tab.active {{
@@ -695,6 +828,7 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   cursor:pointer;font-size:12px;font-weight:500;
   color:var(--text-secondary);
   transition:all var(--transition);
+  font-family:inherit;
 }}
 .page-btn:hover {{ background:var(--bg);color:var(--text); }}
 .page-btn.active {{
@@ -973,6 +1107,208 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   100% {{ transform:translateX(100%); }}
 }}
 
+/* ── Kanban Board ── */
+.kanban-board {{
+  display:flex;gap:16px;
+  overflow-x:auto;padding-bottom:8px;
+  min-height:400px;
+}}
+.kanban-column {{
+  min-width:260px;width:260px;flex-shrink:0;
+  background:var(--bg);
+  border-radius:var(--radius-lg);
+  border:1px solid var(--border-light);
+  display:flex;flex-direction:column;
+  max-height:calc(100vh - 200px);
+}}
+.kanban-column-header {{
+  padding:14px 16px;
+  font-size:13px;font-weight:600;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--border-light);
+  flex-shrink:0;
+}}
+.kanban-column-count {{
+  font-size:11px;font-weight:500;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  padding:1px 8px;border-radius:20px;
+  color:var(--text-muted);
+}}
+.kanban-column-body {{
+  flex:1;overflow-y:auto;padding:10px;
+  display:flex;flex-direction:column;gap:8px;
+}}
+.kanban-card {{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px 14px;
+  cursor:pointer;
+  transition:all var(--transition);
+  box-shadow:var(--shadow-xs);
+}}
+.kanban-card:hover {{
+  box-shadow:var(--shadow-sm);
+  border-color:var(--primary);
+  transform:translateY(-1px);
+}}
+.kanban-card-title {{
+  font-size:13px;font-weight:600;color:var(--text);
+  margin-bottom:6px;
+}}
+.kanban-card-field {{
+  font-size:12px;color:var(--text-muted);
+  margin-top:3px;
+  display:flex;align-items:center;gap:4px;
+}}
+.kanban-card-field strong {{
+  color:var(--text-secondary);font-weight:500;
+}}
+
+/* ── Calendar View ── */
+.calendar-view {{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-xs);
+  overflow:hidden;
+}}
+.calendar-header {{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+}}
+.calendar-header h3 {{
+  font-size:15px;font-weight:600;
+}}
+.calendar-nav {{
+  display:flex;align-items:center;gap:8px;
+}}
+.calendar-nav-btn {{
+  width:32px;height:32px;
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  background:var(--bg-card);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--text-secondary);
+  transition:all var(--transition);
+  font-family:inherit;
+}}
+.calendar-nav-btn:hover {{ background:var(--bg);color:var(--text); }}
+.calendar-nav-btn svg {{ width:16px;height:16px; }}
+.calendar-grid {{
+  display:grid;
+  grid-template-columns:repeat(7, 1fr);
+}}
+.calendar-day-header {{
+  padding:8px 4px;text-align:center;
+  font-size:11px;font-weight:600;
+  color:var(--text-muted);
+  text-transform:uppercase;
+  border-bottom:1px solid var(--border-light);
+}}
+.calendar-cell {{
+  min-height:90px;
+  border-right:1px solid var(--border-light);
+  border-bottom:1px solid var(--border-light);
+  padding:4px;
+  position:relative;
+  cursor:pointer;
+  transition:background var(--transition);
+}}
+.calendar-cell:nth-child(7n) {{ border-right:none; }}
+.calendar-cell:hover {{ background:var(--primary-subtle); }}
+.calendar-cell.other-month {{
+  background:var(--bg);
+}}
+.calendar-cell.other-month .calendar-date {{
+  color:var(--text-placeholder);
+}}
+.calendar-cell.today {{
+  background:var(--primary-light);
+}}
+.calendar-date {{
+  font-size:12px;font-weight:500;
+  color:var(--text-secondary);
+  padding:2px 6px;
+}}
+.calendar-event {{
+  font-size:10px;
+  padding:2px 6px;
+  border-radius:4px;
+  margin-top:2px;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  cursor:pointer;
+  background:var(--primary-light);
+  color:var(--primary);
+  font-weight:500;
+  transition:background var(--transition);
+}}
+.calendar-event:hover {{
+  background:var(--primary);color:#fff;
+}}
+
+/* ── Card Grid ── */
+.card-grid {{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:16px;
+}}
+.grid-card {{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  overflow:hidden;
+  cursor:pointer;
+  transition:all var(--transition);
+  box-shadow:var(--shadow-xs);
+}}
+.grid-card:hover {{
+  box-shadow:var(--shadow-md);
+  transform:translateY(-2px);
+}}
+.grid-card-image {{
+  height:160px;
+  background:linear-gradient(135deg, var(--primary-light), var(--bg));
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;
+}}
+.grid-card-image img {{
+  width:100%;height:100%;object-fit:cover;
+}}
+.grid-card-image .placeholder-icon {{
+  width:48px;height:48px;color:var(--primary);opacity:0.4;
+}}
+.grid-card-body {{
+  padding:16px;
+}}
+.grid-card-title {{
+  font-size:14px;font-weight:600;color:var(--text);
+  margin-bottom:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}}
+.grid-card-field {{
+  font-size:12px;color:var(--text-muted);
+  margin-top:3px;
+  display:flex;align-items:center;gap:4px;
+}}
+.grid-card-field strong {{ color:var(--text-secondary);font-weight:500; }}
+.grid-card-footer {{
+  padding:10px 16px;
+  border-top:1px solid var(--border-light);
+  display:flex;align-items:center;justify-content:space-between;
+}}
+.grid-card-price {{
+  font-size:16px;font-weight:700;color:var(--text);
+}}
+.grid-card-badge {{
+  font-size:11px;
+}}
+
 /* ── Responsive ── */
 @media (max-width:768px) {{
   .sidebar {{
@@ -994,10 +1330,15 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   .sidebar-collapse-btn {{ display:none; }}
   .detail-field {{ flex-direction:column;gap:4px; }}
   .detail-field-label {{ width:auto; }}
+  .kanban-board {{ gap:12px; }}
+  .kanban-column {{ min-width:240px;width:240px; }}
+  .card-grid {{ grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); }}
 }}
 @media (max-width:480px) {{
   .table-toolbar {{ flex-direction:column;align-items:stretch; }}
   .status-tabs {{ overflow-x:auto; }}
+  .kanban-column {{ min-width:220px;width:220px; }}
+  .card-grid {{ grid-template-columns:1fr; }}
 }}
 </style>
 </head>
@@ -1005,6 +1346,33 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
 
 <!-- Loading bar -->
 <div class="loading-bar" id="loading-bar"></div>
+
+<!-- Auth Screen -->
+<div class="auth-screen" id="auth-screen" style="display:none">
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="auth-logo">{app_initial}</div>
+      <h2>{app_name}</h2>
+      <p>Sign in to continue</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="auth-tab-login" onclick="switchAuthTab('login')">Log In</button>
+      <button class="auth-tab" id="auth-tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-body">
+      <div class="auth-error" id="auth-error"></div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="auth-email" placeholder="you@example.com">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="auth-password" placeholder="Enter password">
+      </div>
+      <button class="auth-submit" id="auth-submit" onclick="handleAuth()">Log In</button>
+    </div>
+  </div>
+</div>
 
 <!-- Mobile sidebar overlay -->
 <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
@@ -1025,8 +1393,11 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     <div class="sidebar-section-label">Menu</div>
   </nav>
   <div class="sidebar-footer">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-    Built with isibi.ai
+    <div class="sidebar-footer-left">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      Built with isibi.ai
+    </div>
+    <button class="logout-btn" id="logout-btn" onclick="handleLogout()">Logout</button>
   </div>
 </aside>
 
@@ -1089,6 +1460,7 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   const API_BASE = "{api_base_url}";
   const ENTITY_FIELDS = {entity_fields_js};
   const SIDEBAR_ITEMS = {sidebar_items_js};
+  const LAYOUT_HINTS = {layout_hints_js};
   const APP_NAME = "{app_name}";
   const ROWS_PER_PAGE = 10;
 
@@ -1098,11 +1470,16 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   let editingId = null;
   let pendingDeleteEntity = null;
   let pendingDeleteId = null;
+  let currentAuthTab = "login";
+  let calendarYear = new Date().getFullYear();
+  let calendarMonth = new Date().getMonth();
   const dataCache = {{}};
+  const fkCache = {{}};
   const sortState = {{}};
   const searchState = {{}};
   const filterState = {{}};
   const pageState = {{}};
+  const viewMode = {{}};  // track current view per module: "table" | "kanban" | "calendar" | "cards"
 
   // ── Auth ──
   function getToken() {{
@@ -1112,7 +1489,7 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
       localStorage.setItem("app_token", urlToken);
       return urlToken;
     }}
-    return localStorage.getItem("app_token") || localStorage.getItem("token") || "";
+    return localStorage.getItem("app_token") || "";
   }}
 
   function apiHeaders() {{
@@ -1121,6 +1498,88 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     if (t) h["Authorization"] = "Bearer " + t;
     return h;
   }}
+
+  function checkAuth() {{
+    const token = getToken();
+    const authScreen = document.getElementById("auth-screen");
+    if (!token) {{
+      authScreen.style.display = "flex";
+      return false;
+    }}
+    authScreen.style.display = "none";
+    return true;
+  }}
+
+  window.switchAuthTab = function(tab) {{
+    currentAuthTab = tab;
+    document.getElementById("auth-tab-login").classList.toggle("active", tab === "login");
+    document.getElementById("auth-tab-signup").classList.toggle("active", tab === "signup");
+    document.getElementById("auth-submit").textContent = tab === "login" ? "Log In" : "Sign Up";
+    document.getElementById("auth-error").style.display = "none";
+  }};
+
+  window.handleAuth = async function() {{
+    const email = document.getElementById("auth-email").value.trim();
+    const password = document.getElementById("auth-password").value;
+    const errorEl = document.getElementById("auth-error");
+    const submitBtn = document.getElementById("auth-submit");
+
+    if (!email || !password) {{
+      errorEl.textContent = "Please enter email and password.";
+      errorEl.style.display = "block";
+      return;
+    }}
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = currentAuthTab === "login" ? "Logging in..." : "Signing up...";
+    errorEl.style.display = "none";
+
+    const endpoint = currentAuthTab === "login"
+      ? API_BASE + "/api/apps/" + PROJECT_ID + "/auth/login"
+      : API_BASE + "/api/apps/" + PROJECT_ID + "/auth/signup";
+
+    try {{
+      const res = await fetch(endpoint, {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ email, password }})
+      }});
+
+      if (!res.ok) {{
+        const data = await res.json().catch(() => ({{}}));
+        throw new Error(data.detail || data.message || data.error || (currentAuthTab === "login" ? "Invalid credentials" : "Signup failed"));
+      }}
+
+      const data = await res.json();
+      const token = data.token || data.access_token || data.jwt || "";
+      if (token) {{
+        localStorage.setItem("app_token", token);
+        document.getElementById("auth-screen").style.display = "none";
+        initApp();
+      }} else {{
+        throw new Error("No token received from server");
+      }}
+    }} catch (e) {{
+      errorEl.textContent = e.message;
+      errorEl.style.display = "block";
+    }} finally {{
+      submitBtn.disabled = false;
+      submitBtn.textContent = currentAuthTab === "login" ? "Log In" : "Sign Up";
+    }}
+  }};
+
+  window.handleLogout = function() {{
+    localStorage.removeItem("app_token");
+    document.getElementById("auth-email").value = "";
+    document.getElementById("auth-password").value = "";
+    document.getElementById("auth-error").style.display = "none";
+    document.getElementById("auth-screen").style.display = "flex";
+  }};
+
+  // Allow Enter key on auth form
+  document.getElementById("auth-password").addEventListener("keydown", function(e) {{
+    if (e.key === "Enter") handleAuth();
+  }});
 
   // ── Loading bar ──
   const loadingBar = document.getElementById("loading-bar");
@@ -1184,6 +1643,54 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     }} finally {{ stopLoading(); }}
   }}
 
+  // ── FK data fetching ──
+  async function fetchFkData(entityName) {{
+    if (fkCache[entityName]) return fkCache[entityName];
+    try {{
+      const rows = await apiGet(entityName.toLowerCase());
+      fkCache[entityName] = rows;
+      return rows;
+    }} catch {{
+      return [];
+    }}
+  }}
+
+  function getFkDisplayName(entityName, id) {{
+    const rows = fkCache[entityName] || [];
+    const record = rows.find(r => String(r.id || r.ID) === String(id));
+    if (!record) return String(id || "");
+    const fields = ENTITY_FIELDS[entityName] || [];
+    const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
+    if (nameField && record[nameField.name]) return record[nameField.name];
+    // Fallback: try first non-id string field
+    for (const f of fields) {{
+      if (!["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name) && record[f.name] && typeof record[f.name] === "string") {{
+        return record[f.name];
+      }}
+    }}
+    return String(id || "").slice(0, 8);
+  }}
+
+  function getRelatedEntityForField(fieldName, fieldDef) {{
+    // Check explicit fk_entity
+    if (fieldDef && fieldDef.fk_entity) return fieldDef.fk_entity;
+    // Infer from field name ending in _id
+    if (fieldName.endsWith("_id")) {{
+      const base = fieldName.slice(0, -3); // remove _id
+      // Try to find matching entity (case-insensitive, singular)
+      const entityNames = Object.keys(ENTITY_FIELDS);
+      for (const en of entityNames) {{
+        if (en.toLowerCase() === base.toLowerCase() ||
+            en.toLowerCase() === base.replace(/_/g, "").toLowerCase() ||
+            en.toLowerCase() + "s" === base.toLowerCase() ||
+            en.toLowerCase() === base.toLowerCase() + "s") {{
+          return en;
+        }}
+      }}
+    }}
+    return null;
+  }}
+
   // ── Toast ──
   function showToast(msg, type) {{
     type = type || "success";
@@ -1235,6 +1742,11 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     }}
   }};
 
+  // ── Detect smart layout for an entity ──
+  function getSmartLayout(entity) {{
+    return LAYOUT_HINTS[entity] || "table";
+  }}
+
   // ── Module navigation ──
   window.showModule = function(name) {{
     const item = SIDEBAR_ITEMS.find(i => i.name === name);
@@ -1253,10 +1765,35 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     currentModule = name;
     currentEntity = item.entity || null;
 
+    // Determine smart layout
+    const smartLayout = currentEntity ? getSmartLayout(currentEntity) : "table";
+
+    // Initialize view mode if not set
+    if (currentEntity && !viewMode[name]) {{
+      viewMode[name] = smartLayout !== "table" ? smartLayout : "table";
+    }}
+
     // Update topbar actions
     const actions = document.getElementById("topbar-actions");
     if (item.layout !== "dashboard" && currentEntity && ENTITY_FIELDS[currentEntity]) {{
-      actions.innerHTML = '<button class="btn btn-primary btn-sm" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New</button>';
+      let toggleHtml = "";
+      if (smartLayout !== "table") {{
+        const altLabel = smartLayout === "kanban" ? "Kanban" : smartLayout === "calendar" ? "Calendar" : "Cards";
+        const altIcon = smartLayout === "kanban"
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>'
+          : smartLayout === "calendar"
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
+        const currentView = viewMode[name] || "table";
+        toggleHtml = '<div class="view-toggle">' +
+          '<button class="view-toggle-btn' + (currentView === "table" ? " active" : "") + '" onclick="switchView(\'' + escHtml(name) + '\',\'table\')">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>' +
+            'Table</button>' +
+          '<button class="view-toggle-btn' + (currentView === smartLayout ? " active" : "") + '" onclick="switchView(\'' + escHtml(name) + '\',\'' + smartLayout + '\')">' +
+            altIcon + altLabel + '</button>' +
+          '</div>';
+      }}
+      actions.innerHTML = toggleHtml + '<button class="btn btn-primary btn-sm" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New</button>';
     }} else {{
       actions.innerHTML = "";
     }}
@@ -1266,11 +1803,41 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     if (item.layout === "dashboard") {{
       renderDashboard(content);
     }} else if (currentEntity && ENTITY_FIELDS[currentEntity]) {{
-      renderTablePage(content, name, currentEntity);
+      const activeView = viewMode[name] || "table";
+      renderEntityView(content, name, currentEntity, activeView);
     }} else {{
       content.innerHTML = '<div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></div><h3>' + escHtml(name) + '</h3><p>This module is not configured yet.</p></div>';
     }}
   }};
+
+  window.switchView = function(moduleName, view) {{
+    viewMode[moduleName] = view;
+    showModule(moduleName);
+  }};
+
+  // ── Entity view dispatcher ──
+  async function renderEntityView(container, moduleName, entity, view) {{
+    // Pre-fetch FK data for this entity
+    const fields = ENTITY_FIELDS[entity] || [];
+    const fkPromises = [];
+    for (const f of fields) {{
+      const relEntity = getRelatedEntityForField(f.name, f);
+      if (relEntity && !fkCache[relEntity]) {{
+        fkPromises.push(fetchFkData(relEntity));
+      }}
+    }}
+    if (fkPromises.length > 0) await Promise.all(fkPromises);
+
+    if (view === "kanban") {{
+      renderKanbanView(container, moduleName, entity);
+    }} else if (view === "calendar") {{
+      renderCalendarView(container, moduleName, entity);
+    }} else if (view === "cards") {{
+      renderCardGridView(container, moduleName, entity);
+    }} else {{
+      renderTablePage(container, moduleName, entity);
+    }}
+  }}
 
   // ── Dashboard ──
   function renderDashboard(container) {{
@@ -1365,7 +1932,301 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     }}
   }}
 
-  // ── Table page ──
+  // ══════════════════════════════════════════
+  // ── KANBAN VIEW ──
+  // ══════════════════════════════════════════
+  async function renderKanbanView(container, moduleName, entity) {{
+    const fields = ENTITY_FIELDS[entity] || [];
+    const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 &&
+      /status|state|stage|phase/i.test(f.name));
+    if (!statusField) {{ renderTablePage(container, moduleName, entity); return; }}
+
+    const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
+    const extraFields = fields.filter(f =>
+      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name) &&
+      f.name !== statusField.name && (!nameField || f.name !== nameField.name)
+    ).slice(0, 3);
+
+    // Show search bar
+    container.innerHTML = '<div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">' +
+      '<div class="search-input">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+        '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchKanban(\'' + moduleName + '\',\'' + entity + '\',this.value)">' +
+      '</div></div>' +
+      '<div class="kanban-board" id="kanban-' + moduleName + '"></div>';
+
+    searchState[moduleName] = "";
+    const rows = await apiGet(entity.toLowerCase());
+    dataCache[entity] = rows;
+    renderKanbanCards(moduleName, entity, statusField, nameField, extraFields);
+  }}
+
+  function renderKanbanCards(moduleName, entity, statusField, nameField, extraFields) {{
+    const board = document.getElementById("kanban-" + moduleName);
+    if (!board) return;
+
+    let rows = (dataCache[entity] || []).slice();
+    const search = (searchState[moduleName] || "").toLowerCase();
+    if (search) {{
+      const fields = ENTITY_FIELDS[entity] || [];
+      rows = rows.filter(row =>
+        fields.some(f => String(row[f.name] || "").toLowerCase().includes(search))
+      );
+    }}
+
+    board.innerHTML = statusField.enum_values.map(status => {{
+      const statusRows = rows.filter(r => r[statusField.name] === status);
+      const cardsHtml = statusRows.map(row => {{
+        const rowId = row.id || row.ID || "";
+        const title = nameField ? (row[nameField.name] || "Untitled") : ("Record #" + String(rowId).slice(0, 6));
+        const extrasHtml = extraFields.map(f => {{
+          let val = row[f.name] ?? "";
+          const relEntity = getRelatedEntityForField(f.name, f);
+          if (relEntity && val) val = getFkDisplayName(relEntity, val);
+          if (/amount|value|price|cost|revenue|total|salary|fee|budget/i.test(f.name) && val !== "") {{
+            const num = parseFloat(val);
+            if (!isNaN(num)) val = "$" + num.toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}});
+          }}
+          return val ? '<div class="kanban-card-field"><strong>' + escHtml(f.name.replace(/_/g, " ")) + ':</strong> ' + escHtml(String(val)) + '</div>' : '';
+        }}).join("");
+        return '<div class="kanban-card" onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')">' +
+          '<div class="kanban-card-title">' + escHtml(title) + '</div>' +
+          extrasHtml +
+        '</div>';
+      }}).join("");
+
+      const badgeClass = getBadgeClass(status);
+      return '<div class="kanban-column">' +
+        '<div class="kanban-column-header">' +
+          '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(status) + '</span>' +
+          '<span class="kanban-column-count">' + statusRows.length + '</span>' +
+        '</div>' +
+        '<div class="kanban-column-body">' +
+          (cardsHtml || '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">No items</div>') +
+        '</div>' +
+      '</div>';
+    }}).join("");
+  }}
+
+  window.searchKanban = function(moduleName, entity, value) {{
+    searchState[moduleName] = value;
+    const fields = ENTITY_FIELDS[entity] || [];
+    const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 &&
+      /status|state|stage|phase/i.test(f.name));
+    const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
+    const extraFields = fields.filter(f =>
+      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name) &&
+      f.name !== statusField.name && (!nameField || f.name !== nameField.name)
+    ).slice(0, 3);
+    renderKanbanCards(moduleName, entity, statusField, nameField, extraFields);
+  }};
+
+  // ══════════════════════════════════════════
+  // ── CALENDAR VIEW ──
+  // ══════════════════════════════════════════
+  async function renderCalendarView(container, moduleName, entity) {{
+    const fields = ENTITY_FIELDS[entity] || [];
+    const dateField = fields.find(f => /date|_at$/i.test(f.name) && !/deleted|created|updated/i.test(f.name));
+    if (!dateField) {{ renderTablePage(container, moduleName, entity); return; }}
+
+    const rows = await apiGet(entity.toLowerCase());
+    dataCache[entity] = rows;
+
+    renderCalendarMonth(container, moduleName, entity, dateField);
+  }}
+
+  function renderCalendarMonth(container, moduleName, entity, dateField) {{
+    const rows = dataCache[entity] || [];
+    const fields = ENTITY_FIELDS[entity] || [];
+    const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
+
+    const year = calendarYear;
+    const month = calendarMonth;
+    const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+    const dayNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDow = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+
+    // Build event map: day number -> events
+    const eventMap = {{}};
+    rows.forEach(row => {{
+      const dateVal = row[dateField.name];
+      if (!dateVal) return;
+      const d = new Date(dateVal);
+      if (d.getFullYear() === year && d.getMonth() === month) {{
+        const day = d.getDate();
+        if (!eventMap[day]) eventMap[day] = [];
+        const label = nameField ? (row[nameField.name] || "Event") : "Event";
+        eventMap[day].push({{ label, id: row.id || row.ID }});
+      }}
+    }});
+
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+    let cellsHtml = dayNames.map(d => '<div class="calendar-day-header">' + d + '</div>').join("");
+
+    // Previous month filler
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    for (let i = startDow - 1; i >= 0; i--) {{
+      cellsHtml += '<div class="calendar-cell other-month"><div class="calendar-date">' + (prevMonthDays - i) + '</div></div>';
+    }}
+
+    // Current month
+    for (let day = 1; day <= daysInMonth; day++) {{
+      const isToday = isCurrentMonth && today.getDate() === day;
+      const events = eventMap[day] || [];
+      const eventsHtml = events.slice(0, 3).map(e =>
+        '<div class="calendar-event" onclick="event.stopPropagation();showDetail(\'' + entity + '\',\'' + e.id + '\')">' + escHtml(e.label) + '</div>'
+      ).join("");
+      const moreHtml = events.length > 3 ? '<div style="font-size:10px;color:var(--text-muted);padding:0 6px">+' + (events.length - 3) + ' more</div>' : '';
+      cellsHtml += '<div class="calendar-cell' + (isToday ? ' today' : '') + '">' +
+        '<div class="calendar-date">' + day + '</div>' +
+        eventsHtml + moreHtml +
+      '</div>';
+    }}
+
+    // Next month filler
+    const totalCells = startDow + daysInMonth;
+    const remainingCells = (7 - (totalCells % 7)) % 7;
+    for (let i = 1; i <= remainingCells; i++) {{
+      cellsHtml += '<div class="calendar-cell other-month"><div class="calendar-date">' + i + '</div></div>';
+    }}
+
+    container.innerHTML = '<div class="calendar-view">' +
+      '<div class="calendar-header">' +
+        '<h3>' + monthNames[month] + ' ' + year + '</h3>' +
+        '<div class="calendar-nav">' +
+          '<button class="calendar-nav-btn" onclick="navigateCalendar(\'' + moduleName + '\',\'' + entity + '\',-1)">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>' +
+          '</button>' +
+          '<button class="calendar-nav-btn" onclick="navigateCalendarToday(\'' + moduleName + '\',\'' + entity + '\')" style="padding:5px 10px;width:auto;font-size:12px;font-weight:500;font-family:inherit">Today</button>' +
+          '<button class="calendar-nav-btn" onclick="navigateCalendar(\'' + moduleName + '\',\'' + entity + '\',1)">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="calendar-grid">' + cellsHtml + '</div>' +
+    '</div>';
+  }}
+
+  window.navigateCalendar = function(moduleName, entity, delta) {{
+    calendarMonth += delta;
+    if (calendarMonth < 0) {{ calendarMonth = 11; calendarYear--; }}
+    if (calendarMonth > 11) {{ calendarMonth = 0; calendarYear++; }}
+    const fields = ENTITY_FIELDS[entity] || [];
+    const dateField = fields.find(f => /date|_at$/i.test(f.name) && !/deleted|created|updated/i.test(f.name));
+    if (dateField) renderCalendarMonth(document.getElementById("content-area"), moduleName, entity, dateField);
+  }};
+
+  window.navigateCalendarToday = function(moduleName, entity) {{
+    calendarYear = new Date().getFullYear();
+    calendarMonth = new Date().getMonth();
+    const fields = ENTITY_FIELDS[entity] || [];
+    const dateField = fields.find(f => /date|_at$/i.test(f.name) && !/deleted|created|updated/i.test(f.name));
+    if (dateField) renderCalendarMonth(document.getElementById("content-area"), moduleName, entity, dateField);
+  }};
+
+  // ══════════════════════════════════════════
+  // ── CARD GRID VIEW ──
+  // ══════════════════════════════════════════
+  async function renderCardGridView(container, moduleName, entity) {{
+    container.innerHTML = '<div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">' +
+      '<div class="search-input">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+        '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchCards(\'' + moduleName + '\',\'' + entity + '\',this.value)">' +
+      '</div></div>' +
+      '<div class="card-grid" id="cardgrid-' + moduleName + '"></div>';
+
+    searchState[moduleName] = "";
+    const rows = await apiGet(entity.toLowerCase());
+    dataCache[entity] = rows;
+    renderCardGridCards(moduleName, entity);
+  }}
+
+  function renderCardGridCards(moduleName, entity) {{
+    const grid = document.getElementById("cardgrid-" + moduleName);
+    if (!grid) return;
+
+    const fields = ENTITY_FIELDS[entity] || [];
+    let rows = (dataCache[entity] || []).slice();
+    const search = (searchState[moduleName] || "").toLowerCase();
+    if (search) {{
+      rows = rows.filter(row =>
+        fields.some(f => String(row[f.name] || "").toLowerCase().includes(search))
+      );
+    }}
+
+    const nameField = fields.find(f => /^(name|title|subject|label|full_name|product_name)$/i.test(f.name));
+    const imageField = fields.find(f => /image|photo|picture|thumbnail|avatar|cover|logo/i.test(f.name));
+    const priceField = fields.find(f => /price|cost|amount|value|rate|fee/i.test(f.name));
+    const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0);
+    const extraFields = fields.filter(f =>
+      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name) &&
+      f !== nameField && f !== imageField && f !== priceField && f !== statusField
+    ).slice(0, 2);
+
+    if (rows.length === 0) {{
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h3>No records found</h3><p>' + (search ? 'Try adjusting your search.' : 'Click "Add New" to create your first record.') + '</p></div>';
+      return;
+    }}
+
+    grid.innerHTML = rows.map(row => {{
+      const rowId = row.id || row.ID || "";
+      const title = nameField ? (row[nameField.name] || "Untitled") : ("Item #" + String(rowId).slice(0, 6));
+      const imgSrc = imageField && row[imageField.name] ? row[imageField.name] : "";
+
+      let imageHtml;
+      if (imgSrc && (imgSrc.startsWith("http") || imgSrc.startsWith("/"))) {{
+        imageHtml = '<div class="grid-card-image"><img src="' + escHtml(imgSrc) + '" alt="' + escHtml(title) + '" onerror="this.parentElement.innerHTML=\'<svg class=\\\'placeholder-icon\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'2\\\'><rect x=\\\'3\\\' y=\\\'3\\\' width=\\\'18\\\' height=\\\'18\\\' rx=\\\'2\\\'/><circle cx=\\\'8.5\\\' cy=\\\'8.5\\\' r=\\\'1.5\\\'/><polyline points=\\\'21 15 16 10 5 21\\\'/></svg>\'"></div>';
+      }} else {{
+        const initials = String(title).slice(0, 2).toUpperCase();
+        const bgColor = stringToColor(title);
+        imageHtml = '<div class="grid-card-image" style="background:linear-gradient(135deg,' + bgColor + '22,' + bgColor + '44)"><svg class="placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="' + bgColor + '" stroke-width="2" style="opacity:0.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>';
+      }}
+
+      const extrasHtml = extraFields.map(f => {{
+        let val = row[f.name] ?? "";
+        const relEntity = getRelatedEntityForField(f.name, f);
+        if (relEntity && val) val = getFkDisplayName(relEntity, val);
+        return val ? '<div class="grid-card-field"><strong>' + escHtml(f.name.replace(/_/g, " ")) + ':</strong> ' + escHtml(String(val)) + '</div>' : '';
+      }}).join("");
+
+      let footerHtml = '<div class="grid-card-footer">';
+      if (priceField && row[priceField.name] != null && row[priceField.name] !== "") {{
+        const num = parseFloat(row[priceField.name]);
+        footerHtml += '<span class="grid-card-price">' + (isNaN(num) ? escHtml(String(row[priceField.name])) : '$' + num.toLocaleString(undefined, {{minimumFractionDigits:2, maximumFractionDigits:2}})) + '</span>';
+      }} else {{
+        footerHtml += '<span></span>';
+      }}
+      if (statusField && row[statusField.name]) {{
+        const badgeClass = getBadgeClass(String(row[statusField.name]));
+        footerHtml += '<span class="badge grid-card-badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(row[statusField.name])) + '</span>';
+      }}
+      footerHtml += '</div>';
+
+      return '<div class="grid-card" onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')">' +
+        imageHtml +
+        '<div class="grid-card-body">' +
+          '<div class="grid-card-title">' + escHtml(title) + '</div>' +
+          extrasHtml +
+        '</div>' +
+        footerHtml +
+      '</div>';
+    }}).join("");
+  }}
+
+  window.searchCards = function(moduleName, entity, value) {{
+    searchState[moduleName] = value;
+    renderCardGridCards(moduleName, entity);
+  }};
+
+  // ══════════════════════════════════════════
+  // ── TABLE VIEW ──
+  // ══════════════════════════════════════════
   function renderTablePage(container, moduleName, entity) {{
     const fields = ENTITY_FIELDS[entity] || [];
     const visibleFields = fields.filter(f =>
@@ -1501,6 +2362,12 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
       const cells = visibleFields.map((f, idx) => {{
         let val = row[f.name] ?? "";
 
+        // FK display: show related entity name instead of UUID
+        const relEntity = getRelatedEntityForField(f.name, f);
+        if (relEntity && val) {{
+          val = getFkDisplayName(relEntity, val);
+        }}
+
         // Status badge for enum fields
         if (f.enum_values && f.enum_values.length) {{
           const badgeClass = getBadgeClass(String(val));
@@ -1624,6 +2491,12 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
       let val = record[f.name] ?? "";
       let displayVal;
 
+      // FK display
+      const relEntity = getRelatedEntityForField(f.name, f);
+      if (relEntity && val) {{
+        val = getFkDisplayName(relEntity, val);
+      }}
+
       if (f.enum_values && f.enum_values.length) {{
         const badgeClass = getBadgeClass(String(val));
         displayVal = '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(val)) + '</span>';
@@ -1674,16 +2547,51 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     document.getElementById("slide-over").classList.add("show");
   }};
 
-  // ── Render form ──
-  function renderForm(entity, record) {{
+  // ── Render form (with FK dropdowns) ──
+  async function renderForm(entity, record) {{
     const fields = (ENTITY_FIELDS[entity] || []).filter(f =>
       !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)
     );
     const body = document.getElementById("modal-body");
+    body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">Loading form...</div>';
+
+    // Pre-fetch FK data for all FK fields
+    const fkFields = [];
+    for (const f of fields) {{
+      const relEntity = getRelatedEntityForField(f.name, f);
+      if (relEntity) {{
+        fkFields.push({{ field: f, relEntity }});
+        if (!fkCache[relEntity]) await fetchFkData(relEntity);
+      }}
+    }}
+
     body.innerHTML = fields.map(f => {{
       const val = record[f.name] ?? f.default_value ?? "";
       const req = f.required ? '<span class="required">*</span>' : '';
       const label = escHtml(f.name.replace(/_/g, " "));
+
+      // FK dropdown
+      const relEntity = getRelatedEntityForField(f.name, f);
+      if (relEntity) {{
+        const relRows = fkCache[relEntity] || [];
+        const relFields = ENTITY_FIELDS[relEntity] || [];
+        const relNameField = relFields.find(rf => /^(name|title|subject|label|full_name)$/i.test(rf.name));
+        const opts = '<option value="">Select ' + escHtml(relEntity) + '...</option>' + relRows.map(r => {{
+          const rId = r.id || r.ID || "";
+          let displayName = relNameField ? (r[relNameField.name] || "") : "";
+          if (!displayName) {{
+            // Fallback: first non-id string field
+            for (const rf of relFields) {{
+              if (!["id","org_id","deleted_at","version","created_at","updated_at"].includes(rf.name) && r[rf.name] && typeof r[rf.name] === "string") {{
+                displayName = r[rf.name]; break;
+              }}
+            }}
+          }}
+          if (!displayName) displayName = String(rId).slice(0, 8);
+          return '<option value="' + escHtml(String(rId)) + '"' + (String(rId) === String(val) ? ' selected' : '') + '>' + escHtml(displayName) + '</option>';
+        }}).join("");
+        return '<div class="form-group"><label>' + label + req + '</label><select name="' + f.name + '">' + opts + '</select></div>';
+      }}
 
       // Select for enums
       if (f.enum_values && f.enum_values.length) {{
@@ -1857,9 +2765,16 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   }});
 
   // ── Init ──
-  buildSidebar();
-  if (SIDEBAR_ITEMS.length > 0) {{
-    showModule(SIDEBAR_ITEMS[0].name);
+  function initApp() {{
+    buildSidebar();
+    if (SIDEBAR_ITEMS.length > 0) {{
+      showModule(SIDEBAR_ITEMS[0].name);
+    }}
+  }}
+
+  // Check auth on load
+  if (checkAuth()) {{
+    initApp();
   }}
 }})();
 </script>
@@ -1890,6 +2805,75 @@ function installApp() {{
 </script>
 </body>
 </html>'''
+
+
+def _detect_smart_layouts(entities: list, modules: list) -> dict:
+    """
+    Analyze entities and determine the best alternate layout for each.
+
+    Returns a dict mapping entity name -> layout type:
+    - "kanban" if entity has a status field with enum_values
+    - "calendar" if entity has a date field AND name suggests appointments/events
+    - "cards" if entity has image/photo fields OR is a product/listing type
+    - "table" for everything else
+    """
+    import re
+
+    calendar_keywords = re.compile(
+        r"(appointment|booking|event|schedule|meeting|session|reservation|class|lesson|shift|calendar)",
+        re.IGNORECASE,
+    )
+    product_keywords = re.compile(
+        r"(product|listing|item|catalog|property|vehicle|menu|dish|recipe|portfolio|gallery|project)",
+        re.IGNORECASE,
+    )
+    image_field_pattern = re.compile(
+        r"(image|photo|picture|thumbnail|avatar|cover|logo|banner|icon|media)",
+        re.IGNORECASE,
+    )
+
+    layout_map = {}
+
+    for entity in entities:
+        name = entity.get("name", "")
+        fields = entity.get("fields", [])
+        if not name:
+            continue
+
+        has_status_enum = False
+        has_date_field = False
+        has_image_field = False
+
+        for f in fields:
+            fname = f.get("name", "")
+            ftype = f.get("type", "")
+            enum_vals = f.get("enum_values", [])
+
+            # Check for status-like enum field
+            if enum_vals and re.search(r"(status|state|stage|phase)", fname, re.IGNORECASE):
+                has_status_enum = True
+
+            # Check for date field (excluding created_at/updated_at/deleted_at)
+            if re.search(r"date|_at$", fname, re.IGNORECASE) and not re.search(
+                r"deleted|created|updated", fname, re.IGNORECASE
+            ):
+                has_date_field = True
+
+            # Check for image-related fields
+            if image_field_pattern.search(fname):
+                has_image_field = True
+
+        # Priority: Calendar > Kanban > Cards > Table
+        if has_date_field and calendar_keywords.search(name):
+            layout_map[name] = "calendar"
+        elif has_status_enum:
+            layout_map[name] = "kanban"
+        elif has_image_field or product_keywords.search(name):
+            layout_map[name] = "cards"
+        else:
+            layout_map[name] = "table"
+
+    return layout_map
 
 
 def _get_module_icon_id(name: str, module: dict) -> str:
@@ -1956,6 +2940,7 @@ def _build_entity_fields_js(entities: list) -> str:
                 "required": f.get("required", False),
                 "enum_values": f.get("enum_values", []),
                 "default_value": f.get("default_value", ""),
+                "fk_entity": f.get("fk_entity", ""),
             }
             for f in fields
         ]

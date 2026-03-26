@@ -124,6 +124,35 @@ For enum/status fields, also include:
 For foreign key fields, also include:
 - fk_entity: name of the referenced entity (PascalCase)
 
+## Entity Relationships
+When entities are related, use foreign key fields:
+- Field name: "{other_entity_table_singular}_id" (e.g., "customer_id")
+- db_type: "UUID REFERENCES {other_entity_table}(id)"
+- Add "fk_entity": "{OtherEntityName}" to the field
+- input_component: "relation_select" (renders as a dropdown of the related entity)
+- display_component: "relation_link" (renders as a clickable link)
+
+Example — Order belongs to Customer:
+{
+  "name": "customer_id",
+  "db_type": "UUID REFERENCES customers(id)",
+  "ts_type": "string",
+  "nullable": false,
+  "editable": true,
+  "show_in_table": true,
+  "show_in_form": true,
+  "input_component": "relation_select",
+  "display_component": "relation_link",
+  "fk_entity": "Customer"
+}
+
+Always create relationships when entities are logically connected:
+- Orders -> Customers
+- Tasks -> Projects
+- Appointments -> Clients
+- Invoices -> Customers
+- Messages -> Conversations
+
 ## MODULE FORMAT
 
 {"name": "Leads", "route": "/leads", "component": "ResourcePage", "layout": "sidebar", "sidebar_order": 2, "sidebar_icon": "Users", "entity": "Lead"}
