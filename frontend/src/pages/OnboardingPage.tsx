@@ -28,11 +28,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import { post } from "@/api/client";
+import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
 import { MarketplacePage } from "./MarketplacePage";
 import { MyAppsPage } from "./MyAppsPage";
 import { DevMarketplacePage } from "./DevMarketplacePage";
+import { SpecPreview } from "@/components/SpecPreview";
 
 interface Props {
   onSpecCreated: () => void;
@@ -112,6 +113,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [previewTab, setPreviewTab] = useState<"preview" | "code">("preview");
   const [chatPanelOpen, setChatPanelOpen] = useState(true);
+  const [builtSpec, setBuiltSpec] = useState<any>(null);
+  const [builtProjectId, setBuiltProjectId] = useState<string | null>(null);
 
   const hasStartedChat = messages.length > 0 && activeView === "chat";
 
@@ -219,7 +222,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       );
 
       if (res.ready_to_build && res.project_id) {
-        setTimeout(() => onSpecCreated(), 1500);
+        setBuiltProjectId(res.project_id);
+        // Fetch the generated spec to show in preview
+        try {
+          const project = await get<{ spec: any }>(`/projects/${res.project_id}`);
+          if (project?.spec) {
+            setBuiltSpec(project.spec);
+          }
+        } catch {
+          // Preview will show placeholder if fetch fails
+        }
       }
     } catch (err: any) {
       const detail = err?.detail || "Something went wrong. Please try again.";
@@ -377,10 +389,10 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       </div>
 
       {/* Preview content */}
-      <div className="flex flex-1 items-center justify-center p-6">
+      <div className="flex flex-1 items-center justify-center p-4">
         {previewTab === "preview" ? (
           <div
-            className={`h-full rounded-xl border border-gray-200 bg-white shadow-sm transition-all ${
+            className={`flex h-full flex-col rounded-xl border border-gray-200 bg-white shadow-sm transition-all ${
               previewDevice === "desktop"
                 ? "w-full"
                 : previewDevice === "tablet"
@@ -397,36 +409,48 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </div>
               <div className="mx-2 flex-1 rounded-md bg-gray-50 px-3 py-1">
                 <p className="text-center text-[10px] text-gray-400">
-                  your-app.isibi.ai
+                  {builtSpec?.app_name?.toLowerCase().replace(/\s+/g, "-") || "your-app"}.isibi.ai
                 </p>
               </div>
             </div>
 
             {/* Preview area */}
-            <div className="flex h-[calc(100%-36px)] items-center justify-center p-8">
-              <div className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50">
-                  <Monitor className="h-8 w-8 text-gray-300" />
-                </div>
-                <p className="text-sm font-medium text-black">Building your app...</p>
-                <p className="mt-1 text-xs text-gray-400">
-                  Describe your requirements in the chat and the preview will appear here.
-                </p>
-                {loading && (
-                  <div className="mt-4 flex justify-center">
-                    <div className="h-1 w-32 overflow-hidden rounded-full bg-gray-100">
-                      <div className="h-full w-1/3 animate-pulse rounded-full bg-black" />
+            <div className="flex-1 overflow-hidden">
+              {builtSpec ? (
+                <SpecPreview spec={builtSpec} device={previewDevice} />
+              ) : (
+                <div className="flex h-full items-center justify-center p-8">
+                  <div className="text-center">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50">
+                      <Monitor className="h-8 w-8 text-gray-300" />
                     </div>
+                    <p className="text-sm font-medium text-black">
+                      {loading ? "Building your app..." : "Preview"}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-400">
+                      {loading
+                        ? "Generating your application..."
+                        : "Describe your requirements in the chat and the preview will appear here."}
+                    </p>
+                    {loading && (
+                      <div className="mt-4 flex justify-center">
+                        <div className="h-1 w-32 overflow-hidden rounded-full bg-gray-100">
+                          <div className="h-full w-1/3 animate-pulse rounded-full bg-black" />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         ) : (
           <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-gray-900 p-4">
-            <pre className="text-xs text-gray-400">
+            <pre className="text-xs text-green-400">
               <code>
-                {`// Generated code will appear here\n// Keep chatting to refine your app\n\n// Model: ${selectedModel.label}\n// Session: ${activeChatId || "new"}`}
+                {builtSpec
+                  ? JSON.stringify(builtSpec, null, 2)
+                  : `// Generated spec will appear here\n// Keep chatting to refine your app\n\n// Model: ${selectedModel.label}\n// Session: ${activeChatId || "new"}`}
               </code>
             </pre>
           </div>
