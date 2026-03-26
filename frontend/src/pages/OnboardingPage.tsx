@@ -809,32 +809,39 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   };
 
   const handleDownloadApp = async () => {
-    if (!builtSpec || !builtProjectId) return;
-
-    // If not deployed yet, deploy first
-    let liveUrl = deployUrl;
-    if (!liveUrl) {
-      setDeploying(true);
-      try {
-        const res = await post<{ url: string; status: string }>(
-          `/projects/${builtProjectId}/deploy`,
-          {}
-        );
-        if (res?.url) {
-          liveUrl = resolveAppUrl(res.url);
-          setDeployUrl(liveUrl);
-        }
-      } catch {
-        setError("Failed to deploy. Please try again.");
-        setDeploying(false);
-        return;
-      } finally {
-        setDeploying(false);
-      }
+    if (!builtSpec) {
+      alert("No app to download yet. Build something first.");
+      return;
+    }
+    if (!builtProjectId) {
+      alert("Project not saved. Try building again.");
+      return;
     }
 
-    if (liveUrl) {
-      window.open(resolveAppUrl(liveUrl), "_blank");
+    setDeploying(true);
+    try {
+      // Always deploy/redeploy to get the latest
+      const res = await post<{ url: string; status: string }>(
+        `/projects/${builtProjectId}/deploy`,
+        {}
+      );
+      if (res?.url) {
+        const fullUrl = resolveAppUrl(res.url);
+        setDeployUrl(fullUrl);
+        // Open in new tab
+        const w = window.open(fullUrl, "_blank");
+        if (!w) {
+          // Popup blocked — show link instead
+          alert(`Your app is live at: ${fullUrl}\n\nOpen it in Chrome and click "Install" in the address bar to add it as an app.`);
+        }
+      } else {
+        alert("Deploy succeeded but no URL was returned. Check the backend logs.");
+      }
+    } catch (err: any) {
+      const msg = err?.detail || err?.message || "Deploy failed";
+      alert(`Error: ${msg}`);
+    } finally {
+      setDeploying(false);
     }
   };
 
