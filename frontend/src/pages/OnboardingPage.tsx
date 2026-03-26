@@ -47,6 +47,7 @@ import { MyAppsPage } from "./MyAppsPage";
 import { DevMarketplacePage } from "./DevMarketplacePage";
 import { SpecPreview } from "@/components/SpecPreview";
 import { VisualEditor } from "@/components/VisualEditor";
+import { CloudIDE } from "@/components/CloudIDE";
 
 // Memoized preview so it doesn't re-render while user types in the chat
 const MemoizedPreview = memo(function MemoizedPreview({
@@ -246,7 +247,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // Preview state
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [previewTab, setPreviewTab] = useState<"preview" | "code" | "history">("preview");
+  const [previewTab, setPreviewTab] = useState<"preview" | "code" | "cloud" | "history">("preview");
+  const [isGenerating, setIsGenerating] = useState(false);
   const [chatPanelOpen, setChatPanelOpen] = useState(true);
   const [builtSpec, setBuiltSpec] = useState<any>(null);
   const [builtProjectId, setBuiltProjectId] = useState<string | null>(null);
@@ -481,6 +483,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
       if (res.ready_to_build && res.project_id) {
         setBuiltProjectId(res.project_id);
+        // Switch to cloud IDE to show files being generated
+        setIsGenerating(true);
+        setPreviewTab("cloud");
         // Fetch the generated spec to show in preview
         try {
           const project = await get<{ spec: any }>(`/projects/${res.project_id}`);
@@ -772,6 +777,20 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               Code
             </span>
           </button>
+          <button
+            onClick={() => setPreviewTab("cloud")}
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+              previewTab === "cloud" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+            }`}
+          >
+            <span className="flex items-center gap-1">
+              <Monitor className="h-3 w-3" />
+              Cloud
+              {isGenerating && (
+                <span className="h-1.5 w-1.5 rounded-full bg-pink-500 animate-pulse" />
+              )}
+            </span>
+          </button>
           {builtProjectId && (
             <button
               onClick={() => {
@@ -949,6 +968,18 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 </div>
               )}
             </div>
+          </div>
+        ) : previewTab === "cloud" ? (
+          <div className="h-full w-full overflow-hidden rounded-xl border border-gray-200 shadow-sm">
+            <CloudIDE
+              spec={builtSpec}
+              generating={isGenerating}
+              projectId={builtProjectId || undefined}
+              onComplete={() => {
+                setIsGenerating(false);
+                setPreviewTab("preview");
+              }}
+            />
           </div>
         ) : previewTab === "code" ? (
           <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-gray-900 p-4">
