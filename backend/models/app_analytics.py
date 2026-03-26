@@ -20,5 +20,5 @@ class AppEvent(Base):
     page: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     user_agent: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
     ip_address: Mapped[Optional[str]] = mapped_column(String(45), nullable=True)
-    metadata: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    event_metadata: Mapped[Optional[dict]] = mapped_column("metadata", JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("NOW()"))

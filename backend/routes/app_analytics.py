@@ -38,7 +38,7 @@ def _serialize_event(e: AppEvent) -> dict:
         "page": e.page,
         "user_agent": e.user_agent,
         "ip_address": e.ip_address,
-        "metadata": e.metadata,
+        "metadata": e.event_metadata,
         "created_at": e.created_at.isoformat() if e.created_at else None,
     }
 
@@ -61,7 +61,7 @@ async def track_event(
         page=body.page,
         user_agent=request.headers.get("user-agent"),
         ip_address=request.client.host if request.client else None,
-        metadata=body.metadata,
+        event_metadata=body.metadata,
     )
     db.add(event)
     await db.commit()
