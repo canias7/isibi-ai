@@ -20,6 +20,19 @@ from .referral import Referral
 from .webhook import Webhook
 from .api_key import ApiKey
 from .audit_log import AuditLog
+from .user_preference import UserPreference
+from .app_translation import AppTranslation
+from .affiliate import Affiliate, AffiliateConversion
+from .notification import PlatformNotification
+from .comment import Comment
+from .scheduled_task import ScheduledTask
+from .email_template import EmailTemplate
+from .plugin import Plugin, ProjectPlugin
+from .component import SharedComponent
+from .review import Review
+from .app_analytics import AppEvent
+from .push_subscription import PushSubscription, PushNotificationLog
+from .serverless_function import ServerlessFunction
 
 __all__ = [
     "Lead", "Task", "Deal", "User", "Conversation", "PipelineStage",
@@ -27,4 +40,10 @@ __all__ = [
     "StripeConfig", "Workspace", "WorkspaceMember", "CustomDomain",
     "DesignImport", "Subscription", "Template", "WhitelabelConfig",
     "GalleryEntry", "Referral", "Webhook", "ApiKey", "AuditLog",
+    "UserPreference", "AppTranslation",
+    "Affiliate", "AffiliateConversion",
+    "PlatformNotification", "Comment", "ScheduledTask", "EmailTemplate",
+    "Plugin", "ProjectPlugin", "SharedComponent", "Review",
+    "AppEvent", "PushSubscription", "PushNotificationLog",
+    "ServerlessFunction",
 ]

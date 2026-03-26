@@ -24,6 +24,8 @@ from models.gallery_entry import GalleryEntry  # noqa: F401
 from models.referral import Referral  # noqa: F401
 from models.webhook import Webhook  # noqa: F401
 from models.api_key import ApiKey  # noqa: F401
+from models.user_preference import UserPreference  # noqa: F401
+from models.app_translation import AppTranslation  # noqa: F401
 
 # Import new route modules
 from routes.gallery import router as gallery_router
@@ -31,6 +33,28 @@ from routes.referrals import router as referrals_router
 from routes.embed import router as embed_router
 from routes.webhooks import router as webhooks_router
 from routes.api_keys import router as api_keys_router
+from routes.preferences import router as preferences_router
+from routes.suggestions import router as suggestions_router
+from routes.auto_fix import router as auto_fix_router
+from routes.i18n import router as i18n_router
+
+# Import new feature models so Base.metadata picks up their tables
+from models.plugin import Plugin, ProjectPlugin  # noqa: F401
+from models.component import SharedComponent  # noqa: F401
+from models.review import Review  # noqa: F401
+from models.app_analytics import AppEvent  # noqa: F401
+from models.push_subscription import PushSubscription, PushNotificationLog  # noqa: F401
+from models.serverless_function import ServerlessFunction  # noqa: F401
+
+# Import new feature routers
+from routes.plugins import router as plugins_router, project_plugins_router
+from routes.components import router as components_router
+from routes.cloning import router as cloning_router
+from routes.reviews import router as reviews_router
+from routes.app_analytics import router as app_analytics_router
+from routes.db_gui import router as db_gui_router
+from routes.push_notifications import router as push_notifications_router
+from routes.serverless import router as serverless_router
 
 
 @asynccontextmanager
@@ -77,6 +101,21 @@ app.include_router(referrals_router, prefix="/api")
 app.include_router(embed_router, prefix="/api")
 app.include_router(webhooks_router, prefix="/api")
 app.include_router(api_keys_router, prefix="/api")
+app.include_router(preferences_router, prefix="/api")
+app.include_router(suggestions_router, prefix="/api")
+app.include_router(auto_fix_router, prefix="/api")
+app.include_router(i18n_router, prefix="/api")
+
+# Register new feature routers
+app.include_router(plugins_router, prefix="/api")
+app.include_router(project_plugins_router, prefix="/api")
+app.include_router(components_router, prefix="/api")
+app.include_router(cloning_router, prefix="/api")
+app.include_router(reviews_router, prefix="/api")
+app.include_router(app_analytics_router)  # Uses raw /api paths internally
+app.include_router(db_gui_router, prefix="/api")
+app.include_router(push_notifications_router)  # Uses raw /api paths internally
+app.include_router(serverless_router, prefix="/api")
 
 # ── Serve uploaded files ──
 _uploads_dir = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(__file__), "uploads")))

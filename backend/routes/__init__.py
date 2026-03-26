@@ -29,6 +29,26 @@ from .api_keys import router as api_keys_router
 from .csv_io import router as csv_router
 from .audit_log import router as audit_log_router
 from .two_factor import router as two_factor_router
+from .preferences import router as preferences_router
+from .suggestions import router as suggestions_router
+from .auto_fix import router as auto_fix_router
+from .i18n import router as i18n_router
+from .affiliates import router as affiliates_router
+from .credits import router as credits_router
+from .notifications import router as notifications_router
+from .comments import router as comments_router
+from .sharing import router as sharing_router
+from .team_activity import router as team_activity_router
+from .scheduled_tasks import router as scheduled_tasks_router
+from .email_templates import router as email_templates_router
+from .plugins import router as plugins_router
+from .components import router as components_router
+from .cloning import router as cloning_router
+from .reviews import router as reviews_router
+from .app_analytics import router as app_analytics_router
+from .db_gui import router as db_gui_router
+from .push_notifications import router as push_notifications_router
+from .serverless import router as serverless_router
 
 all_routers = [
     auth_router,
@@ -62,4 +82,24 @@ all_routers = [
     csv_router,
     audit_log_router,
     two_factor_router,
+    preferences_router,
+    suggestions_router,
+    auto_fix_router,
+    i18n_router,
+    affiliates_router,
+    credits_router,
+    notifications_router,
+    comments_router,
+    sharing_router,
+    team_activity_router,
+    scheduled_tasks_router,
+    email_templates_router,
+    plugins_router,
+    components_router,
+    cloning_router,
+    reviews_router,
+    app_analytics_router,
+    db_gui_router,
+    push_notifications_router,
+    serverless_router,
 ]
