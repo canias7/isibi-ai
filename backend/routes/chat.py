@@ -17,12 +17,14 @@ import asyncio
 import json
 import logging
 import os
+import re
 import traceback
 import anthropic
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
@@ -30,6 +32,7 @@ from auth import get_current_org_id, get_current_user_id
 from generator.rag import build_rag_context, get_full_spec_as_schema_reference
 from generator.orchestrator import create_project
 from routes.billing_check import can_build
+from models.user_preference import UserPreference
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +187,113 @@ Rules: 3-4 options, emoji + short label + dash + description, always include an 
 }
 
 
+# ── Preference learning ────────────────────────────────────────────
+
+# Color name to hex mapping for preference extraction
+_COLOR_MAP = {
+    "red": "#ef4444", "blue": "#3b82f6", "green": "#22c55e",
+    "purple": "#a855f7", "pink": "#ec4899", "orange": "#f97316",
+    "yellow": "#eab308", "indigo": "#6366f1", "teal": "#14b8a6",
+    "cyan": "#06b6d4", "black": "#000000", "white": "#ffffff",
+    "gray": "#6b7280", "grey": "#6b7280", "rose": "#f43f5e",
+    "violet": "#8b5cf6", "emerald": "#10b981", "amber": "#f59e0b",
+    "lime": "#84cc16", "sky": "#0ea5e9", "fuchsia": "#d946ef",
+}
+
+_PREFERENCE_SIGNALS = {"always", "prefer", "default", "use", "make", "want", "like"}
+_MINIMAL_KEYWORDS = {"minimal", "minimalist", "clean", "simple"}
+
+
+def extract_preferences(user_message: str) -> dict:
+    """
+    Extract user preferences from a chat message using keyword matching.
+
+    Returns a dict of preference key-value pairs found in the message.
+    Only extracts preferences when the message contains signal words
+    (always, prefer, default, like, want, make, use).
+    """
+    msg = user_message.lower().strip()
+    prefs: dict = {}
+
+    # Check if the message contains a preference signal word
+    has_signal = any(word in msg for word in _PREFERENCE_SIGNALS)
+    if not has_signal:
+        return prefs
+
+    # Theme preference: dark/light
+    if "dark" in msg and ("theme" in msg or "mode" in msg or has_signal):
+        prefs["theme"] = "dark"
+    elif "light" in msg and ("theme" in msg or "mode" in msg or has_signal):
+        prefs["theme"] = "light"
+
+    # Color preference
+    for color_name, hex_val in _COLOR_MAP.items():
+        if color_name in msg and ("color" in msg or "colour" in msg or has_signal):
+            prefs["primary_color"] = hex_val
+            break
+
+    # Style preference: minimal / clean / simple
+    if any(kw in msg for kw in _MINIMAL_KEYWORDS):
+        prefs["style"] = "minimal"
+    elif "bold" in msg or "vibrant" in msg:
+        prefs["style"] = "bold"
+    elif "professional" in msg or "corporate" in msg:
+        prefs["style"] = "professional"
+
+    # Table layout preference
+    if "table" in msg and ("wide" in msg or "wider" in msg or "full" in msg):
+        prefs["table_layout"] = "wide"
+    elif "table" in msg and ("compact" in msg or "narrow" in msg):
+        prefs["table_layout"] = "compact"
+
+    return prefs
+
+
+async def _get_user_preferences(db: AsyncSession, user_id: UUID) -> dict:
+    """Fetch stored preferences for a user from the database."""
+    result = await db.execute(
+        select(UserPreference).where(UserPreference.user_id == user_id)
+    )
+    pref = result.scalar_one_or_none()
+    if pref and pref.preferences:
+        return dict(pref.preferences)
+    return {}
+
+
+async def _save_user_preferences(db: AsyncSession, user_id: UUID, org_id: UUID, new_prefs: dict):
+    """Merge new preferences into the user's stored preferences."""
+    if not new_prefs:
+        return
+    result = await db.execute(
+        select(UserPreference).where(UserPreference.user_id == user_id)
+    )
+    pref = result.scalar_one_or_none()
+    if pref is None:
+        pref = UserPreference(user_id=user_id, org_id=org_id, preferences=new_prefs)
+        db.add(pref)
+    else:
+        merged = {**(pref.preferences or {}), **new_prefs}
+        pref.preferences = merged
+    await db.flush()
+
+
+def _build_preferences_prompt(prefs: dict) -> str:
+    """Build a system prompt section from stored user preferences."""
+    if not prefs:
+        return ""
+    lines = ["User preferences (apply these to all generated apps):"]
+    label_map = {
+        "theme": "Preferred theme",
+        "primary_color": "Preferred primary color",
+        "style": "Preferred style",
+        "table_layout": "Preferred table layout",
+    }
+    for key, value in prefs.items():
+        label = label_map.get(key, key.replace("_", " ").title())
+        lines.append(f"- {label}: {value}")
+    return "\n".join(lines)
+
+
 # ── Request / Response ─────────────────────────────────────────────
 
 class ChatRequest(BaseModel):
@@ -219,13 +329,36 @@ async def api_chat(
     if not persona:
         raise HTTPException(status_code=400, detail=f"Unknown model: {body.model}")
 
+    # Extract preferences from the latest user message and save them
+    user_messages = [m["content"] for m in body.messages if m["role"] == "user"]
+    if user_messages:
+        latest_prefs = extract_preferences(user_messages[-1])
+        if latest_prefs:
+            try:
+                await _save_user_preferences(db, user_id, org_id, latest_prefs)
+                await db.commit()
+            except Exception as e:
+                logger.warning("Failed to save preferences: %s", e)
+
+    # Fetch stored preferences and inject into system prompt
+    stored_prefs = {}
+    try:
+        stored_prefs = await _get_user_preferences(db, user_id)
+    except Exception as e:
+        logger.warning("Failed to fetch preferences: %s", e)
+
+    system_prompt = persona["system"]
+    prefs_prompt = _build_preferences_prompt(stored_prefs)
+    if prefs_prompt:
+        system_prompt = system_prompt + "\n\n" + prefs_prompt
+
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
         response = client.messages.create(
             model=MODEL,
             max_tokens=1024,
-            system=persona["system"],
+            system=system_prompt,
             messages=body.messages,
         )
 
@@ -373,6 +506,29 @@ async def api_chat_stream(
     if not persona:
         raise HTTPException(status_code=400, detail=f"Unknown model: {body.model}")
 
+    # Extract and save preferences from latest user message
+    user_messages = [m["content"] for m in body.messages if m["role"] == "user"]
+    if user_messages:
+        latest_prefs = extract_preferences(user_messages[-1])
+        if latest_prefs:
+            try:
+                await _save_user_preferences(db, user_id, org_id, latest_prefs)
+                await db.commit()
+            except Exception as e:
+                logger.warning("Failed to save preferences (stream): %s", e)
+
+    # Build system prompt with stored preferences
+    stored_prefs = {}
+    try:
+        stored_prefs = await _get_user_preferences(db, user_id)
+    except Exception as e:
+        logger.warning("Failed to fetch preferences (stream): %s", e)
+
+    system_prompt = persona["system"]
+    prefs_prompt = _build_preferences_prompt(stored_prefs)
+    if prefs_prompt:
+        system_prompt = system_prompt + "\n\n" + prefs_prompt
+
     async def event_generator():
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         full_reply = ""
@@ -381,7 +537,7 @@ async def api_chat_stream(
             with client.messages.stream(
                 model=MODEL,
                 max_tokens=1024,
-                system=persona["system"],
+                system=system_prompt,
                 messages=body.messages,
             ) as stream:
                 for text_chunk in stream.text_stream:

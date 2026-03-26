@@ -38,6 +38,10 @@ import {
   Moon,
   Keyboard,
   Trash2,
+  Undo2,
+  Redo2,
+  Share2,
+  FileText,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -49,6 +53,8 @@ import { DevMarketplacePage } from "./DevMarketplacePage";
 import { SpecPreview } from "@/components/SpecPreview";
 import { VisualEditor } from "@/components/VisualEditor";
 import { CloudIDE } from "@/components/CloudIDE";
+import { ERDViewer } from "@/components/ERDViewer";
+import { SpecEditor } from "@/components/SpecEditor";
 
 // Memoized preview so it doesn't re-render while user types in the chat
 const MemoizedPreview = memo(function MemoizedPreview({
@@ -251,12 +257,78 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // Preview state
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
-  const [previewTab, setPreviewTab] = useState<"preview" | "code" | "cloud" | "history">("preview");
+  const [previewTab, setPreviewTab] = useState<"preview" | "code" | "cloud" | "history" | "erd" | "editor">("preview");
   const [isGenerating, setIsGenerating] = useState(false);
   const [chatPanelOpen, setChatPanelOpen] = useState(true);
-  const [builtSpec, setBuiltSpec] = useState<any>(null);
+  const [builtSpec, _setBuiltSpec] = useState<any>(null);
   const [builtProjectId, setBuiltProjectId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+
+  // Undo/redo state for spec changes
+  const [specHistory, setSpecHistory] = useState<any[]>([]);
+  const [specFuture, setSpecFuture] = useState<any[]>([]);
+  const MAX_HISTORY = 20;
+
+  // Wrapper around setBuiltSpec that tracks history
+  const setBuiltSpec = useCallback((newSpec: any) => {
+    _setBuiltSpec((prev: any) => {
+      if (prev !== null && prev !== newSpec) {
+        setSpecHistory((h) => {
+          const updated = [...h, prev];
+          return updated.length > MAX_HISTORY ? updated.slice(updated.length - MAX_HISTORY) : updated;
+        });
+        setSpecFuture([]); // Clear redo stack on new change
+      }
+      return newSpec;
+    });
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    if (specHistory.length === 0) return;
+    const previousSpec = specHistory[specHistory.length - 1];
+    setSpecHistory((h) => h.slice(0, -1));
+    _setBuiltSpec((current: any) => {
+      if (current !== null) {
+        setSpecFuture((f) => {
+          const updated = [...f, current];
+          return updated.length > MAX_HISTORY ? updated.slice(updated.length - MAX_HISTORY) : updated;
+        });
+      }
+      return previousSpec;
+    });
+  }, [specHistory]);
+
+  const handleRedo = useCallback(() => {
+    if (specFuture.length === 0) return;
+    const nextSpec = specFuture[specFuture.length - 1];
+    setSpecFuture((f) => f.slice(0, -1));
+    _setBuiltSpec((current: any) => {
+      if (current !== null) {
+        setSpecHistory((h) => {
+          const updated = [...h, current];
+          return updated.length > MAX_HISTORY ? updated.slice(updated.length - MAX_HISTORY) : updated;
+        });
+      }
+      return nextSpec;
+    });
+  }, [specFuture]);
+
+  // Keyboard shortcuts: Cmd+Z for undo, Cmd+Shift+Z for redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "z") {
+        if (e.shiftKey) {
+          e.preventDefault();
+          handleRedo();
+        } else {
+          e.preventDefault();
+          handleUndo();
+        }
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [handleUndo, handleRedo]);
 
   // Deploy state
   const [deploying, setDeploying] = useState(false);
@@ -451,6 +523,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setPreviewTab("preview");
     setVersions([]);
     setSelectedVersionSpec(null);
+    setSpecHistory([]);
+    setSpecFuture([]);
   };
 
   const loadChat = async (session: ChatSession) => {
@@ -466,6 +540,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setPreviewTab("preview");
     setVersions([]);
     setSelectedVersionSpec(null);
+    setSpecHistory([]);
+    setSpecFuture([]);
 
     // If session has a spec already, use it
     if (session.spec) {
@@ -959,6 +1035,32 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </span>
             </button>
           )}
+          {builtSpec && isDev && (
+            <button
+              onClick={() => setPreviewTab("erd")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                previewTab === "erd" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <Share2 className="h-3 w-3" />
+                ERD
+              </span>
+            </button>
+          )}
+          {builtSpec && isDev && (
+            <button
+              onClick={() => setPreviewTab("editor")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                previewTab === "editor" ? "bg-gray-100 text-black" : "text-gray-500 hover:text-black"
+              }`}
+            >
+              <span className="flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                Editor
+              </span>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -1000,6 +1102,26 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <Pencil className="h-3.5 w-3.5" />
               {editMode ? "Editing" : "Edit"}
             </button>
+          )}
+          {builtSpec && (
+            <>
+              <button
+                onClick={handleUndo}
+                disabled={specHistory.length === 0}
+                className="rounded-lg p-1.5 text-gray-400 transition hover:text-black disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Undo (Cmd+Z)"
+              >
+                <Undo2 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={handleRedo}
+                disabled={specFuture.length === 0}
+                className="rounded-lg p-1.5 text-gray-400 transition hover:text-black disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Redo (Cmd+Shift+Z)"
+              >
+                <Redo2 className="h-4 w-4" />
+              </button>
+            </>
           )}
           <button className="rounded-lg p-1.5 text-gray-400 transition hover:text-black">
             <ExternalLink className="h-4 w-4" />
@@ -1251,6 +1373,26 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 <pre className="max-h-60 overflow-auto rounded bg-white p-2 text-[11px] text-gray-700">
                   {JSON.stringify(selectedVersionSpec, null, 2)}
                 </pre>
+              </div>
+            )}
+          </div>
+        ) : previewTab === "erd" ? (
+          <div className="h-full w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {builtSpec ? (
+              <ERDViewer spec={builtSpec} />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-sm text-gray-400">Build a spec first to see the ERD</p>
+              </div>
+            )}
+          </div>
+        ) : previewTab === "editor" ? (
+          <div className="h-full w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            {builtSpec ? (
+              <SpecEditor spec={builtSpec} onSpecUpdate={(updatedSpec) => setBuiltSpec(updatedSpec)} />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-sm text-gray-400">Build a spec first to use the editor</p>
               </div>
             )}
           </div>

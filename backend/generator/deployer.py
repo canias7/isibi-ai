@@ -51,8 +51,9 @@ async def deploy_app(project_id: str, spec: dict, db: AsyncSession) -> dict:
     # Determine the base URL for the API (used by the generated app)
     api_base_url = os.getenv("API_BASE_URL", "")
 
-    # Generate the full standalone HTML
+    # Generate the full standalone HTML (with plugin injection)
     html_content = generate_full_app_html(spec, api_base_url, project_id)
+    html_content = _inject_plugins(html_content, spec, project_id)
 
     # Write build artifact
     build_dir = BUILDS_DIR / str(project_id)
@@ -1340,6 +1341,225 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   .kanban-column {{ min-width:220px;width:220px; }}
   .card-grid {{ grid-template-columns:1fr; }}
 }}
+
+/* ── Analytics Page ── */
+.analytics-stats-row {{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px;
+}}
+.analytics-stat-card {{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px;box-shadow:var(--shadow-xs);
+}}
+.analytics-stat-card .stat-label {{ font-size:12px;color:var(--text-muted);margin-bottom:6px;font-weight:500; }}
+.analytics-stat-card .stat-value {{ font-size:24px;font-weight:700;color:var(--text); }}
+.analytics-bar-chart {{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:24px;box-shadow:var(--shadow-xs);margin-bottom:24px;
+}}
+.analytics-bar-chart h3 {{ font-size:14px;font-weight:600;margin-bottom:16px; }}
+.ab-bars {{ display:flex;align-items:flex-end;gap:12px;height:180px; }}
+.ab-col {{ flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:6px; }}
+.ab-bar {{
+  width:100%;max-width:60px;border-radius:6px 6px 2px 2px;
+  background:var(--primary);opacity:0.85;min-height:4px;
+  transition:opacity var(--transition),height 0.6s ease;
+  position:relative;
+}}
+.ab-bar:hover {{ opacity:1; }}
+.ab-bar-val {{
+  position:absolute;top:-20px;left:50%;transform:translateX(-50%);
+  font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;
+}}
+.ab-label {{ font-size:11px;color:var(--text-muted);font-weight:500;text-align:center;word-break:break-word;max-width:80px; }}
+.analytics-line-chart {{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:24px;box-shadow:var(--shadow-xs);margin-bottom:24px;
+}}
+.analytics-line-chart h3 {{ font-size:14px;font-weight:600;margin-bottom:16px; }}
+.analytics-line-chart svg {{ width:100%;height:200px; }}
+.analytics-grid {{ display:grid;grid-template-columns:1fr 1fr;gap:24px; }}
+@media (max-width:768px) {{ .analytics-grid {{ grid-template-columns:1fr; }} }}
+
+/* ── Export Buttons ── */
+.export-btn-group {{ display:flex;align-items:center;gap:6px; }}
+
+/* ── Print styles for PDF export ── */
+@media print {{
+  .sidebar,.topbar,.sidebar-overlay,.modal-overlay,.slide-over,.confirm-dialog,
+  .toast-container,.loading-bar,.auth-screen,.table-toolbar .search-input,
+  .table-toolbar .status-tabs,.table-footer,.bulk-action-bar,
+  #notification-dropdown,#global-search-overlay {{ display:none !important; }}
+  body {{ display:block !important;overflow:visible !important; }}
+  .main {{ overflow:visible !important; }}
+  .content {{ overflow:visible !important;padding:0 !important; }}
+  .table-container {{ border:none !important;box-shadow:none !important; }}
+  table {{ font-size:11px; }}
+  th {{ background:#f0f0f0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact; }}
+  td,th {{ padding:6px 10px !important; }}
+}}
+
+/* ── Notification Bell ── */
+.notif-bell {{
+  position:relative;background:none;border:none;cursor:pointer;
+  padding:6px;border-radius:var(--radius);color:var(--text-secondary);
+  transition:all var(--transition);
+}}
+.notif-bell:hover {{ background:var(--bg);color:var(--text); }}
+.notif-bell svg {{ width:20px;height:20px; }}
+.notif-badge {{
+  position:absolute;top:2px;right:2px;
+  min-width:16px;height:16px;
+  background:var(--danger);color:#fff;
+  border-radius:20px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  padding:0 4px;line-height:1;
+  pointer-events:none;
+}}
+.notif-badge.hidden {{ display:none; }}
+.notif-dropdown {{
+  position:absolute;top:42px;right:0;
+  width:340px;max-height:420px;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);
+  z-index:150;display:none;overflow:hidden;
+}}
+.notif-dropdown.show {{ display:block; }}
+.notif-dropdown-header {{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-bottom:1px solid var(--border-light);
+}}
+.notif-dropdown-header h4 {{ font-size:14px;font-weight:600; }}
+.notif-mark-read {{
+  background:none;border:none;font-size:12px;color:var(--primary);
+  cursor:pointer;font-family:inherit;font-weight:500;
+}}
+.notif-mark-read:hover {{ text-decoration:underline; }}
+.notif-list {{ max-height:340px;overflow-y:auto; }}
+.notif-item {{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px 16px;border-bottom:1px solid var(--border-light);
+  transition:background var(--transition);
+}}
+.notif-item:last-child {{ border-bottom:none; }}
+.notif-item:hover {{ background:var(--bg); }}
+.notif-item.unread {{ background:var(--primary-subtle); }}
+.notif-dot {{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--primary);flex-shrink:0;margin-top:5px;
+}}
+.notif-dot.read {{ background:var(--text-muted);opacity:0.3; }}
+.notif-text {{ flex:1;font-size:13px;color:var(--text); }}
+.notif-time {{ font-size:11px;color:var(--text-muted);margin-top:2px; }}
+.notif-empty {{
+  padding:30px 16px;text-align:center;color:var(--text-muted);font-size:13px;
+}}
+
+/* ── Global Search ── */
+#global-search-overlay {{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,0.4);z-index:200;
+  align-items:flex-start;justify-content:center;
+  padding-top:min(20vh,120px);backdrop-filter:blur(2px);
+}}
+#global-search-overlay.show {{ display:flex; }}
+.gsearch-box {{
+  width:560px;max-width:92vw;
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-xl);box-shadow:var(--shadow-xl);
+  overflow:hidden;
+  animation:dialogIn 0.15s ease;
+}}
+.gsearch-input-wrap {{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 18px;border-bottom:1px solid var(--border-light);
+}}
+.gsearch-input-wrap svg {{ width:20px;height:20px;color:var(--text-muted);flex-shrink:0; }}
+.gsearch-input-wrap input {{
+  flex:1;border:none;outline:none;font-size:15px;color:var(--text);
+  background:transparent;font-family:inherit;
+}}
+.gsearch-input-wrap input::placeholder {{ color:var(--text-placeholder); }}
+.gsearch-input-wrap kbd {{
+  font-size:11px;padding:2px 6px;border-radius:4px;
+  background:var(--bg);border:1px solid var(--border);
+  color:var(--text-muted);font-family:inherit;
+}}
+.gsearch-results {{
+  max-height:360px;overflow-y:auto;padding:8px 0;
+}}
+.gsearch-group-label {{
+  padding:8px 18px 4px;font-size:11px;font-weight:600;
+  color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;
+}}
+.gsearch-item {{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 18px;cursor:pointer;transition:background var(--transition);
+}}
+.gsearch-item:hover {{ background:var(--primary-light); }}
+.gsearch-item-text {{ font-size:13px;color:var(--text); }}
+.gsearch-item-text strong {{ font-weight:600; }}
+.gsearch-item-entity {{
+  font-size:11px;color:var(--text-muted);margin-left:auto;flex-shrink:0;
+}}
+.gsearch-empty {{
+  padding:24px 18px;text-align:center;color:var(--text-muted);font-size:13px;
+}}
+.gsearch-hint {{
+  padding:10px 18px;border-top:1px solid var(--border-light);
+  font-size:11px;color:var(--text-muted);
+  display:flex;align-items:center;gap:6px;
+}}
+
+/* ── Bulk Actions ── */
+.bulk-cb {{
+  width:16px;height:16px;accent-color:var(--primary);cursor:pointer;
+  margin:0;
+}}
+.bulk-action-bar {{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--text);color:#fff;
+  padding:10px 20px;border-radius:var(--radius-xl);
+  box-shadow:var(--shadow-xl);z-index:120;
+  display:none;align-items:center;gap:16px;
+  animation:dialogIn 0.2s ease;
+  font-size:13px;font-weight:500;
+  white-space:nowrap;
+}}
+.bulk-action-bar.show {{ display:flex; }}
+.bulk-action-bar span {{ opacity:0.7; }}
+.bulk-action-bar button {{
+  background:rgba(255,255,255,0.15);color:#fff;
+  border:1px solid rgba(255,255,255,0.2);
+  padding:6px 14px;border-radius:var(--radius);
+  font-size:12px;font-weight:500;cursor:pointer;
+  font-family:inherit;transition:all var(--transition);
+}}
+.bulk-action-bar button:hover {{ background:rgba(255,255,255,0.25); }}
+.bulk-action-bar button.bulk-delete {{ background:var(--danger);border-color:var(--danger); }}
+.bulk-action-bar button.bulk-delete:hover {{ background:#dc2626; }}
+.bulk-action-bar select {{
+  background:rgba(255,255,255,0.15);color:#fff;
+  border:1px solid rgba(255,255,255,0.2);
+  padding:6px 10px;border-radius:var(--radius);
+  font-size:12px;font-family:inherit;cursor:pointer;
+}}
+.bulk-action-bar select option {{ color:var(--text);background:var(--bg-card); }}
+tr.bulk-selected {{ background:var(--primary-light) !important; }}
+.topbar-search-trigger {{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 14px;border:1px solid var(--border);
+  border-radius:var(--radius);background:var(--bg);
+  color:var(--text-muted);font-size:13px;cursor:pointer;
+  transition:all var(--transition);min-width:180px;
+  font-family:inherit;
+}}
+.topbar-search-trigger:hover {{ border-color:var(--text-muted);color:var(--text-secondary); }}
+.topbar-search-trigger svg {{ width:16px;height:16px;flex-shrink:0; }}
+.topbar-search-trigger kbd {{
+  font-size:10px;padding:1px 5px;border-radius:3px;
+  background:var(--bg-card);border:1px solid var(--border);
+  color:var(--text-muted);margin-left:auto;font-family:inherit;
+}}
 </style>
 </head>
 <body>
@@ -1410,6 +1630,26 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
       </button>
       <h2 id="page-title">Dashboard</h2>
     </div>
+    <button class="topbar-search-trigger" onclick="openGlobalSearch()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Search...
+      <kbd id="search-shortcut-label">Ctrl+K</kbd>
+    </button>
+    <div style="display:flex;align-items:center;gap:4px;">
+      <button class="notif-bell" id="notif-bell" onclick="toggleNotifications(event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+        <span class="notif-badge hidden" id="notif-badge">0</span>
+      </button>
+      <div class="notif-dropdown" id="notification-dropdown">
+        <div class="notif-dropdown-header">
+          <h4>Notifications</h4>
+          <button class="notif-mark-read" onclick="markAllNotificationsRead()">Mark all read</button>
+        </div>
+        <div class="notif-list" id="notif-list">
+          <div class="notif-empty">No notifications yet</div>
+        </div>
+      </div>
+    </div>
     <div class="topbar-actions" id="topbar-actions"></div>
   </header>
   <div class="content" id="content-area"></div>
@@ -1448,6 +1688,33 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   </div>
 </div>
 
+<!-- Global search overlay -->
+<div id="global-search-overlay" onclick="if(event.target===this)closeGlobalSearch()">
+  <div class="gsearch-box">
+    <div class="gsearch-input-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="gsearch-input" placeholder="Search across all data..." oninput="onGlobalSearchInput(this.value)">
+      <kbd>ESC</kbd>
+    </div>
+    <div class="gsearch-results" id="gsearch-results">
+      <div class="gsearch-empty">Type to search across all entities</div>
+    </div>
+    <div class="gsearch-hint">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      Navigate results and press Enter to go
+    </div>
+  </div>
+</div>
+
+<!-- Bulk action bar -->
+<div class="bulk-action-bar" id="bulk-action-bar">
+  <span id="bulk-count">0 selected</span>
+  <button onclick="bulkExportCSV()">Export Selected</button>
+  <span id="bulk-status-wrap"></span>
+  <button class="bulk-delete" onclick="bulkDelete()">Delete Selected</button>
+  <button onclick="bulkDeselectAll()" style="background:transparent;border-color:transparent;opacity:0.7">Deselect</button>
+</div>
+
 <!-- Toast container -->
 <div class="toast-container" id="toast-container"></div>
 
@@ -1480,6 +1747,16 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   const filterState = {{}};
   const pageState = {{}};
   const viewMode = {{}};  // track current view per module: "table" | "kanban" | "calendar" | "cards"
+
+  // ── Notifications state ──
+  const notifications = [];
+  let notifUnread = 0;
+
+  // ── Bulk selection state ──
+  const bulkSelected = {{}};  // entity -> Set of ids
+
+  // ── Global search state ──
+  let gsearchTimer = null;
 
   // ── Auth ──
   function getToken() {{
@@ -1720,6 +1997,8 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
   function buildSidebar() {{
     const nav = document.getElementById("sidebar-nav");
     const label = nav.querySelector(".sidebar-section-label");
+    // Insert Analytics item right after Dashboard (or first)
+    let dashboardInserted = false;
     SIDEBAR_ITEMS.forEach(item => {{
       const btn = document.createElement("button");
       btn.className = "sidebar-item";
@@ -1727,7 +2006,30 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
       btn.innerHTML = getModuleIcon(item.icon) + '<span>' + escHtml(item.name) + '</span>';
       btn.onclick = () => showModule(item.name);
       nav.appendChild(btn);
+      if (!dashboardInserted && (item.layout === "dashboard" || item.name.toLowerCase() === "dashboard")) {{
+        dashboardInserted = true;
+        const analyticsBtn = document.createElement("button");
+        analyticsBtn.className = "sidebar-item";
+        analyticsBtn.dataset.module = "__analytics__";
+        analyticsBtn.innerHTML = getModuleIcon("chart") + '<span>Analytics</span>';
+        analyticsBtn.onclick = () => showModule("__analytics__");
+        nav.appendChild(analyticsBtn);
+      }}
     }});
+    // If no dashboard was found, still add analytics at the top
+    if (!dashboardInserted) {{
+      const analyticsBtn = document.createElement("button");
+      analyticsBtn.className = "sidebar-item";
+      analyticsBtn.dataset.module = "__analytics__";
+      analyticsBtn.innerHTML = getModuleIcon("chart") + '<span>Analytics</span>';
+      analyticsBtn.onclick = () => showModule("__analytics__");
+      if (nav.children.length > 1) nav.insertBefore(analyticsBtn, nav.children[1]);
+      else nav.appendChild(analyticsBtn);
+    }}
+    // Detect Cmd vs Ctrl for search shortcut label
+    const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
+    const shortcutEl = document.getElementById("search-shortcut-label");
+    if (shortcutEl) shortcutEl.textContent = isMac ? "\\u2318K" : "Ctrl+K";
   }}
 
   window.toggleSidebar = function() {{
@@ -1749,12 +2051,31 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
 
   // ── Module navigation ──
   window.showModule = function(name) {{
+    // Handle built-in Analytics page
+    if (name === "__analytics__") {{
+      document.getElementById("sidebar").classList.remove("open");
+      document.getElementById("sidebar-overlay").classList.remove("show");
+      document.querySelectorAll(".sidebar-item").forEach(b => {{
+        b.classList.toggle("active", b.dataset.module === "__analytics__");
+      }});
+      document.getElementById("page-title").textContent = "Analytics";
+      currentModule = "__analytics__";
+      currentEntity = null;
+      document.getElementById("topbar-actions").innerHTML = "";
+      bulkDeselectAll();
+      renderAnalyticsPage(document.getElementById("content-area"));
+      return;
+    }}
+
     const item = SIDEBAR_ITEMS.find(i => i.name === name);
     if (!item) return;
 
     // Close mobile sidebar
     document.getElementById("sidebar").classList.remove("open");
     document.getElementById("sidebar-overlay").classList.remove("show");
+
+    // Clear bulk selection
+    bulkDeselectAll();
 
     // Update sidebar active state
     document.querySelectorAll(".sidebar-item").forEach(b => {{
@@ -1793,7 +2114,12 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
             altIcon + altLabel + '</button>' +
           '</div>';
       }}
-      actions.innerHTML = toggleHtml + '<button class="btn btn-primary btn-sm" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New</button>';
+      actions.innerHTML = toggleHtml +
+        '<div class="export-btn-group">' +
+          '<button class="btn btn-sm" onclick="exportCSV()" title="Export CSV"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>' +
+          '<button class="btn btn-sm" onclick="exportPDF()" title="Export PDF"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>PDF</button>' +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New</button>';
     }} else {{
       actions.innerHTML = "";
     }}
@@ -2247,7 +2573,8 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
       '</div>';
     }}
 
-    const headers = visibleFields.map(f =>
+    const headers = '<th style="width:36px;cursor:default" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" onchange="bulkToggleAll(\'' + escHtml(entity) + '\',\'' + escHtml(moduleName) + '\',this.checked)"></th>' +
+      visibleFields.map(f =>
       '<th onclick="sortTable(\'' + moduleName + '\',\'' + entity + '\',\'' + f.name + '\',this)">' +
       escHtml(f.name.replace(/_/g, " ")) +
       '<span class="sort-icon">&#x25B4;&#x25BE;</span></th>'
@@ -2395,7 +2722,10 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
         return '<td>' + escHtml(String(val)) + '</td>';
       }}).join("");
 
-      return '<tr onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')" data-id="' + rowId + '">' + cells +
+      const isChecked = bulkSelected[entity] && bulkSelected[entity].has(String(rowId));
+      return '<tr onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')" data-id="' + rowId + '"' + (isChecked ? ' class="bulk-selected"' : '') + '>' +
+        '<td onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" ' + (isChecked ? 'checked' : '') + ' onchange="bulkToggleRow(\'' + escHtml(entity) + '\',\'' + rowId + '\',\'' + escHtml(currentModule) + '\',this.checked)"></td>' +
+        cells +
         '<td style="text-align:right" onclick="event.stopPropagation()">' +
           '<button class="btn btn-ghost btn-sm" onclick="openEdit(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
           '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteRecord(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
@@ -2659,10 +2989,20 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     let result;
     if (editingId) {{
       result = await apiUpdate(currentEntity.toLowerCase(), editingId, record);
-      if (result) showToast(currentEntity + " updated successfully", "success");
+      if (result) {{
+        showToast(currentEntity + " updated successfully", "success");
+        const nameField = (ENTITY_FIELDS[currentEntity] || []).find(f => /^(name|title|subject|label)$/i.test(f.name));
+        const label = nameField && record[nameField.name] ? record[nameField.name] : ("#" + String(editingId).slice(0, 6));
+        pushNotification(currentEntity + " \\u201c" + label + "\\u201d updated");
+      }}
     }} else {{
       result = await apiCreate(currentEntity.toLowerCase(), record);
-      if (result) showToast(currentEntity + " created successfully", "success");
+      if (result) {{
+        showToast(currentEntity + " created successfully", "success");
+        const nameField = (ENTITY_FIELDS[currentEntity] || []).find(f => /^(name|title|subject|label)$/i.test(f.name));
+        const label = nameField && record[nameField.name] ? record[nameField.name] : "new record";
+        pushNotification("New " + currentEntity + " \\u201c" + label + "\\u201d created");
+      }}
     }}
 
     saveBtn.disabled = false;
@@ -2689,9 +3029,19 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
 
   window.confirmDeleteAction = async function() {{
     if (!pendingDeleteEntity || !pendingDeleteId) return;
-    const ok = await apiDelete(pendingDeleteEntity.toLowerCase(), pendingDeleteId);
+    const delEntity = pendingDeleteEntity;
+    const delId = pendingDeleteId;
+    // Find record name for notification before deleting
+    const delRows = dataCache[delEntity] || [];
+    const delRecord = delRows.find(r => String(r.id || r.ID) === String(delId));
+    const delFields = ENTITY_FIELDS[delEntity] || [];
+    const delNameField = delFields.find(f => /^(name|title|subject|label)$/i.test(f.name));
+    const delLabel = delRecord && delNameField ? delRecord[delNameField.name] : ("#" + String(delId).slice(0, 6));
+
+    const ok = await apiDelete(delEntity.toLowerCase(), delId);
     if (ok) {{
-      showToast(pendingDeleteEntity + " deleted successfully", "success");
+      showToast(delEntity + " deleted successfully", "success");
+      pushNotification(delEntity + " \\u201c" + delLabel + "\\u201d deleted");
       closeConfirm();
       if (currentModule) showModule(currentModule);
     }} else {{
@@ -2761,8 +3111,428 @@ tbody tr:hover {{ background:var(--primary-subtle); }}
     if (e.key === "Escape") {{
       closeModal();
       closeConfirm();
+      closeGlobalSearch();
+      // Close notification dropdown
+      const nd = document.getElementById("notification-dropdown");
+      if (nd) nd.classList.remove("show");
+    }}
+    // Ctrl+K / Cmd+K for global search
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {{
+      e.preventDefault();
+      openGlobalSearch();
     }}
   }});
+
+  // Close notification dropdown on outside click
+  document.addEventListener("click", function(e) {{
+    const bell = document.getElementById("notif-bell");
+    const dd = document.getElementById("notification-dropdown");
+    if (dd && dd.classList.contains("show") && !bell.contains(e.target) && !dd.contains(e.target)) {{
+      dd.classList.remove("show");
+    }}
+  }});
+
+  // ══════════════════════════════════════════
+  // ── FEATURE: ANALYTICS PAGE ──
+  // ══════════════════════════════════════════
+  async function renderAnalyticsPage(container) {{
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted)">Loading analytics...</div>';
+    const entityNames = Object.keys(ENTITY_FIELDS);
+    const counts = {{}};
+    let totalRecords = 0;
+    let weekRecords = 0;
+    let mostActiveEntity = "";
+    let mostActiveCount = 0;
+    const dailyCounts = {{}};
+    const now = new Date();
+    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    for (const entity of entityNames) {{
+      try {{
+        const rows = await apiGet(entity.toLowerCase());
+        dataCache[entity] = rows;
+        counts[entity] = rows.length;
+        totalRecords += rows.length;
+        if (rows.length > mostActiveCount) {{ mostActiveCount = rows.length; mostActiveEntity = entity; }}
+        // Count records created this week and daily
+        rows.forEach(r => {{
+          const createdAt = r.created_at ? new Date(r.created_at) : null;
+          if (createdAt && createdAt >= weekAgo) weekRecords++;
+          if (createdAt) {{
+            const dayKey = createdAt.toISOString().slice(0, 10);
+            dailyCounts[dayKey] = (dailyCounts[dayKey] || 0) + 1;
+          }}
+        }});
+      }} catch {{ counts[entity] = 0; }}
+    }}
+
+    // Build top stats
+    let html = '<div class="analytics-stats-row">' +
+      '<div class="analytics-stat-card"><div class="stat-label">Total Records</div><div class="stat-value">' + totalRecords + '</div></div>' +
+      '<div class="analytics-stat-card"><div class="stat-label">Records This Week</div><div class="stat-value">' + weekRecords + '</div></div>' +
+      '<div class="analytics-stat-card"><div class="stat-label">Most Active Entity</div><div class="stat-value" style="font-size:18px">' + escHtml(mostActiveEntity || "N/A") + '</div></div>' +
+      '<div class="analytics-stat-card"><div class="stat-label">Entities</div><div class="stat-value">' + entityNames.length + '</div></div>' +
+    '</div>';
+
+    // Bar chart: row counts per entity
+    const maxCount = Math.max(...Object.values(counts), 1);
+    html += '<div class="analytics-grid"><div class="analytics-bar-chart"><h3>Records per Entity</h3><div class="ab-bars">';
+    entityNames.forEach(entity => {{
+      const c = counts[entity] || 0;
+      const pct = Math.max(2, (c / maxCount) * 100);
+      html += '<div class="ab-col">' +
+        '<div class="ab-bar" style="height:' + pct + '%"><span class="ab-bar-val">' + c + '</span></div>' +
+        '<div class="ab-label">' + escHtml(entity) + '</div>' +
+      '</div>';
+    }});
+    html += '</div></div>';
+
+    // Line chart: records per day (last 7 days) using SVG
+    const days7 = [];
+    for (let i = 6; i >= 0; i--) {{
+      const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+      days7.push(d.toISOString().slice(0, 10));
+    }}
+    const dayValues = days7.map(d => dailyCounts[d] || 0);
+    const maxDayVal = Math.max(...dayValues, 1);
+    const svgW = 500;
+    const svgH = 180;
+    const padX = 40;
+    const padY = 20;
+    const graphW = svgW - padX * 2;
+    const graphH = svgH - padY * 2;
+
+    let pathD = "";
+    let circles = "";
+    let labels = "";
+    days7.forEach((day, i) => {{
+      const x = padX + (i / Math.max(days7.length - 1, 1)) * graphW;
+      const y = padY + graphH - (dayValues[i] / maxDayVal) * graphH;
+      if (i === 0) pathD += "M" + x + "," + y;
+      else pathD += " L" + x + "," + y;
+      circles += '<circle cx="' + x + '" cy="' + y + '" r="4" fill="var(--primary)"/>';
+      circles += '<text x="' + x + '" y="' + (y - 10) + '" text-anchor="middle" font-size="11" fill="var(--text)" font-weight="600">' + dayValues[i] + '</text>';
+      const dayLabel = new Date(day).toLocaleDateString(undefined, {{ weekday: "short" }});
+      labels += '<text x="' + x + '" y="' + (svgH - 2) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)">' + dayLabel + '</text>';
+    }});
+
+    html += '<div class="analytics-line-chart"><h3>Records Created (Last 7 Days)</h3>' +
+      '<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" preserveAspectRatio="xMidYMid meet">' +
+        '<line x1="' + padX + '" y1="' + (padY + graphH) + '" x2="' + (padX + graphW) + '" y2="' + (padY + graphH) + '" stroke="var(--border)" stroke-width="1"/>' +
+        '<path d="' + pathD + '" fill="none" stroke="var(--primary)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>' +
+        circles + labels +
+      '</svg></div></div>';
+
+    container.innerHTML = html;
+  }}
+
+  // ══════════════════════════════════════════
+  // ── FEATURE: CSV / PDF EXPORT ──
+  // ══════════════════════════════════════════
+  window.exportCSV = function(selectedOnly) {{
+    if (!currentEntity) return;
+    const fields = ENTITY_FIELDS[currentEntity] || [];
+    const visibleFields = fields.filter(f =>
+      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)
+    );
+    let rows = (dataCache[currentEntity] || []).slice();
+    if (selectedOnly && bulkSelected[currentEntity]) {{
+      const sel = bulkSelected[currentEntity];
+      rows = rows.filter(r => sel.has(String(r.id || r.ID)));
+    }}
+    // Build CSV
+    const header = visibleFields.map(f => '"' + f.name.replace(/"/g, '""') + '"').join(",");
+    const csvRows = rows.map(row => {{
+      return visibleFields.map(f => {{
+        let val = String(row[f.name] ?? "");
+        return '"' + val.replace(/"/g, '""') + '"';
+      }}).join(",");
+    }});
+    const csv = header + "\\n" + csvRows.join("\\n");
+    const blob = new Blob([csv], {{ type: "text/csv;charset=utf-8;" }});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = (currentEntity || "export") + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("CSV exported successfully", "success");
+  }};
+
+  window.exportPDF = function() {{
+    window.print();
+  }};
+
+  // ══════════════════════════════════════════
+  // ── FEATURE: IN-APP NOTIFICATIONS ──
+  // ══════════════════════════════════════════
+  function pushNotification(message) {{
+    notifications.unshift({{
+      id: Date.now(),
+      message: message,
+      time: new Date(),
+      read: false
+    }});
+    // Keep only last 50
+    if (notifications.length > 50) notifications.pop();
+    notifUnread++;
+    updateNotifBadge();
+    renderNotifList();
+  }}
+
+  function updateNotifBadge() {{
+    const badge = document.getElementById("notif-badge");
+    if (!badge) return;
+    if (notifUnread > 0) {{
+      badge.textContent = notifUnread > 99 ? "99+" : notifUnread;
+      badge.classList.remove("hidden");
+    }} else {{
+      badge.classList.add("hidden");
+    }}
+  }}
+
+  function renderNotifList() {{
+    const list = document.getElementById("notif-list");
+    if (!list) return;
+    const items = notifications.slice(0, 10);
+    if (items.length === 0) {{
+      list.innerHTML = '<div class="notif-empty">No notifications yet</div>';
+      return;
+    }}
+    list.innerHTML = items.map(n => {{
+      const ago = timeAgo(n.time);
+      return '<div class="notif-item' + (n.read ? '' : ' unread') + '">' +
+        '<div class="notif-dot' + (n.read ? ' read' : '') + '"></div>' +
+        '<div><div class="notif-text">' + escHtml(n.message) + '</div>' +
+        '<div class="notif-time">' + escHtml(ago) + '</div></div>' +
+      '</div>';
+    }}).join("");
+  }}
+
+  function timeAgo(date) {{
+    const secs = Math.floor((new Date() - date) / 1000);
+    if (secs < 60) return "just now";
+    if (secs < 3600) return Math.floor(secs / 60) + "m ago";
+    if (secs < 86400) return Math.floor(secs / 3600) + "h ago";
+    return Math.floor(secs / 86400) + "d ago";
+  }}
+
+  window.toggleNotifications = function(e) {{
+    e.stopPropagation();
+    const dd = document.getElementById("notification-dropdown");
+    dd.classList.toggle("show");
+  }};
+
+  window.markAllNotificationsRead = function() {{
+    notifications.forEach(n => n.read = true);
+    notifUnread = 0;
+    updateNotifBadge();
+    renderNotifList();
+  }};
+
+  // ══════════════════════════════════════════
+  // ── FEATURE: GLOBAL SEARCH ──
+  // ══════════════════════════════════════════
+  window.openGlobalSearch = function() {{
+    const overlay = document.getElementById("global-search-overlay");
+    overlay.classList.add("show");
+    const input = document.getElementById("gsearch-input");
+    input.value = "";
+    input.focus();
+    document.getElementById("gsearch-results").innerHTML = '<div class="gsearch-empty">Type to search across all entities</div>';
+  }};
+
+  window.closeGlobalSearch = function() {{
+    document.getElementById("global-search-overlay").classList.remove("show");
+  }};
+
+  window.onGlobalSearchInput = function(value) {{
+    clearTimeout(gsearchTimer);
+    gsearchTimer = setTimeout(() => performGlobalSearch(value), 300);
+  }};
+
+  function performGlobalSearch(query) {{
+    const resultsEl = document.getElementById("gsearch-results");
+    if (!query || query.trim().length === 0) {{
+      resultsEl.innerHTML = '<div class="gsearch-empty">Type to search across all entities</div>';
+      return;
+    }}
+    const q = query.toLowerCase().trim();
+    const entityNames = Object.keys(ENTITY_FIELDS);
+    let html = "";
+    let totalResults = 0;
+
+    entityNames.forEach(entity => {{
+      const rows = dataCache[entity] || [];
+      const fields = ENTITY_FIELDS[entity] || [];
+      const matches = rows.filter(row =>
+        fields.some(f => String(row[f.name] || "").toLowerCase().includes(q))
+      );
+      if (matches.length === 0) return;
+      totalResults += matches.length;
+      html += '<div class="gsearch-group-label">' + escHtml(entity) + ' (' + matches.length + ' result' + (matches.length !== 1 ? 's' : '') + ')</div>';
+      const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
+      matches.slice(0, 5).forEach(row => {{
+        const rowId = row.id || row.ID || "";
+        const title = nameField ? (row[nameField.name] || "Record") : ("Record #" + String(rowId).slice(0, 6));
+        // Find matching field for context
+        let context = "";
+        for (const f of fields) {{
+          const val = String(row[f.name] || "");
+          if (val.toLowerCase().includes(q) && f.name !== (nameField ? nameField.name : "")) {{
+            context = f.name.replace(/_/g, " ") + ": " + val.slice(0, 60);
+            break;
+          }}
+        }}
+        html += '<div class="gsearch-item" onclick="navigateToSearchResult(\'' + escHtml(entity) + '\',\'' + rowId + '\')">' +
+          '<div class="gsearch-item-text"><strong>' + escHtml(title) + '</strong>' + (context ? '<br><span style="font-size:11px;color:var(--text-muted)">' + escHtml(context) + '</span>' : '') + '</div>' +
+          '<div class="gsearch-item-entity">' + escHtml(entity) + '</div>' +
+        '</div>';
+      }});
+      if (matches.length > 5) {{
+        html += '<div style="padding:4px 18px;font-size:11px;color:var(--text-muted)">+' + (matches.length - 5) + ' more results</div>';
+      }}
+    }});
+
+    if (totalResults === 0) {{
+      resultsEl.innerHTML = '<div class="gsearch-empty">No results found for "' + escHtml(query) + '"</div>';
+    }} else {{
+      resultsEl.innerHTML = html;
+    }}
+  }}
+
+  window.navigateToSearchResult = function(entity, id) {{
+    closeGlobalSearch();
+    // Find the module that owns this entity
+    const mod = SIDEBAR_ITEMS.find(i => i.entity === entity);
+    if (mod) {{
+      showModule(mod.name);
+      // Highlight row after a short delay for render
+      setTimeout(() => {{
+        const row = document.querySelector('tr[data-id="' + id + '"]');
+        if (row) {{
+          row.style.background = "var(--primary-light)";
+          row.scrollIntoView({{ behavior: "smooth", block: "center" }});
+          setTimeout(() => {{ row.style.background = ""; }}, 2500);
+        }}
+      }}, 500);
+    }} else {{
+      // Fallback: show detail directly
+      showDetail(entity, id);
+    }}
+  }};
+
+  // ══════════════════════════════════════════
+  // ── FEATURE: BULK ACTIONS ──
+  // ══════════════════════════════════════════
+  window.bulkToggleRow = function(entity, id, moduleName, checked) {{
+    if (!bulkSelected[entity]) bulkSelected[entity] = new Set();
+    if (checked) bulkSelected[entity].add(String(id));
+    else bulkSelected[entity].delete(String(id));
+    updateBulkBar(entity);
+    // Update row class
+    const row = document.querySelector('tr[data-id="' + id + '"]');
+    if (row) row.classList.toggle("bulk-selected", checked);
+  }};
+
+  window.bulkToggleAll = function(entity, moduleName, checked) {{
+    if (!bulkSelected[entity]) bulkSelected[entity] = new Set();
+    const rows = dataCache[entity] || [];
+    // Get currently visible page rows
+    const visibleRows = document.querySelectorAll('#tbody-' + moduleName + ' tr[data-id]');
+    visibleRows.forEach(tr => {{
+      const id = tr.getAttribute("data-id");
+      if (id) {{
+        if (checked) bulkSelected[entity].add(id);
+        else bulkSelected[entity].delete(id);
+        tr.classList.toggle("bulk-selected", checked);
+        const cb = tr.querySelector(".bulk-cb");
+        if (cb) cb.checked = checked;
+      }}
+    }});
+    updateBulkBar(entity);
+  }};
+
+  window.bulkDeselectAll = function() {{
+    const entity = currentEntity;
+    if (entity && bulkSelected[entity]) bulkSelected[entity].clear();
+    // Clear all checkboxes
+    document.querySelectorAll(".bulk-cb").forEach(cb => cb.checked = false);
+    document.querySelectorAll("tr.bulk-selected").forEach(tr => tr.classList.remove("bulk-selected"));
+    const bar = document.getElementById("bulk-action-bar");
+    if (bar) bar.classList.remove("show");
+  }};
+
+  function updateBulkBar(entity) {{
+    const sel = bulkSelected[entity];
+    const count = sel ? sel.size : 0;
+    const bar = document.getElementById("bulk-action-bar");
+    const countEl = document.getElementById("bulk-count");
+    if (count > 0) {{
+      countEl.textContent = count + " selected";
+      bar.classList.add("show");
+      // Show status change dropdown if entity has status field
+      const fields = ENTITY_FIELDS[entity] || [];
+      const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 &&
+        /status|state|stage|phase/i.test(f.name));
+      const wrap = document.getElementById("bulk-status-wrap");
+      if (statusField && wrap) {{
+        wrap.innerHTML = '<select onchange="bulkChangeStatus(\'' + escHtml(entity) + '\',this.value)">' +
+          '<option value="">Change Status...</option>' +
+          statusField.enum_values.map(v => '<option value="' + escHtml(v) + '">' + escHtml(v) + '</option>').join("") +
+        '</select>';
+      }} else if (wrap) {{
+        wrap.innerHTML = "";
+      }}
+    }} else {{
+      bar.classList.remove("show");
+    }}
+  }}
+
+  window.bulkDelete = async function() {{
+    const entity = currentEntity;
+    if (!entity || !bulkSelected[entity] || bulkSelected[entity].size === 0) return;
+    const count = bulkSelected[entity].size;
+    if (!confirm("Delete " + count + " selected record" + (count !== 1 ? "s" : "") + "? This cannot be undone.")) return;
+    const ids = Array.from(bulkSelected[entity]);
+    let deleted = 0;
+    for (const id of ids) {{
+      const ok = await apiDelete(entity.toLowerCase(), id);
+      if (ok) deleted++;
+    }}
+    showToast(deleted + " record" + (deleted !== 1 ? "s" : "") + " deleted", "success");
+    pushNotification(deleted + " " + entity + " record" + (deleted !== 1 ? "s" : "") + " deleted");
+    bulkSelected[entity].clear();
+    updateBulkBar(entity);
+    if (currentModule) showModule(currentModule);
+  }};
+
+  window.bulkExportCSV = function() {{
+    exportCSV(true);
+  }};
+
+  window.bulkChangeStatus = async function(entity, status) {{
+    if (!status || !bulkSelected[entity] || bulkSelected[entity].size === 0) return;
+    const fields = ENTITY_FIELDS[entity] || [];
+    const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 &&
+      /status|state|stage|phase/i.test(f.name));
+    if (!statusField) return;
+    const ids = Array.from(bulkSelected[entity]);
+    let updated = 0;
+    for (const id of ids) {{
+      const record = {{}};
+      record[statusField.name] = status;
+      const ok = await apiUpdate(entity.toLowerCase(), id, record);
+      if (ok) updated++;
+    }}
+    showToast(updated + " record" + (updated !== 1 ? "s" : "") + " updated to " + status, "success");
+    pushNotification(updated + " " + entity + " record" + (updated !== 1 ? "s" : "") + " status changed to " + status);
+    bulkSelected[entity].clear();
+    updateBulkBar(entity);
+    if (currentModule) showModule(currentModule);
+  }};
 
   // ── Init ──
   function initApp() {{
@@ -2805,6 +3575,182 @@ function installApp() {{
 </script>
 </body>
 </html>'''
+
+
+def _inject_plugins(html: str, spec: dict, project_id: str) -> str:
+    """
+    Inject plugin UI elements into generated HTML apps based on spec.plugins.
+
+    Supported plugins:
+    - stripe: Adds "Pay" buttons next to price/amount fields
+    - maps: Adds map views for entities with address/location fields
+    - sms: Adds "Send SMS" buttons next to phone number fields
+    - email: Adds "Send Email" buttons next to email fields
+
+    Buttons show placeholder alerts until backend integrations are wired up.
+    """
+    plugins = spec.get("plugins", [])
+    if not plugins:
+        return html
+
+    # Normalize plugins to a set of plugin names
+    plugin_names = set()
+    for p in plugins:
+        if isinstance(p, dict):
+            plugin_names.add(p.get("plugin", "").lower())
+        elif isinstance(p, str):
+            plugin_names.add(p.lower())
+
+    if not plugin_names:
+        return html
+
+    entities = spec.get("entities") or []
+
+    # Collect field info for targeted injection
+    price_entities = []
+    address_entities = []
+    phone_entities = []
+    email_entities = []
+
+    for entity in entities:
+        entity_name = entity.get("name", "")
+        for field in entity.get("fields", []):
+            fname = field.get("name", "").lower()
+            ftype = field.get("type", "").lower()
+            if fname in ("price", "amount", "cost", "total", "fee") or ftype in ("money", "currency"):
+                price_entities.append(entity_name)
+            if fname in ("address", "location", "city", "street", "zip", "postal_code", "lat", "lng", "latitude", "longitude"):
+                address_entities.append(entity_name)
+            if fname in ("phone", "phone_number", "mobile", "cell", "telephone") or ftype == "phone":
+                phone_entities.append(entity_name)
+            if fname in ("email", "email_address") or ftype == "email":
+                email_entities.append(entity_name)
+
+    # Build the plugin JS/CSS to inject before </body>
+    plugin_snippets = []
+
+    if "stripe" in plugin_names and price_entities:
+        entity_list_js = ", ".join(f'"{e}"' for e in set(price_entities))
+        plugin_snippets.append(f"""
+<!-- Stripe Checkout Plugin -->
+<script>
+(function() {{
+  const stripeEntities = [{entity_list_js}];
+  const priceFields = ['price', 'amount', 'cost', 'total', 'fee'];
+
+  // Observe DOM for detail views and add Pay buttons
+  const observer = new MutationObserver(function() {{
+    document.querySelectorAll('.detail-body .detail-field').forEach(function(el) {{
+      if (el.querySelector('.plugin-stripe-btn')) return;
+      const label = (el.querySelector('.detail-label') || {{}}).textContent || '';
+      if (priceFields.some(f => label.toLowerCase().includes(f))) {{
+        const btn = document.createElement('button');
+        btn.className = 'plugin-stripe-btn';
+        btn.textContent = '💳 Pay';
+        btn.style.cssText = 'margin-left:8px;padding:4px 12px;background:#635bff;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit';
+        btn.onclick = function() {{ alert('Plugin configured — connect Stripe in settings'); }};
+        el.appendChild(btn);
+      }}
+    }});
+  }});
+  observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
+</script>""")
+
+    if "maps" in plugin_names and address_entities:
+        entity_list_js = ", ".join(f'"{e}"' for e in set(address_entities))
+        plugin_snippets.append(f"""
+<!-- Google Maps Plugin -->
+<script>
+(function() {{
+  const mapEntities = [{entity_list_js}];
+  const addressFields = ['address', 'location', 'city', 'street'];
+
+  const observer = new MutationObserver(function() {{
+    document.querySelectorAll('.detail-body .detail-field').forEach(function(el) {{
+      if (el.querySelector('.plugin-map-container')) return;
+      const label = (el.querySelector('.detail-label') || {{}}).textContent || '';
+      const value = (el.querySelector('.detail-value') || {{}}).textContent || '';
+      if (addressFields.some(f => label.toLowerCase().includes(f)) && value.trim()) {{
+        const container = document.createElement('div');
+        container.className = 'plugin-map-container';
+        container.style.cssText = 'margin-top:8px;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb';
+        const iframe = document.createElement('iframe');
+        iframe.width = '100%';
+        iframe.height = '200';
+        iframe.frameBorder = '0';
+        iframe.style.border = '0';
+        iframe.src = 'https://maps.google.com/maps?q=' + encodeURIComponent(value) + '&output=embed';
+        iframe.allowFullscreen = true;
+        container.appendChild(iframe);
+        el.appendChild(container);
+      }}
+    }});
+  }});
+  observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
+</script>""")
+
+    if "sms" in plugin_names and phone_entities:
+        entity_list_js = ", ".join(f'"{e}"' for e in set(phone_entities))
+        plugin_snippets.append(f"""
+<!-- Twilio SMS Plugin -->
+<script>
+(function() {{
+  const smsEntities = [{entity_list_js}];
+  const phoneFields = ['phone', 'mobile', 'cell', 'telephone'];
+
+  const observer = new MutationObserver(function() {{
+    document.querySelectorAll('.detail-body .detail-field').forEach(function(el) {{
+      if (el.querySelector('.plugin-sms-btn')) return;
+      const label = (el.querySelector('.detail-label') || {{}}).textContent || '';
+      if (phoneFields.some(f => label.toLowerCase().includes(f))) {{
+        const btn = document.createElement('button');
+        btn.className = 'plugin-sms-btn';
+        btn.textContent = '📱 Send SMS';
+        btn.style.cssText = 'margin-left:8px;padding:4px 12px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit';
+        btn.onclick = function() {{ alert('Plugin configured — connect Twilio in settings'); }};
+        el.appendChild(btn);
+      }}
+    }});
+  }});
+  observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
+</script>""")
+
+    if "email" in plugin_names and email_entities:
+        entity_list_js = ", ".join(f'"{e}"' for e in set(email_entities))
+        plugin_snippets.append(f"""
+<!-- Email Plugin -->
+<script>
+(function() {{
+  const emailEntities = [{entity_list_js}];
+  const emailFields = ['email', 'email_address'];
+
+  const observer = new MutationObserver(function() {{
+    document.querySelectorAll('.detail-body .detail-field').forEach(function(el) {{
+      if (el.querySelector('.plugin-email-btn')) return;
+      const label = (el.querySelector('.detail-label') || {{}}).textContent || '';
+      if (emailFields.some(f => label.toLowerCase().includes(f))) {{
+        const btn = document.createElement('button');
+        btn.className = 'plugin-email-btn';
+        btn.textContent = '✉️ Send Email';
+        btn.style.cssText = 'margin-left:8px;padding:4px 12px;background:#8b5cf6;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit';
+        btn.onclick = function() {{ alert('Plugin configured — connect email service in settings'); }};
+        el.appendChild(btn);
+      }}
+    }});
+  }});
+  observer.observe(document.body, {{ childList: true, subtree: true }});
+}})();
+</script>""")
+
+    if not plugin_snippets:
+        return html
+
+    # Inject all plugin snippets before </body>
+    injection = "\n".join(plugin_snippets)
+    return html.replace("</body>", f"{injection}\n</body>")
 
 
 def _detect_smart_layouts(entities: list, modules: list) -> dict:
