@@ -47,7 +47,8 @@ async def deploy_app(project_id: str, spec: dict, db: AsyncSession) -> dict:
     manifest = {
         "name": app_name,
         "short_name": app_name[:12],
-        "start_url": ".",
+        "start_url": f"/live/{project_id}",
+        "scope": f"/live/{project_id}/",
         "display": "standalone",
         "background_color": "#ffffff",
         "theme_color": primary_color,
@@ -78,6 +79,14 @@ self.addEventListener('fetch', (e) => {
 });
 """
     (build_dir / "sw.js").write_text(sw_content.strip(), encoding="utf-8")
+
+    # Write app icon SVG
+    icon_letter = (app_name or "A")[0].upper()
+    icon_svg = f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<rect width="512" height="512" rx="100" fill="{primary_color}"/>
+<text x="256" y="340" font-size="280" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-weight="bold">{icon_letter}</text>
+</svg>'''
+    (build_dir / "icon.svg").write_text(icon_svg, encoding="utf-8")
 
     # Determine the live URL
     app_host = os.getenv("APP_HOST", "")
@@ -166,7 +175,8 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="{app_name}">
 <meta name="theme-color" content="{primary_color}">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="/live/{project_id}/manifest.json">
+<link rel="apple-touch-icon" href="/live/{project_id}/icon.svg">
 <title>{app_name}</title>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -822,7 +832,7 @@ tr:hover td {{ background: #f9fafb; }}
 <script>
 // Register PWA service worker
 if ('serviceWorker' in navigator) {{
-  navigator.serviceWorker.register('sw.js').catch(() => {{}});
+  navigator.serviceWorker.register('/live/{project_id}/sw.js').catch(() => {{}});
 }}
 // Show install prompt
 let deferredPrompt;

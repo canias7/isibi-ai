@@ -172,6 +172,15 @@ async def serve_sw(project_id: str):
     return Response(content=sw_path.read_text(encoding="utf-8"), media_type="application/javascript")
 
 
+@app.get("/live/{project_id}/icon.svg")
+async def serve_icon(project_id: str):
+    """Serve PWA icon for a deployed app."""
+    icon_path = BUILDS_DIR / project_id / "icon.svg"
+    if not icon_path.exists():
+        return Response(content="", media_type="image/svg+xml", status_code=404)
+    return Response(content=icon_path.read_text(encoding="utf-8"), media_type="image/svg+xml")
+
+
 # ── Serve embeddable apps via iframe-friendly route ──
 # /embed/{project_id} serves the deployed app without X-Frame-Options
 # and includes a postMessage API for cross-origin communication.
