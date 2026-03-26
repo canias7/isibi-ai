@@ -122,7 +122,24 @@ Now generate the COMPLETE JSON spec for what the user requested. Output ONLY the
     if response.stop_reason == "max_tokens":
         raw_text = _attempt_json_repair(raw_text)
 
-    spec = json.loads(raw_text)
+    try:
+        spec = json.loads(raw_text)
+    except json.JSONDecodeError as e:
+        # Try harder: find the first { and parse from there
+        brace_idx = raw_text.find("{")
+        if brace_idx >= 0:
+            try:
+                spec = json.loads(_attempt_json_repair(raw_text[brace_idx:]))
+            except json.JSONDecodeError:
+                raise ValueError(f"AI returned invalid JSON: {str(e)}. First 200 chars: {raw_text[:200]}")
+        else:
+            raise ValueError(f"AI returned no JSON object: {raw_text[:200]}")
+
+    # Ensure we got a dict, not a string or list
+    if isinstance(spec, str):
+        spec = json.loads(spec)
+    if not isinstance(spec, dict):
+        raise ValueError(f"AI returned {type(spec).__name__} instead of a JSON object")
 
     # Validate basic structure
     _validate_spec(spec)
