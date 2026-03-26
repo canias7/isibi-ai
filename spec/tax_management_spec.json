@@ -34,8 +34,8 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "TaxRate": {
+  "entities": [
+    {
       "table": "tax_rates",
       "indexes": [
         {
@@ -64,8 +64,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -83,7 +83,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -101,7 +101,7 @@
             "format": "uuid"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -119,7 +119,7 @@
             "maxLength": 100
           }
         },
-        "code": {
+        {
           "name": "code",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
@@ -137,7 +137,7 @@
             "maxLength": 20
           }
         },
-        "percentage": {
+        {
           "name": "percentage",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -157,7 +157,7 @@
             "decimalPlaces": 4
           }
         },
-        "tax_type": {
+        {
           "name": "tax_type",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'sales' | 'purchase' | 'both' | 'withholding'",
@@ -180,7 +180,7 @@
             ]
           }
         },
-        "jurisdiction": {
+        {
           "name": "jurisdiction",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -198,7 +198,7 @@
             "maxLength": 100
           }
         },
-        "tax_authority": {
+        {
           "name": "tax_authority",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -216,7 +216,7 @@
             "maxLength": 255
           }
         },
-        "is_compound": {
+        {
           "name": "is_compound",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -233,7 +233,7 @@
             "required": false
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -250,7 +250,7 @@
             "required": false
           }
         },
-        "effective_date": {
+        {
           "name": "effective_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -268,7 +268,7 @@
             "format": "date"
           }
         },
-        "expiry_date": {
+        {
           "name": "expiry_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -287,7 +287,7 @@
             "afterField": "effective_date"
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -304,7 +304,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -322,7 +322,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -339,7 +339,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -356,7 +356,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -372,10 +372,115 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "TaxRate",
+      "description": "TaxRate entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "code",
+            "percentage",
+            "tax_type",
+            "jurisdiction",
+            "is_compound"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaxRates yet",
+            "subtext": "Create your first taxrate",
+            "action_label": "Add TaxRate"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "code",
+            "percentage",
+            "tax_type",
+            "jurisdiction",
+            "tax_authority",
+            "is_compound",
+            "is_active",
+            "effective_date",
+            "expiry_date",
+            "description"
+          ],
+          "required_fields": [
+            "name",
+            "code"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "code",
+            "percentage",
+            "tax_type",
+            "jurisdiction",
+            "tax_authority",
+            "is_compound",
+            "is_active",
+            "effective_date",
+            "expiry_date",
+            "description"
+          ],
+          "required_fields": [
+            "name",
+            "code"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tax_rates/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "code",
+            "percentage",
+            "tax_type"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "code",
+                "percentage",
+                "tax_type",
+                "jurisdiction",
+                "is_compound",
+                "is_active",
+                "effective_date"
+              ]
+            }
+          ]
         }
       }
     },
-    "TaxFiling": {
+    {
       "table": "tax_filings",
       "indexes": [
         {
@@ -409,8 +514,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -428,7 +533,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -446,7 +551,7 @@
             "format": "uuid"
           }
         },
-        "filing_type": {
+        {
           "name": "filing_type",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'sales_tax' | 'income_tax' | 'payroll_tax' | 'vat' | 'gst' | 'custom'",
@@ -471,7 +576,7 @@
             ]
           }
         },
-        "jurisdiction": {
+        {
           "name": "jurisdiction",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -489,7 +594,7 @@
             "maxLength": 100
           }
         },
-        "period_start": {
+        {
           "name": "period_start",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -507,7 +612,7 @@
             "format": "date"
           }
         },
-        "period_end": {
+        {
           "name": "period_end",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -526,7 +631,7 @@
             "afterField": "period_start"
           }
         },
-        "due_date": {
+        {
           "name": "due_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -544,7 +649,7 @@
             "format": "date"
           }
         },
-        "filing_date": {
+        {
           "name": "filing_date",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -561,7 +666,7 @@
             "required": false
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'pending' | 'in_progress' | 'filed' | 'overdue' | 'amended'",
@@ -585,7 +690,7 @@
             ]
           }
         },
-        "taxable_amount": {
+        {
           "name": "taxable_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -603,7 +708,7 @@
             "min": 0
           }
         },
-        "tax_amount": {
+        {
           "name": "tax_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -621,7 +726,7 @@
             "min": 0
           }
         },
-        "penalties": {
+        {
           "name": "penalties",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -639,7 +744,7 @@
             "min": 0
           }
         },
-        "interest": {
+        {
           "name": "interest",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -657,7 +762,7 @@
             "min": 0
           }
         },
-        "total_due": {
+        {
           "name": "total_due",
           "db_type": "NUMERIC(15,2) GENERATED ALWAYS AS (tax_amount + penalties + interest) STORED",
           "ts_type": "number",
@@ -674,7 +779,7 @@
             "required": false
           }
         },
-        "amount_paid": {
+        {
           "name": "amount_paid",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -692,7 +797,7 @@
             "min": 0
           }
         },
-        "balance_due": {
+        {
           "name": "balance_due",
           "db_type": "NUMERIC(15,2) GENERATED ALWAYS AS (tax_amount + penalties + interest - amount_paid) STORED",
           "ts_type": "number",
@@ -709,7 +814,7 @@
             "required": false
           }
         },
-        "filing_reference": {
+        {
           "name": "filing_reference",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -727,7 +832,7 @@
             "maxLength": 255
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -744,7 +849,7 @@
             "required": false
           }
         },
-        "filed_by": {
+        {
           "name": "filed_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -762,7 +867,7 @@
             "format": "uuid"
           }
         },
-        "payment_id": {
+        {
           "name": "payment_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -780,7 +885,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -797,7 +902,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -814,7 +919,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -830,10 +935,119 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "TaxFiling",
+      "description": "TaxFiling entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "filing_type",
+            "jurisdiction",
+            "period_start",
+            "period_end",
+            "due_date",
+            "filing_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaxFilings yet",
+            "subtext": "Create your first taxfiling",
+            "action_label": "Add TaxFiling"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "filing_type",
+            "jurisdiction",
+            "period_start",
+            "period_end",
+            "due_date",
+            "taxable_amount",
+            "tax_amount",
+            "penalties",
+            "interest",
+            "filing_reference",
+            "notes"
+          ],
+          "required_fields": [
+            "filing_type",
+            "jurisdiction"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "filing_type",
+            "jurisdiction",
+            "period_start",
+            "period_end",
+            "due_date",
+            "taxable_amount",
+            "tax_amount",
+            "penalties",
+            "interest",
+            "filing_reference",
+            "notes"
+          ],
+          "required_fields": [
+            "filing_type",
+            "jurisdiction"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tax_filings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "filing_type"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "filing_type",
+            "jurisdiction",
+            "period_start",
+            "period_end"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "filing_type",
+                "jurisdiction",
+                "period_start",
+                "period_end",
+                "due_date",
+                "filing_date",
+                "status",
+                "taxable_amount",
+                "tax_amount",
+                "total_due",
+                "amount_paid",
+                "balance_due"
+              ]
+            }
+          ]
         }
       }
     },
-    "TaxRecord": {
+    {
       "table": "tax_records",
       "indexes": [
         {
@@ -868,8 +1082,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -887,7 +1101,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -905,7 +1119,7 @@
             "format": "uuid"
           }
         },
-        "source_entity_type": {
+        {
           "name": "source_entity_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -923,7 +1137,7 @@
             "maxLength": 50
           }
         },
-        "source_entity_id": {
+        {
           "name": "source_entity_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -941,7 +1155,7 @@
             "format": "uuid"
           }
         },
-        "tax_rate_id": {
+        {
           "name": "tax_rate_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -959,7 +1173,7 @@
             "format": "uuid"
           }
         },
-        "transaction_date": {
+        {
           "name": "transaction_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -977,7 +1191,7 @@
             "format": "date"
           }
         },
-        "taxable_amount": {
+        {
           "name": "taxable_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -994,7 +1208,7 @@
             "required": true
           }
         },
-        "tax_amount": {
+        {
           "name": "tax_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1011,7 +1225,7 @@
             "required": true
           }
         },
-        "direction": {
+        {
           "name": "direction",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'collected' | 'paid'",
@@ -1032,7 +1246,7 @@
             ]
           }
         },
-        "period_label": {
+        {
           "name": "period_label",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
@@ -1050,7 +1264,7 @@
             "maxLength": 20
           }
         },
-        "filing_id": {
+        {
           "name": "filing_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1068,7 +1282,7 @@
             "format": "uuid"
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1085,7 +1299,7 @@
             "required": false
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1102,7 +1316,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1119,7 +1333,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1135,10 +1349,107 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "TaxRecord",
+      "description": "TaxRecord entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "source_entity_type",
+            "source_entity_id",
+            "tax_rate_id",
+            "transaction_date",
+            "taxable_amount",
+            "tax_amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaxRecords yet",
+            "subtext": "Create your first taxrecord",
+            "action_label": "Add TaxRecord"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "source_entity_type",
+            "tax_rate_id",
+            "transaction_date",
+            "taxable_amount",
+            "tax_amount",
+            "direction",
+            "notes"
+          ],
+          "required_fields": [
+            "source_entity_type",
+            "tax_rate_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "source_entity_type",
+            "tax_rate_id",
+            "transaction_date",
+            "taxable_amount",
+            "tax_amount",
+            "direction",
+            "notes"
+          ],
+          "required_fields": [
+            "source_entity_type",
+            "tax_rate_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tax_records/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "source_entity_type"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "source_entity_type",
+            "source_entity_id",
+            "tax_rate_id",
+            "transaction_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "source_entity_type",
+                "source_entity_id",
+                "tax_rate_id",
+                "transaction_date",
+                "taxable_amount",
+                "tax_amount",
+                "direction",
+                "period_label"
+              ]
+            }
+          ]
         }
       }
     },
-    "TaxExemption": {
+    {
       "table": "tax_exemptions",
       "indexes": [
         {
@@ -1155,8 +1466,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1174,7 +1485,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1192,7 +1503,7 @@
             "format": "uuid"
           }
         },
-        "entity_type": {
+        {
           "name": "entity_type",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'customer' | 'vendor' | 'product'",
@@ -1214,7 +1525,7 @@
             ]
           }
         },
-        "entity_id": {
+        {
           "name": "entity_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1232,7 +1543,7 @@
             "format": "uuid"
           }
         },
-        "tax_rate_id": {
+        {
           "name": "tax_rate_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1250,7 +1561,7 @@
             "format": "uuid"
           }
         },
-        "exemption_certificate": {
+        {
           "name": "exemption_certificate",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -1268,7 +1579,7 @@
             "maxLength": 255
           }
         },
-        "valid_from": {
+        {
           "name": "valid_from",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1286,7 +1597,7 @@
             "format": "date"
           }
         },
-        "valid_until": {
+        {
           "name": "valid_until",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1305,7 +1616,7 @@
             "afterField": "valid_from"
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -1322,7 +1633,7 @@
             "required": false
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1339,7 +1650,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1357,7 +1668,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1374,7 +1685,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1391,7 +1702,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1407,10 +1718,108 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "TaxExemption",
+      "description": "TaxExemption entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "entity_type",
+            "entity_id",
+            "tax_rate_id",
+            "exemption_certificate",
+            "valid_from",
+            "valid_until"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaxExemptions yet",
+            "subtext": "Create your first taxexemption",
+            "action_label": "Add TaxExemption"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "entity_type",
+            "entity_id",
+            "tax_rate_id",
+            "exemption_certificate",
+            "valid_from",
+            "valid_until",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "entity_type",
+            "entity_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "entity_type",
+            "entity_id",
+            "tax_rate_id",
+            "exemption_certificate",
+            "valid_from",
+            "valid_until",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "entity_type",
+            "entity_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tax_exemptions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "entity_type"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "entity_type",
+            "entity_id",
+            "tax_rate_id",
+            "exemption_certificate"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "entity_type",
+                "entity_id",
+                "tax_rate_id",
+                "exemption_certificate",
+                "valid_from",
+                "valid_until",
+                "is_active"
+              ]
+            }
+          ]
         }
       }
     },
-    "TaxPayment": {
+    {
       "table": "tax_payments",
       "indexes": [
         {
@@ -1426,8 +1835,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1445,7 +1854,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1463,7 +1872,7 @@
             "format": "uuid"
           }
         },
-        "filing_id": {
+        {
           "name": "filing_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1481,7 +1890,7 @@
             "format": "uuid"
           }
         },
-        "amount": {
+        {
           "name": "amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1499,7 +1908,7 @@
             "min": 0.01
           }
         },
-        "payment_date": {
+        {
           "name": "payment_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1517,7 +1926,7 @@
             "format": "date"
           }
         },
-        "payment_method": {
+        {
           "name": "payment_method",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'bank_transfer' | 'check' | 'online' | 'other'",
@@ -1540,7 +1949,7 @@
             ]
           }
         },
-        "reference": {
+        {
           "name": "reference",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -1558,7 +1967,7 @@
             "maxLength": 255
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1575,7 +1984,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1593,7 +2002,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1610,7 +2019,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1627,7 +2036,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1643,10 +2052,99 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "TaxPayment",
+      "description": "TaxPayment entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "filing_id",
+            "amount",
+            "payment_date",
+            "payment_method"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaxPayments yet",
+            "subtext": "Create your first taxpayment",
+            "action_label": "Add TaxPayment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "filing_id",
+            "amount",
+            "payment_date",
+            "payment_method",
+            "reference",
+            "notes"
+          ],
+          "required_fields": [
+            "filing_id",
+            "amount"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "filing_id",
+            "amount",
+            "payment_date",
+            "payment_method",
+            "reference",
+            "notes"
+          ],
+          "required_fields": [
+            "filing_id",
+            "amount"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tax_payments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "filing_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "filing_id",
+            "amount",
+            "payment_date",
+            "payment_method"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "filing_id",
+                "amount",
+                "payment_date",
+                "payment_method"
+              ]
+            }
+          ]
         }
       }
     }
-  },
+  ],
   "components": [
     "DataTable",
     "SlideOverForm",
@@ -2184,7 +2682,7 @@
       "ts_type": "string",
       "nullable": false,
       "default": null,
-      "notes": "FK→organizations, row-level security anchor"
+      "notes": "FK\u2192organizations, row-level security anchor"
     },
     "created_at": {
       "db_type": "TIMESTAMPTZ",
@@ -2203,7 +2701,7 @@
       "ts_type": "string | null",
       "nullable": true,
       "default": null,
-      "notes": "Soft delete — all queries filter deleted_at IS NULL"
+      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
     }
   },
   "security": {
@@ -2395,7 +2893,7 @@
     ],
     "retention_days": 2555,
     "immutable": true,
-    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
   },
   "db_constraints_policy": {
     "naming_convention": "{table}_{column(s)}_{constraint_type}",
@@ -2461,5 +2959,16 @@
     "component_naming": "PascalCase (e.g. InvoiceLineTable)",
     "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
     "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total TaxRates",
+        "entity": "TaxRate",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
   }
 }

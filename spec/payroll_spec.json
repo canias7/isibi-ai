@@ -34,11 +34,11 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "Employee": {
+  "entities": [
+    {
       "table": "employees",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -56,7 +56,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -74,7 +74,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -92,7 +92,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -110,7 +110,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -128,7 +128,7 @@
             "format": "iso8601"
           }
         },
-        "employee_number": {
+        {
           "name": "employee_number",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -147,7 +147,7 @@
             "maxLength": 50
           }
         },
-        "first_name": {
+        {
           "name": "first_name",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -166,7 +166,7 @@
             "maxLength": 100
           }
         },
-        "last_name": {
+        {
           "name": "last_name",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -185,7 +185,7 @@
             "maxLength": 100
           }
         },
-        "email": {
+        {
           "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -205,7 +205,7 @@
             "uniqueWithin": "org_id"
           }
         },
-        "phone": {
+        {
           "name": "phone",
           "db_type": "VARCHAR(50)",
           "ts_type": "string | null",
@@ -223,7 +223,7 @@
             "maxLength": 50
           }
         },
-        "date_of_birth": {
+        {
           "name": "date_of_birth",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -241,7 +241,7 @@
             "format": "date"
           }
         },
-        "hire_date": {
+        {
           "name": "hire_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -259,7 +259,7 @@
             "format": "date"
           }
         },
-        "termination_date": {
+        {
           "name": "termination_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -278,7 +278,7 @@
             "greaterThan": "hire_date"
           }
         },
-        "employment_type": {
+        {
           "name": "employment_type",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'full_time' | 'part_time' | 'contractor' | 'intern'",
@@ -301,7 +301,7 @@
             ]
           }
         },
-        "department": {
+        {
           "name": "department",
           "db_type": "VARCHAR(100)",
           "ts_type": "string | null",
@@ -319,7 +319,7 @@
             "maxLength": 100
           }
         },
-        "job_title": {
+        {
           "name": "job_title",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -337,7 +337,7 @@
             "maxLength": 255
           }
         },
-        "manager_id": {
+        {
           "name": "manager_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -356,7 +356,7 @@
             "notSelf": true
           }
         },
-        "user_id": {
+        {
           "name": "user_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -374,7 +374,7 @@
             "format": "uuid"
           }
         },
-        "bank_account_name": {
+        {
           "name": "bank_account_name",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -392,7 +392,7 @@
             "maxLength": 255
           }
         },
-        "bank_account_number_masked": {
+        {
           "name": "bank_account_number_masked",
           "db_type": "VARCHAR(20)",
           "ts_type": "string | null",
@@ -411,7 +411,7 @@
             "description": "masked display only"
           }
         },
-        "bank_routing_number_masked": {
+        {
           "name": "bank_routing_number_masked",
           "db_type": "VARCHAR(20)",
           "ts_type": "string | null",
@@ -430,7 +430,7 @@
             "description": "masked display only"
           }
         },
-        "payment_method": {
+        {
           "name": "payment_method",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'direct_deposit' | 'check' | 'cash'",
@@ -452,7 +452,7 @@
             ]
           }
         },
-        "tax_filing_status": {
+        {
           "name": "tax_filing_status",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'single' | 'married' | 'head_of_household'",
@@ -474,7 +474,7 @@
             ]
           }
         },
-        "federal_allowances": {
+        {
           "name": "federal_allowances",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -492,7 +492,7 @@
             "min": 0
           }
         },
-        "state_code": {
+        {
           "name": "state_code",
           "db_type": "CHAR(2)",
           "ts_type": "string | null",
@@ -511,7 +511,7 @@
             "pattern": "^[A-Z]{2}$"
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -528,7 +528,7 @@
             "required": true
           }
         },
-        "avatar_url": {
+        {
           "name": "avatar_url",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -546,7 +546,7 @@
             "format": "uri"
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -562,8 +562,19 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "employees_org_employee_number_unique",
@@ -602,12 +613,122 @@
             "manager_id"
           ]
         }
-      ]
+      ],
+      "name": "Employee",
+      "description": "Employee entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "employee_number",
+            "first_name",
+            "last_name",
+            "email",
+            "hire_date",
+            "employment_type"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Employees yet",
+            "subtext": "Create your first employee",
+            "action_label": "Add Employee"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "date_of_birth",
+            "hire_date",
+            "termination_date",
+            "employment_type",
+            "department",
+            "job_title",
+            "manager_id",
+            "bank_account_name",
+            "payment_method",
+            "tax_filing_status",
+            "federal_allowances",
+            "state_code",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "date_of_birth",
+            "hire_date",
+            "termination_date",
+            "employment_type",
+            "department",
+            "job_title",
+            "manager_id",
+            "bank_account_name",
+            "payment_method",
+            "tax_filing_status",
+            "federal_allowances",
+            "state_code",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "first_name",
+            "last_name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/employees/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "first_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "employee_number",
+            "first_name",
+            "last_name",
+            "email"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "employee_number",
+                "first_name",
+                "last_name",
+                "email",
+                "hire_date",
+                "employment_type",
+                "department",
+                "job_title",
+                "is_active",
+                "avatar_url"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "PayrollRun": {
+    {
       "table": "payroll_runs",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -625,7 +746,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -643,7 +764,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -661,7 +782,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -679,7 +800,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -697,7 +818,7 @@
             "format": "iso8601"
           }
         },
-        "run_number": {
+        {
           "name": "run_number",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -717,7 +838,7 @@
             "unique": true
           }
         },
-        "period_start": {
+        {
           "name": "period_start",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -735,7 +856,7 @@
             "format": "date"
           }
         },
-        "period_end": {
+        {
           "name": "period_end",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -754,7 +875,7 @@
             "greaterThan": "period_start"
           }
         },
-        "pay_date": {
+        {
           "name": "pay_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -772,7 +893,7 @@
             "format": "date"
           }
         },
-        "frequency": {
+        {
           "name": "frequency",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'weekly' | 'bi_weekly' | 'semi_monthly' | 'monthly'",
@@ -795,7 +916,7 @@
             ]
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'draft' | 'processing' | 'approved' | 'paid' | 'cancelled'",
@@ -819,7 +940,7 @@
             ]
           }
         },
-        "employee_count": {
+        {
           "name": "employee_count",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -838,7 +959,7 @@
             "computed": true
           }
         },
-        "gross_pay_total": {
+        {
           "name": "gross_pay_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -857,7 +978,7 @@
             "computed": true
           }
         },
-        "deductions_total": {
+        {
           "name": "deductions_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -876,7 +997,7 @@
             "computed": true
           }
         },
-        "taxes_total": {
+        {
           "name": "taxes_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -895,7 +1016,7 @@
             "computed": true
           }
         },
-        "net_pay_total": {
+        {
           "name": "net_pay_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -914,7 +1035,7 @@
             "computed": true
           }
         },
-        "employer_taxes_total": {
+        {
           "name": "employer_taxes_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -933,7 +1054,7 @@
             "computed": true
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -950,7 +1071,7 @@
             "required": false
           }
         },
-        "approved_by": {
+        {
           "name": "approved_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -968,7 +1089,7 @@
             "format": "uuid"
           }
         },
-        "approved_at": {
+        {
           "name": "approved_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -986,7 +1107,7 @@
             "format": "iso8601"
           }
         },
-        "paid_at": {
+        {
           "name": "paid_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1004,7 +1125,7 @@
             "format": "iso8601"
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1021,8 +1142,19 @@
             "required": false,
             "format": "uuid"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "payroll_runs_org_status_idx",
@@ -1045,12 +1177,96 @@
             "period_start"
           ]
         }
-      ]
+      ],
+      "name": "PayrollRun",
+      "description": "PayrollRun entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "run_number",
+            "period_start",
+            "period_end",
+            "pay_date",
+            "frequency",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No PayrollRuns yet",
+            "subtext": "Create your first payrollrun",
+            "action_label": "Add PayrollRun"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "period_start",
+            "period_end",
+            "pay_date",
+            "frequency",
+            "notes"
+          ],
+          "required_fields": [
+            "period_start",
+            "period_end"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "period_start",
+            "period_end",
+            "pay_date",
+            "frequency",
+            "notes"
+          ],
+          "required_fields": [
+            "period_start",
+            "period_end"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/payroll_runs/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "period_start"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "run_number",
+            "period_start",
+            "period_end",
+            "pay_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "run_number",
+                "period_start",
+                "period_end",
+                "pay_date",
+                "frequency",
+                "status",
+                "employee_count",
+                "gross_pay_total",
+                "taxes_total",
+                "net_pay_total"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "PayrollEntry": {
+    {
       "table": "payroll_entries",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1068,7 +1284,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1086,7 +1302,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1104,7 +1320,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1122,7 +1338,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1140,7 +1356,7 @@
             "format": "iso8601"
           }
         },
-        "payroll_run_id": {
+        {
           "name": "payroll_run_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1158,7 +1374,7 @@
             "format": "uuid"
           }
         },
-        "employee_id": {
+        {
           "name": "employee_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1176,7 +1392,7 @@
             "format": "uuid"
           }
         },
-        "base_pay": {
+        {
           "name": "base_pay",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1195,7 +1411,7 @@
             "computed": true
           }
         },
-        "hours_worked": {
+        {
           "name": "hours_worked",
           "db_type": "NUMERIC(8,2)",
           "ts_type": "number | null",
@@ -1213,7 +1429,7 @@
             "min": 0
           }
         },
-        "overtime_hours": {
+        {
           "name": "overtime_hours",
           "db_type": "NUMERIC(8,2) NOT NULL",
           "ts_type": "number",
@@ -1231,7 +1447,7 @@
             "min": 0
           }
         },
-        "overtime_pay": {
+        {
           "name": "overtime_pay",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1249,7 +1465,7 @@
             "min": 0
           }
         },
-        "bonus": {
+        {
           "name": "bonus",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1267,7 +1483,7 @@
             "min": 0
           }
         },
-        "commission": {
+        {
           "name": "commission",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1285,7 +1501,7 @@
             "min": 0
           }
         },
-        "reimbursements": {
+        {
           "name": "reimbursements",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1303,7 +1519,7 @@
             "min": 0
           }
         },
-        "gross_pay": {
+        {
           "name": "gross_pay",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1322,7 +1538,7 @@
             "computed": true
           }
         },
-        "federal_income_tax": {
+        {
           "name": "federal_income_tax",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1340,7 +1556,7 @@
             "min": 0
           }
         },
-        "state_income_tax": {
+        {
           "name": "state_income_tax",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1358,7 +1574,7 @@
             "min": 0
           }
         },
-        "social_security_tax": {
+        {
           "name": "social_security_tax",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1376,7 +1592,7 @@
             "min": 0
           }
         },
-        "medicare_tax": {
+        {
           "name": "medicare_tax",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1394,7 +1610,7 @@
             "min": 0
           }
         },
-        "other_deductions_total": {
+        {
           "name": "other_deductions_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1413,7 +1629,7 @@
             "computed": true
           }
         },
-        "net_pay": {
+        {
           "name": "net_pay",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1432,7 +1648,7 @@
             "computed": true
           }
         },
-        "employer_social_security": {
+        {
           "name": "employer_social_security",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1450,7 +1666,7 @@
             "min": 0
           }
         },
-        "employer_medicare": {
+        {
           "name": "employer_medicare",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1468,7 +1684,7 @@
             "min": 0
           }
         },
-        "employer_futa": {
+        {
           "name": "employer_futa",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1486,7 +1702,7 @@
             "min": 0
           }
         },
-        "employer_suta": {
+        {
           "name": "employer_suta",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1504,7 +1720,7 @@
             "min": 0
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'draft' | 'confirmed' | 'paid'",
@@ -1526,7 +1742,7 @@
             ]
           }
         },
-        "paid_at": {
+        {
           "name": "paid_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1543,8 +1759,19 @@
             "required": false,
             "format": "iso8601"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "payroll_entries_org_run_id_idx",
@@ -1567,12 +1794,104 @@
             "status"
           ]
         }
-      ]
+      ],
+      "name": "PayrollEntry",
+      "description": "PayrollEntry entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "employee_id",
+            "base_pay",
+            "gross_pay",
+            "other_deductions_total",
+            "net_pay",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No PayrollEntrys yet",
+            "subtext": "Create your first payrollentry",
+            "action_label": "Add PayrollEntry"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "base_pay",
+            "hours_worked",
+            "overtime_hours",
+            "overtime_pay",
+            "bonus",
+            "commission",
+            "reimbursements",
+            "federal_income_tax",
+            "state_income_tax",
+            "social_security_tax",
+            "medicare_tax"
+          ],
+          "required_fields": [
+            "base_pay",
+            "hours_worked"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "base_pay",
+            "hours_worked",
+            "overtime_hours",
+            "overtime_pay",
+            "bonus",
+            "commission",
+            "reimbursements",
+            "federal_income_tax",
+            "state_income_tax",
+            "social_security_tax",
+            "medicare_tax"
+          ],
+          "required_fields": [
+            "base_pay",
+            "hours_worked"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/payroll_entries/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "base_pay"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "employee_id",
+            "base_pay",
+            "gross_pay",
+            "other_deductions_total"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "employee_id",
+                "base_pay",
+                "gross_pay",
+                "other_deductions_total",
+                "net_pay",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Salary": {
+    {
       "table": "salaries",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1590,7 +1909,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1608,7 +1927,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1626,7 +1945,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1644,7 +1963,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1662,7 +1981,7 @@
             "format": "iso8601"
           }
         },
-        "employee_id": {
+        {
           "name": "employee_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1680,7 +1999,7 @@
             "format": "uuid"
           }
         },
-        "salary_type": {
+        {
           "name": "salary_type",
           "db_type": "VARCHAR(10) NOT NULL",
           "ts_type": "'annual' | 'hourly' | 'daily'",
@@ -1702,7 +2021,7 @@
             ]
           }
         },
-        "amount": {
+        {
           "name": "amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1720,7 +2039,7 @@
             "min": 0
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -1738,7 +2057,7 @@
             "length": 3
           }
         },
-        "effective_date": {
+        {
           "name": "effective_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1756,7 +2075,7 @@
             "format": "date"
           }
         },
-        "end_date": {
+        {
           "name": "end_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1775,7 +2094,7 @@
             "greaterThan": "effective_date"
           }
         },
-        "is_current": {
+        {
           "name": "is_current",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -1792,7 +2111,7 @@
             "required": true
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1809,7 +2128,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1826,8 +2145,19 @@
             "required": false,
             "format": "uuid"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "salaries_org_employee_id_idx",
@@ -1850,12 +2180,90 @@
             "effective_date"
           ]
         }
-      ]
+      ],
+      "name": "Salary",
+      "description": "Salary entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "salary_type",
+            "amount",
+            "effective_date",
+            "is_current"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Salarys yet",
+            "subtext": "Create your first salary",
+            "action_label": "Add Salary"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "salary_type",
+            "amount",
+            "currency",
+            "effective_date",
+            "end_date",
+            "notes"
+          ],
+          "required_fields": [
+            "salary_type",
+            "amount"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "salary_type",
+            "amount",
+            "currency",
+            "effective_date",
+            "end_date",
+            "notes"
+          ],
+          "required_fields": [
+            "salary_type",
+            "amount"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/salaries/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "salary_type"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "salary_type",
+            "amount",
+            "effective_date",
+            "is_current"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "salary_type",
+                "amount",
+                "effective_date",
+                "is_current"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Deduction": {
+    {
       "table": "deductions",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1873,7 +2281,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1891,7 +2299,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1909,7 +2317,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1927,7 +2335,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1945,7 +2353,7 @@
             "format": "iso8601"
           }
         },
-        "employee_id": {
+        {
           "name": "employee_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1963,7 +2371,7 @@
             "format": "uuid"
           }
         },
-        "deduction_type": {
+        {
           "name": "deduction_type",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'health_insurance' | 'dental' | 'vision' | '401k' | '403b' | 'garnishment' | 'union_dues' | 'other'",
@@ -1990,7 +2398,7 @@
             ]
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -2009,7 +2417,7 @@
             "maxLength": 255
           }
         },
-        "amount_type": {
+        {
           "name": "amount_type",
           "db_type": "VARCHAR(10) NOT NULL",
           "ts_type": "'fixed' | 'percentage'",
@@ -2030,7 +2438,7 @@
             ]
           }
         },
-        "amount": {
+        {
           "name": "amount",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -2048,7 +2456,7 @@
             "min": 0
           }
         },
-        "is_pre_tax": {
+        {
           "name": "is_pre_tax",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -2065,7 +2473,7 @@
             "required": true
           }
         },
-        "is_recurring": {
+        {
           "name": "is_recurring",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -2082,7 +2490,7 @@
             "required": true
           }
         },
-        "effective_date": {
+        {
           "name": "effective_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -2100,7 +2508,7 @@
             "format": "date"
           }
         },
-        "end_date": {
+        {
           "name": "end_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -2119,7 +2527,7 @@
             "greaterThan": "effective_date"
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -2136,7 +2544,7 @@
             "required": true
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -2152,8 +2560,19 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "deductions_org_employee_id_idx",
@@ -2176,12 +2595,102 @@
             "deduction_type"
           ]
         }
-      ]
+      ],
+      "name": "Deduction",
+      "description": "Deduction entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "deduction_type",
+            "name",
+            "amount_type",
+            "amount",
+            "is_pre_tax",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Deductions yet",
+            "subtext": "Create your first deduction",
+            "action_label": "Add Deduction"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "deduction_type",
+            "name",
+            "amount_type",
+            "amount",
+            "is_pre_tax",
+            "is_recurring",
+            "effective_date",
+            "end_date",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "deduction_type",
+            "name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "deduction_type",
+            "name",
+            "amount_type",
+            "amount",
+            "is_pre_tax",
+            "is_recurring",
+            "effective_date",
+            "end_date",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "deduction_type",
+            "name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/deductions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "deduction_type"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "deduction_type",
+            "name",
+            "amount_type",
+            "amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "deduction_type",
+                "name",
+                "amount_type",
+                "amount",
+                "is_pre_tax",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "TaxWithholding": {
+    {
       "table": "tax_withholdings",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -2199,7 +2708,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2217,7 +2726,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2235,7 +2744,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2253,7 +2762,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -2271,7 +2780,7 @@
             "format": "iso8601"
           }
         },
-        "payroll_entry_id": {
+        {
           "name": "payroll_entry_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2289,7 +2798,7 @@
             "format": "uuid"
           }
         },
-        "tax_type": {
+        {
           "name": "tax_type",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'federal_income' | 'state_income' | 'social_security' | 'medicare' | 'futa' | 'suta' | 'local'",
@@ -2315,7 +2824,7 @@
             ]
           }
         },
-        "jurisdiction": {
+        {
           "name": "jurisdiction",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -2333,7 +2842,7 @@
             "maxLength": 100
           }
         },
-        "amount": {
+        {
           "name": "amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -2351,7 +2860,7 @@
             "min": 0
           }
         },
-        "rate_used": {
+        {
           "name": "rate_used",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -2369,7 +2878,7 @@
             "min": 0
           }
         },
-        "employee_portion": {
+        {
           "name": "employee_portion",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -2387,7 +2896,7 @@
             "min": 0
           }
         },
-        "employer_portion": {
+        {
           "name": "employer_portion",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -2404,8 +2913,19 @@
             "required": true,
             "min": 0
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "tax_withholdings_org_entry_id_idx",
@@ -2421,9 +2941,64 @@
             "tax_type"
           ]
         }
-      ]
+      ],
+      "name": "TaxWithholding",
+      "description": "TaxWithholding entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "tax_type",
+            "jurisdiction",
+            "amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No TaxWithholdings yet",
+            "subtext": "Create your first taxwithholding",
+            "action_label": "Add TaxWithholding"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/tax_withholdings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "tax_type",
+            "jurisdiction",
+            "amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "tax_type",
+                "jurisdiction",
+                "amount"
+              ]
+            }
+          ]
+        }
+      }
     }
-  },
+  ],
   "computed_fields": {
     "PayrollEntry.gross_pay": "base_pay + overtime_pay + bonus + commission + reimbursements",
     "PayrollEntry.other_deductions_total": "SUM(deductions applied to this entry)",
@@ -2466,7 +3041,7 @@
       "db_constraint": null
     },
     {
-      "rule": "Approved payroll runs cannot be edited — must cancel and recreate",
+      "rule": "Approved payroll runs cannot be edited \u2014 must cancel and recreate",
       "enforced_at": [
         "api",
         "ui"
@@ -3524,10 +4099,10 @@
       "name": "Run Payroll",
       "steps": [
         "Create PayrollRun: POST /payroll-runs with period_start, period_end, pay_date, frequency",
-        "Process run: POST /payroll-runs/:id/process — for each active employee fetch current salary, calculate base_pay, apply hours_worked if hourly, add bonus/commission/overtime, apply employee deductions (fixed or percentage of gross), compute federal/state taxable income after pre-tax deductions, calculate tax withholdings using tax tables for jurisdiction, compute gross_pay and net_pay, create PayrollEntry per employee",
+        "Process run: POST /payroll-runs/:id/process \u2014 for each active employee fetch current salary, calculate base_pay, apply hours_worked if hourly, add bonus/commission/overtime, apply employee deductions (fixed or percentage of gross), compute federal/state taxable income after pre-tax deductions, calculate tax withholdings using tax tables for jurisdiction, compute gross_pay and net_pay, create PayrollEntry per employee",
         "Review entries in PayrollRunDetail/Entries tab; override individual entries via PATCH /payroll-entries/:id if needed",
-        "Approve run: POST /payroll-runs/:id/approve — requires admin or payroll_admin role",
-        "Mark as paid: POST /payroll-runs/:id/pay — triggers payslip generation, journal entry creation, employee last_pay_date update"
+        "Approve run: POST /payroll-runs/:id/approve \u2014 requires admin or payroll_admin role",
+        "Mark as paid: POST /payroll-runs/:id/pay \u2014 triggers payslip generation, journal entry creation, employee last_pay_date update"
       ],
       "backend_mutations": [
         "POST /payroll-runs",
@@ -3588,7 +4163,7 @@
       "ts_type": "string",
       "nullable": false,
       "default": null,
-      "notes": "FK→organizations, row-level security anchor"
+      "notes": "FK\u2192organizations, row-level security anchor"
     },
     "created_at": {
       "db_type": "TIMESTAMPTZ",
@@ -3607,7 +4182,7 @@
       "ts_type": "string | null",
       "nullable": true,
       "default": null,
-      "notes": "Soft delete — all queries filter deleted_at IS NULL"
+      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
     }
   },
   "security": {
@@ -3799,7 +4374,7 @@
     ],
     "retention_days": 2555,
     "immutable": true,
-    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
   },
   "db_constraints_policy": {
     "naming_convention": "{table}_{column(s)}_{constraint_type}",
@@ -3865,5 +4440,16 @@
     "component_naming": "PascalCase (e.g. InvoiceLineTable)",
     "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
     "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Employees",
+        "entity": "Employee",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
   }
 }

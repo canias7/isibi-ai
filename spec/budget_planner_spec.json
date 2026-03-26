@@ -34,11 +34,11 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "Budget": {
+  "entities": [
+    {
       "table": "budgets",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -56,7 +56,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -74,7 +74,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -92,7 +92,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -110,7 +110,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -128,7 +128,7 @@
             "format": "iso8601"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -147,7 +147,7 @@
             "maxLength": 255
           }
         },
-        "fiscal_year": {
+        {
           "name": "fiscal_year",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -166,7 +166,7 @@
             "max": 2100
           }
         },
-        "period_type": {
+        {
           "name": "period_type",
           "db_type": "VARCHAR(10) NOT NULL",
           "ts_type": "'annual' | 'quarterly' | 'monthly'",
@@ -188,7 +188,7 @@
             ]
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(10) NOT NULL",
           "ts_type": "'draft' | 'active' | 'archived'",
@@ -210,7 +210,7 @@
             ]
           }
         },
-        "total_budgeted": {
+        {
           "name": "total_budgeted",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
@@ -228,7 +228,7 @@
             "computed": true
           }
         },
-        "total_spent": {
+        {
           "name": "total_spent",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
@@ -246,7 +246,7 @@
             "computed": true
           }
         },
-        "total_variance": {
+        {
           "name": "total_variance",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
@@ -264,7 +264,7 @@
             "computed": true
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -282,7 +282,7 @@
             "length": 3
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -299,7 +299,7 @@
             "required": false
           }
         },
-        "approved_by": {
+        {
           "name": "approved_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -317,7 +317,7 @@
             "format": "uuid"
           }
         },
-        "approved_at": {
+        {
           "name": "approved_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -335,7 +335,7 @@
             "format": "iso8601"
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -352,8 +352,19 @@
             "required": false,
             "format": "uuid"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "budgets_org_fiscal_year_idx",
@@ -369,12 +380,93 @@
             "status"
           ]
         }
-      ]
+      ],
+      "name": "Budget",
+      "description": "Budget entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "fiscal_year",
+            "period_type",
+            "status",
+            "total_budgeted",
+            "total_spent"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Budgets yet",
+            "subtext": "Create your first budget",
+            "action_label": "Add Budget"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "fiscal_year",
+            "period_type",
+            "currency",
+            "description"
+          ],
+          "required_fields": [
+            "name",
+            "fiscal_year"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "fiscal_year",
+            "period_type",
+            "currency",
+            "description"
+          ],
+          "required_fields": [
+            "name",
+            "fiscal_year"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/budgets/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "fiscal_year",
+            "period_type",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "fiscal_year",
+                "period_type",
+                "status",
+                "total_budgeted",
+                "total_spent",
+                "total_variance"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "BudgetCategory": {
+    {
       "table": "budget_categories",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -392,7 +484,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -410,7 +502,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -428,7 +520,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -446,7 +538,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -464,7 +556,7 @@
             "format": "iso8601"
           }
         },
-        "budget_id": {
+        {
           "name": "budget_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -482,7 +574,7 @@
             "format": "uuid"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -501,7 +593,7 @@
             "maxLength": 255
           }
         },
-        "account_id": {
+        {
           "name": "account_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -519,7 +611,7 @@
             "format": "uuid"
           }
         },
-        "parent_category_id": {
+        {
           "name": "parent_category_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -538,7 +630,7 @@
             "notSelf": true
           }
         },
-        "color": {
+        {
           "name": "color",
           "db_type": "VARCHAR(7)",
           "ts_type": "string | null",
@@ -556,7 +648,7 @@
             "pattern": "^#[0-9A-Fa-f]{6}$"
           }
         },
-        "icon": {
+        {
           "name": "icon",
           "db_type": "VARCHAR(50)",
           "ts_type": "string | null",
@@ -574,7 +666,7 @@
             "maxLength": 50
           }
         },
-        "sort_order": {
+        {
           "name": "sort_order",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -592,7 +684,7 @@
             "min": 0
           }
         },
-        "total_budgeted": {
+        {
           "name": "total_budgeted",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
@@ -610,7 +702,7 @@
             "computed": true
           }
         },
-        "total_spent": {
+        {
           "name": "total_spent",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
@@ -628,7 +720,7 @@
             "computed": true
           }
         },
-        "variance": {
+        {
           "name": "variance",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
@@ -646,7 +738,7 @@
             "computed": true
           }
         },
-        "variance_pct": {
+        {
           "name": "variance_pct",
           "db_type": "NUMERIC(8,4)",
           "ts_type": "number",
@@ -664,7 +756,7 @@
             "computed": true
           }
         },
-        "is_revenue": {
+        {
           "name": "is_revenue",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -681,8 +773,19 @@
             "required": true,
             "description": "true for revenue categories, false for expense"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "budget_categories_org_budget_id_idx",
@@ -705,12 +808,96 @@
             "parent_category_id"
           ]
         }
-      ]
+      ],
+      "name": "BudgetCategory",
+      "description": "BudgetCategory entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "color",
+            "icon",
+            "total_budgeted",
+            "total_spent",
+            "variance"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No BudgetCategorys yet",
+            "subtext": "Create your first budgetcategory",
+            "action_label": "Add BudgetCategory"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "account_id",
+            "parent_category_id",
+            "color",
+            "icon",
+            "is_revenue"
+          ],
+          "required_fields": [
+            "name",
+            "account_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "account_id",
+            "parent_category_id",
+            "color",
+            "icon",
+            "is_revenue"
+          ],
+          "required_fields": [
+            "name",
+            "account_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/budget_categories/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "color",
+            "icon",
+            "total_budgeted"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "color",
+                "icon",
+                "total_budgeted",
+                "total_spent",
+                "variance",
+                "variance_pct",
+                "is_revenue"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "BudgetEntry": {
+    {
       "table": "budget_entries",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -728,7 +915,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -746,7 +933,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -764,7 +951,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -782,7 +969,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -800,7 +987,7 @@
             "format": "iso8601"
           }
         },
-        "budget_id": {
+        {
           "name": "budget_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -818,7 +1005,7 @@
             "format": "uuid"
           }
         },
-        "category_id": {
+        {
           "name": "category_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -836,7 +1023,7 @@
             "format": "uuid"
           }
         },
-        "period_label": {
+        {
           "name": "period_label",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
@@ -858,7 +1045,7 @@
             ]
           }
         },
-        "period_start": {
+        {
           "name": "period_start",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -876,7 +1063,7 @@
             "format": "date"
           }
         },
-        "period_end": {
+        {
           "name": "period_end",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -895,7 +1082,7 @@
             "greaterThan": "period_start"
           }
         },
-        "budgeted_amount": {
+        {
           "name": "budgeted_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -913,7 +1100,7 @@
             "min": 0
           }
         },
-        "actual_amount": {
+        {
           "name": "actual_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -932,7 +1119,7 @@
             "description": "synced from GL"
           }
         },
-        "variance": {
+        {
           "name": "variance",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number",
@@ -950,7 +1137,7 @@
             "computed": true
           }
         },
-        "variance_pct": {
+        {
           "name": "variance_pct",
           "db_type": "NUMERIC(8,4)",
           "ts_type": "number",
@@ -968,7 +1155,7 @@
             "computed": true
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -985,7 +1172,7 @@
             "required": false
           }
         },
-        "last_synced_at": {
+        {
           "name": "last_synced_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1002,8 +1189,19 @@
             "required": false,
             "format": "iso8601"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "budget_entries_org_budget_category_period_unique",
@@ -1022,12 +1220,86 @@
             "period_start"
           ]
         }
-      ]
+      ],
+      "name": "BudgetEntry",
+      "description": "BudgetEntry entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "category_id",
+            "period_label",
+            "budgeted_amount",
+            "actual_amount",
+            "variance",
+            "variance_pct"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No BudgetEntrys yet",
+            "subtext": "Create your first budgetentry",
+            "action_label": "Add BudgetEntry"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "budgeted_amount",
+            "notes"
+          ],
+          "required_fields": [
+            "budgeted_amount",
+            "notes"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "budgeted_amount",
+            "notes"
+          ],
+          "required_fields": [
+            "budgeted_amount",
+            "notes"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/budget_entries/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "budgeted_amount"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "category_id",
+            "period_label",
+            "budgeted_amount",
+            "actual_amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "category_id",
+                "period_label",
+                "budgeted_amount",
+                "actual_amount",
+                "variance",
+                "variance_pct"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "BudgetAlert": {
+    {
       "table": "budget_alerts",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1045,7 +1317,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1063,7 +1335,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1081,7 +1353,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1099,7 +1371,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1117,7 +1389,7 @@
             "format": "iso8601"
           }
         },
-        "budget_id": {
+        {
           "name": "budget_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1135,7 +1407,7 @@
             "format": "uuid"
           }
         },
-        "category_id": {
+        {
           "name": "category_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1153,7 +1425,7 @@
             "format": "uuid"
           }
         },
-        "alert_type": {
+        {
           "name": "alert_type",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'threshold_50' | 'threshold_75' | 'threshold_90' | 'threshold_100' | 'exceeded'",
@@ -1177,7 +1449,7 @@
             ]
           }
         },
-        "threshold_pct": {
+        {
           "name": "threshold_pct",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -1197,7 +1469,7 @@
             "description": "percentage of budgeted amount"
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -1214,7 +1486,7 @@
             "required": true
           }
         },
-        "last_triggered_at": {
+        {
           "name": "last_triggered_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1232,7 +1504,7 @@
             "format": "iso8601"
           }
         },
-        "notification_recipients": {
+        {
           "name": "notification_recipients",
           "db_type": "JSONB NOT NULL",
           "ts_type": "string[]",
@@ -1249,8 +1521,19 @@
             "required": true,
             "description": "array of user UUIDs"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "budget_alerts_org_budget_id_idx",
@@ -1266,9 +1549,87 @@
             "is_active"
           ]
         }
-      ]
+      ],
+      "name": "BudgetAlert",
+      "description": "BudgetAlert entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "category_id",
+            "alert_type",
+            "threshold_pct",
+            "is_active",
+            "last_triggered_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No BudgetAlerts yet",
+            "subtext": "Create your first budgetalert",
+            "action_label": "Add BudgetAlert"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "category_id",
+            "alert_type",
+            "threshold_pct",
+            "is_active",
+            "notification_recipients"
+          ],
+          "required_fields": [
+            "category_id",
+            "alert_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "category_id",
+            "alert_type",
+            "threshold_pct",
+            "is_active",
+            "notification_recipients"
+          ],
+          "required_fields": [
+            "category_id",
+            "alert_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/budget_alerts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "category_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "category_id",
+            "alert_type",
+            "threshold_pct",
+            "is_active"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "category_id",
+                "alert_type",
+                "threshold_pct",
+                "is_active",
+                "last_triggered_at"
+              ]
+            }
+          ]
+        }
+      }
     }
-  },
+  ],
   "computed_fields": {
     "BudgetEntry.variance": "budgeted_amount - actual_amount (positive = under budget, negative = over)",
     "BudgetEntry.variance_pct": "(variance / budgeted_amount) * 100",
@@ -2620,5 +2981,16 @@
         "BudgetCategory.account_id"
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Budgets",
+        "entity": "Budget",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
+  }
 }

@@ -44,7 +44,7 @@
   "global_rules": {
     "every_entity_has": [
       "id (UUID PK)",
-      "org_id (UUID NOT NULL FK→organizations indexed)",
+      "org_id (UUID NOT NULL FK\u2192organizations indexed)",
       "created_at",
       "updated_at",
       "deleted_at"
@@ -72,12 +72,12 @@
       "db_constraint": "string"
     }
   },
-  "entities": {
-    "Article": {
+  "entities": [
+    {
       "table": "kb_articles",
       "description": "A knowledge base article with versioning and full-text search support",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -95,7 +95,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -113,7 +113,7 @@
             "format": "uuid"
           }
         },
-        "article_number": {
+        {
           "name": "article_number",
           "db_type": "VARCHAR(50)",
           "ts_type": "string",
@@ -131,7 +131,7 @@
             "pattern": "^KB-[0-9]{4,}$"
           }
         },
-        "title": {
+        {
           "name": "title",
           "db_type": "VARCHAR(500) NOT NULL",
           "ts_type": "string",
@@ -153,7 +153,7 @@
             "maxLength": 500
           }
         },
-        "slug": {
+        {
           "name": "slug",
           "db_type": "VARCHAR(500)",
           "ts_type": "string",
@@ -172,7 +172,7 @@
             "pattern": "^[a-z0-9-]+$"
           }
         },
-        "content": {
+        {
           "name": "content",
           "db_type": "TEXT NOT NULL",
           "ts_type": "string",
@@ -190,7 +190,7 @@
             "minLength": 1
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'draft' | 'published' | 'archived'",
@@ -217,7 +217,7 @@
             ]
           }
         },
-        "category_id": {
+        {
           "name": "category_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -236,7 +236,7 @@
           },
           "fk": "kb_categories.id"
         },
-        "author_id": {
+        {
           "name": "author_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -255,7 +255,7 @@
           },
           "fk": "users.id"
         },
-        "cover_image_url": {
+        {
           "name": "cover_image_url",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -274,7 +274,7 @@
             "nullable": true
           }
         },
-        "is_featured": {
+        {
           "name": "is_featured",
           "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
@@ -291,7 +291,7 @@
             "type": "boolean"
           }
         },
-        "view_count": {
+        {
           "name": "view_count",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
@@ -309,7 +309,7 @@
             "minimum": 0
           }
         },
-        "helpful_count": {
+        {
           "name": "helpful_count",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
@@ -327,7 +327,7 @@
             "minimum": 0
           }
         },
-        "not_helpful_count": {
+        {
           "name": "not_helpful_count",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
@@ -345,7 +345,7 @@
             "minimum": 0
           }
         },
-        "reading_time_minutes": {
+        {
           "name": "reading_time_minutes",
           "db_type": "INTEGER",
           "ts_type": "number",
@@ -374,7 +374,7 @@
             "minimum": 1
           }
         },
-        "published_at": {
+        {
           "name": "published_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -393,7 +393,7 @@
             "nullable": true
           }
         },
-        "search_vector": {
+        {
           "name": "search_vector",
           "db_type": "TSVECTOR",
           "ts_type": "never",
@@ -419,7 +419,7 @@
           "show_in_form": false,
           "validation": null
         },
-        "tag_ids": {
+        {
           "name": "tag_ids",
           "db_type": "UUID[] NOT NULL DEFAULT '{}'",
           "ts_type": "string[]",
@@ -440,7 +440,7 @@
             }
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -458,7 +458,7 @@
             "format": "date-time"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -476,7 +476,7 @@
             "format": "date-time"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -494,8 +494,19 @@
             "format": "date-time",
             "nullable": true
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_kb_articles_org_status",
@@ -540,13 +551,105 @@
             "slug"
           ]
         }
-      ]
+      ],
+      "name": "Article",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "article_number",
+            "title",
+            "status",
+            "category_id",
+            "author_id",
+            "is_featured"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Articles yet",
+            "subtext": "Create your first article",
+            "action_label": "Add Article"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "slug",
+            "content",
+            "status",
+            "category_id",
+            "cover_image_url",
+            "is_featured",
+            "tag_ids"
+          ],
+          "required_fields": [
+            "title",
+            "slug"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "title",
+            "slug",
+            "content",
+            "status",
+            "category_id",
+            "cover_image_url",
+            "is_featured",
+            "tag_ids"
+          ],
+          "required_fields": [
+            "title",
+            "slug"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kb_articles/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "title"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "article_number",
+            "title",
+            "status",
+            "category_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "article_number",
+                "title",
+                "status",
+                "category_id",
+                "author_id",
+                "is_featured",
+                "view_count",
+                "helpful_count",
+                "not_helpful_count",
+                "reading_time_minutes",
+                "published_at",
+                "tag_ids",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Category": {
+    {
       "table": "kb_categories",
       "description": "Hierarchical categorization for knowledge base articles",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -564,7 +667,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -582,7 +685,7 @@
             "format": "uuid"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -601,7 +704,7 @@
             "maxLength": 255
           }
         },
-        "slug": {
+        {
           "name": "slug",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -620,7 +723,7 @@
             "pattern": "^[a-z0-9-]+$"
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -638,7 +741,7 @@
             "nullable": true
           }
         },
-        "parent_category_id": {
+        {
           "name": "parent_category_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -658,7 +761,7 @@
           },
           "fk": "kb_categories.id"
         },
-        "icon": {
+        {
           "name": "icon",
           "db_type": "VARCHAR(50)",
           "ts_type": "string | null",
@@ -677,7 +780,7 @@
             "nullable": true
           }
         },
-        "color": {
+        {
           "name": "color",
           "db_type": "VARCHAR(7)",
           "ts_type": "string | null",
@@ -696,7 +799,7 @@
             "nullable": true
           }
         },
-        "category_order": {
+        {
           "name": "category_order",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
@@ -714,7 +817,7 @@
             "minimum": 0
           }
         },
-        "article_count": {
+        {
           "name": "article_count",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
@@ -743,7 +846,7 @@
             "minimum": 0
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL DEFAULT true",
           "ts_type": "boolean",
@@ -760,7 +863,7 @@
             "type": "boolean"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -778,7 +881,7 @@
             "format": "date-time"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -796,7 +899,7 @@
             "format": "date-time"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -814,8 +917,19 @@
             "format": "date-time",
             "nullable": true
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_kb_categories_org_parent",
@@ -832,13 +946,96 @@
             "slug"
           ]
         }
-      ]
+      ],
+      "name": "Category",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "icon",
+            "color",
+            "article_count",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Categorys yet",
+            "subtext": "Create your first category",
+            "action_label": "Add Category"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "slug",
+            "description",
+            "parent_category_id",
+            "icon",
+            "color",
+            "category_order",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "slug"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "slug",
+            "description",
+            "parent_category_id",
+            "icon",
+            "color",
+            "category_order",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "slug"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kb_categories/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "icon",
+            "color",
+            "article_count"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "icon",
+                "color",
+                "article_count",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Tag": {
+    {
       "table": "kb_tags",
       "description": "Tags for flexible labeling of knowledge base articles",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -856,7 +1053,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -874,7 +1071,7 @@
             "format": "uuid"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -893,7 +1090,7 @@
             "maxLength": 100
           }
         },
-        "color": {
+        {
           "name": "color",
           "db_type": "VARCHAR(7)",
           "ts_type": "string | null",
@@ -912,7 +1109,7 @@
             "nullable": true
           }
         },
-        "usage_count": {
+        {
           "name": "usage_count",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
@@ -941,7 +1138,7 @@
             "minimum": 0
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -959,7 +1156,7 @@
             "format": "date-time"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -977,7 +1174,7 @@
             "format": "date-time"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -995,8 +1192,19 @@
             "format": "date-time",
             "nullable": true
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "uq_kb_tags_org_name",
@@ -1006,13 +1214,79 @@
             "name"
           ]
         }
-      ]
+      ],
+      "name": "Tag",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "color",
+            "usage_count"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Tags yet",
+            "subtext": "Create your first tag",
+            "action_label": "Add Tag"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "color"
+          ],
+          "required_fields": [
+            "name",
+            "color"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "color"
+          ],
+          "required_fields": [
+            "name",
+            "color"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kb_tags/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "color",
+            "usage_count"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "color",
+                "usage_count"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Revision": {
+    {
       "table": "kb_revisions",
       "description": "Immutable snapshots of article content at each edit",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1030,7 +1304,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1048,7 +1322,7 @@
             "format": "uuid"
           }
         },
-        "article_id": {
+        {
           "name": "article_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1068,7 +1342,7 @@
           "fk": "kb_articles.id",
           "on_delete": "CASCADE"
         },
-        "version_number": {
+        {
           "name": "version_number",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -1086,7 +1360,7 @@
             "minimum": 1
           }
         },
-        "title": {
+        {
           "name": "title",
           "db_type": "VARCHAR(500) NOT NULL",
           "ts_type": "string",
@@ -1105,7 +1379,7 @@
             "maxLength": 500
           }
         },
-        "content": {
+        {
           "name": "content",
           "db_type": "TEXT NOT NULL",
           "ts_type": "string",
@@ -1123,7 +1397,7 @@
             "minLength": 1
           }
         },
-        "change_summary": {
+        {
           "name": "change_summary",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1141,7 +1415,7 @@
             "nullable": true
           }
         },
-        "revised_by": {
+        {
           "name": "revised_by",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1160,7 +1434,7 @@
           },
           "fk": "users.id"
         },
-        "is_published_version": {
+        {
           "name": "is_published_version",
           "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
@@ -1177,7 +1451,7 @@
             "type": "boolean"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1195,7 +1469,7 @@
             "format": "date-time"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1213,7 +1487,7 @@
             "format": "date-time"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1231,8 +1505,19 @@
             "format": "date-time",
             "nullable": true
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_kb_revisions_org_article",
@@ -1250,13 +1535,74 @@
             "version_number"
           ]
         }
-      ]
+      ],
+      "name": "Revision",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "version_number",
+            "title",
+            "change_summary",
+            "revised_by",
+            "is_published_version",
+            "created_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Revisions yet",
+            "subtext": "Create your first revision",
+            "action_label": "Add Revision"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kb_revisions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "version_number",
+            "title",
+            "change_summary",
+            "revised_by"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "version_number",
+                "title",
+                "change_summary",
+                "revised_by",
+                "is_published_version",
+                "created_at"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Comment": {
+    {
       "table": "kb_comments",
       "description": "User comments on knowledge base articles with threaded reply support",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1274,7 +1620,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1292,7 +1638,7 @@
             "format": "uuid"
           }
         },
-        "article_id": {
+        {
           "name": "article_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1312,7 +1658,7 @@
           "fk": "kb_articles.id",
           "on_delete": "CASCADE"
         },
-        "content": {
+        {
           "name": "content",
           "db_type": "TEXT NOT NULL",
           "ts_type": "string",
@@ -1330,7 +1676,7 @@
             "minLength": 1
           }
         },
-        "author_id": {
+        {
           "name": "author_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1349,7 +1695,7 @@
           },
           "fk": "users.id"
         },
-        "parent_comment_id": {
+        {
           "name": "parent_comment_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1369,7 +1715,7 @@
           },
           "fk": "kb_comments.id"
         },
-        "is_approved": {
+        {
           "name": "is_approved",
           "db_type": "BOOLEAN NOT NULL DEFAULT true",
           "ts_type": "boolean",
@@ -1386,7 +1732,7 @@
             "type": "boolean"
           }
         },
-        "is_edited": {
+        {
           "name": "is_edited",
           "db_type": "BOOLEAN NOT NULL DEFAULT false",
           "ts_type": "boolean",
@@ -1403,7 +1749,7 @@
             "type": "boolean"
           }
         },
-        "edited_at": {
+        {
           "name": "edited_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1422,7 +1768,7 @@
             "nullable": true
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1440,7 +1786,7 @@
             "format": "date-time"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1458,7 +1804,7 @@
             "format": "date-time"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1476,8 +1822,19 @@
             "format": "date-time",
             "nullable": true
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_kb_comments_org_article",
@@ -1493,13 +1850,75 @@
             "author_id"
           ]
         }
-      ]
+      ],
+      "name": "Comment",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "content",
+            "author_id",
+            "created_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Comments yet",
+            "subtext": "Create your first comment",
+            "action_label": "Add Comment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "content"
+          ],
+          "required_fields": [
+            "content"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "content"
+          ],
+          "required_fields": [
+            "content"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kb_comments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "content"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "content",
+            "author_id",
+            "created_at"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "content",
+                "author_id",
+                "created_at"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Attachment": {
+    {
       "table": "kb_attachments",
       "description": "File attachments associated with knowledge base articles",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1517,7 +1936,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1535,7 +1954,7 @@
             "format": "uuid"
           }
         },
-        "article_id": {
+        {
           "name": "article_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1555,7 +1974,7 @@
           "fk": "kb_articles.id",
           "on_delete": "CASCADE"
         },
-        "filename": {
+        {
           "name": "filename",
           "db_type": "VARCHAR(500) NOT NULL",
           "ts_type": "string",
@@ -1574,7 +1993,7 @@
             "maxLength": 500
           }
         },
-        "file_url": {
+        {
           "name": "file_url",
           "db_type": "TEXT NOT NULL",
           "ts_type": "string",
@@ -1592,7 +2011,7 @@
             "format": "uri"
           }
         },
-        "mime_type": {
+        {
           "name": "mime_type",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -1610,7 +2029,7 @@
             "maxLength": 255
           }
         },
-        "file_size_bytes": {
+        {
           "name": "file_size_bytes",
           "db_type": "BIGINT NOT NULL",
           "ts_type": "number",
@@ -1628,7 +2047,7 @@
             "minimum": 1
           }
         },
-        "uploaded_by": {
+        {
           "name": "uploaded_by",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1647,7 +2066,7 @@
           },
           "fk": "users.id"
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1665,7 +2084,7 @@
             "format": "date-time"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1683,7 +2102,7 @@
             "format": "date-time"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1701,8 +2120,19 @@
             "format": "date-time",
             "nullable": true
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_kb_attachments_org_article",
@@ -1711,13 +2141,72 @@
             "article_id"
           ]
         }
-      ]
+      ],
+      "name": "Attachment",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "filename",
+            "mime_type",
+            "file_size_bytes",
+            "uploaded_by",
+            "created_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Attachments yet",
+            "subtext": "Create your first attachment",
+            "action_label": "Add Attachment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kb_attachments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "filename",
+            "mime_type",
+            "file_size_bytes",
+            "uploaded_by"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "filename",
+                "mime_type",
+                "file_size_bytes",
+                "uploaded_by",
+                "created_at"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "SearchQuery": {
+    {
       "table": "kb_search_queries",
       "description": "Log of user search queries for analytics and improving search experience",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1735,7 +2224,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1753,7 +2242,7 @@
             "format": "uuid"
           }
         },
-        "query": {
+        {
           "name": "query",
           "db_type": "TEXT NOT NULL",
           "ts_type": "string",
@@ -1771,7 +2260,7 @@
             "minLength": 1
           }
         },
-        "user_id": {
+        {
           "name": "user_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1791,7 +2280,7 @@
           },
           "fk": "users.id"
         },
-        "result_count": {
+        {
           "name": "result_count",
           "db_type": "INTEGER NOT NULL DEFAULT 0",
           "ts_type": "number",
@@ -1809,7 +2298,7 @@
             "minimum": 0
           }
         },
-        "clicked_article_id": {
+        {
           "name": "clicked_article_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1829,7 +2318,7 @@
           },
           "fk": "kb_articles.id"
         },
-        "searched_at": {
+        {
           "name": "searched_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1847,7 +2336,7 @@
             "format": "date-time"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1865,7 +2354,7 @@
             "format": "date-time"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -1883,7 +2372,7 @@
             "format": "date-time"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1901,8 +2390,19 @@
             "format": "date-time",
             "nullable": true
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_kb_search_queries_org_searched_at",
@@ -1918,9 +2418,66 @@
             "query"
           ]
         }
-      ]
+      ],
+      "name": "SearchQuery",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "query",
+            "user_id",
+            "result_count",
+            "searched_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No SearchQuerys yet",
+            "subtext": "Create your first searchquery",
+            "action_label": "Add SearchQuery"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kb_search_queries/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "query",
+            "user_id",
+            "result_count",
+            "searched_at"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "query",
+                "user_id",
+                "result_count",
+                "searched_at"
+              ]
+            }
+          ]
+        }
+      }
     }
-  },
+  ],
   "computed_fields": [
     {
       "entity": "Article",
@@ -2019,7 +2576,7 @@
     },
     {
       "id": 6,
-      "rule": "Archived articles cannot be edited — must restore to draft first",
+      "rule": "Archived articles cannot be edited \u2014 must restore to draft first",
       "enforced_at": [
         "api",
         "ui"
@@ -2727,7 +3284,7 @@
   "state_management": {
     "stores": {
       "authStore": {
-        "description": "Authentication state — user, token, role",
+        "description": "Authentication state \u2014 user, token, role",
         "fields": [
           "user",
           "token",
@@ -2736,7 +3293,7 @@
         ]
       },
       "uiStore": {
-        "description": "Global UI state — sidebar, modals, toasts",
+        "description": "Global UI state \u2014 sidebar, modals, toasts",
         "fields": [
           "sidebarOpen",
           "activeModal",
@@ -3115,7 +3672,7 @@
       "ts_type": "string",
       "nullable": false,
       "default": null,
-      "notes": "FK→organizations, row-level security anchor"
+      "notes": "FK\u2192organizations, row-level security anchor"
     },
     "created_at": {
       "db_type": "TIMESTAMPTZ",
@@ -3134,7 +3691,7 @@
       "ts_type": "string | null",
       "nullable": true,
       "default": null,
-      "notes": "Soft delete — all queries filter deleted_at IS NULL"
+      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
     }
   },
   "security": {
@@ -3326,7 +3883,7 @@
     ],
     "retention_days": 2555,
     "immutable": true,
-    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
   },
   "db_constraints_policy": {
     "naming_convention": "{table}_{column(s)}_{constraint_type}",
@@ -3392,5 +3949,16 @@
     "component_naming": "PascalCase (e.g. InvoiceLineTable)",
     "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
     "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Articles",
+        "entity": "Article",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
   }
 }

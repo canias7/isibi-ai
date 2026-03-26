@@ -34,8 +34,8 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "CommissionPlan": {
+  "entities": [
+    {
       "table": "commission_plans",
       "indexes": [
         {
@@ -57,8 +57,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -76,7 +76,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -94,7 +94,7 @@
             "format": "uuid"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -112,7 +112,7 @@
             "maxLength": 255
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -129,7 +129,7 @@
             "required": false
           }
         },
-        "plan_type": {
+        {
           "name": "plan_type",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'percentage_of_revenue' | 'flat_per_deal' | 'tiered' | 'milestone' | 'custom'",
@@ -153,7 +153,7 @@
             ]
           }
         },
-        "base_rate": {
+        {
           "name": "base_rate",
           "db_type": "NUMERIC(8,4)",
           "ts_type": "number | null",
@@ -172,7 +172,7 @@
             "max": 100
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -190,7 +190,7 @@
             "length": 3
           }
         },
-        "calculation_basis": {
+        {
           "name": "calculation_basis",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'invoice_paid' | 'subscription_revenue' | 'deal_closed' | 'manual'",
@@ -213,7 +213,7 @@
             ]
           }
         },
-        "payout_frequency": {
+        {
           "name": "payout_frequency",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'monthly' | 'quarterly' | 'on_payment'",
@@ -235,7 +235,7 @@
             ]
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -252,7 +252,7 @@
             "required": false
           }
         },
-        "effective_date": {
+        {
           "name": "effective_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -270,7 +270,7 @@
             "format": "date"
           }
         },
-        "expiry_date": {
+        {
           "name": "expiry_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -289,7 +289,7 @@
             "afterField": "effective_date"
           }
         },
-        "clawback_period_days": {
+        {
           "name": "clawback_period_days",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -307,7 +307,7 @@
             "min": 0
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -325,7 +325,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -342,7 +342,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -359,7 +359,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -375,10 +375,114 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "CommissionPlan",
+      "description": "CommissionPlan entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "plan_type",
+            "base_rate",
+            "calculation_basis",
+            "payout_frequency",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No CommissionPlans yet",
+            "subtext": "Create your first commissionplan",
+            "action_label": "Add CommissionPlan"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "plan_type",
+            "base_rate",
+            "currency",
+            "calculation_basis",
+            "payout_frequency",
+            "is_active",
+            "effective_date",
+            "expiry_date",
+            "clawback_period_days"
+          ],
+          "required_fields": [
+            "name",
+            "description"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "plan_type",
+            "base_rate",
+            "currency",
+            "calculation_basis",
+            "payout_frequency",
+            "is_active",
+            "effective_date",
+            "expiry_date",
+            "clawback_period_days"
+          ],
+          "required_fields": [
+            "name",
+            "description"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/commission_plans/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "plan_type",
+            "base_rate",
+            "calculation_basis"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "plan_type",
+                "base_rate",
+                "calculation_basis",
+                "payout_frequency",
+                "is_active",
+                "effective_date"
+              ]
+            }
+          ]
         }
       }
     },
-    "CommissionTier": {
+    {
       "table": "commission_tiers",
       "indexes": [
         {
@@ -396,8 +500,8 @@
           "unique": true
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -415,7 +519,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -433,7 +537,7 @@
             "format": "uuid"
           }
         },
-        "plan_id": {
+        {
           "name": "plan_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -451,7 +555,7 @@
             "format": "uuid"
           }
         },
-        "tier_number": {
+        {
           "name": "tier_number",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -469,7 +573,7 @@
             "min": 1
           }
         },
-        "threshold_from": {
+        {
           "name": "threshold_from",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -487,7 +591,7 @@
             "min": 0
           }
         },
-        "threshold_to": {
+        {
           "name": "threshold_to",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number | null",
@@ -505,7 +609,7 @@
             "min": 0
           }
         },
-        "rate": {
+        {
           "name": "rate",
           "db_type": "NUMERIC(8,4) NOT NULL",
           "ts_type": "number",
@@ -524,7 +628,7 @@
             "max": 100
           }
         },
-        "flat_amount": {
+        {
           "name": "flat_amount",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number | null",
@@ -542,7 +646,7 @@
             "min": 0
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -559,7 +663,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -576,7 +680,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -592,10 +696,97 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "CommissionTier",
+      "description": "CommissionTier entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "tier_number",
+            "threshold_from",
+            "threshold_to",
+            "rate"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No CommissionTiers yet",
+            "subtext": "Create your first commissiontier",
+            "action_label": "Add CommissionTier"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "tier_number",
+            "threshold_from",
+            "threshold_to",
+            "rate",
+            "flat_amount"
+          ],
+          "required_fields": [
+            "tier_number",
+            "threshold_from"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "tier_number",
+            "threshold_from",
+            "threshold_to",
+            "rate",
+            "flat_amount"
+          ],
+          "required_fields": [
+            "tier_number",
+            "threshold_from"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/commission_tiers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "tier_number"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "tier_number",
+            "threshold_from",
+            "threshold_to",
+            "rate"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "tier_number",
+                "threshold_from",
+                "threshold_to",
+                "rate"
+              ]
+            }
+          ]
         }
       }
     },
-    "Agent": {
+    {
       "table": "agents",
       "indexes": [
         {
@@ -625,8 +816,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -644,7 +835,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -662,7 +853,7 @@
             "format": "uuid"
           }
         },
-        "user_id": {
+        {
           "name": "user_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -680,7 +871,7 @@
             "format": "uuid"
           }
         },
-        "agent_number": {
+        {
           "name": "agent_number",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -698,7 +889,7 @@
             "maxLength": 50
           }
         },
-        "first_name": {
+        {
           "name": "first_name",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -716,7 +907,7 @@
             "maxLength": 100
           }
         },
-        "last_name": {
+        {
           "name": "last_name",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -734,7 +925,7 @@
             "maxLength": 100
           }
         },
-        "email": {
+        {
           "name": "email",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -753,7 +944,7 @@
             "maxLength": 255
           }
         },
-        "phone": {
+        {
           "name": "phone",
           "db_type": "VARCHAR(50)",
           "ts_type": "string | null",
@@ -771,7 +962,7 @@
             "maxLength": 50
           }
         },
-        "agent_type": {
+        {
           "name": "agent_type",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'employee' | 'contractor' | 'affiliate' | 'reseller'",
@@ -794,7 +985,7 @@
             ]
           }
         },
-        "commission_plan_id": {
+        {
           "name": "commission_plan_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -812,7 +1003,7 @@
             "format": "uuid"
           }
         },
-        "territory": {
+        {
           "name": "territory",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -830,7 +1021,7 @@
             "maxLength": 255
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -847,7 +1038,7 @@
             "required": false
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -864,7 +1055,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -882,7 +1073,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -899,7 +1090,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -916,7 +1107,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -932,10 +1123,112 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "Agent",
+      "description": "Agent entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "agent_number",
+            "first_name",
+            "last_name",
+            "email",
+            "agent_type",
+            "commission_plan_id"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Agents yet",
+            "subtext": "Create your first agent",
+            "action_label": "Add Agent"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "user_id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "agent_type",
+            "commission_plan_id",
+            "territory",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "user_id",
+            "first_name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "user_id",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "agent_type",
+            "commission_plan_id",
+            "territory",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "user_id",
+            "first_name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/agents/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "user_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "agent_number",
+            "first_name",
+            "last_name",
+            "email"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "agent_number",
+                "first_name",
+                "last_name",
+                "email",
+                "agent_type",
+                "commission_plan_id",
+                "is_active"
+              ]
+            }
+          ]
         }
       }
     },
-    "Commission": {
+    {
       "table": "commissions",
       "indexes": [
         {
@@ -983,8 +1276,8 @@
           "unique": true
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1002,7 +1295,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1020,7 +1313,7 @@
             "format": "uuid"
           }
         },
-        "agent_id": {
+        {
           "name": "agent_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1038,7 +1331,7 @@
             "format": "uuid"
           }
         },
-        "plan_id": {
+        {
           "name": "plan_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1056,7 +1349,7 @@
             "format": "uuid"
           }
         },
-        "source_entity_type": {
+        {
           "name": "source_entity_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -1074,7 +1367,7 @@
             "maxLength": 50
           }
         },
-        "source_entity_id": {
+        {
           "name": "source_entity_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1092,7 +1385,7 @@
             "format": "uuid"
           }
         },
-        "customer_id": {
+        {
           "name": "customer_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1110,7 +1403,7 @@
             "format": "uuid"
           }
         },
-        "deal_value": {
+        {
           "name": "deal_value",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1128,7 +1421,7 @@
             "min": 0
           }
         },
-        "commission_rate": {
+        {
           "name": "commission_rate",
           "db_type": "NUMERIC(8,4) NOT NULL",
           "ts_type": "number",
@@ -1146,7 +1439,7 @@
             "min": 0
           }
         },
-        "commission_amount": {
+        {
           "name": "commission_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1163,7 +1456,7 @@
             "required": true
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -1181,7 +1474,7 @@
             "length": 3
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'pending' | 'approved' | 'paid' | 'clawed_back' | 'voided'",
@@ -1205,7 +1498,7 @@
             ]
           }
         },
-        "earned_date": {
+        {
           "name": "earned_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1223,7 +1516,7 @@
             "format": "date"
           }
         },
-        "approved_at": {
+        {
           "name": "approved_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1240,7 +1533,7 @@
             "required": false
           }
         },
-        "approved_by": {
+        {
           "name": "approved_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1258,7 +1551,7 @@
             "format": "uuid"
           }
         },
-        "payout_id": {
+        {
           "name": "payout_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1276,7 +1569,7 @@
             "format": "uuid"
           }
         },
-        "clawback_deadline": {
+        {
           "name": "clawback_deadline",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1294,7 +1587,7 @@
             "format": "date"
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1311,7 +1604,7 @@
             "required": false
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1328,7 +1621,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1345,7 +1638,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1361,10 +1654,100 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "Commission",
+      "description": "Commission entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "agent_id",
+            "plan_id",
+            "source_entity_type",
+            "source_entity_id",
+            "deal_value",
+            "commission_rate"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Commissions yet",
+            "subtext": "Create your first commission",
+            "action_label": "Add Commission"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "agent_id",
+            "source_entity_type",
+            "notes"
+          ],
+          "required_fields": [
+            "agent_id",
+            "source_entity_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "agent_id",
+            "source_entity_type",
+            "notes"
+          ],
+          "required_fields": [
+            "agent_id",
+            "source_entity_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/commissions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "agent_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "agent_id",
+            "plan_id",
+            "source_entity_type",
+            "source_entity_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "agent_id",
+                "plan_id",
+                "source_entity_type",
+                "source_entity_id",
+                "deal_value",
+                "commission_rate",
+                "commission_amount",
+                "status",
+                "earned_date"
+              ]
+            }
+          ]
         }
       }
     },
-    "CommissionPayout": {
+    {
       "table": "commission_payouts",
       "indexes": [
         {
@@ -1393,8 +1776,8 @@
           "unique": true
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1412,7 +1795,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1430,7 +1813,7 @@
             "format": "uuid"
           }
         },
-        "payout_number": {
+        {
           "name": "payout_number",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -1448,7 +1831,7 @@
             "maxLength": 50
           }
         },
-        "agent_id": {
+        {
           "name": "agent_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1466,7 +1849,7 @@
             "format": "uuid"
           }
         },
-        "period_start": {
+        {
           "name": "period_start",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1484,7 +1867,7 @@
             "format": "date"
           }
         },
-        "period_end": {
+        {
           "name": "period_end",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1503,7 +1886,7 @@
             "afterField": "period_start"
           }
         },
-        "total_amount": {
+        {
           "name": "total_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1520,7 +1903,7 @@
             "required": false
           }
         },
-        "commission_count": {
+        {
           "name": "commission_count",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -1537,7 +1920,7 @@
             "required": false
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'draft' | 'approved' | 'paid'",
@@ -1559,7 +1942,7 @@
             ]
           }
         },
-        "payment_date": {
+        {
           "name": "payment_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1577,7 +1960,7 @@
             "format": "date"
           }
         },
-        "payment_method": {
+        {
           "name": "payment_method",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'bank_transfer' | 'check' | 'payroll' | 'other'",
@@ -1600,7 +1983,7 @@
             ]
           }
         },
-        "reference": {
+        {
           "name": "reference",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -1618,7 +2001,7 @@
             "maxLength": 255
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1635,7 +2018,7 @@
             "required": false
           }
         },
-        "approved_by": {
+        {
           "name": "approved_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1653,7 +2036,7 @@
             "format": "uuid"
           }
         },
-        "approved_at": {
+        {
           "name": "approved_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1670,7 +2053,7 @@
             "required": false
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1687,7 +2070,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1704,7 +2087,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1720,10 +2103,107 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "CommissionPayout",
+      "description": "CommissionPayout entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "payout_number",
+            "agent_id",
+            "period_start",
+            "period_end",
+            "total_amount",
+            "commission_count"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No CommissionPayouts yet",
+            "subtext": "Create your first commissionpayout",
+            "action_label": "Add CommissionPayout"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "agent_id",
+            "period_start",
+            "period_end",
+            "payment_date",
+            "payment_method",
+            "reference",
+            "notes"
+          ],
+          "required_fields": [
+            "agent_id",
+            "period_start"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "agent_id",
+            "period_start",
+            "period_end",
+            "payment_date",
+            "payment_method",
+            "reference",
+            "notes"
+          ],
+          "required_fields": [
+            "agent_id",
+            "period_start"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/commission_payouts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "agent_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "payout_number",
+            "agent_id",
+            "period_start",
+            "period_end"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "payout_number",
+                "agent_id",
+                "period_start",
+                "period_end",
+                "total_amount",
+                "commission_count",
+                "status",
+                "payment_method"
+              ]
+            }
+          ]
         }
       }
     }
-  },
+  ],
   "components": [
     "DataTable",
     "SlideOverForm",
@@ -2574,5 +3054,16 @@
         "Commission.invoice_id"
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total CommissionPlans",
+        "entity": "CommissionPlan",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
+  }
 }

@@ -34,8 +34,8 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "RevenueEvent": {
+  "entities": [
+    {
       "table": "revenue_events",
       "indexes": [
         {
@@ -75,8 +75,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -94,7 +94,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -112,7 +112,7 @@
             "format": "uuid"
           }
         },
-        "event_type": {
+        {
           "name": "event_type",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'invoice_paid' | 'subscription_payment' | 'manual_entry' | 'refund' | 'chargeback' | 'adjustment'",
@@ -137,7 +137,7 @@
             ]
           }
         },
-        "source_entity_type": {
+        {
           "name": "source_entity_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -155,7 +155,7 @@
             "maxLength": 50
           }
         },
-        "source_entity_id": {
+        {
           "name": "source_entity_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -173,7 +173,7 @@
             "format": "uuid"
           }
         },
-        "customer_id": {
+        {
           "name": "customer_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -191,7 +191,7 @@
             "format": "uuid"
           }
         },
-        "amount": {
+        {
           "name": "amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -208,7 +208,7 @@
             "required": true
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -226,7 +226,7 @@
             "length": 3
           }
         },
-        "event_date": {
+        {
           "name": "event_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -244,7 +244,7 @@
             "format": "date"
           }
         },
-        "revenue_category": {
+        {
           "name": "revenue_category",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'product' | 'service' | 'subscription' | 'one_time' | 'other'",
@@ -268,7 +268,7 @@
             ]
           }
         },
-        "account_id": {
+        {
           "name": "account_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -286,7 +286,7 @@
             "format": "uuid"
           }
         },
-        "period_label": {
+        {
           "name": "period_label",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
@@ -304,7 +304,7 @@
             "maxLength": 20
           }
         },
-        "is_recognized": {
+        {
           "name": "is_recognized",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -321,7 +321,7 @@
             "required": false
           }
         },
-        "recognition_date": {
+        {
           "name": "recognition_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -343,7 +343,7 @@
             }
           }
         },
-        "tags": {
+        {
           "name": "tags",
           "db_type": "TEXT[]",
           "ts_type": "string[] | null",
@@ -360,7 +360,7 @@
             "required": false
           }
         },
-        "metadata": {
+        {
           "name": "metadata",
           "db_type": "JSONB",
           "ts_type": "Record<string, unknown> | null",
@@ -377,7 +377,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -395,7 +395,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -412,7 +412,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -429,7 +429,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -445,10 +445,116 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "RevenueEvent",
+      "description": "RevenueEvent entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "event_type",
+            "source_entity_type",
+            "source_entity_id",
+            "customer_id",
+            "amount",
+            "event_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No RevenueEvents yet",
+            "subtext": "Create your first revenueevent",
+            "action_label": "Add RevenueEvent"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_type",
+            "source_entity_type",
+            "customer_id",
+            "amount",
+            "currency",
+            "event_date",
+            "revenue_category",
+            "account_id",
+            "is_recognized",
+            "recognition_date",
+            "tags"
+          ],
+          "required_fields": [
+            "event_type",
+            "source_entity_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "event_type",
+            "source_entity_type",
+            "customer_id",
+            "amount",
+            "currency",
+            "event_date",
+            "revenue_category",
+            "account_id",
+            "is_recognized",
+            "recognition_date",
+            "tags"
+          ],
+          "required_fields": [
+            "event_type",
+            "source_entity_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/revenue_events/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "event_type"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "event_type",
+            "source_entity_type",
+            "source_entity_id",
+            "customer_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "event_type",
+                "source_entity_type",
+                "source_entity_id",
+                "customer_id",
+                "amount",
+                "event_date",
+                "revenue_category",
+                "period_label",
+                "is_recognized"
+              ]
+            }
+          ]
         }
       }
     },
-    "RevenueReport": {
+    {
       "table": "revenue_reports",
       "indexes": [
         {
@@ -476,8 +582,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -495,7 +601,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -513,7 +619,7 @@
             "format": "uuid"
           }
         },
-        "report_name": {
+        {
           "name": "report_name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -531,7 +637,7 @@
             "maxLength": 255
           }
         },
-        "report_type": {
+        {
           "name": "report_type",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'monthly_summary' | 'ytd_summary' | 'customer_breakdown' | 'category_breakdown' | 'cohort' | 'mrr_movement' | 'churn_analysis' | 'custom'",
@@ -558,7 +664,7 @@
             ]
           }
         },
-        "period_start": {
+        {
           "name": "period_start",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -576,7 +682,7 @@
             "format": "date"
           }
         },
-        "period_end": {
+        {
           "name": "period_end",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -595,7 +701,7 @@
             "afterField": "period_start"
           }
         },
-        "generated_at": {
+        {
           "name": "generated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -612,7 +718,7 @@
             "required": false
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'generating' | 'ready' | 'failed'",
@@ -634,7 +740,7 @@
             ]
           }
         },
-        "config": {
+        {
           "name": "config",
           "db_type": "JSONB NOT NULL",
           "ts_type": "Record<string, unknown>",
@@ -651,7 +757,7 @@
             "required": true
           }
         },
-        "result_data": {
+        {
           "name": "result_data",
           "db_type": "JSONB",
           "ts_type": "Record<string, unknown> | null",
@@ -668,7 +774,7 @@
             "required": false
           }
         },
-        "file_url": {
+        {
           "name": "file_url",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -685,7 +791,7 @@
             "required": false
           }
         },
-        "export_format": {
+        {
           "name": "export_format",
           "db_type": "VARCHAR(10)",
           "ts_type": "'json' | 'csv' | 'pdf' | 'xlsx' | null",
@@ -708,7 +814,7 @@
             ]
           }
         },
-        "generated_by": {
+        {
           "name": "generated_by",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -726,7 +832,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -743,7 +849,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -760,7 +866,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -776,10 +882,102 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "RevenueReport",
+      "description": "RevenueReport entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "report_name",
+            "report_type",
+            "period_start",
+            "period_end",
+            "generated_at",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No RevenueReports yet",
+            "subtext": "Create your first revenuereport",
+            "action_label": "Add RevenueReport"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "report_name",
+            "report_type",
+            "period_start",
+            "period_end",
+            "export_format"
+          ],
+          "required_fields": [
+            "report_name",
+            "report_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "report_name",
+            "report_type",
+            "period_start",
+            "period_end",
+            "export_format"
+          ],
+          "required_fields": [
+            "report_name",
+            "report_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/revenue_reports/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "report_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "report_name",
+            "report_type",
+            "period_start",
+            "period_end"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "report_name",
+                "report_type",
+                "period_start",
+                "period_end",
+                "generated_at",
+                "status",
+                "file_url"
+              ]
+            }
+          ]
         }
       }
     },
-    "RevenueTarget": {
+    {
       "table": "revenue_targets",
       "indexes": [
         {
@@ -803,8 +1001,8 @@
           "unique": true
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -822,7 +1020,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -840,7 +1038,7 @@
             "format": "uuid"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -858,7 +1056,7 @@
             "maxLength": 255
           }
         },
-        "period": {
+        {
           "name": "period",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'monthly' | 'quarterly' | 'annual'",
@@ -880,7 +1078,7 @@
             ]
           }
         },
-        "period_label": {
+        {
           "name": "period_label",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
@@ -898,7 +1096,7 @@
             "maxLength": 20
           }
         },
-        "target_amount": {
+        {
           "name": "target_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -916,7 +1114,7 @@
             "min": 0
           }
         },
-        "revenue_category": {
+        {
           "name": "revenue_category",
           "db_type": "VARCHAR(20)",
           "ts_type": "'all' | 'product' | 'service' | 'subscription' | null",
@@ -939,7 +1137,7 @@
             ]
           }
         },
-        "actual_amount": {
+        {
           "name": "actual_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -956,7 +1154,7 @@
             "required": false
           }
         },
-        "attainment_pct": {
+        {
           "name": "attainment_pct",
           "db_type": "NUMERIC(8,4) GENERATED ALWAYS AS (CASE WHEN target_amount > 0 THEN (actual_amount / target_amount) * 100 ELSE 0 END) STORED",
           "ts_type": "number",
@@ -973,7 +1171,7 @@
             "required": false
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'on_track' | 'at_risk' | 'missed' | 'achieved'",
@@ -996,7 +1194,7 @@
             ]
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1013,7 +1211,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1031,7 +1229,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1048,7 +1246,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1065,7 +1263,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1081,10 +1279,105 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "RevenueTarget",
+      "description": "RevenueTarget entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "period",
+            "period_label",
+            "target_amount",
+            "revenue_category",
+            "actual_amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No RevenueTargets yet",
+            "subtext": "Create your first revenuetarget",
+            "action_label": "Add RevenueTarget"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "period",
+            "period_label",
+            "target_amount",
+            "revenue_category",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "period"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "period",
+            "period_label",
+            "target_amount",
+            "revenue_category",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "period"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/revenue_targets/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "period",
+            "period_label",
+            "target_amount"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "period",
+                "period_label",
+                "target_amount",
+                "revenue_category",
+                "actual_amount",
+                "attainment_pct",
+                "status"
+              ]
+            }
+          ]
         }
       }
     },
-    "CustomerRevenueMetric": {
+    {
       "table": "customer_revenue_metrics",
       "indexes": [
         {
@@ -1114,8 +1407,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1133,7 +1426,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1151,7 +1444,7 @@
             "format": "uuid"
           }
         },
-        "customer_id": {
+        {
           "name": "customer_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1169,7 +1462,7 @@
             "format": "uuid"
           }
         },
-        "period_label": {
+        {
           "name": "period_label",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
@@ -1187,7 +1480,7 @@
             "maxLength": 20
           }
         },
-        "total_revenue": {
+        {
           "name": "total_revenue",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1204,7 +1497,7 @@
             "required": false
           }
         },
-        "invoice_count": {
+        {
           "name": "invoice_count",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -1222,7 +1515,7 @@
             "min": 0
           }
         },
-        "avg_invoice_value": {
+        {
           "name": "avg_invoice_value",
           "db_type": "NUMERIC(15,2) GENERATED ALWAYS AS (CASE WHEN invoice_count > 0 THEN total_revenue / invoice_count ELSE 0 END) STORED",
           "ts_type": "number",
@@ -1239,7 +1532,7 @@
             "required": false
           }
         },
-        "first_purchase_date": {
+        {
           "name": "first_purchase_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1256,7 +1549,7 @@
             "required": false
           }
         },
-        "last_purchase_date": {
+        {
           "name": "last_purchase_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1273,7 +1566,7 @@
             "required": false
           }
         },
-        "is_churned": {
+        {
           "name": "is_churned",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -1290,7 +1583,7 @@
             "required": false
           }
         },
-        "churn_date": {
+        {
           "name": "churn_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1307,7 +1600,7 @@
             "required": false
           }
         },
-        "ltv": {
+        {
           "name": "ltv",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1324,7 +1617,7 @@
             "required": false
           }
         },
-        "clv_predicted": {
+        {
           "name": "clv_predicted",
           "db_type": "NUMERIC(15,2)",
           "ts_type": "number | null",
@@ -1341,7 +1634,7 @@
             "required": false
           }
         },
-        "segment": {
+        {
           "name": "segment",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'new' | 'returning' | 'at_risk' | 'churned' | 'champion'",
@@ -1365,7 +1658,7 @@
             ]
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1382,7 +1675,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1399,7 +1692,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1415,10 +1708,86 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "CustomerRevenueMetric",
+      "description": "CustomerRevenueMetric entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "customer_id",
+            "period_label",
+            "total_revenue",
+            "invoice_count",
+            "avg_invoice_value",
+            "last_purchase_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No CustomerRevenueMetrics yet",
+            "subtext": "Create your first customerrevenuemetric",
+            "action_label": "Add CustomerRevenueMetric"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/customer_revenue_metrics/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "customer_id",
+            "period_label",
+            "total_revenue",
+            "invoice_count"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "customer_id",
+                "period_label",
+                "total_revenue",
+                "invoice_count",
+                "avg_invoice_value",
+                "last_purchase_date",
+                "is_churned",
+                "ltv",
+                "segment"
+              ]
+            }
+          ]
         }
       }
     },
-    "CohortAnalysis": {
+    {
       "table": "cohort_analyses",
       "indexes": [
         {
@@ -1435,8 +1804,8 @@
           ]
         }
       ],
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1454,7 +1823,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1472,7 +1841,7 @@
             "format": "uuid"
           }
         },
-        "cohort_month": {
+        {
           "name": "cohort_month",
           "db_type": "VARCHAR(7) NOT NULL",
           "ts_type": "string",
@@ -1490,7 +1859,7 @@
             "maxLength": 7
           }
         },
-        "cohort_size": {
+        {
           "name": "cohort_size",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -1508,7 +1877,7 @@
             "min": 1
           }
         },
-        "month_0_revenue": {
+        {
           "name": "month_0_revenue",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1525,7 +1894,7 @@
             "required": false
           }
         },
-        "month_1_revenue": {
+        {
           "name": "month_1_revenue",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1542,7 +1911,7 @@
             "required": false
           }
         },
-        "month_2_revenue": {
+        {
           "name": "month_2_revenue",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1559,7 +1928,7 @@
             "required": false
           }
         },
-        "month_3_revenue": {
+        {
           "name": "month_3_revenue",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1576,7 +1945,7 @@
             "required": false
           }
         },
-        "month_6_revenue": {
+        {
           "name": "month_6_revenue",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1593,7 +1962,7 @@
             "required": false
           }
         },
-        "month_12_revenue": {
+        {
           "name": "month_12_revenue",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1610,7 +1979,7 @@
             "required": false
           }
         },
-        "month_0_retention": {
+        {
           "name": "month_0_retention",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -1627,7 +1996,7 @@
             "required": false
           }
         },
-        "month_1_retention": {
+        {
           "name": "month_1_retention",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -1644,7 +2013,7 @@
             "required": false
           }
         },
-        "month_3_retention": {
+        {
           "name": "month_3_retention",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -1661,7 +2030,7 @@
             "required": false
           }
         },
-        "month_6_retention": {
+        {
           "name": "month_6_retention",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -1678,7 +2047,7 @@
             "required": false
           }
         },
-        "month_12_retention": {
+        {
           "name": "month_12_retention",
           "db_type": "NUMERIC(6,4) NOT NULL",
           "ts_type": "number",
@@ -1695,7 +2064,7 @@
             "required": false
           }
         },
-        "computed_at": {
+        {
           "name": "computed_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1712,7 +2081,7 @@
             "required": true
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1729,7 +2098,7 @@
             "required": false
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1746,7 +2115,7 @@
             "required": false
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1762,10 +2131,85 @@
           "validation": {
             "required": false
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "name": "CohortAnalysis",
+      "description": "CohortAnalysis entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "cohort_month",
+            "cohort_size",
+            "month_0_retention",
+            "month_1_retention",
+            "month_3_retention",
+            "month_6_retention"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No CohortAnalysiss yet",
+            "subtext": "Create your first cohortanalysis",
+            "action_label": "Add CohortAnalysis"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/cohort_analyses/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "cohort_month",
+            "cohort_size",
+            "month_0_retention",
+            "month_1_retention"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "cohort_month",
+                "cohort_size",
+                "month_0_retention",
+                "month_1_retention",
+                "month_3_retention",
+                "month_6_retention",
+                "month_12_retention",
+                "computed_at"
+              ]
+            }
+          ]
         }
       }
     }
-  },
+  ],
   "components": [
     "DataTable",
     "StatusBadge",
@@ -2578,5 +3022,16 @@
         "RevenueEvent.customer_id"
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total RevenueEvents",
+        "entity": "RevenueEvent",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
+  }
 }

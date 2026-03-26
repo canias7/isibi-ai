@@ -34,11 +34,11 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "DashboardWidget": {
+  "entities": [
+    {
       "table": "dashboard_widgets",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -56,7 +56,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -74,7 +74,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -92,7 +92,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -110,7 +110,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -128,7 +128,7 @@
             "format": "iso8601"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -147,7 +147,7 @@
             "maxLength": 255
           }
         },
-        "widget_type": {
+        {
           "name": "widget_type",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'kpi_card' | 'bar_chart' | 'line_chart' | 'pie_chart' | 'donut_chart' | 'area_chart' | 'table' | 'funnel' | 'gauge' | 'text'",
@@ -176,7 +176,7 @@
             ]
           }
         },
-        "data_source": {
+        {
           "name": "data_source",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'revenue' | 'expenses' | 'cash_flow' | 'ar_aging' | 'ap_aging' | 'invoices' | 'payments' | 'payroll' | 'budget' | 'custom'",
@@ -205,7 +205,7 @@
             ]
           }
         },
-        "metric_key": {
+        {
           "name": "metric_key",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -223,7 +223,7 @@
             "maxLength": 100
           }
         },
-        "period": {
+        {
           "name": "period",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'today' | 'this_week' | 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'ytd' | 'last_year' | 'custom'",
@@ -251,7 +251,7 @@
             ]
           }
         },
-        "comparison_period": {
+        {
           "name": "comparison_period",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'previous_period' | 'same_period_last_year' | 'none'",
@@ -273,7 +273,7 @@
             ]
           }
         },
-        "display_format": {
+        {
           "name": "display_format",
           "db_type": "VARCHAR(15) NOT NULL",
           "ts_type": "'currency' | 'percentage' | 'number' | 'text'",
@@ -296,7 +296,7 @@
             ]
           }
         },
-        "chart_config": {
+        {
           "name": "chart_config",
           "db_type": "JSONB",
           "ts_type": "Record<string, unknown> | null",
@@ -314,7 +314,7 @@
             "description": "axis labels, colors, legend config"
           }
         },
-        "position_x": {
+        {
           "name": "position_x",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -332,7 +332,7 @@
             "min": 0
           }
         },
-        "position_y": {
+        {
           "name": "position_y",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -350,7 +350,7 @@
             "min": 0
           }
         },
-        "width": {
+        {
           "name": "width",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -370,7 +370,7 @@
             "description": "grid cols out of 12"
           }
         },
-        "height": {
+        {
           "name": "height",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -389,7 +389,7 @@
             "description": "grid rows"
           }
         },
-        "is_visible": {
+        {
           "name": "is_visible",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -406,7 +406,7 @@
             "required": true
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -423,8 +423,19 @@
             "required": true,
             "format": "uuid"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "dashboard_widgets_org_created_by_idx",
@@ -447,12 +458,94 @@
             "widget_type"
           ]
         }
-      ]
+      ],
+      "name": "DashboardWidget",
+      "description": "DashboardWidget entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "widget_type",
+            "data_source",
+            "metric_key"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No DashboardWidgets yet",
+            "subtext": "Create your first dashboardwidget",
+            "action_label": "Add DashboardWidget"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "widget_type",
+            "data_source",
+            "metric_key",
+            "period",
+            "comparison_period",
+            "display_format",
+            "is_visible"
+          ],
+          "required_fields": [
+            "name",
+            "widget_type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "widget_type",
+            "data_source",
+            "metric_key",
+            "period",
+            "comparison_period",
+            "display_format",
+            "is_visible"
+          ],
+          "required_fields": [
+            "name",
+            "widget_type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/dashboard_widgets/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "widget_type",
+            "data_source",
+            "metric_key"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "widget_type",
+                "data_source",
+                "metric_key"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Dashboard": {
+    {
       "table": "dashboards",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -470,7 +563,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -488,7 +581,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -506,7 +599,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -524,7 +617,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -542,7 +635,7 @@
             "format": "iso8601"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -561,7 +654,7 @@
             "maxLength": 255
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -578,7 +671,7 @@
             "required": false
           }
         },
-        "is_default": {
+        {
           "name": "is_default",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -595,7 +688,7 @@
             "required": true
           }
         },
-        "layout_config": {
+        {
           "name": "layout_config",
           "db_type": "JSONB",
           "ts_type": "Record<string, unknown> | null",
@@ -613,7 +706,7 @@
             "description": "grid configuration object"
           }
         },
-        "widget_ids": {
+        {
           "name": "widget_ids",
           "db_type": "UUID[]",
           "ts_type": "string[]",
@@ -631,7 +724,7 @@
             "description": "ordered array of widget UUIDs"
           }
         },
-        "share_with": {
+        {
           "name": "share_with",
           "db_type": "VARCHAR(10) NOT NULL",
           "ts_type": "'private' | 'team' | 'org'",
@@ -653,7 +746,7 @@
             ]
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -670,8 +763,19 @@
             "required": true,
             "format": "uuid"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "dashboards_org_created_by_idx",
@@ -687,12 +791,83 @@
             "is_default"
           ]
         }
-      ]
+      ],
+      "name": "Dashboard",
+      "description": "Dashboard entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "is_default",
+            "share_with"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Dashboards yet",
+            "subtext": "Create your first dashboard",
+            "action_label": "Add Dashboard"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "is_default",
+            "share_with"
+          ],
+          "required_fields": [
+            "name",
+            "description"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "is_default",
+            "share_with"
+          ],
+          "required_fields": [
+            "name",
+            "description"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/dashboards/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "is_default",
+            "share_with"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "is_default",
+                "share_with"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "KPIMetric": {
+    {
       "table": "kpi_metrics",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -710,7 +885,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -728,7 +903,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -746,7 +921,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -764,7 +939,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -782,7 +957,7 @@
             "format": "iso8601"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -801,7 +976,7 @@
             "maxLength": 255
           }
         },
-        "metric_key": {
+        {
           "name": "metric_key",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -821,7 +996,7 @@
             "uniqueWithin": "org_id"
           }
         },
-        "category": {
+        {
           "name": "category",
           "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "'revenue' | 'profitability' | 'cash_flow' | 'receivables' | 'payables' | 'expenses' | 'payroll' | 'growth'",
@@ -848,7 +1023,7 @@
             ]
           }
         },
-        "formula": {
+        {
           "name": "formula",
           "db_type": "TEXT NOT NULL",
           "ts_type": "string",
@@ -866,7 +1041,7 @@
             "description": "SQL or formula expression"
           }
         },
-        "period_aggregation": {
+        {
           "name": "period_aggregation",
           "db_type": "VARCHAR(15) NOT NULL",
           "ts_type": "'sum' | 'average' | 'last_value' | 'count'",
@@ -889,7 +1064,7 @@
             ]
           }
         },
-        "unit": {
+        {
           "name": "unit",
           "db_type": "VARCHAR(15) NOT NULL",
           "ts_type": "'currency' | 'percentage' | 'number' | 'days'",
@@ -912,7 +1087,7 @@
             ]
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -929,7 +1104,7 @@
             "required": true
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -946,7 +1121,7 @@
             "required": false
           }
         },
-        "benchmark_value": {
+        {
           "name": "benchmark_value",
           "db_type": "NUMERIC(15,4)",
           "ts_type": "number | null",
@@ -964,7 +1139,7 @@
             "description": "target or benchmark value"
           }
         },
-        "alert_threshold": {
+        {
           "name": "alert_threshold",
           "db_type": "NUMERIC(15,4)",
           "ts_type": "number | null",
@@ -981,7 +1156,7 @@
             "required": false
           }
         },
-        "alert_direction": {
+        {
           "name": "alert_direction",
           "db_type": "VARCHAR(10)",
           "ts_type": "'above' | 'below' | null",
@@ -1001,8 +1176,19 @@
               "below"
             ]
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "kpi_metrics_org_metric_key_unique",
@@ -1026,12 +1212,102 @@
             "is_active"
           ]
         }
-      ]
+      ],
+      "name": "KPIMetric",
+      "description": "KPIMetric entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "metric_key",
+            "category",
+            "unit",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No KPIMetrics yet",
+            "subtext": "Create your first kpimetric",
+            "action_label": "Add KPIMetric"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "metric_key",
+            "category",
+            "formula",
+            "period_aggregation",
+            "unit",
+            "is_active",
+            "description",
+            "benchmark_value",
+            "alert_threshold",
+            "alert_direction"
+          ],
+          "required_fields": [
+            "name",
+            "metric_key"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "metric_key",
+            "category",
+            "formula",
+            "period_aggregation",
+            "unit",
+            "is_active",
+            "description",
+            "benchmark_value",
+            "alert_threshold",
+            "alert_direction"
+          ],
+          "required_fields": [
+            "name",
+            "metric_key"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/kpi_metrics/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "metric_key",
+            "category",
+            "unit"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "metric_key",
+                "category",
+                "unit",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "MetricSnapshot": {
+    {
       "table": "metric_snapshots",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1049,7 +1325,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1067,7 +1343,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1085,7 +1361,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1103,7 +1379,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1121,7 +1397,7 @@
             "format": "iso8601"
           }
         },
-        "metric_key": {
+        {
           "name": "metric_key",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -1140,7 +1416,7 @@
             "foreignKey": "kpi_metrics.metric_key"
           }
         },
-        "snapshot_date": {
+        {
           "name": "snapshot_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1158,7 +1434,7 @@
             "format": "date"
           }
         },
-        "value": {
+        {
           "name": "value",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -1175,7 +1451,7 @@
             "required": true
           }
         },
-        "period_start": {
+        {
           "name": "period_start",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1193,7 +1469,7 @@
             "format": "date"
           }
         },
-        "period_end": {
+        {
           "name": "period_end",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1211,7 +1487,7 @@
             "format": "date"
           }
         },
-        "computed_at": {
+        {
           "name": "computed_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1230,7 +1506,7 @@
             "mustBeAfter": "period_end"
           }
         },
-        "metadata": {
+        {
           "name": "metadata",
           "db_type": "JSONB",
           "ts_type": "Record<string, unknown> | null",
@@ -1247,8 +1523,19 @@
             "required": false,
             "description": "breakdown data for the snapshot"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "metric_snapshots_org_metric_key_snapshot_date_unique",
@@ -1274,12 +1561,67 @@
             "snapshot_date DESC"
           ]
         }
-      ]
+      ],
+      "name": "MetricSnapshot",
+      "description": "MetricSnapshot entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "metric_key",
+            "snapshot_date",
+            "value"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No MetricSnapshots yet",
+            "subtext": "Create your first metricsnapshot",
+            "action_label": "Add MetricSnapshot"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/metric_snapshots/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "metric_key",
+            "snapshot_date",
+            "value"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "metric_key",
+                "snapshot_date",
+                "value"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "FinancialAlert": {
+    {
       "table": "financial_alerts",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1297,7 +1639,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1315,7 +1657,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1333,7 +1675,7 @@
             "format": "iso8601"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1351,7 +1693,7 @@
             "format": "iso8601"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1369,7 +1711,7 @@
             "format": "iso8601"
           }
         },
-        "metric_key": {
+        {
           "name": "metric_key",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -1387,7 +1729,7 @@
             "maxLength": 100
           }
         },
-        "alert_name": {
+        {
           "name": "alert_name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -1406,7 +1748,7 @@
             "maxLength": 255
           }
         },
-        "condition": {
+        {
           "name": "condition",
           "db_type": "VARCHAR(30) NOT NULL",
           "ts_type": "'above' | 'below' | 'equals' | 'percent_change_above' | 'percent_change_below'",
@@ -1430,7 +1772,7 @@
             ]
           }
         },
-        "threshold": {
+        {
           "name": "threshold",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -1447,7 +1789,7 @@
             "required": true
           }
         },
-        "comparison_window": {
+        {
           "name": "comparison_window",
           "db_type": "VARCHAR(10) NOT NULL",
           "ts_type": "'current' | '7d' | '30d' | '90d'",
@@ -1470,7 +1812,7 @@
             ]
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(15) NOT NULL",
           "ts_type": "'active' | 'triggered' | 'dismissed'",
@@ -1492,7 +1834,7 @@
             ]
           }
         },
-        "last_triggered_at": {
+        {
           "name": "last_triggered_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1510,7 +1852,7 @@
             "format": "iso8601"
           }
         },
-        "last_value_at_trigger": {
+        {
           "name": "last_value_at_trigger",
           "db_type": "NUMERIC(15,4)",
           "ts_type": "number | null",
@@ -1527,7 +1869,7 @@
             "required": false
           }
         },
-        "notification_channels": {
+        {
           "name": "notification_channels",
           "db_type": "JSONB NOT NULL",
           "ts_type": "{ type: 'email' | 'slack' | 'webhook'; target: string }[]",
@@ -1544,7 +1886,7 @@
             "required": true
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -1561,7 +1903,7 @@
             "required": true
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1578,8 +1920,19 @@
             "required": true,
             "format": "uuid"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "financial_alerts_org_is_active_idx",
@@ -1602,9 +1955,94 @@
             "status"
           ]
         }
-      ]
+      ],
+      "name": "FinancialAlert",
+      "description": "FinancialAlert entity",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "metric_key",
+            "alert_name",
+            "condition",
+            "threshold",
+            "status",
+            "last_triggered_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No FinancialAlerts yet",
+            "subtext": "Create your first financialalert",
+            "action_label": "Add FinancialAlert"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "metric_key",
+            "alert_name",
+            "condition",
+            "threshold",
+            "comparison_window",
+            "notification_channels",
+            "is_active"
+          ],
+          "required_fields": [
+            "metric_key",
+            "alert_name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "metric_key",
+            "alert_name",
+            "condition",
+            "threshold",
+            "comparison_window",
+            "notification_channels",
+            "is_active"
+          ],
+          "required_fields": [
+            "metric_key",
+            "alert_name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/financial_alerts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "metric_key"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "metric_key",
+            "alert_name",
+            "condition",
+            "threshold"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "metric_key",
+                "alert_name",
+                "condition",
+                "threshold",
+                "status",
+                "last_triggered_at",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
     }
-  },
+  ],
   "computed_fields": {
     "description": "KPI metric values are computed on-demand and cached as MetricSnapshots",
     "standard_kpis": [
@@ -3254,5 +3692,16 @@
         "MetricSnapshot.period_id"
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total DashboardWidgets",
+        "entity": "DashboardWidget",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
+  }
 }

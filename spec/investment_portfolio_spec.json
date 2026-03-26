@@ -34,12 +34,12 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "Portfolio": {
+  "entities": [
+    {
       "table": "portfolios",
       "description": "An investment portfolio tracking a collection of asset holdings.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -58,7 +58,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -78,7 +78,7 @@
             "format": "uuid"
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -97,7 +97,7 @@
             "maxLength": 255
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -114,7 +114,7 @@
             "required": false
           }
         },
-        "portfolio_type": {
+        {
           "name": "portfolio_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'stocks' | 'bonds' | 'mixed' | 'real_estate' | 'crypto' | 'mutual_funds' | 'etf' | 'custom'",
@@ -151,7 +151,7 @@
             ]
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -169,7 +169,7 @@
             "length": 3
           }
         },
-        "benchmark_index": {
+        {
           "name": "benchmark_index",
           "db_type": "VARCHAR(100)",
           "ts_type": "string | null",
@@ -187,7 +187,7 @@
             "maxLength": 100
           }
         },
-        "inception_date": {
+        {
           "name": "inception_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -205,7 +205,7 @@
             "format": "date"
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'active' | 'inactive' | 'closed'",
@@ -232,7 +232,7 @@
             ]
           }
         },
-        "total_cost_basis": {
+        {
           "name": "total_cost_basis",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -260,7 +260,7 @@
             "required": false
           }
         },
-        "current_value": {
+        {
           "name": "current_value",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -288,7 +288,7 @@
             "required": false
           }
         },
-        "unrealized_gain_loss": {
+        {
           "name": "unrealized_gain_loss",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -316,7 +316,7 @@
             "required": false
           }
         },
-        "unrealized_gain_loss_pct": {
+        {
           "name": "unrealized_gain_loss_pct",
           "db_type": "NUMERIC(8,4) NOT NULL",
           "ts_type": "number",
@@ -344,7 +344,7 @@
             "required": false
           }
         },
-        "total_realized_gain_loss": {
+        {
           "name": "total_realized_gain_loss",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -372,7 +372,7 @@
             "required": false
           }
         },
-        "total_dividends_received": {
+        {
           "name": "total_dividends_received",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -401,7 +401,7 @@
             "min": 0
           }
         },
-        "cash_balance": {
+        {
           "name": "cash_balance",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -419,7 +419,7 @@
             "min": 0
           }
         },
-        "gl_account_id": {
+        {
           "name": "gl_account_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -438,7 +438,7 @@
             "format": "uuid"
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -455,7 +455,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -474,7 +474,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -492,7 +492,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -510,7 +510,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -527,8 +527,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_portfolios_org_status",
@@ -554,13 +565,103 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "Portfolio",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "portfolio_type",
+            "status",
+            "total_cost_basis",
+            "current_value",
+            "unrealized_gain_loss"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Portfolios yet",
+            "subtext": "Create your first portfolio",
+            "action_label": "Add Portfolio"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "portfolio_type",
+            "currency",
+            "benchmark_index",
+            "inception_date",
+            "status",
+            "cash_balance",
+            "gl_account_id",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "description"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "description",
+            "portfolio_type",
+            "currency",
+            "benchmark_index",
+            "inception_date",
+            "status",
+            "cash_balance",
+            "gl_account_id",
+            "notes"
+          ],
+          "required_fields": [
+            "name",
+            "description"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/portfolios/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "portfolio_type",
+            "status",
+            "total_cost_basis"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "portfolio_type",
+                "status",
+                "total_cost_basis",
+                "current_value",
+                "unrealized_gain_loss",
+                "unrealized_gain_loss_pct"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Asset": {
+    {
       "table": "assets",
       "description": "An investable asset (stock, bond, ETF, crypto, etc.) that can be held in portfolios.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -579,7 +680,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -599,7 +700,7 @@
             "format": "uuid"
           }
         },
-        "ticker": {
+        {
           "name": "ticker",
           "db_type": "VARCHAR(20)",
           "ts_type": "string | null",
@@ -618,7 +719,7 @@
             "maxLength": 20
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(500) NOT NULL",
           "ts_type": "string",
@@ -637,7 +738,7 @@
             "maxLength": 500
           }
         },
-        "asset_type": {
+        {
           "name": "asset_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'stock' | 'bond' | 'etf' | 'mutual_fund' | 'real_estate' | 'crypto' | 'option' | 'futures' | 'cash' | 'other'",
@@ -678,7 +779,7 @@
             ]
           }
         },
-        "exchange": {
+        {
           "name": "exchange",
           "db_type": "VARCHAR(50)",
           "ts_type": "string | null",
@@ -696,7 +797,7 @@
             "maxLength": 50
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -714,7 +815,7 @@
             "length": 3
           }
         },
-        "sector": {
+        {
           "name": "sector",
           "db_type": "VARCHAR(100)",
           "ts_type": "string | null",
@@ -732,7 +833,7 @@
             "maxLength": 100
           }
         },
-        "industry": {
+        {
           "name": "industry",
           "db_type": "VARCHAR(100)",
           "ts_type": "string | null",
@@ -750,7 +851,7 @@
             "maxLength": 100
           }
         },
-        "isin": {
+        {
           "name": "isin",
           "db_type": "VARCHAR(12)",
           "ts_type": "string | null",
@@ -768,7 +869,7 @@
             "maxLength": 12
           }
         },
-        "cusip": {
+        {
           "name": "cusip",
           "db_type": "VARCHAR(9)",
           "ts_type": "string | null",
@@ -786,7 +887,7 @@
             "maxLength": 9
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -803,7 +904,7 @@
             "required": false
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -820,7 +921,7 @@
             "required": true
           }
         },
-        "last_price": {
+        {
           "name": "last_price",
           "db_type": "NUMERIC(15,6) NOT NULL",
           "ts_type": "number",
@@ -838,7 +939,7 @@
             "min": 0
           }
         },
-        "last_price_updated_at": {
+        {
           "name": "last_price_updated_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -856,7 +957,7 @@
             "format": "datetime"
           }
         },
-        "price_source": {
+        {
           "name": "price_source",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'manual' | 'api' | 'import'",
@@ -883,7 +984,7 @@
             ]
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -901,7 +1002,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -919,7 +1020,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -936,8 +1037,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_assets_org_ticker",
@@ -973,13 +1085,108 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "Asset",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "ticker",
+            "name",
+            "asset_type",
+            "is_active",
+            "last_price",
+            "last_price_updated_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Assets yet",
+            "subtext": "Create your first asset",
+            "action_label": "Add Asset"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "ticker",
+            "name",
+            "asset_type",
+            "exchange",
+            "currency",
+            "sector",
+            "industry",
+            "isin",
+            "cusip",
+            "description",
+            "is_active",
+            "last_price",
+            "price_source"
+          ],
+          "required_fields": [
+            "ticker",
+            "name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "ticker",
+            "name",
+            "asset_type",
+            "exchange",
+            "currency",
+            "sector",
+            "industry",
+            "isin",
+            "cusip",
+            "description",
+            "is_active",
+            "last_price",
+            "price_source"
+          ],
+          "required_fields": [
+            "ticker",
+            "name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/assets/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "ticker"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "ticker",
+            "name",
+            "asset_type",
+            "is_active"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "ticker",
+                "name",
+                "asset_type",
+                "is_active",
+                "last_price",
+                "last_price_updated_at"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Holding": {
+    {
       "table": "holdings",
       "description": "A position in a specific asset within a portfolio.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -998,7 +1205,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1018,7 +1225,7 @@
             "format": "uuid"
           }
         },
-        "portfolio_id": {
+        {
           "name": "portfolio_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1037,7 +1244,7 @@
             "format": "uuid"
           }
         },
-        "asset_id": {
+        {
           "name": "asset_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1056,7 +1263,7 @@
             "format": "uuid"
           }
         },
-        "quantity": {
+        {
           "name": "quantity",
           "db_type": "NUMERIC(18,8) NOT NULL",
           "ts_type": "number",
@@ -1074,7 +1281,7 @@
             "min": 0
           }
         },
-        "avg_cost_basis": {
+        {
           "name": "avg_cost_basis",
           "db_type": "NUMERIC(15,8) NOT NULL",
           "ts_type": "number",
@@ -1092,7 +1299,7 @@
             "min": 0
           }
         },
-        "total_cost_basis": {
+        {
           "name": "total_cost_basis",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1120,7 +1327,7 @@
             "required": false
           }
         },
-        "current_price": {
+        {
           "name": "current_price",
           "db_type": "NUMERIC(15,8) NOT NULL",
           "ts_type": "number",
@@ -1138,7 +1345,7 @@
             "min": 0
           }
         },
-        "current_value": {
+        {
           "name": "current_value",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1166,7 +1373,7 @@
             "required": false
           }
         },
-        "unrealized_gain_loss": {
+        {
           "name": "unrealized_gain_loss",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1194,7 +1401,7 @@
             "required": false
           }
         },
-        "unrealized_gain_loss_pct": {
+        {
           "name": "unrealized_gain_loss_pct",
           "db_type": "NUMERIC(8,4) NOT NULL",
           "ts_type": "number",
@@ -1222,7 +1429,7 @@
             "required": false
           }
         },
-        "weight_in_portfolio": {
+        {
           "name": "weight_in_portfolio",
           "db_type": "NUMERIC(8,4) NOT NULL",
           "ts_type": "number",
@@ -1250,7 +1457,7 @@
             "required": false
           }
         },
-        "last_price_updated_at": {
+        {
           "name": "last_price_updated_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1268,7 +1475,7 @@
             "format": "datetime"
           }
         },
-        "first_purchase_date": {
+        {
           "name": "first_purchase_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1286,7 +1493,7 @@
             "format": "date"
           }
         },
-        "last_trade_date": {
+        {
           "name": "last_trade_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1304,7 +1511,7 @@
             "format": "date"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1322,7 +1529,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1340,7 +1547,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1357,8 +1564,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_holdings_org_portfolio_asset",
@@ -1385,13 +1603,77 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "Holding",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "asset_id",
+            "quantity",
+            "avg_cost_basis",
+            "total_cost_basis",
+            "current_price",
+            "current_value"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Holdings yet",
+            "subtext": "Create your first holding",
+            "action_label": "Add Holding"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/holdings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "asset_id",
+            "quantity",
+            "avg_cost_basis",
+            "total_cost_basis"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "asset_id",
+                "quantity",
+                "avg_cost_basis",
+                "total_cost_basis",
+                "current_price",
+                "current_value",
+                "unrealized_gain_loss",
+                "unrealized_gain_loss_pct",
+                "weight_in_portfolio"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "Trade": {
+    {
       "table": "trades",
       "description": "A buy, sell, dividend, split, or transfer transaction against a portfolio asset.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1410,7 +1692,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1430,7 +1712,7 @@
             "format": "uuid"
           }
         },
-        "portfolio_id": {
+        {
           "name": "portfolio_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1449,7 +1731,7 @@
             "format": "uuid"
           }
         },
-        "asset_id": {
+        {
           "name": "asset_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1468,7 +1750,7 @@
             "format": "uuid"
           }
         },
-        "trade_type": {
+        {
           "name": "trade_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'buy' | 'sell' | 'dividend' | 'split' | 'transfer_in' | 'transfer_out' | 'fee'",
@@ -1503,7 +1785,7 @@
             ]
           }
         },
-        "trade_date": {
+        {
           "name": "trade_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1521,7 +1803,7 @@
             "format": "date"
           }
         },
-        "settlement_date": {
+        {
           "name": "settlement_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1539,7 +1821,7 @@
             "format": "date"
           }
         },
-        "quantity": {
+        {
           "name": "quantity",
           "db_type": "NUMERIC(18,8) NOT NULL",
           "ts_type": "number",
@@ -1557,7 +1839,7 @@
             "min": 0
           }
         },
-        "price": {
+        {
           "name": "price",
           "db_type": "NUMERIC(15,8) NOT NULL",
           "ts_type": "number",
@@ -1576,7 +1858,7 @@
             "min": 1e-08
           }
         },
-        "gross_amount": {
+        {
           "name": "gross_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1604,7 +1886,7 @@
             "required": false
           }
         },
-        "commission": {
+        {
           "name": "commission",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1622,7 +1904,7 @@
             "min": 0
           }
         },
-        "fees": {
+        {
           "name": "fees",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1640,7 +1922,7 @@
             "min": 0
           }
         },
-        "net_amount": {
+        {
           "name": "net_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1666,7 +1948,7 @@
             "required": false
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -1684,7 +1966,7 @@
             "length": 3
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1701,7 +1983,7 @@
             "required": false
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1720,7 +2002,7 @@
             "format": "uuid"
           }
         },
-        "external_reference": {
+        {
           "name": "external_reference",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -1738,7 +2020,7 @@
             "maxLength": 255
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1756,7 +2038,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1774,7 +2056,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1791,8 +2073,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_trades_org_portfolio",
@@ -1826,13 +2119,110 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "Trade",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "asset_id",
+            "trade_type",
+            "trade_date",
+            "quantity",
+            "price",
+            "net_amount"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Trades yet",
+            "subtext": "Create your first trade",
+            "action_label": "Add Trade"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "portfolio_id",
+            "asset_id",
+            "trade_type",
+            "trade_date",
+            "settlement_date",
+            "quantity",
+            "price",
+            "gross_amount",
+            "commission",
+            "fees",
+            "net_amount",
+            "currency",
+            "notes",
+            "external_reference"
+          ],
+          "required_fields": [
+            "portfolio_id",
+            "asset_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "portfolio_id",
+            "asset_id",
+            "trade_type",
+            "trade_date",
+            "settlement_date",
+            "quantity",
+            "price",
+            "gross_amount",
+            "commission",
+            "fees",
+            "net_amount",
+            "currency",
+            "notes",
+            "external_reference"
+          ],
+          "required_fields": [
+            "portfolio_id",
+            "asset_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/trades/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "portfolio_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "asset_id",
+            "trade_type",
+            "trade_date",
+            "quantity"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "asset_id",
+                "trade_type",
+                "trade_date",
+                "quantity",
+                "price",
+                "net_amount"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "PerformanceMetric": {
+    {
       "table": "performance_metrics",
       "description": "Daily computed performance metrics for a portfolio.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1851,7 +2241,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1871,7 +2261,7 @@
             "format": "uuid"
           }
         },
-        "portfolio_id": {
+        {
           "name": "portfolio_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1890,7 +2280,7 @@
             "format": "uuid"
           }
         },
-        "metric_date": {
+        {
           "name": "metric_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1908,7 +2298,7 @@
             "format": "date"
           }
         },
-        "total_value": {
+        {
           "name": "total_value",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1925,7 +2315,7 @@
             "required": true
           }
         },
-        "total_cost_basis": {
+        {
           "name": "total_cost_basis",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1942,7 +2332,7 @@
             "required": true
           }
         },
-        "unrealized_gain_loss": {
+        {
           "name": "unrealized_gain_loss",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1959,7 +2349,7 @@
             "required": true
           }
         },
-        "daily_return_pct": {
+        {
           "name": "daily_return_pct",
           "db_type": "NUMERIC(8,6)",
           "ts_type": "number | null",
@@ -1976,7 +2366,7 @@
             "required": false
           }
         },
-        "mtd_return_pct": {
+        {
           "name": "mtd_return_pct",
           "db_type": "NUMERIC(8,6)",
           "ts_type": "number | null",
@@ -1993,7 +2383,7 @@
             "required": false
           }
         },
-        "ytd_return_pct": {
+        {
           "name": "ytd_return_pct",
           "db_type": "NUMERIC(8,6)",
           "ts_type": "number | null",
@@ -2010,7 +2400,7 @@
             "required": false
           }
         },
-        "since_inception_return_pct": {
+        {
           "name": "since_inception_return_pct",
           "db_type": "NUMERIC(8,6)",
           "ts_type": "number | null",
@@ -2027,7 +2417,7 @@
             "required": false
           }
         },
-        "benchmark_return_pct": {
+        {
           "name": "benchmark_return_pct",
           "db_type": "NUMERIC(8,6)",
           "ts_type": "number | null",
@@ -2044,7 +2434,7 @@
             "required": false
           }
         },
-        "alpha": {
+        {
           "name": "alpha",
           "db_type": "NUMERIC(8,6)",
           "ts_type": "number | null",
@@ -2061,7 +2451,7 @@
             "required": false
           }
         },
-        "sharpe_ratio": {
+        {
           "name": "sharpe_ratio",
           "db_type": "NUMERIC(8,6)",
           "ts_type": "number | null",
@@ -2078,7 +2468,7 @@
             "required": false
           }
         },
-        "computed_at": {
+        {
           "name": "computed_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2096,7 +2486,7 @@
             "format": "datetime"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2114,7 +2504,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2132,7 +2522,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -2149,8 +2539,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_pm_org_portfolio_date",
@@ -2169,13 +2570,72 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "PerformanceMetric",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "metric_date",
+            "total_value",
+            "unrealized_gain_loss",
+            "ytd_return_pct",
+            "since_inception_return_pct"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No PerformanceMetrics yet",
+            "subtext": "Create your first performancemetric",
+            "action_label": "Add PerformanceMetric"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": []
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [],
+          "required_fields": [],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/performance_metrics/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "metric_date",
+            "total_value",
+            "unrealized_gain_loss",
+            "ytd_return_pct"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "metric_date",
+                "total_value",
+                "unrealized_gain_loss",
+                "ytd_return_pct",
+                "since_inception_return_pct"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "PriceHistory": {
+    {
       "table": "price_history",
       "description": "Historical OHLCV price data for an asset.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -2194,7 +2654,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2214,7 +2674,7 @@
             "format": "uuid"
           }
         },
-        "asset_id": {
+        {
           "name": "asset_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2233,7 +2693,7 @@
             "format": "uuid"
           }
         },
-        "price_date": {
+        {
           "name": "price_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -2251,7 +2711,7 @@
             "format": "date"
           }
         },
-        "open_price": {
+        {
           "name": "open_price",
           "db_type": "NUMERIC(15,8)",
           "ts_type": "number | null",
@@ -2269,7 +2729,7 @@
             "min": 0
           }
         },
-        "high_price": {
+        {
           "name": "high_price",
           "db_type": "NUMERIC(15,8)",
           "ts_type": "number | null",
@@ -2287,7 +2747,7 @@
             "min": 0
           }
         },
-        "low_price": {
+        {
           "name": "low_price",
           "db_type": "NUMERIC(15,8)",
           "ts_type": "number | null",
@@ -2305,7 +2765,7 @@
             "min": 0
           }
         },
-        "close_price": {
+        {
           "name": "close_price",
           "db_type": "NUMERIC(15,8) NOT NULL",
           "ts_type": "number",
@@ -2323,7 +2783,7 @@
             "min": 0
           }
         },
-        "volume": {
+        {
           "name": "volume",
           "db_type": "BIGINT",
           "ts_type": "number | null",
@@ -2341,7 +2801,7 @@
             "min": 0
           }
         },
-        "source": {
+        {
           "name": "source",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'manual' | 'api'",
@@ -2366,7 +2826,7 @@
             ]
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2384,7 +2844,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2402,7 +2862,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -2419,8 +2879,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_ph_org_asset_date",
@@ -2441,9 +2912,85 @@
           "order": "DESC",
           "note": "For latest price lookup"
         }
-      ]
+      ],
+      "name": "PriceHistory",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "asset_id",
+            "price_date",
+            "close_price"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No PriceHistorys yet",
+            "subtext": "Create your first pricehistory",
+            "action_label": "Add PriceHistory"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "price_date",
+            "open_price",
+            "high_price",
+            "low_price",
+            "close_price",
+            "volume",
+            "source"
+          ],
+          "required_fields": [
+            "price_date",
+            "open_price"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "price_date",
+            "open_price",
+            "high_price",
+            "low_price",
+            "close_price",
+            "volume",
+            "source"
+          ],
+          "required_fields": [
+            "price_date",
+            "open_price"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/price_history/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "price_date"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "asset_id",
+            "price_date",
+            "close_price"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "asset_id",
+                "price_date",
+                "close_price"
+              ]
+            }
+          ]
+        }
+      }
     }
-  },
+  ],
   "components": [
     "DataTable",
     "SlideOverForm",
@@ -3048,7 +3595,7 @@
       "ts_type": "string",
       "nullable": false,
       "default": null,
-      "notes": "FK→organizations, row-level security anchor"
+      "notes": "FK\u2192organizations, row-level security anchor"
     },
     "created_at": {
       "db_type": "TIMESTAMPTZ",
@@ -3067,7 +3614,7 @@
       "ts_type": "string | null",
       "nullable": true,
       "default": null,
-      "notes": "Soft delete — all queries filter deleted_at IS NULL"
+      "notes": "Soft delete \u2014 all queries filter deleted_at IS NULL"
     }
   },
   "security": {
@@ -3259,7 +3806,7 @@
     ],
     "retention_days": 2555,
     "immutable": true,
-    "triggers": "application-level (before write hook) — never DB trigger to avoid log bloat"
+    "triggers": "application-level (before write hook) \u2014 never DB trigger to avoid log bloat"
   },
   "db_constraints_policy": {
     "naming_convention": "{table}_{column(s)}_{constraint_type}",
@@ -3325,5 +3872,16 @@
     "component_naming": "PascalCase (e.g. InvoiceLineTable)",
     "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
     "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Portfolios",
+        "entity": "Portfolio",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
   }
 }

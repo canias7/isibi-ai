@@ -34,12 +34,12 @@
     "danger": "red",
     "warning": "amber"
   },
-  "entities": {
-    "Supplier": {
+  "entities": [
+    {
       "table": "suppliers",
       "description": "A supplier from whom the organization procures goods or services.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -58,7 +58,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -78,7 +78,7 @@
             "format": "uuid"
           }
         },
-        "supplier_number": {
+        {
           "name": "supplier_number",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -98,7 +98,7 @@
             "pattern": "SUP-\\d{4}"
           }
         },
-        "display_name": {
+        {
           "name": "display_name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -117,7 +117,7 @@
             "maxLength": 255
           }
         },
-        "legal_name": {
+        {
           "name": "legal_name",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -135,7 +135,7 @@
             "maxLength": 255
           }
         },
-        "email": {
+        {
           "name": "email",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -154,7 +154,7 @@
             "format": "email"
           }
         },
-        "phone": {
+        {
           "name": "phone",
           "db_type": "VARCHAR(50)",
           "ts_type": "string | null",
@@ -172,7 +172,7 @@
             "maxLength": 50
           }
         },
-        "address": {
+        {
           "name": "address",
           "db_type": "JSONB",
           "ts_type": "Address | null",
@@ -189,7 +189,7 @@
             "required": false
           }
         },
-        "contact_name": {
+        {
           "name": "contact_name",
           "db_type": "VARCHAR(255)",
           "ts_type": "string | null",
@@ -207,7 +207,7 @@
             "maxLength": 255
           }
         },
-        "tax_id": {
+        {
           "name": "tax_id",
           "db_type": "VARCHAR(50)",
           "ts_type": "string | null",
@@ -225,7 +225,7 @@
             "maxLength": 50
           }
         },
-        "payment_terms": {
+        {
           "name": "payment_terms",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'net_7' | 'net_15' | 'net_30' | 'net_45' | 'net_60'",
@@ -256,7 +256,7 @@
             ]
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -274,7 +274,7 @@
             "length": 3
           }
         },
-        "lead_time_days": {
+        {
           "name": "lead_time_days",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -292,7 +292,7 @@
             "min": 0
           }
         },
-        "rating": {
+        {
           "name": "rating",
           "db_type": "NUMERIC(3,2)",
           "ts_type": "number | null",
@@ -312,7 +312,7 @@
             "max": 5
           }
         },
-        "is_approved": {
+        {
           "name": "is_approved",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -329,7 +329,7 @@
             "required": true
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -346,7 +346,7 @@
             "required": true
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -363,7 +363,7 @@
             "required": false
           }
         },
-        "approved_by": {
+        {
           "name": "approved_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -382,7 +382,7 @@
             "format": "uuid"
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -401,7 +401,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -419,7 +419,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -437,7 +437,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -454,8 +454,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_suppliers_org_number",
@@ -481,13 +492,109 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "Supplier",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "supplier_number",
+            "display_name",
+            "email",
+            "payment_terms",
+            "rating",
+            "is_approved"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Suppliers yet",
+            "subtext": "Create your first supplier",
+            "action_label": "Add Supplier"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "display_name",
+            "legal_name",
+            "email",
+            "phone",
+            "address",
+            "contact_name",
+            "tax_id",
+            "payment_terms",
+            "currency",
+            "lead_time_days",
+            "rating",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "display_name",
+            "legal_name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "display_name",
+            "legal_name",
+            "email",
+            "phone",
+            "address",
+            "contact_name",
+            "tax_id",
+            "payment_terms",
+            "currency",
+            "lead_time_days",
+            "rating",
+            "is_active",
+            "notes"
+          ],
+          "required_fields": [
+            "display_name",
+            "legal_name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/suppliers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "display_name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "supplier_number",
+            "display_name",
+            "email",
+            "payment_terms"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "supplier_number",
+                "display_name",
+                "email",
+                "payment_terms",
+                "rating",
+                "is_approved",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "InventoryItem": {
+    {
       "table": "inventory_items",
       "description": "A product or material tracked in inventory.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -506,7 +613,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -526,7 +633,7 @@
             "format": "uuid"
           }
         },
-        "sku": {
+        {
           "name": "sku",
           "db_type": "VARCHAR(100) NOT NULL",
           "ts_type": "string",
@@ -545,7 +652,7 @@
             "maxLength": 100
           }
         },
-        "name": {
+        {
           "name": "name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -564,7 +671,7 @@
             "maxLength": 255
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -581,7 +688,7 @@
             "required": false
           }
         },
-        "category": {
+        {
           "name": "category",
           "db_type": "VARCHAR(100)",
           "ts_type": "string | null",
@@ -599,7 +706,7 @@
             "maxLength": 100
           }
         },
-        "unit_of_measure": {
+        {
           "name": "unit_of_measure",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -617,7 +724,7 @@
             "maxLength": 50
           }
         },
-        "unit_cost": {
+        {
           "name": "unit_cost",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -635,7 +742,7 @@
             "min": 0
           }
         },
-        "unit_price": {
+        {
           "name": "unit_price",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -653,7 +760,7 @@
             "min": 0
           }
         },
-        "quantity_on_hand": {
+        {
           "name": "quantity_on_hand",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -681,7 +788,7 @@
             "required": false
           }
         },
-        "quantity_on_order": {
+        {
           "name": "quantity_on_order",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -709,7 +816,7 @@
             "required": false
           }
         },
-        "reorder_point": {
+        {
           "name": "reorder_point",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -727,7 +834,7 @@
             "min": 0
           }
         },
-        "reorder_quantity": {
+        {
           "name": "reorder_quantity",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -745,7 +852,7 @@
             "min": 0
           }
         },
-        "preferred_supplier_id": {
+        {
           "name": "preferred_supplier_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -764,7 +871,7 @@
             "format": "uuid"
           }
         },
-        "asset_account_id": {
+        {
           "name": "asset_account_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -783,7 +890,7 @@
             "format": "uuid"
           }
         },
-        "cogs_account_id": {
+        {
           "name": "cogs_account_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -802,7 +909,7 @@
             "format": "uuid"
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -819,7 +926,7 @@
             "required": true
           }
         },
-        "barcode": {
+        {
           "name": "barcode",
           "db_type": "VARCHAR(100)",
           "ts_type": "string | null",
@@ -837,7 +944,7 @@
             "maxLength": 100
           }
         },
-        "image_url": {
+        {
           "name": "image_url",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -855,7 +962,7 @@
             "format": "url"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -873,7 +980,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -891,7 +998,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -908,8 +1015,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_inv_org_sku",
@@ -943,13 +1061,113 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "InventoryItem",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "sku",
+            "name",
+            "category",
+            "unit_cost",
+            "quantity_on_hand",
+            "quantity_on_order"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No InventoryItems yet",
+            "subtext": "Create your first inventoryitem",
+            "action_label": "Add InventoryItem"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "sku",
+            "name",
+            "description",
+            "category",
+            "unit_of_measure",
+            "unit_cost",
+            "unit_price",
+            "reorder_point",
+            "reorder_quantity",
+            "preferred_supplier_id",
+            "asset_account_id",
+            "cogs_account_id",
+            "is_active",
+            "barcode",
+            "image_url"
+          ],
+          "required_fields": [
+            "sku",
+            "name"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "sku",
+            "name",
+            "description",
+            "category",
+            "unit_of_measure",
+            "unit_cost",
+            "unit_price",
+            "reorder_point",
+            "reorder_quantity",
+            "preferred_supplier_id",
+            "asset_account_id",
+            "cogs_account_id",
+            "is_active",
+            "barcode",
+            "image_url"
+          ],
+          "required_fields": [
+            "sku",
+            "name"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/inventory_items/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "sku"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "sku",
+            "name",
+            "category",
+            "unit_cost"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "sku",
+                "name",
+                "category",
+                "unit_cost",
+                "quantity_on_hand",
+                "quantity_on_order",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "PurchaseOrder": {
+    {
       "table": "purchase_orders",
       "description": "A purchase order issued to a supplier for goods or services.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -968,7 +1186,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -988,7 +1206,7 @@
             "format": "uuid"
           }
         },
-        "po_number": {
+        {
           "name": "po_number",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -1007,7 +1225,7 @@
             "maxLength": 50
           }
         },
-        "supplier_id": {
+        {
           "name": "supplier_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1026,7 +1244,7 @@
             "format": "uuid"
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'draft' | 'pending_approval' | 'approved' | 'sent' | 'partially_received' | 'received' | 'cancelled'",
@@ -1061,7 +1279,7 @@
             ]
           }
         },
-        "issue_date": {
+        {
           "name": "issue_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1079,7 +1297,7 @@
             "format": "date"
           }
         },
-        "expected_delivery_date": {
+        {
           "name": "expected_delivery_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1097,7 +1315,7 @@
             "format": "date"
           }
         },
-        "delivery_date": {
+        {
           "name": "delivery_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1115,7 +1333,7 @@
             "format": "date"
           }
         },
-        "shipping_address": {
+        {
           "name": "shipping_address",
           "db_type": "JSONB",
           "ts_type": "Address | null",
@@ -1132,7 +1350,7 @@
             "required": false
           }
         },
-        "subtotal": {
+        {
           "name": "subtotal",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1161,7 +1379,7 @@
             "min": 0
           }
         },
-        "tax_total": {
+        {
           "name": "tax_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1190,7 +1408,7 @@
             "min": 0
           }
         },
-        "shipping_cost": {
+        {
           "name": "shipping_cost",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1208,7 +1426,7 @@
             "min": 0
           }
         },
-        "total": {
+        {
           "name": "total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1237,7 +1455,7 @@
             "min": 0
           }
         },
-        "currency": {
+        {
           "name": "currency",
           "db_type": "CHAR(3) NOT NULL",
           "ts_type": "string",
@@ -1255,7 +1473,7 @@
             "length": 3
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1272,7 +1490,7 @@
             "required": false
           }
         },
-        "internal_notes": {
+        {
           "name": "internal_notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1289,7 +1507,7 @@
             "required": false
           }
         },
-        "terms": {
+        {
           "name": "terms",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -1306,7 +1524,7 @@
             "required": false
           }
         },
-        "approved_by": {
+        {
           "name": "approved_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1325,7 +1543,7 @@
             "format": "uuid"
           }
         },
-        "approved_at": {
+        {
           "name": "approved_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1343,7 +1561,7 @@
             "format": "datetime"
           }
         },
-        "sent_at": {
+        {
           "name": "sent_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1361,7 +1579,7 @@
             "format": "datetime"
           }
         },
-        "cancelled_at": {
+        {
           "name": "cancelled_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1379,7 +1597,7 @@
             "format": "datetime"
           }
         },
-        "created_by": {
+        {
           "name": "created_by",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1398,7 +1616,7 @@
             "format": "uuid"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1416,7 +1634,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1434,7 +1652,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1451,8 +1669,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_po_org_supplier",
@@ -1494,13 +1723,108 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "PurchaseOrder",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "po_number",
+            "supplier_id",
+            "status",
+            "issue_date",
+            "expected_delivery_date",
+            "total"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No PurchaseOrders yet",
+            "subtext": "Create your first purchaseorder",
+            "action_label": "Add PurchaseOrder"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "supplier_id",
+            "issue_date",
+            "expected_delivery_date",
+            "delivery_date",
+            "shipping_address",
+            "subtotal",
+            "tax_total",
+            "shipping_cost",
+            "total",
+            "currency",
+            "notes",
+            "internal_notes",
+            "terms"
+          ],
+          "required_fields": [
+            "supplier_id",
+            "issue_date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "supplier_id",
+            "issue_date",
+            "expected_delivery_date",
+            "delivery_date",
+            "shipping_address",
+            "subtotal",
+            "tax_total",
+            "shipping_cost",
+            "total",
+            "currency",
+            "notes",
+            "internal_notes",
+            "terms"
+          ],
+          "required_fields": [
+            "supplier_id",
+            "issue_date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/purchase_orders/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "supplier_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "po_number",
+            "supplier_id",
+            "status",
+            "issue_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "po_number",
+                "supplier_id",
+                "status",
+                "issue_date",
+                "expected_delivery_date",
+                "total"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "PurchaseOrderLine": {
+    {
       "table": "purchase_order_lines",
       "description": "A line item on a purchase order.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1519,7 +1843,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1539,7 +1863,7 @@
             "format": "uuid"
           }
         },
-        "po_id": {
+        {
           "name": "po_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1559,7 +1883,7 @@
             "format": "uuid"
           }
         },
-        "item_id": {
+        {
           "name": "item_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1578,7 +1902,7 @@
             "format": "uuid"
           }
         },
-        "description": {
+        {
           "name": "description",
           "db_type": "TEXT NOT NULL",
           "ts_type": "string",
@@ -1596,7 +1920,7 @@
             "minLength": 1
           }
         },
-        "quantity_ordered": {
+        {
           "name": "quantity_ordered",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -1614,7 +1938,7 @@
             "min": 0.0001
           }
         },
-        "quantity_received": {
+        {
           "name": "quantity_received",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -1632,7 +1956,7 @@
             "min": 0
           }
         },
-        "unit_cost": {
+        {
           "name": "unit_cost",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -1650,7 +1974,7 @@
             "min": 0
           }
         },
-        "line_total": {
+        {
           "name": "line_total",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1677,7 +2001,7 @@
             "min": 0
           }
         },
-        "tax_rate_id": {
+        {
           "name": "tax_rate_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1696,7 +2020,7 @@
             "format": "uuid"
           }
         },
-        "tax_amount": {
+        {
           "name": "tax_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -1725,7 +2049,7 @@
             "min": 0
           }
         },
-        "expense_account_id": {
+        {
           "name": "expense_account_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -1744,7 +2068,7 @@
             "format": "uuid"
           }
         },
-        "line_order": {
+        {
           "name": "line_order",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -1762,7 +2086,7 @@
             "min": 0
           }
         },
-        "expected_delivery_date": {
+        {
           "name": "expected_delivery_date",
           "db_type": "DATE",
           "ts_type": "string | null",
@@ -1780,7 +2104,7 @@
             "format": "date"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1798,7 +2122,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -1816,7 +2140,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -1833,8 +2157,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_pol_org_po",
@@ -1852,13 +2187,98 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "PurchaseOrderLine",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "description",
+            "quantity_ordered",
+            "quantity_received",
+            "unit_cost",
+            "line_total"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No PurchaseOrderLines yet",
+            "subtext": "Create your first purchaseorderline",
+            "action_label": "Add PurchaseOrderLine"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "item_id",
+            "description",
+            "quantity_ordered",
+            "unit_cost",
+            "line_total",
+            "tax_rate_id",
+            "tax_amount",
+            "expense_account_id",
+            "expected_delivery_date"
+          ],
+          "required_fields": [
+            "item_id",
+            "description"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "item_id",
+            "description",
+            "quantity_ordered",
+            "unit_cost",
+            "line_total",
+            "tax_rate_id",
+            "tax_amount",
+            "expense_account_id",
+            "expected_delivery_date"
+          ],
+          "required_fields": [
+            "item_id",
+            "description"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/purchase_order_lines/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "item_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "description",
+            "quantity_ordered",
+            "quantity_received",
+            "unit_cost"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "description",
+                "quantity_ordered",
+                "quantity_received",
+                "unit_cost",
+                "line_total"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "GoodsReceipt": {
+    {
       "table": "goods_receipts",
       "description": "A record of goods physically received against a purchase order.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -1877,7 +2297,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1897,7 +2317,7 @@
             "format": "uuid"
           }
         },
-        "receipt_number": {
+        {
           "name": "receipt_number",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -1916,7 +2336,7 @@
             "maxLength": 50
           }
         },
-        "po_id": {
+        {
           "name": "po_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1935,7 +2355,7 @@
             "format": "uuid"
           }
         },
-        "supplier_id": {
+        {
           "name": "supplier_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1954,7 +2374,7 @@
             "format": "uuid"
           }
         },
-        "receipt_date": {
+        {
           "name": "receipt_date",
           "db_type": "DATE NOT NULL",
           "ts_type": "string",
@@ -1972,7 +2392,7 @@
             "format": "date"
           }
         },
-        "status": {
+        {
           "name": "status",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'draft' | 'confirmed'",
@@ -1997,7 +2417,7 @@
             ]
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -2014,7 +2434,7 @@
             "required": false
           }
         },
-        "received_by": {
+        {
           "name": "received_by",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2033,7 +2453,7 @@
             "format": "uuid"
           }
         },
-        "confirmed_at": {
+        {
           "name": "confirmed_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -2051,7 +2471,7 @@
             "format": "datetime"
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2069,7 +2489,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2087,7 +2507,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -2104,8 +2524,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_gr_org_po",
@@ -2139,13 +2570,86 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "GoodsReceipt",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "receipt_number",
+            "po_id",
+            "supplier_id",
+            "receipt_date",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No GoodsReceipts yet",
+            "subtext": "Create your first goodsreceipt",
+            "action_label": "Add GoodsReceipt"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "po_id",
+            "receipt_date",
+            "notes"
+          ],
+          "required_fields": [
+            "po_id",
+            "receipt_date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "po_id",
+            "receipt_date",
+            "notes"
+          ],
+          "required_fields": [
+            "po_id",
+            "receipt_date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/goods_receipts/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "po_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "receipt_number",
+            "po_id",
+            "supplier_id",
+            "receipt_date"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "receipt_number",
+                "po_id",
+                "supplier_id",
+                "receipt_date",
+                "status"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "GoodsReceiptLine": {
+    {
       "table": "goods_receipt_lines",
       "description": "A line item on a goods receipt recording the actual quantity received.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -2164,7 +2668,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2184,7 +2688,7 @@
             "format": "uuid"
           }
         },
-        "receipt_id": {
+        {
           "name": "receipt_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2204,7 +2708,7 @@
             "format": "uuid"
           }
         },
-        "po_line_id": {
+        {
           "name": "po_line_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2223,7 +2727,7 @@
             "format": "uuid"
           }
         },
-        "item_id": {
+        {
           "name": "item_id",
           "db_type": "UUID",
           "ts_type": "string | null",
@@ -2242,7 +2746,7 @@
             "format": "uuid"
           }
         },
-        "quantity_received": {
+        {
           "name": "quantity_received",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -2260,7 +2764,7 @@
             "min": 0.0001
           }
         },
-        "unit_cost": {
+        {
           "name": "unit_cost",
           "db_type": "NUMERIC(15,4) NOT NULL",
           "ts_type": "number",
@@ -2278,7 +2782,7 @@
             "min": 0
           }
         },
-        "condition": {
+        {
           "name": "condition",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "'good' | 'damaged' | 'rejected'",
@@ -2305,7 +2809,7 @@
             ]
           }
         },
-        "notes": {
+        {
           "name": "notes",
           "db_type": "TEXT",
           "ts_type": "string | null",
@@ -2322,7 +2826,7 @@
             "required": false
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2340,7 +2844,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2358,7 +2862,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -2375,8 +2879,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_grl_org_receipt",
@@ -2402,13 +2917,85 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "GoodsReceiptLine",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "item_id",
+            "quantity_received",
+            "condition"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No GoodsReceiptLines yet",
+            "subtext": "Create your first goodsreceiptline",
+            "action_label": "Add GoodsReceiptLine"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "po_line_id",
+            "quantity_received",
+            "unit_cost",
+            "condition",
+            "notes"
+          ],
+          "required_fields": [
+            "po_line_id",
+            "quantity_received"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "po_line_id",
+            "quantity_received",
+            "unit_cost",
+            "condition",
+            "notes"
+          ],
+          "required_fields": [
+            "po_line_id",
+            "quantity_received"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/goods_receipt_lines/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "po_line_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "item_id",
+            "quantity_received",
+            "condition"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "item_id",
+                "quantity_received",
+                "condition"
+              ]
+            }
+          ]
+        }
+      }
     },
-    "ApprovalWorkflow": {
+    {
       "table": "approval_workflows",
       "description": "Configures multi-level approval thresholds for procurement entities.",
-      "fields": {
-        "id": {
+      "fields": [
+        {
           "name": "id",
           "db_type": "UUID",
           "ts_type": "string",
@@ -2427,7 +3014,7 @@
             "format": "uuid"
           }
         },
-        "org_id": {
+        {
           "name": "org_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -2447,7 +3034,7 @@
             "format": "uuid"
           }
         },
-        "entity_type": {
+        {
           "name": "entity_type",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -2465,7 +3052,7 @@
             "maxLength": 50
           }
         },
-        "threshold_amount": {
+        {
           "name": "threshold_amount",
           "db_type": "NUMERIC(15,2) NOT NULL",
           "ts_type": "number",
@@ -2483,7 +3070,7 @@
             "min": 0
           }
         },
-        "approver_role": {
+        {
           "name": "approver_role",
           "db_type": "VARCHAR(50) NOT NULL",
           "ts_type": "string",
@@ -2501,7 +3088,7 @@
             "maxLength": 50
           }
         },
-        "approval_level": {
+        {
           "name": "approval_level",
           "db_type": "INTEGER NOT NULL",
           "ts_type": "number",
@@ -2519,7 +3106,7 @@
             "min": 1
           }
         },
-        "is_active": {
+        {
           "name": "is_active",
           "db_type": "BOOLEAN NOT NULL",
           "ts_type": "boolean",
@@ -2536,7 +3123,7 @@
             "required": true
           }
         },
-        "created_at": {
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2554,7 +3141,7 @@
             "format": "datetime"
           }
         },
-        "updated_at": {
+        {
           "name": "updated_at",
           "db_type": "TIMESTAMPTZ NOT NULL",
           "ts_type": "string",
@@ -2572,7 +3159,7 @@
             "format": "datetime"
           }
         },
-        "deleted_at": {
+        {
           "name": "deleted_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string | null",
@@ -2589,8 +3176,19 @@
             "required": false,
             "format": "datetime"
           }
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
         }
-      },
+      ],
       "indexes": [
         {
           "name": "idx_aw_org_entity_type",
@@ -2608,9 +3206,86 @@
           ],
           "unique": false
         }
-      ]
+      ],
+      "name": "ApprovalWorkflow",
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "entity_type",
+            "threshold_amount",
+            "approver_role",
+            "approval_level",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No ApprovalWorkflows yet",
+            "subtext": "Create your first approvalworkflow",
+            "action_label": "Add ApprovalWorkflow"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "entity_type",
+            "threshold_amount",
+            "approver_role",
+            "approval_level",
+            "is_active"
+          ],
+          "required_fields": [
+            "entity_type",
+            "threshold_amount"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "entity_type",
+            "threshold_amount",
+            "approver_role",
+            "approval_level",
+            "is_active"
+          ],
+          "required_fields": [
+            "entity_type",
+            "threshold_amount"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/approval_workflows/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "entity_type"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "entity_type",
+            "threshold_amount",
+            "approver_role",
+            "approval_level"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "entity_type",
+                "threshold_amount",
+                "approver_role",
+                "approval_level",
+                "is_active"
+              ]
+            }
+          ]
+        }
+      }
     }
-  },
+  ],
   "components": [
     "DataTable",
     "SlideOverForm",
@@ -3489,5 +4164,16 @@
         "PurchaseOrder.vendor_id"
       ]
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Suppliers",
+        "entity": "Supplier",
+        "method": "count",
+        "icon": "Box",
+        "color": "blue"
+      }
+    ]
+  }
 }
