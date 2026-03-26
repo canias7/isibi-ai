@@ -42,6 +42,16 @@ from .app_embed import AppEmbed
 from .app_view_config import AppViewConfig
 from .app_field_file import AppFieldFile
 from .app_signature import AppSignature
+from .app_workflow import AppWorkflow
+from .app_shared_view import AppSharedView
+from .app_record_lock import AppRecordLock
+from .app_record_view import AppRecordView
+from .app_integration import AppIntegration
+from .app_custom_report import AppCustomReport
+from .app_goal import AppGoal
+from .app_funnel import AppFunnel
+from .app_dashboard_widget import AppDashboardWidget
+from .app_session import AppSession
 
 __all__ = [
     "Lead", "Task", "Deal", "User", "Conversation", "PipelineStage",
@@ -59,4 +69,8 @@ __all__ = [
     "MarketplaceTemplate", "MarketplaceRating", "AppEmbed",
     "AppViewConfig",
     "AppFieldFile", "AppSignature",
+    "AppWorkflow", "AppSharedView", "AppRecordLock", "AppRecordView",
+    "AppIntegration",
+    "AppCustomReport", "AppGoal", "AppFunnel",
+    "AppDashboardWidget", "AppSession",
 ]

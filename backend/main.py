@@ -82,6 +82,11 @@ from models.app_message import AppMessage  # noqa: F401
 from models.app_email import AppEmail  # noqa: F401
 from models.app_snapshot import AppSnapshot  # noqa: F401
 from models.app_view_config import AppViewConfig  # noqa: F401
+from models.app_workflow import AppWorkflow  # noqa: F401
+from models.app_shared_view import AppSharedView  # noqa: F401
+from models.app_record_lock import AppRecordLock  # noqa: F401
+from models.app_record_view import AppRecordView  # noqa: F401
+from models.app_integration import AppIntegration  # noqa: F401
 
 # Import embeds public router (no auth, mounted without /api prefix)
 from routes.app_embeds import public_router as app_embeds_public_router
@@ -105,6 +110,29 @@ from routes.app_ui_language import router as app_ui_language_router
 from models.app_field_file import AppFieldFile  # noqa: F401
 from models.app_signature import AppSignature  # noqa: F401
 
+# Import 12-feature batch models
+from models.app_custom_report import AppCustomReport  # noqa: F401
+from models.app_goal import AppGoal  # noqa: F401
+from models.app_funnel import AppFunnel  # noqa: F401
+from models.app_dashboard_widget import AppDashboardWidget  # noqa: F401
+from models.app_session import AppSession  # noqa: F401
+
+# Import 12-feature batch routers (features 1-6)
+from routes.app_report_builder import router as app_report_builder_router
+from routes.app_goals import router as app_goals_router
+from routes.app_funnels import router as app_funnels_router
+from routes.app_cohorts import router as app_cohorts_router
+from routes.app_excel_export import router as app_excel_export_router
+from routes.app_dashboard_builder import router as app_dashboard_builder_router
+
+# Import 12-feature batch routers (features 7-12)
+from routes.app_ip_whitelist import router as app_ip_whitelist_router
+from routes.app_encryption import router as app_encryption_router
+from routes.app_gdpr import router as app_gdpr_router
+from routes.app_sessions import router as app_sessions_router
+from routes.app_google_sheets import router as app_google_sheets_router
+from routes.app_2fa import router as app_2fa_router
+
 # Import form/input feature routers
 from routes.app_multistep_forms import router as app_multistep_forms_router
 from routes.app_field_files import router as app_field_files_router
@@ -114,6 +142,9 @@ from routes.app_barcode import router as app_barcode_router
 from routes.app_voice_config import router as app_voice_config_router
 from routes.app_field_types import router as app_field_types_router
 from routes.app_view_configs import router as app_view_configs_router
+from routes.app_workflows import router as app_workflows_router
+from routes.app_collaboration import router as app_collaboration_router
+from routes.app_integrations import router as app_integrations_router
 
 
 @asynccontextmanager
@@ -216,6 +247,23 @@ app.include_router(app_barcode_router, prefix="/api")
 app.include_router(app_voice_config_router, prefix="/api")
 app.include_router(app_field_types_router, prefix="/api")
 app.include_router(app_view_configs_router, prefix="/api")
+app.include_router(app_workflows_router, prefix="/api")
+app.include_router(app_collaboration_router, prefix="/api")
+app.include_router(app_integrations_router, prefix="/api")
+
+# Register 12-feature batch routers
+app.include_router(app_report_builder_router, prefix="/api")
+app.include_router(app_goals_router, prefix="/api")
+app.include_router(app_funnels_router, prefix="/api")
+app.include_router(app_cohorts_router, prefix="/api")
+app.include_router(app_excel_export_router, prefix="/api")
+app.include_router(app_dashboard_builder_router, prefix="/api")
+app.include_router(app_ip_whitelist_router, prefix="/api")
+app.include_router(app_encryption_router, prefix="/api")
+app.include_router(app_gdpr_router, prefix="/api")
+app.include_router(app_sessions_router, prefix="/api")
+app.include_router(app_google_sheets_router, prefix="/api")
+app.include_router(app_2fa_router, prefix="/api")
 
 # Register embeddable widgets public router (serves JS at /embed/{id}.js, no auth)
 app.include_router(app_embeds_public_router)
