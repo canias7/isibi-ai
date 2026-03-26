@@ -3,15 +3,16 @@
  * Sidebar navigation, CRUD table with add/edit/delete, detail view, dashboard,
  * Kanban board view, Calendar view, and mobile-responsive layout.
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import {
   LayoutDashboard, Users, ShoppingCart, Building2, Briefcase,
   CalendarDays, FileText, Package, Truck, Heart, Star, Box,
   ChevronRight, Search, Plus, MoreHorizontal, Bell, X,
   ChevronLeft, Pencil, Trash2, Eye, Check, ArrowUpDown,
   Table2, Columns3, Calendar, TrendingUp, Zap, Activity,
-  Home, Settings, Menu,
+  Home, Settings, Menu, Wifi, WifiOff, Loader2, RefreshCw,
 } from "lucide-react";
+import { get, post, patch, del } from "@/api/client";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Users, ShoppingCart, Building2, Briefcase,
@@ -26,6 +27,7 @@ function resolveIcon(name?: string) {
 interface SpecPreviewProps {
   spec: any;
   device: "desktop" | "tablet" | "mobile";
+  projectId?: string | null;
 }
 
 type ViewMode = "list" | "detail" | "create" | "edit";
@@ -74,7 +76,7 @@ function statusColor(index: number) {
 
 /* ═══════════════════════════════════════════════════════════════════ */
 
-export function SpecPreview({ spec, device }: SpecPreviewProps) {
+export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
   ensureAnimations();
 
   const [activeModule, setActiveModule] = useState(0);
@@ -91,6 +93,12 @@ export function SpecPreview({ spec, device }: SpecPreviewProps) {
   const [calendarMonth, setCalendarMonth] = useState(() => new Date());
   const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null);
 
+  // Live mode — toggle between mock data and real API
+  const [liveMode, setLiveMode] = useState(false);
+  const [liveDataMap, setLiveDataMap] = useState<Record<string, any[]>>({});
+  const [liveLoading, setLiveLoading] = useState(false);
+  const [liveCounts, setLiveCounts] = useState<Record<string, number>>({});
+
   // Track mock data so we can add/edit/delete
   const [mockDataMap, setMockDataMap] = useState<Record<string, any[]>>({});
 
@@ -104,13 +112,78 @@ export function SpecPreview({ spec, device }: SpecPreviewProps) {
     : null;
 
   const isMobile = device === "mobile";
+  const canGoLive = !!projectId;
 
-  // Start with empty data — user adds rows via the Add button
+  // Fetch live data from API
+  const fetchLiveData = useCallback(async (tableName: string) => {
+    if (!projectId || !tableName) return;
+    setLiveLoading(true);
+    try {
+      const res = await get<{ data: any[]; total?: number }>(
+        `/apps/${projectId}/data/${tableName}?page_size=100`
+      );
+      const rows = Array.isArray(res) ? res : (res?.data || []);
+      setLiveDataMap((prev) => ({ ...prev, [tableName]: rows }));
+      setLiveCounts((prev) => ({ ...prev, [tableName]: rows.length }));
+    } catch {
+      setLiveDataMap((prev) => ({ ...prev, [tableName]: [] }));
+    } finally {
+      setLiveLoading(false);
+    }
+  }, [projectId]);
+
+  // Fetch live data when switching entities in live mode
+  useEffect(() => {
+    if (liveMode && currentEntity?.table && projectId) {
+      if (!liveDataMap[currentEntity.table]) {
+        fetchLiveData(currentEntity.table);
+      }
+    }
+  }, [liveMode, currentEntity?.table, projectId]);
+
+  // Live CRUD operations
+  const liveCreate = async (tableName: string, data: Record<string, any>) => {
+    if (!projectId) return;
+    try {
+      await post(`/apps/${projectId}/data/${tableName}`, data);
+      showNotification("Created successfully");
+      await fetchLiveData(tableName);
+    } catch (err: any) {
+      showNotification(err?.detail || "Create failed");
+    }
+  };
+
+  const liveUpdate = async (tableName: string, rowId: string, data: Record<string, any>) => {
+    if (!projectId) return;
+    try {
+      await patch(`/apps/${projectId}/data/${tableName}/${rowId}`, data);
+      showNotification("Updated successfully");
+      await fetchLiveData(tableName);
+    } catch (err: any) {
+      showNotification(err?.detail || "Update failed");
+    }
+  };
+
+  const liveDelete = async (tableName: string, rowId: string) => {
+    if (!projectId) return;
+    try {
+      await del(`/apps/${projectId}/data/${tableName}/${rowId}`);
+      showNotification("Deleted successfully");
+      await fetchLiveData(tableName);
+    } catch (err: any) {
+      showNotification(err?.detail || "Delete failed");
+    }
+  };
+
+  // Data source — mock or live
   const entityKey = currentEntity?.name || "";
+  const entityTable = currentEntity?.table || "";
   if (currentEntity && !mockDataMap[entityKey]) {
     mockDataMap[entityKey] = [];
   }
-  const allRows = mockDataMap[entityKey] || [];
+  const allRows = liveMode && entityTable
+    ? (liveDataMap[entityTable] || [])
+    : (mockDataMap[entityKey] || []);
 
   const tableColumns = currentEntity
     ? (currentEntity.ui_config?.list_view?.columns || currentEntity.fields
@@ -190,29 +263,53 @@ export function SpecPreview({ spec, device }: SpecPreviewProps) {
     setMenuOpenRow(null);
   };
 
-  const handleDeleteClick = (rowIndex: number) => {
-    const updated = [...allRows];
-    updated.splice(rowIndex, 1);
-    setMockDataMap({ ...mockDataMap, [entityKey]: updated });
+  const handleDeleteClick = async (rowIndex: number) => {
+    if (liveMode && entityTable) {
+      const row = allRows[rowIndex];
+      if (row?.id) {
+        await liveDelete(entityTable, row.id);
+      }
+    } else {
+      const updated = [...allRows];
+      updated.splice(rowIndex, 1);
+      setMockDataMap({ ...mockDataMap, [entityKey]: updated });
+      showNotification("Deleted successfully");
+    }
     setMenuOpenRow(null);
-    showNotification("Deleted successfully");
   };
 
-  const handleFormSubmit = () => {
-    if (viewMode === "create") {
-      const newRow: any = {};
+  const handleFormSubmit = async () => {
+    if (liveMode && entityTable) {
+      // Live mode — real API calls
+      const cleanData: Record<string, any> = {};
       for (const f of currentEntity?.fields || []) {
-        if (["id", "org_id", "deleted_at", "version"].includes(f.name)) continue;
-        if (f.name === "created_at") { newRow[f.name] = new Date().toLocaleDateString(); continue; }
-        if (f.name === "updated_at") { newRow[f.name] = new Date().toLocaleDateString(); continue; }
-        newRow[f.name] = formData[f.name] || "";
+        if (["id", "org_id", "created_at", "updated_at", "deleted_at", "version"].includes(f.name)) continue;
+        if (formData[f.name] !== undefined && formData[f.name] !== "") {
+          cleanData[f.name] = formData[f.name];
+        }
       }
-      setMockDataMap({ ...mockDataMap, [entityKey]: [...allRows, newRow] });
-      showNotification(`${currentEntity?.name} created`);
-    } else if (viewMode === "edit" && selectedRow) {
-      const updated = allRows.map((r) => (r === selectedRow ? { ...r, ...formData } : r));
-      setMockDataMap({ ...mockDataMap, [entityKey]: updated });
-      showNotification(`${currentEntity?.name} updated`);
+      if (viewMode === "create") {
+        await liveCreate(entityTable, cleanData);
+      } else if (viewMode === "edit" && selectedRow?.id) {
+        await liveUpdate(entityTable, selectedRow.id, cleanData);
+      }
+    } else {
+      // Mock mode
+      if (viewMode === "create") {
+        const newRow: any = {};
+        for (const f of currentEntity?.fields || []) {
+          if (["id", "org_id", "deleted_at", "version"].includes(f.name)) continue;
+          if (f.name === "created_at") { newRow[f.name] = new Date().toLocaleDateString(); continue; }
+          if (f.name === "updated_at") { newRow[f.name] = new Date().toLocaleDateString(); continue; }
+          newRow[f.name] = formData[f.name] || "";
+        }
+        setMockDataMap({ ...mockDataMap, [entityKey]: [...allRows, newRow] });
+        showNotification(`${currentEntity?.name} created`);
+      } else if (viewMode === "edit" && selectedRow) {
+        const updated = allRows.map((r) => (r === selectedRow ? { ...r, ...formData } : r));
+        setMockDataMap({ ...mockDataMap, [entityKey]: updated });
+        showNotification(`${currentEntity?.name} updated`);
+      }
     }
     setViewMode("list");
     setFormData({});
@@ -343,6 +440,41 @@ export function SpecPreview({ spec, device }: SpecPreviewProps) {
                   </button>
                 )}
               </div>
+            )}
+            {/* Live/Mock toggle */}
+            {canGoLive && (
+              <button
+                onClick={() => {
+                  setLiveMode(!liveMode);
+                  if (!liveMode && currentEntity?.table) {
+                    fetchLiveData(currentEntity.table);
+                  }
+                }}
+                className={`flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-medium transition-all duration-150 ${
+                  liveMode
+                    ? "bg-green-50 text-green-700 ring-1 ring-green-200"
+                    : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                }`}
+                title={liveMode ? "Switch to mock data" : "Switch to live database"}
+              >
+                {liveLoading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : liveMode ? (
+                  <Wifi className="h-3 w-3" />
+                ) : (
+                  <WifiOff className="h-3 w-3" />
+                )}
+                {liveMode ? "Live" : "Mock"}
+              </button>
+            )}
+            {liveMode && (
+              <button
+                onClick={() => currentEntity?.table && fetchLiveData(currentEntity.table)}
+                className="flex h-6 w-6 items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100 transition"
+                title="Refresh data"
+              >
+                <RefreshCw className={`h-3 w-3 text-gray-500 ${liveLoading ? "animate-spin" : ""}`} />
+              </button>
             )}
             <button className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-150 cursor-pointer shadow-sm">
               <Bell className="h-3.5 w-3.5 text-gray-500" />

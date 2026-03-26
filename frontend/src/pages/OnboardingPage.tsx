@@ -56,16 +56,18 @@ const MemoizedPreview = memo(function MemoizedPreview({
   device,
   editMode,
   onSpecUpdate,
+  projectId,
 }: {
   spec: any;
   device: "desktop" | "tablet" | "mobile";
   editMode: boolean;
   onSpecUpdate: (s: any) => void;
+  projectId?: string | null;
 }) {
   if (editMode) {
     return <VisualEditor spec={spec} device={device} onSpecUpdate={onSpecUpdate} />;
   }
-  return <SpecPreview spec={spec} device={device} />;
+  return <SpecPreview spec={spec} device={device} projectId={projectId} />;
 });
 
 interface Props {
@@ -1092,6 +1094,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   device={previewDevice}
                   editMode={editMode}
                   onSpecUpdate={(updatedSpec) => setBuiltSpec(updatedSpec)}
+                  projectId={builtProjectId}
                 />
               ) : (
                 <div className="flex h-full items-center justify-center p-8">
