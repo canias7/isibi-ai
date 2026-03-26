@@ -660,7 +660,7 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
     label: e.name,
     value: (mockDataMap[e.name] || []).length,
   }));
-  const maxBar = Math.max(...barData.map((d) => d.value), 1);
+  const maxBar = Math.max(...barData.map((d: any) => d.value), 1);
 
   return (
     <div className="space-y-4">
@@ -700,7 +700,7 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
             <Activity className="h-3.5 w-3.5 text-gray-300" />
           </div>
           <div className="flex items-end gap-2 h-24">
-            {barData.map((d, i) => (
+            {barData.map((d: any, i: number) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
                 <div
                   className="w-full rounded-t-md transition-all duration-300"
