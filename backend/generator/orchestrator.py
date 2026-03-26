@@ -70,10 +70,12 @@ async def create_project(
 
         # Safeguard: if spec came back as a string, parse it
         if isinstance(spec, str):
-            import json as _json
-            spec = _json.loads(spec)
+            spec = json.loads(spec)
         if not isinstance(spec, dict):
             raise ValueError(f"generate_spec returned {type(spec).__name__}, expected dict")
+
+        # Deep sanitize — fix every value that should be dict/list but is string
+        spec = _sanitize_spec(spec)
 
         # Inject project metadata into spec
         spec.setdefault("_meta", {})
@@ -295,3 +297,116 @@ def _infer_name(prompt: str) -> str:
             name = name[len(prefix):]
             break
     return name.strip().title() or "New Project"
+
+
+def _sanitize_spec(spec: dict) -> dict:
+    """
+    Deep-sanitize an AI-generated spec to fix type mismatches.
+    The AI sometimes generates strings where dicts/lists are expected.
+    """
+    # Fix top-level keys that must be dicts
+    for key in ("_meta", "design_system", "pagination", "dashboard"):
+        if key in spec and not isinstance(spec[key], dict):
+            spec[key] = {}
+
+    # Fix top-level keys that must be lists
+    for key in ("entities", "modules"):
+        if key in spec and not isinstance(spec[key], list):
+            spec[key] = []
+
+    # Fix design_system nested dicts
+    ds = spec.get("design_system", {})
+    if isinstance(ds, dict):
+        for key in ("colors", "spacing", "buttons", "table", "typography"):
+            if key in ds and not isinstance(ds[key], dict):
+                ds[key] = {}
+
+    # Sanitize entities
+    clean_entities = []
+    for ent in spec.get("entities", []):
+        if not isinstance(ent, dict):
+            continue
+        if "name" not in ent or "table" not in ent:
+            continue
+
+        # Fix fields
+        fields = ent.get("fields", [])
+        if not isinstance(fields, list):
+            ent["fields"] = []
+            fields = ent["fields"]
+
+        clean_fields = []
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            # Fix nested dicts that might be strings
+            for dk in ("validation", "badge_colors"):
+                if dk in f and not isinstance(f[dk], dict):
+                    f[dk] = {}
+            # Fix enum_values
+            if "enum_values" in f and not isinstance(f["enum_values"], list):
+                if isinstance(f["enum_values"], str):
+                    f["enum_values"] = [v.strip() for v in f["enum_values"].split(",")]
+                else:
+                    f["enum_values"] = []
+            clean_fields.append(f)
+        ent["fields"] = clean_fields
+
+        # Fix ui_config
+        ui = ent.get("ui_config", {})
+        if not isinstance(ui, dict):
+            ent["ui_config"] = {}
+            ui = ent["ui_config"]
+        for uk in ("list_view", "detail_view", "create_form", "edit_form"):
+            if uk in ui and not isinstance(ui[uk], dict):
+                ui[uk] = {}
+        # Fix nested within list_view
+        lv = ui.get("list_view", {})
+        if isinstance(lv, dict):
+            for lk in ("columns", "filters", "quick_filter_tabs", "row_actions"):
+                if lk in lv and not isinstance(lv[lk], list):
+                    lv[lk] = []
+            es = lv.get("empty_state", {})
+            if not isinstance(es, dict):
+                lv["empty_state"] = {}
+        # Fix nested within detail_view
+        dv = ui.get("detail_view", {})
+        if isinstance(dv, dict):
+            if "tabs" in dv and not isinstance(dv["tabs"], list):
+                dv["tabs"] = []
+            if "header" in dv and not isinstance(dv["header"], dict):
+                dv["header"] = {}
+        # Fix nested within create_form / edit_form
+        for fk in ("create_form", "edit_form"):
+            form = ui.get(fk, {})
+            if isinstance(form, dict):
+                for fl in ("field_order", "required_fields"):
+                    if fl in form and not isinstance(form[fl], list):
+                        form[fl] = []
+
+        # Fix db_constraints
+        if "db_constraints" in ent and not isinstance(ent["db_constraints"], list):
+            if isinstance(ent["db_constraints"], dict):
+                ent["db_constraints"] = list(ent["db_constraints"].values())
+            else:
+                ent["db_constraints"] = []
+
+        clean_entities.append(ent)
+
+    spec["entities"] = clean_entities
+
+    # Sanitize modules
+    clean_modules = []
+    for mod in spec.get("modules", []):
+        if not isinstance(mod, dict):
+            continue
+        clean_modules.append(mod)
+    spec["modules"] = clean_modules
+
+    # Sanitize dashboard
+    dash = spec.get("dashboard", {})
+    if isinstance(dash, dict):
+        if "stat_cards" in dash and not isinstance(dash["stat_cards"], list):
+            dash["stat_cards"] = []
+
+    return spec
