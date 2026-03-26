@@ -77,34 +77,44 @@ def get_spec_summary(spec: dict) -> str:
 
     # Entities
     entities = spec.get("entities", [])
+    if not isinstance(entities, list):
+        entities = []
     for ent in entities:
+        if not isinstance(ent, dict):
+            continue
         name = ent.get("name", "?")
         table = ent.get("table", "?")
         fields = ent.get("fields", [])
+        if not isinstance(fields, list):
+            fields = []
         field_summary = ", ".join(
-            f"{f['name']}:{f.get('db_type', '?')}" for f in fields[:20]
+            f"{f['name']}:{f.get('db_type', '?')}" for f in fields[:20] if isinstance(f, dict)
         )
         lines.append(f"## Entity: {name} (table: {table})")
         lines.append(f"   Fields: {field_summary}")
 
         # UI config summary
         ui = ent.get("ui_config", {})
+        if not isinstance(ui, dict):
+            ui = {}
 
         lv = ui.get("list_view")
-        if lv:
+        if lv and isinstance(lv, dict):
             lines.append(f"   List: layout={lv.get('layout')}, columns={lv.get('columns', [])[:8]}")
             lines.append(f"         filters={lv.get('filters', [])}")
             es = lv.get("empty_state", {})
-            lines.append(f"         empty_state: icon={es.get('icon')}, heading={es.get('heading')}")
+            if isinstance(es, dict):
+                lines.append(f"         empty_state: icon={es.get('icon')}, heading={es.get('heading')}")
 
         cf = ui.get("create_form")
-        if cf:
+        if cf and isinstance(cf, dict):
             lines.append(f"   Create Form: type={cf.get('type')}, fields={cf.get('field_order', [])}")
             lines.append(f"                required={cf.get('required_fields', [])}")
 
-        dv = ui.get("detail_view")
-        if dv:
-            tab_names = [t.get("name") for t in dv.get("tabs", [])]
+        dv = ui.get("detail_view") if isinstance(ui, dict) else None
+        if dv and isinstance(dv, dict):
+            tabs = dv.get("tabs", [])
+            tab_names = [t.get("name") for t in tabs if isinstance(t, dict)] if isinstance(tabs, list) else []
             lines.append(f"   Detail: layout={dv.get('layout')}, tabs={tab_names}")
             lines.append(f"           primary_fields={dv.get('primary_fields', [])}")
 
@@ -112,9 +122,13 @@ def get_spec_summary(spec: dict) -> str:
 
     # Modules
     modules = spec.get("modules", [])
+    if not isinstance(modules, list):
+        modules = []
     if modules:
         lines.append("## Modules:")
         for mod in modules:
+            if not isinstance(mod, dict):
+                continue
             lines.append(
                 f"   - {mod.get('name')} → {mod.get('route')} "
                 f"(layout: {mod.get('layout')}, order: {mod.get('sidebar_order')})"
