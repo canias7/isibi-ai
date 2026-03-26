@@ -229,7 +229,8 @@ def _gen_schema(entity: dict) -> str:
         for field in create_fields:
             ftype = _pydantic_type(field)
             nullable = field.get("nullable", False)
-            required = field.get("validation", {}).get("required", False)
+            validation = field.get("validation", {})
+            required = validation.get("required", False) if isinstance(validation, dict) else False
             if nullable or not required:
                 ftype = f"{ftype} | None"
                 lines.append(f"    {field['name']}: {ftype} = None")

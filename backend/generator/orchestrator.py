@@ -68,6 +68,13 @@ async def create_project(
         # 2. Generate spec via AI + RAG
         spec = await generate_spec(prompt)
 
+        # Safeguard: if spec came back as a string, parse it
+        if isinstance(spec, str):
+            import json as _json
+            spec = _json.loads(spec)
+        if not isinstance(spec, dict):
+            raise ValueError(f"generate_spec returned {type(spec).__name__}, expected dict")
+
         # Inject project metadata into spec
         spec.setdefault("_meta", {})
         spec["_meta"]["project_id"] = str(project.id)
