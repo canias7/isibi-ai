@@ -10,7 +10,7 @@ export function TopNav({ title }: { title: string }) {
           <input
             type="text"
             placeholder="Search..."
-            className="h-9 w-64 rounded-lg border border-slate-700 bg-slate-800 pl-9 pr-3 text-sm text-slate-300 placeholder:text-slate-500 focus:border-blue-600 focus:outline-none"
+            className="h-9 w-64 rounded-lg border border-slate-700 bg-slate-800 pl-9 pr-3 text-sm text-slate-300 placeholder:text-slate-500 focus:border-pink-500 focus:outline-none"
           />
         </div>
       </div>

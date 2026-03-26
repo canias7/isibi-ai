@@ -36,7 +36,7 @@ function FieldInput({
         </label>
         <select
           {...register(field.name, { required: isRequired ? "Required" : false })}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-pink-500 focus:outline-none"
         >
           {field.enum_values.map((val) => (
             <option key={val} value={val}>
@@ -58,7 +58,7 @@ function FieldInput({
         <input
           type="checkbox"
           {...register(field.name)}
-          className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-blue-600"
+          className="h-4 w-4 rounded border-slate-600 bg-slate-800 text-pink-500"
         />
         <label className="text-sm text-slate-300 capitalize">{label}</label>
       </div>
@@ -85,7 +85,7 @@ function FieldInput({
             min: field.validation?.min != null ? { value: field.validation.min, message: `Min ${field.validation.min}` } : undefined,
             max: field.validation?.max != null ? { value: field.validation.max, message: `Max ${field.validation.max}` } : undefined,
           })}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-pink-500 focus:outline-none"
         />
         {errors[field.name] && (
           <p className="mt-1 text-xs text-red-400">{errors[field.name].message}</p>
@@ -104,7 +104,7 @@ function FieldInput({
         <textarea
           {...register(field.name)}
           rows={4}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-pink-500 focus:outline-none"
         />
       </div>
     );
@@ -120,7 +120,7 @@ function FieldInput({
         <input
           type={field.db_type === "DATE" ? "date" : "datetime-local"}
           {...register(field.name, { required: isRequired ? "Required" : false })}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-pink-500 focus:outline-none"
         />
         {errors[field.name] && (
           <p className="mt-1 text-xs text-red-400">{errors[field.name].message}</p>
@@ -142,7 +142,7 @@ function FieldInput({
             required: isRequired ? "Required" : false,
             pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Invalid email" },
           })}
-          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-blue-600 focus:outline-none"
+          className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-pink-500 focus:outline-none"
         />
         {errors[field.name] && (
           <p className="mt-1 text-xs text-red-400">{errors[field.name].message}</p>
@@ -165,7 +165,7 @@ function FieldInput({
             ? { value: field.validation.max_length, message: `Max ${field.validation.max_length} chars` }
             : undefined,
         })}
-        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-blue-600 focus:outline-none"
+        className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 focus:border-pink-500 focus:outline-none"
       />
       {errors[field.name] && (
         <p className="mt-1 text-xs text-red-400">{errors[field.name].message}</p>
@@ -241,7 +241,7 @@ export function DynamicForm({
               type="submit"
               disabled={isLoading}
               className={cn(
-                "flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700",
+                "flex items-center gap-2 rounded-lg bg-pink-500 px-4 py-2 text-sm font-medium text-white hover:bg-pink-600",
                 isLoading && "cursor-not-allowed opacity-75"
               )}
             >

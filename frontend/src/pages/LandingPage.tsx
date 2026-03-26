@@ -74,9 +74,9 @@ export function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-black overflow-x-hidden">
       {/* ─── Floating background orbs ─── */}
-      <Orb className="h-[600px] w-[600px] bg-violet-400 -top-40 -left-40" />
-      <Orb className="h-[500px] w-[500px] bg-blue-400 top-[30%] -right-40" />
-      <Orb className="h-[400px] w-[400px] bg-amber-300 top-[60%] left-[10%]" />
+      <Orb className="h-[600px] w-[600px] bg-pink-400 -top-40 -left-40" />
+      <Orb className="h-[500px] w-[500px] bg-pink-300 top-[30%] -right-40" />
+      <Orb className="h-[400px] w-[400px] bg-pink-200 top-[60%] left-[10%]" />
 
       {/* ─── Nav ─── */}
       <nav className="fixed top-0 z-50 w-full">
@@ -238,8 +238,8 @@ export function LandingPage() {
                   </p>
                   <div className="mt-3 flex gap-2">
                     <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-medium text-green-700">Backend live</span>
-                    <span className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700">Database ready</span>
-                    <span className="rounded-full bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700">UI deployed</span>
+                    <span className="rounded-full bg-pink-50 px-2.5 py-1 text-xs font-medium text-pink-700">Database ready</span>
+                    <span className="rounded-full bg-pink-50 px-2.5 py-1 text-xs font-medium text-pink-700">UI deployed</span>
                   </div>
                 </div>
               </div>

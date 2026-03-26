@@ -234,9 +234,9 @@ const CATEGORIES: { value: Category; label: string }[] = [
 ];
 
 const CATEGORY_BADGE: Record<string, string> = {
-  software: "bg-blue-100 text-blue-700",
+  software: "bg-pink-100 text-pink-700",
   websites: "bg-green-100 text-green-700",
-  apps: "bg-purple-100 text-purple-700",
+  apps: "bg-pink-100 text-pink-700",
   agents: "bg-amber-100 text-amber-700",
 };
 

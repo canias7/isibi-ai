@@ -1,10 +1,11 @@
 import { cn } from "@/lib/cn";
 
 const colorMap: Record<string, string> = {
-  blue: "bg-blue-950 text-blue-400",
+  blue: "bg-pink-950 text-pink-400",
+  pink: "bg-pink-950 text-pink-400",
   yellow: "bg-yellow-950 text-yellow-400",
-  indigo: "bg-indigo-950 text-indigo-400",
-  purple: "bg-purple-950 text-purple-400",
+  indigo: "bg-pink-950 text-pink-400",
+  purple: "bg-pink-950 text-pink-400",
   green: "bg-green-950 text-green-400",
   red: "bg-red-950 text-red-400",
   slate: "bg-slate-800 text-slate-400",

@@ -43,7 +43,7 @@ function SidebarLink({
         cn(
           "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
           isActive
-            ? "bg-blue-600/20 text-blue-400"
+            ? "bg-pink-600/20 text-pink-400"
             : "text-slate-400 hover:bg-slate-800 hover:text-white"
         )
       }

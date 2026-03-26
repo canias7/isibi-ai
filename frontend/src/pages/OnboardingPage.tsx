@@ -828,7 +828,7 @@ npx electron .`;
               onClick={() => setEditMode(!editMode)}
               className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-medium transition ${
                 editMode
-                  ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                  ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200"
                   : "text-gray-400 hover:bg-gray-100 hover:text-black"
               }`}
               title={editMode ? "Exit visual editor" : "Edit visually"}
@@ -855,7 +855,7 @@ npx electron .`;
               <button
                 onClick={handleDeploy}
                 disabled={deploying}
-                className="flex items-center gap-1.5 rounded-lg bg-indigo-600 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-1.5 rounded-lg bg-pink-500 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Deploy to live URL"
               >
                 {deploying ? (
@@ -1028,12 +1028,12 @@ npx electron .`;
               </div>
             )}
             {selectedVersionSpec && (
-              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3">
+              <div className="mt-4 rounded-lg border border-pink-200 bg-pink-50 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-medium text-blue-700">Version Preview</p>
+                  <p className="text-xs font-medium text-pink-700">Version Preview</p>
                   <button
                     onClick={() => setSelectedVersionSpec(null)}
-                    className="text-blue-400 hover:text-blue-600"
+                    className="text-pink-400 hover:text-pink-600"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -1205,7 +1205,7 @@ npx electron .`;
                             </span>
                           )}
                           {isBuilt && !isDeployed && (
-                            <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                            <span className="rounded-full bg-pink-50 px-2 py-0.5 text-[10px] font-medium text-pink-700">
                               Built
                             </span>
                           )}
@@ -1496,7 +1496,7 @@ npx electron .`;
                   }`}
                 >
                   <div className={`h-2 w-2 shrink-0 rounded-full ${
-                    session.deployUrl ? "bg-green-500" : session.spec ? "bg-blue-500" : "bg-amber-400"
+                    session.deployUrl ? "bg-green-500" : session.spec ? "bg-pink-500" : "bg-amber-400"
                   }`} />
                   <span className="truncate">{session.title}</span>
                 </button>
@@ -1535,7 +1535,7 @@ npx electron .`;
                   <Icon className="h-4 w-4 shrink-0" />
                   {item.label}
                   {item.badge && (
-                    <span className="ml-auto rounded-full bg-black px-1.5 py-0.5 text-[9px] font-bold text-white">
+                    <span className="ml-auto rounded-full bg-pink-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
                       {item.badge}
                     </span>
                   )}
@@ -1634,7 +1634,7 @@ npx electron .`;
                   {user?.account_type && (
                     <span
                       className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                        isDev ? "bg-purple-100 text-purple-700" : "bg-gray-100 text-gray-600"
+                        isDev ? "bg-pink-100 text-pink-700" : "bg-gray-100 text-gray-600"
                       }`}
                     >
                       {isDev ? "Developer" : "User"}

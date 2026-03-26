@@ -8,7 +8,7 @@ import { format } from "date-fns";
 // in the spec when it generates it.
 
 const FALLBACK_COLORS = [
-  "blue", "green", "purple", "amber", "indigo", "orange", "red", "slate",
+  "pink", "green", "pink", "amber", "pink", "orange", "red", "slate",
 ];
 
 function getBadgeColor(field: FieldSpec, value: string): string {
@@ -98,7 +98,7 @@ export function CellRenderer({ field, value }: CellRendererProps) {
   if (field.display_component === "AgentAvatar" || field.display_component === "Avatar") {
     const initial = String(value).charAt(0).toUpperCase();
     return (
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-950 text-xs text-blue-400">
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-pink-950 text-xs text-pink-400">
         {initial}
       </span>
     );
@@ -111,7 +111,7 @@ export function CellRenderer({ field, value }: CellRendererProps) {
       <div className="flex items-center gap-2">
         <div className="h-1.5 w-16 rounded-full bg-slate-700">
           <div
-            className="h-full rounded-full bg-blue-500"
+            className="h-full rounded-full bg-pink-500"
             style={{ width: `${Math.min(score, 100)}%` }}
           />
         </div>

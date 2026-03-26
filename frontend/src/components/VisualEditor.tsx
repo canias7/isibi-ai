@@ -293,7 +293,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
             }}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
               editMode
-                ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >
@@ -346,7 +346,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
         {/* Selection highlight */}
         {selected && editMode && (
           <div
-            className="pointer-events-none absolute z-20 rounded border-2 border-blue-500 bg-blue-500/5"
+            className="pointer-events-none absolute z-20 rounded border-2 border-pink-500 bg-pink-500/5"
             style={{
               top: selected.rect.top,
               left: selected.rect.left,
@@ -355,7 +355,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
             }}
           >
             {/* Label badge */}
-            <div className="absolute -top-6 left-0 rounded bg-blue-500 px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap">
+            <div className="absolute -top-6 left-0 rounded bg-pink-500 px-1.5 py-0.5 text-[10px] font-medium text-white whitespace-nowrap">
               {selected.label}
             </div>
           </div>
@@ -388,7 +388,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                 onClick={() => setActiveTab("text")}
                 className={`flex flex-1 items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium transition ${
                   activeTab === "text"
-                    ? "border-b-2 border-blue-500 text-blue-600"
+                    ? "border-b-2 border-pink-500 text-pink-600"
                     : "text-gray-400 hover:text-black"
                 }`}
               >
@@ -399,7 +399,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                 onClick={() => setActiveTab("style")}
                 className={`flex flex-1 items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium transition ${
                   activeTab === "style"
-                    ? "border-b-2 border-blue-500 text-blue-600"
+                    ? "border-b-2 border-pink-500 text-pink-600"
                     : "text-gray-400 hover:text-black"
                 }`}
               >
@@ -410,7 +410,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                 onClick={() => setActiveTab("layout")}
                 className={`flex flex-1 items-center justify-center gap-1 px-2 py-1.5 text-[11px] font-medium transition ${
                   activeTab === "layout"
-                    ? "border-b-2 border-blue-500 text-blue-600"
+                    ? "border-b-2 border-pink-500 text-pink-600"
                     : "text-gray-400 hover:text-black"
                 }`}
               >
@@ -434,7 +434,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                       onChange={(e) =>
                         setEditValues({ ...editValues, text: e.target.value })
                       }
-                      className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-black focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-black focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
                     />
                   </div>
 
@@ -452,7 +452,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                           }
                           className={`rounded-md px-2 py-1 text-[10px] font-medium transition ${
                             editValues.fontSize === size
-                              ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                              ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200"
                               : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                           }`}
                         >
@@ -486,7 +486,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                         onChange={(e) =>
                           setEditValues({ ...editValues, bgColor: e.target.value })
                         }
-                        className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-black font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-black font-mono focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
                       />
                     </div>
                     <div className="mt-2 grid grid-cols-6 gap-1">
@@ -498,7 +498,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                           }
                           className={`h-6 w-full rounded border transition hover:scale-110 ${
                             editValues.bgColor === color
-                              ? "border-blue-500 ring-1 ring-blue-300"
+                              ? "border-pink-500 ring-1 ring-pink-300"
                               : "border-gray-200"
                           }`}
                           style={{ backgroundColor: color }}
@@ -528,7 +528,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                         onChange={(e) =>
                           setEditValues({ ...editValues, textColor: e.target.value })
                         }
-                        className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-black font-mono focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+                        className="flex-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-black font-mono focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
                       />
                     </div>
                   </div>
@@ -552,7 +552,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                           }
                           className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium transition ${
                             editValues.padding === p.value
-                              ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                              ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200"
                               : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                           }`}
                         >
@@ -577,7 +577,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
                           }
                           className={`flex-1 rounded-md px-2 py-1.5 text-[10px] font-medium transition ${
                             editValues.borderRadius === r.value
-                              ? "bg-blue-50 text-blue-700 ring-1 ring-blue-200"
+                              ? "bg-pink-50 text-pink-700 ring-1 ring-pink-200"
                               : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                           }`}
                         >
@@ -594,7 +594,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
             <div className="border-t border-gray-100 px-3 py-2">
               <button
                 onClick={applyChanges}
-                className="w-full rounded-lg bg-blue-600 px-3 py-2 text-xs font-medium text-white transition hover:bg-blue-700"
+                className="w-full rounded-lg bg-pink-500 px-3 py-2 text-xs font-medium text-white transition hover:bg-pink-600"
               >
                 Apply Changes
               </button>
