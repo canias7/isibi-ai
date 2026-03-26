@@ -1,13 +1,241 @@
 {
   "_meta": {
     "app_name": "Gym Manager",
-    "description": "Gym and fitness center management"
+    "description": "Complete gym management"
   },
   "entities": [
     {
+      "name": "MembershipPlan",
+      "table": "membership_plans",
+      "description": "Plan",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "duration_days",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "max_classes_per_week",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "includes_pt",
+          "db_type": "BOOLEAN NOT NULL DEFAULT false",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean_badge"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean_badge"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "price",
+            "duration_days",
+            "max_classes_per_week",
+            "includes_pt",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No MembershipPlans yet",
+            "subtext": "Create your first membershipplan",
+            "action_label": "Add MembershipPlan"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "price",
+            "duration_days",
+            "max_classes_per_week",
+            "includes_pt",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "price",
+            "duration_days"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "price",
+            "duration_days",
+            "max_classes_per_week",
+            "includes_pt",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "price",
+            "duration_days"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/membership_plans/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "price",
+            "duration_days",
+            "max_classes_per_week"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "price",
+                "duration_days",
+                "max_classes_per_week",
+                "includes_pt",
+                "is_active"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "Member",
       "table": "members",
-      "description": "Gym member",
+      "description": "Member",
       "fields": [
         {
           "name": "id",
@@ -44,7 +272,268 @@
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "membership_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "MembershipPlan"
+        },
+        {
+          "name": "join_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "expires_at",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "expired",
+            "frozen",
+            "cancelled",
+            "trial"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "expired": "red",
+            "frozen": "blue",
+            "cancelled": "slate",
+            "trial": "amber"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "membership_id",
+            "join_date",
+            "expires_at"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Members yet",
+            "subtext": "Create your first member",
+            "action_label": "Add Member"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "membership_id",
+            "join_date",
+            "expires_at",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "membership_id",
+            "join_date",
+            "expires_at",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/members/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "membership_id"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "membership_id",
+                "join_date",
+                "expires_at",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Trainer",
+      "table": "trainers",
+      "description": "Trainer",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
@@ -65,7 +554,7 @@
           "display_component": "text"
         },
         {
-          "name": "membership_type",
+          "name": "specialty",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
@@ -75,441 +564,31 @@
           "input_component": "select",
           "display_component": "status_badge",
           "enum_values": [
-            "basic",
-            "premium",
-            "vip",
-            "student"
+            "strength",
+            "cardio",
+            "yoga",
+            "nutrition",
+            "rehab",
+            "crossfit"
           ],
           "badge_colors": {
-            "basic": "slate",
-            "premium": "blue",
-            "vip": "pink",
-            "student": "green"
+            "strength": "red",
+            "cardio": "blue",
+            "yoga": "purple",
+            "nutrition": "green",
+            "rehab": "amber",
+            "crossfit": "pink"
           }
         },
         {
-          "name": "status",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "active",
-            "expired",
-            "frozen",
-            "cancelled"
-          ],
-          "badge_colors": {
-            "active": "green",
-            "expired": "red",
-            "frozen": "blue",
-            "cancelled": "slate"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "email",
-            "phone",
-            "membership_type",
-            "status"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Members yet",
-            "subtext": "Create your first member",
-            "action_label": "Add Member"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "email",
-            "phone",
-            "membership_type",
-            "status"
-          ],
-          "required_fields": [
-            "name",
-            "email"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "email",
-            "phone",
-            "membership_type",
-            "status"
-          ],
-          "required_fields": [
-            "name",
-            "email"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/members/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "email",
-            "phone",
-            "membership_type"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "email",
-                "phone",
-                "membership_type",
-                "status"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Class",
-      "table": "classes",
-      "description": "Fitness class",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "instructor",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "capacity",
-          "db_type": "INTEGER NOT NULL DEFAULT 20",
+          "name": "hourly_rate",
+          "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "schedule",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "type",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "yoga",
-            "cardio",
-            "strength",
-            "pilates",
-            "boxing",
-            "dance"
-          ],
-          "badge_colors": {
-            "yoga": "purple",
-            "cardio": "red",
-            "strength": "amber",
-            "pilates": "blue",
-            "boxing": "pink",
-            "dance": "green"
-          }
-        },
-        {
-          "name": "created_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "updated_at",
-          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "deleted_at",
-          "db_type": "TIMESTAMPTZ",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "datetime"
-        },
-        {
-          "name": "version",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        }
-      ],
-      "ui_config": {
-        "list_view": {
-          "layout": "table",
-          "columns": [
-            "name",
-            "instructor",
-            "capacity",
-            "schedule",
-            "type"
-          ],
-          "filters": [],
-          "empty_state": {
-            "icon": "Box",
-            "heading": "No Classs yet",
-            "subtext": "Create your first class",
-            "action_label": "Add Class"
-          }
-        },
-        "create_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "instructor",
-            "capacity",
-            "schedule",
-            "type"
-          ],
-          "required_fields": [
-            "name",
-            "instructor"
-          ]
-        },
-        "edit_form": {
-          "type": "SlideOverForm",
-          "field_order": [
-            "name",
-            "instructor",
-            "capacity",
-            "schedule",
-            "type"
-          ],
-          "required_fields": [
-            "name",
-            "instructor"
-          ],
-          "prefilled": true
-        },
-        "detail_view": {
-          "route": "/classes/:id",
-          "layout": "tabbed",
-          "header": {
-            "title_fields": [
-              "name"
-            ],
-            "badge_fields": []
-          },
-          "primary_fields": [
-            "name",
-            "instructor",
-            "capacity",
-            "schedule"
-          ],
-          "tabs": [
-            {
-              "name": "Overview",
-              "fields": [
-                "name",
-                "instructor",
-                "capacity",
-                "schedule",
-                "type"
-              ]
-            }
-          ]
-        }
-      }
-    },
-    {
-      "name": "Trainer",
-      "table": "trainers",
-      "description": "Personal trainer",
-      "fields": [
-        {
-          "name": "id",
-          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "org_id",
-          "db_type": "UUID NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": false,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "specialty",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
           "display_component": "text"
         },
         {
@@ -584,7 +663,9 @@
           "columns": [
             "name",
             "email",
+            "phone",
             "specialty",
+            "hourly_rate",
             "status"
           ],
           "filters": [],
@@ -600,12 +681,15 @@
           "field_order": [
             "name",
             "email",
+            "phone",
             "specialty",
+            "hourly_rate",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone"
           ]
         },
         "edit_form": {
@@ -613,12 +697,15 @@
           "field_order": [
             "name",
             "email",
+            "phone",
             "specialty",
+            "hourly_rate",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone"
           ],
           "prefilled": true
         },
@@ -634,8 +721,8 @@
           "primary_fields": [
             "name",
             "email",
-            "specialty",
-            "status"
+            "phone",
+            "specialty"
           ],
           "tabs": [
             {
@@ -643,8 +730,17 @@
               "fields": [
                 "name",
                 "email",
+                "phone",
                 "specialty",
+                "hourly_rate",
                 "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -652,9 +748,9 @@
       }
     },
     {
-      "name": "Membership",
-      "table": "memberships",
-      "description": "Membership plan",
+      "name": "Class",
+      "table": "classes",
+      "description": "Fitness class",
       "fields": [
         {
           "name": "id",
@@ -690,35 +786,89 @@
           "display_component": "text"
         },
         {
-          "name": "price",
-          "db_type": "NUMERIC(10,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "duration_days",
-          "db_type": "INTEGER NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
-          "name": "features",
-          "db_type": "TEXT",
+          "name": "instructor_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
-          "nullable": true,
+          "nullable": false,
           "editable": true,
-          "show_in_table": false,
+          "show_in_table": true,
           "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Trainer"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "yoga",
+            "cardio",
+            "strength",
+            "hiit",
+            "pilates",
+            "boxing",
+            "dance",
+            "cycling"
+          ],
+          "badge_colors": {
+            "yoga": "purple",
+            "cardio": "red",
+            "strength": "amber",
+            "hiit": "red",
+            "pilates": "blue",
+            "boxing": "red",
+            "dance": "pink",
+            "cycling": "green"
+          }
+        },
+        {
+          "name": "schedule",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "duration_min",
+          "db_type": "INTEGER NOT NULL DEFAULT 60",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "capacity",
+          "db_type": "INTEGER NOT NULL DEFAULT 20",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "enrolled",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
           "input_component": "text_input",
           "display_component": "text"
         },
@@ -772,46 +922,55 @@
           "layout": "table",
           "columns": [
             "name",
-            "price",
-            "duration_days"
+            "instructor_id",
+            "type",
+            "schedule",
+            "duration_min",
+            "capacity"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No Memberships yet",
-            "subtext": "Create your first membership",
-            "action_label": "Add Membership"
+            "heading": "No Classs yet",
+            "subtext": "Create your first class",
+            "action_label": "Add Class"
           }
         },
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "price",
-            "duration_days",
-            "features"
+            "instructor_id",
+            "type",
+            "schedule",
+            "duration_min",
+            "capacity"
           ],
           "required_fields": [
             "name",
-            "price"
+            "instructor_id",
+            "type"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
             "name",
-            "price",
-            "duration_days",
-            "features"
+            "instructor_id",
+            "type",
+            "schedule",
+            "duration_min",
+            "capacity"
           ],
           "required_fields": [
             "name",
-            "price"
+            "instructor_id",
+            "type"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/memberships/:id",
+          "route": "/classes/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
@@ -821,16 +980,773 @@
           },
           "primary_fields": [
             "name",
-            "price",
-            "duration_days"
+            "instructor_id",
+            "type",
+            "schedule"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
                 "name",
-                "price",
-                "duration_days"
+                "instructor_id",
+                "type",
+                "schedule",
+                "duration_min",
+                "capacity",
+                "enrolled"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "ClassBooking",
+      "table": "class_bookings",
+      "description": "Booking",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "class_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Class"
+        },
+        {
+          "name": "member_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Member"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "booked",
+            "attended",
+            "no_show",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "booked": "blue",
+            "attended": "green",
+            "no_show": "red",
+            "cancelled": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "class_id",
+            "member_id",
+            "date",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No ClassBookings yet",
+            "subtext": "Create your first classbooking",
+            "action_label": "Add ClassBooking"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "class_id",
+            "member_id",
+            "date",
+            "status"
+          ],
+          "required_fields": [
+            "class_id",
+            "member_id",
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "class_id",
+            "member_id",
+            "date",
+            "status"
+          ],
+          "required_fields": [
+            "class_id",
+            "member_id",
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/class_bookings/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "class_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "class_id",
+            "member_id",
+            "date",
+            "status"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "class_id",
+                "member_id",
+                "date",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "PTSession",
+      "table": "pt_sessions",
+      "description": "PT session",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "member_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Member"
+        },
+        {
+          "name": "trainer_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Trainer"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "duration_min",
+          "db_type": "INTEGER NOT NULL DEFAULT 60",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "focus",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "strength",
+            "cardio",
+            "flexibility",
+            "weight_loss",
+            "muscle_gain"
+          ],
+          "badge_colors": {
+            "strength": "red",
+            "cardio": "blue",
+            "flexibility": "purple",
+            "weight_loss": "green",
+            "muscle_gain": "amber"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "completed",
+            "cancelled",
+            "no_show"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "completed": "green",
+            "cancelled": "red",
+            "no_show": "amber"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "member_id",
+            "trainer_id",
+            "date",
+            "time",
+            "duration_min",
+            "focus"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No PTSessions yet",
+            "subtext": "Create your first ptsession",
+            "action_label": "Add PTSession"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "member_id",
+            "trainer_id",
+            "date",
+            "time",
+            "duration_min",
+            "focus",
+            "notes",
+            "status"
+          ],
+          "required_fields": [
+            "member_id",
+            "trainer_id",
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "member_id",
+            "trainer_id",
+            "date",
+            "time",
+            "duration_min",
+            "focus",
+            "notes",
+            "status"
+          ],
+          "required_fields": [
+            "member_id",
+            "trainer_id",
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/pt_sessions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "member_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "member_id",
+            "trainer_id",
+            "date",
+            "time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "member_id",
+                "trainer_id",
+                "date",
+                "time",
+                "duration_min",
+                "focus",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Payment",
+      "table": "payments",
+      "description": "Payment",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "member_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Member"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "membership",
+            "pt",
+            "class_pack",
+            "merchandise"
+          ],
+          "badge_colors": {
+            "membership": "blue",
+            "pt": "purple",
+            "class_pack": "green",
+            "merchandise": "amber"
+          }
+        },
+        {
+          "name": "method",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "card",
+            "cash",
+            "bank_transfer",
+            "auto_debit"
+          ],
+          "badge_colors": {
+            "card": "blue",
+            "cash": "green",
+            "bank_transfer": "purple",
+            "auto_debit": "amber"
+          }
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "paid",
+            "pending",
+            "failed",
+            "refunded"
+          ],
+          "badge_colors": {
+            "paid": "green",
+            "pending": "amber",
+            "failed": "red",
+            "refunded": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "member_id",
+            "amount",
+            "type",
+            "method",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Payments yet",
+            "subtext": "Create your first payment",
+            "action_label": "Add Payment"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "member_id",
+            "amount",
+            "type",
+            "method",
+            "status"
+          ],
+          "required_fields": [
+            "member_id",
+            "amount",
+            "type"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "member_id",
+            "amount",
+            "type",
+            "method",
+            "status"
+          ],
+          "required_fields": [
+            "member_id",
+            "amount",
+            "type"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/payments/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "member_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "member_id",
+            "amount",
+            "type",
+            "method"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "member_id",
+                "amount",
+                "type",
+                "method",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -848,22 +1764,22 @@
       "sidebar_icon": "LayoutDashboard"
     },
     {
+      "name": "MembershipPlans",
+      "route": "/membership_plans",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "CreditCard",
+      "entity": "MembershipPlan"
+    },
+    {
       "name": "Members",
       "route": "/members",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 2,
+      "sidebar_order": 3,
       "sidebar_icon": "Users",
       "entity": "Member"
-    },
-    {
-      "name": "Class",
-      "route": "/classes",
-      "component": "EntityListPage",
-      "layout": "app",
-      "sidebar_order": 3,
-      "sidebar_icon": "Dumbbell",
-      "entity": "Class"
     },
     {
       "name": "Trainers",
@@ -875,22 +1791,70 @@
       "entity": "Trainer"
     },
     {
-      "name": "Memberships",
-      "route": "/memberships",
+      "name": "Class",
+      "route": "/classes",
       "component": "EntityListPage",
       "layout": "app",
       "sidebar_order": 5,
-      "sidebar_icon": "CreditCard",
-      "entity": "Membership"
+      "sidebar_icon": "Dumbbell",
+      "entity": "Class"
+    },
+    {
+      "name": "ClassBookings",
+      "route": "/class_bookings",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 6,
+      "sidebar_icon": "CalendarCheck",
+      "entity": "ClassBooking"
+    },
+    {
+      "name": "PTSessions",
+      "route": "/pt_sessions",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 7,
+      "sidebar_icon": "Target",
+      "entity": "PTSession"
+    },
+    {
+      "name": "Payments",
+      "route": "/payments",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 8,
+      "sidebar_icon": "DollarSign",
+      "entity": "Payment"
     }
   ],
   "dashboard": {
     "stat_cards": [
       {
+        "label": "Total MembershipPlans",
+        "entity": "MembershipPlan",
+        "method": "count",
+        "icon": "CreditCard",
+        "color": "pink"
+      },
+      {
         "label": "Total Members",
         "entity": "Member",
         "method": "count",
-        "icon": "Box",
+        "icon": "Users",
+        "color": "pink"
+      },
+      {
+        "label": "Total Trainers",
+        "entity": "Trainer",
+        "method": "count",
+        "icon": "UserCheck",
+        "color": "pink"
+      },
+      {
+        "label": "Total Classs",
+        "entity": "Class",
+        "method": "count",
+        "icon": "Dumbbell",
         "color": "pink"
       }
     ]

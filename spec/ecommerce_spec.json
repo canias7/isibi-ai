@@ -1,9 +1,446 @@
 {
   "_meta": {
-    "app_name": "E-Commerce",
-    "description": "Online store management"
+    "app_name": "E-Commerce Store",
+    "description": "Complete online store"
   },
   "entities": [
+    {
+      "name": "Customer",
+      "table": "customers",
+      "description": "Customer",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "address",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total_spent",
+          "db_type": "NUMERIC(12,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "vip",
+            "inactive"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "vip": "pink",
+            "inactive": "slate"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "total_spent",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Customers yet",
+            "subtext": "Create your first customer",
+            "action_label": "Add Customer"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "address",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "address",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/customers/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "total_spent"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "total_spent",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Category",
+      "table": "categories",
+      "description": "Product category",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "slug",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "parent_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Category"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean_badge"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "slug",
+            "parent_id",
+            "is_active"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Categorys yet",
+            "subtext": "Create your first category",
+            "action_label": "Add Category"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "slug",
+            "parent_id",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "slug",
+            "parent_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "slug",
+            "parent_id",
+            "is_active"
+          ],
+          "required_fields": [
+            "name",
+            "slug",
+            "parent_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/categories/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "slug",
+            "parent_id",
+            "is_active"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "slug",
+                "parent_id",
+                "is_active"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
     {
       "name": "Product",
       "table": "products",
@@ -54,12 +491,51 @@
           "display_component": "text"
         },
         {
+          "name": "category_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Category"
+        },
+        {
           "name": "price",
           "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "min",
+            "value": 0,
+            "message": "Must be positive"
+          }
+        },
+        {
+          "name": "compare_at_price",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "cost",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text"
@@ -76,31 +552,15 @@
           "display_component": "text"
         },
         {
-          "name": "category",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "description",
+          "db_type": "TEXT",
           "ts_type": "string",
-          "nullable": false,
+          "nullable": true,
           "editable": true,
-          "show_in_table": true,
+          "show_in_table": false,
           "show_in_form": true,
-          "input_component": "select",
-          "display_component": "status_badge",
-          "enum_values": [
-            "electronics",
-            "clothing",
-            "home",
-            "sports",
-            "books",
-            "other"
-          ],
-          "badge_colors": {
-            "electronics": "blue",
-            "clothing": "pink",
-            "home": "amber",
-            "sports": "green",
-            "books": "purple",
-            "other": "slate"
-          }
+          "input_component": "text_input",
+          "display_component": "text"
         },
         {
           "name": "status",
@@ -176,10 +636,10 @@
           "columns": [
             "name",
             "sku",
+            "category_id",
             "price",
-            "stock",
-            "category",
-            "status"
+            "compare_at_price",
+            "stock"
           ],
           "filters": [],
           "empty_state": {
@@ -194,14 +654,18 @@
           "field_order": [
             "name",
             "sku",
+            "category_id",
             "price",
+            "compare_at_price",
+            "cost",
             "stock",
-            "category",
+            "description",
             "status"
           ],
           "required_fields": [
             "name",
-            "sku"
+            "sku",
+            "category_id"
           ]
         },
         "edit_form": {
@@ -209,14 +673,18 @@
           "field_order": [
             "name",
             "sku",
+            "category_id",
             "price",
+            "compare_at_price",
+            "cost",
             "stock",
-            "category",
+            "description",
             "status"
           ],
           "required_fields": [
             "name",
-            "sku"
+            "sku",
+            "category_id"
           ],
           "prefilled": true
         },
@@ -232,8 +700,8 @@
           "primary_fields": [
             "name",
             "sku",
-            "price",
-            "stock"
+            "category_id",
+            "price"
           ],
           "tabs": [
             {
@@ -241,10 +709,18 @@
               "fields": [
                 "name",
                 "sku",
+                "category_id",
                 "price",
+                "compare_at_price",
                 "stock",
-                "category",
                 "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -279,8 +755,8 @@
           "display_component": "text"
         },
         {
-          "name": "customer_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "order_number",
+          "db_type": "VARCHAR(20) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
@@ -290,18 +766,19 @@
           "display_component": "text"
         },
         {
-          "name": "customer_email",
-          "db_type": "VARCHAR(255)",
+          "name": "customer_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Customer"
         },
         {
-          "name": "total",
+          "name": "subtotal",
           "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
@@ -312,8 +789,8 @@
           "display_component": "text"
         },
         {
-          "name": "item_count",
-          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "name": "tax",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
           "ts_type": "number",
           "nullable": false,
           "editable": true,
@@ -321,6 +798,59 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text"
+        },
+        {
+          "name": "shipping",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "discount",
+          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "computed": "subtotal + tax + shipping - discount"
+        },
+        {
+          "name": "tracking_number",
+          "db_type": "VARCHAR(100)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "visible_when": {
+            "field": "status",
+            "operator": "in",
+            "value": [
+              "shipped",
+              "delivered"
+            ]
+          }
         },
         {
           "name": "status",
@@ -350,6 +880,29 @@
           }
         },
         {
+          "name": "payment_status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "unpaid",
+            "paid",
+            "partial",
+            "refunded"
+          ],
+          "badge_colors": {
+            "unpaid": "red",
+            "paid": "green",
+            "partial": "amber",
+            "refunded": "slate"
+          }
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -398,11 +951,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "customer_name",
-            "customer_email",
-            "total",
-            "item_count",
-            "status"
+            "order_number",
+            "customer_id",
+            "subtotal",
+            "tax",
+            "shipping",
+            "discount"
           ],
           "filters": [],
           "empty_state": {
@@ -415,29 +969,41 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "customer_name",
-            "customer_email",
+            "order_number",
+            "customer_id",
+            "subtotal",
+            "tax",
+            "shipping",
+            "discount",
             "total",
-            "item_count",
-            "status"
+            "tracking_number",
+            "status",
+            "payment_status"
           ],
           "required_fields": [
-            "customer_name",
-            "customer_email"
+            "order_number",
+            "customer_id",
+            "subtotal"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "customer_name",
-            "customer_email",
+            "order_number",
+            "customer_id",
+            "subtotal",
+            "tax",
+            "shipping",
+            "discount",
             "total",
-            "item_count",
-            "status"
+            "tracking_number",
+            "status",
+            "payment_status"
           ],
           "required_fields": [
-            "customer_name",
-            "customer_email"
+            "order_number",
+            "customer_id",
+            "subtotal"
           ],
           "prefilled": true
         },
@@ -446,25 +1012,37 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "customer_name"
+              "order_number"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "customer_name",
-            "customer_email",
-            "total",
-            "item_count"
+            "order_number",
+            "customer_id",
+            "subtotal",
+            "tax"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "customer_name",
-                "customer_email",
+                "order_number",
+                "customer_id",
+                "subtotal",
+                "tax",
+                "shipping",
+                "discount",
                 "total",
-                "item_count",
-                "status"
+                "tracking_number",
+                "status",
+                "payment_status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -472,9 +1050,9 @@
       }
     },
     {
-      "name": "Customer",
-      "table": "customers",
-      "description": "Store customer",
+      "name": "OrderItem",
+      "table": "order_items",
+      "description": "Line item",
       "fields": [
         {
           "name": "id",
@@ -499,59 +1077,62 @@
           "display_component": "text"
         },
         {
-          "name": "name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "order_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Order"
         },
         {
-          "name": "email",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "product_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Product"
         },
         {
-          "name": "phone",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string",
-          "nullable": true,
+          "name": "quantity",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
+          "input_component": "number_input",
           "display_component": "text"
         },
         {
-          "name": "total_orders",
-          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "name": "unit_price",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "total",
+          "db_type": "NUMERIC(10,2) NOT NULL",
           "ts_type": "number",
           "nullable": false,
           "editable": false,
           "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
-        },
-        {
-          "name": "total_spent",
-          "db_type": "NUMERIC(10,2) NOT NULL DEFAULT 0",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": false,
-          "show_in_table": true,
-          "show_in_form": false,
-          "input_component": "none",
-          "display_component": "text"
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "computed": "quantity * unit_price"
         },
         {
           "name": "created_at",
@@ -602,69 +1183,82 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "name",
-            "email",
-            "phone",
-            "total_orders",
-            "total_spent"
+            "order_id",
+            "product_id",
+            "quantity",
+            "unit_price",
+            "total"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No Customers yet",
-            "subtext": "Create your first customer",
-            "action_label": "Add Customer"
+            "heading": "No OrderItems yet",
+            "subtext": "Create your first orderitem",
+            "action_label": "Add OrderItem"
           }
         },
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "email",
-            "phone"
+            "order_id",
+            "product_id",
+            "quantity",
+            "unit_price",
+            "total"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "order_id",
+            "product_id",
+            "quantity"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "email",
-            "phone"
+            "order_id",
+            "product_id",
+            "quantity",
+            "unit_price",
+            "total"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "order_id",
+            "product_id",
+            "quantity"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/customers/:id",
+          "route": "/order_items/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "order_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "name",
-            "email",
-            "phone",
-            "total_orders"
+            "order_id",
+            "product_id",
+            "quantity",
+            "unit_price"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "total_orders",
-                "total_spent"
+                "order_id",
+                "product_id",
+                "quantity",
+                "unit_price",
+                "total"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -699,26 +1293,28 @@
           "display_component": "text"
         },
         {
-          "name": "product_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "product_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Product"
         },
         {
-          "name": "customer_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "customer_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Customer"
         },
         {
           "name": "rating",
@@ -729,6 +1325,22 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "min",
+            "value": 1,
+            "message": "1-5"
+          }
+        },
+        {
+          "name": "title",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
           "display_component": "text"
         },
         {
@@ -812,9 +1424,10 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "product_name",
-            "customer_name",
+            "product_id",
+            "customer_id",
             "rating",
+            "title",
             "status"
           ],
           "filters": [],
@@ -828,29 +1441,33 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "product_name",
-            "customer_name",
+            "product_id",
+            "customer_id",
             "rating",
+            "title",
             "comment",
             "status"
           ],
           "required_fields": [
-            "product_name",
-            "customer_name"
+            "product_id",
+            "customer_id",
+            "rating"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "product_name",
-            "customer_name",
+            "product_id",
+            "customer_id",
             "rating",
+            "title",
             "comment",
             "status"
           ],
           "required_fields": [
-            "product_name",
-            "customer_name"
+            "product_id",
+            "customer_id",
+            "rating"
           ],
           "prefilled": true
         },
@@ -859,24 +1476,506 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "product_name"
+              "product_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "product_name",
-            "customer_name",
+            "product_id",
+            "customer_id",
             "rating",
-            "status"
+            "title"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "product_name",
-                "customer_name",
+                "product_id",
+                "customer_id",
                 "rating",
+                "title",
                 "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Coupon",
+      "table": "coupons",
+      "description": "Discount coupon",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "code",
+          "db_type": "VARCHAR(50) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "percentage",
+            "fixed_amount",
+            "free_shipping"
+          ],
+          "badge_colors": {
+            "percentage": "blue",
+            "fixed_amount": "green",
+            "free_shipping": "purple"
+          }
+        },
+        {
+          "name": "value",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "min_order",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "max_uses",
+          "db_type": "INTEGER",
+          "ts_type": "number",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "uses_count",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "expires_at",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "is_active",
+          "db_type": "BOOLEAN NOT NULL DEFAULT true",
+          "ts_type": "boolean",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "checkbox",
+          "display_component": "boolean_badge"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "code",
+            "type",
+            "value",
+            "min_order",
+            "max_uses",
+            "uses_count"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Coupons yet",
+            "subtext": "Create your first coupon",
+            "action_label": "Add Coupon"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "code",
+            "type",
+            "value",
+            "min_order",
+            "max_uses",
+            "expires_at",
+            "is_active"
+          ],
+          "required_fields": [
+            "code",
+            "type",
+            "value"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "code",
+            "type",
+            "value",
+            "min_order",
+            "max_uses",
+            "expires_at",
+            "is_active"
+          ],
+          "required_fields": [
+            "code",
+            "type",
+            "value"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/coupons/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "code"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "code",
+            "type",
+            "value",
+            "min_order"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "code",
+                "type",
+                "value",
+                "min_order",
+                "max_uses",
+                "uses_count",
+                "expires_at",
+                "is_active"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "InventoryLog",
+      "table": "inventory_logs",
+      "description": "Stock change",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "product_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Product"
+        },
+        {
+          "name": "type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "received",
+            "sold",
+            "returned",
+            "adjusted",
+            "damaged"
+          ],
+          "badge_colors": {
+            "received": "green",
+            "sold": "blue",
+            "returned": "amber",
+            "adjusted": "purple",
+            "damaged": "red"
+          }
+        },
+        {
+          "name": "quantity",
+          "db_type": "INTEGER NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "reason",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "product_id",
+            "type",
+            "quantity"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No InventoryLogs yet",
+            "subtext": "Create your first inventorylog",
+            "action_label": "Add InventoryLog"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "product_id",
+            "type",
+            "quantity",
+            "reason"
+          ],
+          "required_fields": [
+            "product_id",
+            "type",
+            "quantity"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "product_id",
+            "type",
+            "quantity",
+            "reason"
+          ],
+          "required_fields": [
+            "product_id",
+            "type",
+            "quantity"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/inventory_logs/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "product_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "product_id",
+            "type",
+            "quantity"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "product_id",
+                "type",
+                "quantity"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -894,11 +1993,29 @@
       "sidebar_icon": "LayoutDashboard"
     },
     {
+      "name": "Customers",
+      "route": "/customers",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Users",
+      "entity": "Customer"
+    },
+    {
+      "name": "Categorys",
+      "route": "/categories",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 3,
+      "sidebar_icon": "FolderTree",
+      "entity": "Category"
+    },
+    {
       "name": "Products",
       "route": "/products",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 2,
+      "sidebar_order": 4,
       "sidebar_icon": "Package",
       "entity": "Product"
     },
@@ -907,36 +2024,75 @@
       "route": "/orders",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 3,
+      "sidebar_order": 5,
       "sidebar_icon": "ShoppingCart",
       "entity": "Order"
     },
     {
-      "name": "Customers",
-      "route": "/customers",
+      "name": "OrderItems",
+      "route": "/order_items",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 4,
-      "sidebar_icon": "Users",
-      "entity": "Customer"
+      "sidebar_order": 6,
+      "sidebar_icon": "List",
+      "entity": "OrderItem"
     },
     {
       "name": "Reviews",
       "route": "/reviews",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 5,
+      "sidebar_order": 7,
       "sidebar_icon": "Star",
       "entity": "Review"
+    },
+    {
+      "name": "Coupons",
+      "route": "/coupons",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 8,
+      "sidebar_icon": "Tag",
+      "entity": "Coupon"
+    },
+    {
+      "name": "InventoryLogs",
+      "route": "/inventory_logs",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 9,
+      "sidebar_icon": "Boxes",
+      "entity": "InventoryLog"
     }
   ],
   "dashboard": {
     "stat_cards": [
       {
+        "label": "Total Customers",
+        "entity": "Customer",
+        "method": "count",
+        "icon": "Users",
+        "color": "pink"
+      },
+      {
+        "label": "Total Categorys",
+        "entity": "Category",
+        "method": "count",
+        "icon": "FolderTree",
+        "color": "pink"
+      },
+      {
         "label": "Total Products",
         "entity": "Product",
         "method": "count",
-        "icon": "Box",
+        "icon": "Package",
+        "color": "pink"
+      },
+      {
+        "label": "Total Orders",
+        "entity": "Order",
+        "method": "count",
+        "icon": "ShoppingCart",
         "color": "pink"
       }
     ]

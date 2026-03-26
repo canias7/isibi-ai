@@ -1,13 +1,266 @@
 {
   "_meta": {
     "app_name": "Real Estate",
-    "description": "Real estate property management"
+    "description": "Complete real estate management"
   },
   "entities": [
     {
+      "name": "Agent",
+      "table": "agents",
+      "description": "Agent",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "name",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          }
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "license_number",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "brokerage",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "commission_pct",
+          "db_type": "NUMERIC(5,2) NOT NULL DEFAULT 3",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "active",
+            "inactive"
+          ],
+          "badge_colors": {
+            "active": "green",
+            "inactive": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "brokerage",
+            "status"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Agents yet",
+            "subtext": "Create your first agent",
+            "action_label": "Add Agent"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "brokerage",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "name",
+            "email",
+            "phone",
+            "license_number",
+            "brokerage",
+            "commission_pct",
+            "status"
+          ],
+          "required_fields": [
+            "name",
+            "email",
+            "phone"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/agents/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "name"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "name",
+            "email",
+            "phone",
+            "license_number"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "name",
+                "email",
+                "phone",
+                "license_number",
+                "brokerage",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
       "name": "Property",
       "table": "properties",
-      "description": "Property listing",
+      "description": "Property",
       "fields": [
         {
           "name": "id",
@@ -54,17 +307,6 @@
           "display_component": "text"
         },
         {
-          "name": "price",
-          "db_type": "NUMERIC(12,2) NOT NULL",
-          "ts_type": "number",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "number_input",
-          "display_component": "text"
-        },
-        {
           "name": "type",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -78,6 +320,7 @@
             "house",
             "apartment",
             "condo",
+            "townhouse",
             "land",
             "commercial"
           ],
@@ -85,9 +328,21 @@
             "house": "blue",
             "apartment": "pink",
             "condo": "purple",
-            "land": "green",
-            "commercial": "amber"
+            "townhouse": "green",
+            "land": "amber",
+            "commercial": "slate"
           }
+        },
+        {
+          "name": "price",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
         },
         {
           "name": "bedrooms",
@@ -102,7 +357,7 @@
         },
         {
           "name": "bathrooms",
-          "db_type": "INTEGER",
+          "db_type": "NUMERIC(3,1)",
           "ts_type": "number",
           "nullable": true,
           "editable": true,
@@ -123,6 +378,40 @@
           "display_component": "text"
         },
         {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "mls_number",
+          "db_type": "VARCHAR(20)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
           "name": "status",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -135,13 +424,15 @@
           "enum_values": [
             "active",
             "pending",
+            "under_contract",
             "sold",
             "withdrawn"
           ],
           "badge_colors": {
             "active": "green",
             "pending": "amber",
-            "sold": "blue",
+            "under_contract": "blue",
+            "sold": "slate",
             "withdrawn": "red"
           }
         },
@@ -196,8 +487,8 @@
           "columns": [
             "address",
             "city",
-            "price",
             "type",
+            "price",
             "bedrooms",
             "bathrooms"
           ],
@@ -214,16 +505,20 @@
           "field_order": [
             "address",
             "city",
-            "price",
             "type",
+            "price",
             "bedrooms",
             "bathrooms",
             "sqft",
+            "description",
+            "agent_id",
+            "mls_number",
             "status"
           ],
           "required_fields": [
             "address",
-            "city"
+            "city",
+            "type"
           ]
         },
         "edit_form": {
@@ -231,16 +526,20 @@
           "field_order": [
             "address",
             "city",
-            "price",
             "type",
+            "price",
             "bedrooms",
             "bathrooms",
             "sqft",
+            "description",
+            "agent_id",
+            "mls_number",
             "status"
           ],
           "required_fields": [
             "address",
-            "city"
+            "city",
+            "type"
           ],
           "prefilled": true
         },
@@ -256,8 +555,8 @@
           "primary_fields": [
             "address",
             "city",
-            "price",
-            "type"
+            "type",
+            "price"
           ],
           "tabs": [
             {
@@ -265,12 +564,21 @@
               "fields": [
                 "address",
                 "city",
-                "price",
                 "type",
+                "price",
                 "bedrooms",
                 "bathrooms",
                 "sqft",
+                "agent_id",
+                "mls_number",
                 "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -280,7 +588,7 @@
     {
       "name": "Lead",
       "table": "leads",
-      "description": "Potential buyer/renter",
+      "description": "Buyer/renter lead",
       "fields": [
         {
           "name": "id",
@@ -317,14 +625,18 @@
         },
         {
           "name": "email",
-          "db_type": "VARCHAR(255)",
+          "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "rule": "email",
+            "message": "Valid email"
+          }
         },
         {
           "name": "phone",
@@ -338,8 +650,8 @@
           "display_component": "text"
         },
         {
-          "name": "budget",
-          "db_type": "NUMERIC(12,2)",
+          "name": "budget_max",
+          "db_type": "NUMERIC(14,2)",
           "ts_type": "number",
           "nullable": true,
           "editable": true,
@@ -347,6 +659,41 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text"
+        },
+        {
+          "name": "preferred_type",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "house",
+            "apartment",
+            "condo",
+            "any"
+          ],
+          "badge_colors": {
+            "house": "blue",
+            "apartment": "pink",
+            "condo": "purple",
+            "any": "slate"
+          }
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
         },
         {
           "name": "source",
@@ -363,14 +710,16 @@
             "referral",
             "zillow",
             "social",
-            "walk_in"
+            "walk_in",
+            "open_house"
           ],
           "badge_colors": {
             "website": "blue",
             "referral": "green",
             "zillow": "purple",
             "social": "pink",
-            "walk_in": "amber"
+            "walk_in": "amber",
+            "open_house": "green"
           }
         },
         {
@@ -454,9 +803,9 @@
             "name",
             "email",
             "phone",
-            "budget",
-            "source",
-            "status"
+            "budget_max",
+            "preferred_type",
+            "agent_id"
           ],
           "filters": [],
           "empty_state": {
@@ -472,13 +821,16 @@
             "name",
             "email",
             "phone",
-            "budget",
+            "budget_max",
+            "preferred_type",
+            "agent_id",
             "source",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone"
           ]
         },
         "edit_form": {
@@ -487,13 +839,16 @@
             "name",
             "email",
             "phone",
-            "budget",
+            "budget_max",
+            "preferred_type",
+            "agent_id",
             "source",
             "status"
           ],
           "required_fields": [
             "name",
-            "email"
+            "email",
+            "phone"
           ],
           "prefilled": true
         },
@@ -510,7 +865,7 @@
             "name",
             "email",
             "phone",
-            "budget"
+            "budget_max"
           ],
           "tabs": [
             {
@@ -519,9 +874,18 @@
                 "name",
                 "email",
                 "phone",
-                "budget",
+                "budget_max",
+                "preferred_type",
+                "agent_id",
                 "source",
                 "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -556,26 +920,40 @@
           "display_component": "text"
         },
         {
-          "name": "property_address",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
         },
         {
-          "name": "lead_name",
-          "db_type": "VARCHAR(255) NOT NULL",
+          "name": "lead_id",
+          "db_type": "UUID NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Lead"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
         },
         {
           "name": "date",
@@ -600,6 +978,45 @@
           "display_component": "text"
         },
         {
+          "name": "feedback",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": false,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "interest_level",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "very_interested",
+            "interested",
+            "neutral",
+            "not_interested"
+          ],
+          "badge_colors": {
+            "very_interested": "green",
+            "interested": "blue",
+            "neutral": "amber",
+            "not_interested": "red"
+          },
+          "visible_when": {
+            "field": "status",
+            "operator": "eq",
+            "value": "completed"
+          }
+        },
+        {
           "name": "status",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -611,27 +1028,18 @@
           "display_component": "status_badge",
           "enum_values": [
             "scheduled",
+            "confirmed",
             "completed",
             "cancelled",
             "no_show"
           ],
           "badge_colors": {
             "scheduled": "blue",
-            "completed": "green",
+            "confirmed": "green",
+            "completed": "slate",
             "cancelled": "red",
             "no_show": "amber"
           }
-        },
-        {
-          "name": "notes",
-          "db_type": "TEXT",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": false,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
         },
         {
           "name": "created_at",
@@ -682,11 +1090,12 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "property_address",
-            "lead_name",
+            "property_id",
+            "lead_id",
+            "agent_id",
             "date",
             "time",
-            "status"
+            "interest_level"
           ],
           "filters": [],
           "empty_state": {
@@ -699,31 +1108,37 @@
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "property_address",
-            "lead_name",
+            "property_id",
+            "lead_id",
+            "agent_id",
             "date",
             "time",
-            "status",
-            "notes"
+            "feedback",
+            "interest_level",
+            "status"
           ],
           "required_fields": [
-            "property_address",
-            "lead_name"
+            "property_id",
+            "lead_id",
+            "agent_id"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "property_address",
-            "lead_name",
+            "property_id",
+            "lead_id",
+            "agent_id",
             "date",
             "time",
-            "status",
-            "notes"
+            "feedback",
+            "interest_level",
+            "status"
           ],
           "required_fields": [
-            "property_address",
-            "lead_name"
+            "property_id",
+            "lead_id",
+            "agent_id"
           ],
           "prefilled": true
         },
@@ -732,25 +1147,34 @@
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "property_address"
+              "property_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "property_address",
-            "lead_name",
-            "date",
-            "time"
+            "property_id",
+            "lead_id",
+            "agent_id",
+            "date"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "property_address",
-                "lead_name",
+                "property_id",
+                "lead_id",
+                "agent_id",
                 "date",
                 "time",
+                "interest_level",
                 "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -758,9 +1182,9 @@
       }
     },
     {
-      "name": "Agent",
-      "table": "agents",
-      "description": "Real estate agent",
+      "name": "Offer",
+      "table": "offers",
+      "description": "Purchase offer",
       "fields": [
         {
           "name": "id",
@@ -785,48 +1209,73 @@
           "display_component": "text"
         },
         {
-          "name": "name",
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
+        },
+        {
+          "name": "lead_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Lead"
+        },
+        {
+          "name": "offer_price",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "financing_type",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
           "nullable": false,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "conventional",
+            "fha",
+            "va",
+            "cash"
+          ],
+          "badge_colors": {
+            "conventional": "blue",
+            "fha": "green",
+            "va": "purple",
+            "cash": "pink"
+          }
         },
         {
-          "name": "email",
-          "db_type": "VARCHAR(255)",
-          "ts_type": "string",
-          "nullable": false,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "phone",
-          "db_type": "VARCHAR(20)",
-          "ts_type": "string",
-          "nullable": true,
-          "editable": true,
-          "show_in_table": true,
-          "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
-        },
-        {
-          "name": "license_number",
-          "db_type": "VARCHAR(50)",
+          "name": "closing_date",
+          "db_type": "DATE",
           "ts_type": "string",
           "nullable": true,
           "editable": true,
           "show_in_table": true,
           "show_in_form": true,
-          "input_component": "text_input",
-          "display_component": "text"
+          "input_component": "date_input",
+          "display_component": "date"
         },
         {
           "name": "status",
@@ -839,12 +1288,18 @@
           "input_component": "select",
           "display_component": "status_badge",
           "enum_values": [
-            "active",
-            "inactive"
+            "submitted",
+            "countered",
+            "accepted",
+            "rejected",
+            "withdrawn"
           ],
           "badge_colors": {
-            "active": "green",
-            "inactive": "red"
+            "submitted": "blue",
+            "countered": "amber",
+            "accepted": "green",
+            "rejected": "red",
+            "withdrawn": "slate"
           }
         },
         {
@@ -896,73 +1351,600 @@
         "list_view": {
           "layout": "table",
           "columns": [
-            "name",
-            "email",
-            "phone",
-            "license_number",
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type",
+            "closing_date",
             "status"
           ],
           "filters": [],
           "empty_state": {
             "icon": "Box",
-            "heading": "No Agents yet",
-            "subtext": "Create your first agent",
-            "action_label": "Add Agent"
+            "heading": "No Offers yet",
+            "subtext": "Create your first offer",
+            "action_label": "Add Offer"
           }
         },
         "create_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "email",
-            "phone",
-            "license_number",
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type",
+            "closing_date",
             "status"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "property_id",
+            "lead_id",
+            "offer_price"
           ]
         },
         "edit_form": {
           "type": "SlideOverForm",
           "field_order": [
-            "name",
-            "email",
-            "phone",
-            "license_number",
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type",
+            "closing_date",
             "status"
           ],
           "required_fields": [
-            "name",
-            "email"
+            "property_id",
+            "lead_id",
+            "offer_price"
           ],
           "prefilled": true
         },
         "detail_view": {
-          "route": "/agents/:id",
+          "route": "/offers/:id",
           "layout": "tabbed",
           "header": {
             "title_fields": [
-              "name"
+              "property_id"
             ],
             "badge_fields": []
           },
           "primary_fields": [
-            "name",
-            "email",
-            "phone",
-            "license_number"
+            "property_id",
+            "lead_id",
+            "offer_price",
+            "financing_type"
           ],
           "tabs": [
             {
               "name": "Overview",
               "fields": [
-                "name",
-                "email",
-                "phone",
-                "license_number",
+                "property_id",
+                "lead_id",
+                "offer_price",
+                "financing_type",
+                "closing_date",
                 "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "OpenHouse",
+      "table": "open_houses",
+      "description": "Open house",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIME NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "visitors",
+          "db_type": "INTEGER NOT NULL DEFAULT 0",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "scheduled",
+            "active",
+            "completed",
+            "cancelled"
+          ],
+          "badge_colors": {
+            "scheduled": "blue",
+            "active": "green",
+            "completed": "slate",
+            "cancelled": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time",
+            "end_time",
+            "visitors"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No OpenHouses yet",
+            "subtext": "Create your first openhouse",
+            "action_label": "Add OpenHouse"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time",
+            "end_time",
+            "visitors",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "agent_id",
+            "date"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time",
+            "end_time",
+            "visitors",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "agent_id",
+            "date"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/open_houses/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "property_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "property_id",
+            "agent_id",
+            "date",
+            "start_time"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "property_id",
+                "agent_id",
+                "date",
+                "start_time",
+                "end_time",
+                "visitors",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Transaction",
+      "table": "transactions",
+      "description": "Closed deal",
+      "fields": [
+        {
+          "name": "id",
+          "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "org_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        },
+        {
+          "name": "property_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Property"
+        },
+        {
+          "name": "buyer_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Lead"
+        },
+        {
+          "name": "agent_id",
+          "db_type": "UUID NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_select",
+          "display_component": "relation_link",
+          "fk_entity": "Agent"
+        },
+        {
+          "name": "sale_price",
+          "db_type": "NUMERIC(14,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text"
+        },
+        {
+          "name": "commission",
+          "db_type": "NUMERIC(10,2) NOT NULL",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "computed": "sale_price * 0.03"
+        },
+        {
+          "name": "closing_date",
+          "db_type": "DATE NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_input",
+          "display_component": "date"
+        },
+        {
+          "name": "status",
+          "db_type": "VARCHAR(255) NOT NULL",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "pending",
+            "in_escrow",
+            "closed",
+            "fell_through"
+          ],
+          "badge_colors": {
+            "pending": "amber",
+            "in_escrow": "blue",
+            "closed": "green",
+            "fell_through": "red"
+          }
+        },
+        {
+          "name": "created_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "updated_at",
+          "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
+          "ts_type": "string",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "deleted_at",
+          "db_type": "TIMESTAMPTZ",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "datetime"
+        },
+        {
+          "name": "version",
+          "db_type": "INTEGER NOT NULL DEFAULT 1",
+          "ts_type": "number",
+          "nullable": false,
+          "editable": false,
+          "show_in_table": false,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text"
+        }
+      ],
+      "ui_config": {
+        "list_view": {
+          "layout": "table",
+          "columns": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price",
+            "commission",
+            "closing_date"
+          ],
+          "filters": [],
+          "empty_state": {
+            "icon": "Box",
+            "heading": "No Transactions yet",
+            "subtext": "Create your first transaction",
+            "action_label": "Add Transaction"
+          }
+        },
+        "create_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price",
+            "commission",
+            "closing_date",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "buyer_id",
+            "agent_id"
+          ]
+        },
+        "edit_form": {
+          "type": "SlideOverForm",
+          "field_order": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price",
+            "commission",
+            "closing_date",
+            "status"
+          ],
+          "required_fields": [
+            "property_id",
+            "buyer_id",
+            "agent_id"
+          ],
+          "prefilled": true
+        },
+        "detail_view": {
+          "route": "/transactions/:id",
+          "layout": "tabbed",
+          "header": {
+            "title_fields": [
+              "property_id"
+            ],
+            "badge_fields": []
+          },
+          "primary_fields": [
+            "property_id",
+            "buyer_id",
+            "agent_id",
+            "sale_price"
+          ],
+          "tabs": [
+            {
+              "name": "Overview",
+              "fields": [
+                "property_id",
+                "buyer_id",
+                "agent_id",
+                "sale_price",
+                "commission",
+                "closing_date",
+                "status"
+              ]
+            },
+            {
+              "name": "Activity",
+              "fields": [
+                "created_at",
+                "updated_at"
               ]
             }
           ]
@@ -980,11 +1962,20 @@
       "sidebar_icon": "LayoutDashboard"
     },
     {
+      "name": "Agents",
+      "route": "/agents",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 2,
+      "sidebar_icon": "Briefcase",
+      "entity": "Agent"
+    },
+    {
       "name": "Propertys",
       "route": "/properties",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 2,
+      "sidebar_order": 3,
       "sidebar_icon": "Building2",
       "entity": "Property"
     },
@@ -993,7 +1984,7 @@
       "route": "/leads",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 3,
+      "sidebar_order": 4,
       "sidebar_icon": "UserPlus",
       "entity": "Lead"
     },
@@ -1002,27 +1993,66 @@
       "route": "/showings",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 4,
+      "sidebar_order": 5,
       "sidebar_icon": "CalendarDays",
       "entity": "Showing"
     },
     {
-      "name": "Agents",
-      "route": "/agents",
+      "name": "Offers",
+      "route": "/offers",
       "component": "EntityListPage",
       "layout": "app",
-      "sidebar_order": 5,
-      "sidebar_icon": "Briefcase",
-      "entity": "Agent"
+      "sidebar_order": 6,
+      "sidebar_icon": "FileCheck",
+      "entity": "Offer"
+    },
+    {
+      "name": "OpenHouses",
+      "route": "/open_houses",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 7,
+      "sidebar_icon": "Home",
+      "entity": "OpenHouse"
+    },
+    {
+      "name": "Transactions",
+      "route": "/transactions",
+      "component": "EntityListPage",
+      "layout": "app",
+      "sidebar_order": 8,
+      "sidebar_icon": "Receipt",
+      "entity": "Transaction"
     }
   ],
   "dashboard": {
     "stat_cards": [
       {
+        "label": "Total Agents",
+        "entity": "Agent",
+        "method": "count",
+        "icon": "Briefcase",
+        "color": "pink"
+      },
+      {
         "label": "Total Propertys",
         "entity": "Property",
         "method": "count",
-        "icon": "Box",
+        "icon": "Building2",
+        "color": "pink"
+      },
+      {
+        "label": "Total Leads",
+        "entity": "Lead",
+        "method": "count",
+        "icon": "UserPlus",
+        "color": "pink"
+      },
+      {
+        "label": "Total Showings",
+        "entity": "Showing",
+        "method": "count",
+        "icon": "CalendarDays",
         "color": "pink"
       }
     ]
