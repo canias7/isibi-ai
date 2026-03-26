@@ -27,6 +27,7 @@ import {
   ExternalLink,
   PanelLeftClose,
   PanelLeftOpen,
+  Download,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -330,6 +331,64 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   );
 
   // ─── Preview panel (right side when chat is active) ───
+  const handleDownloadApp = () => {
+    if (!builtSpec) return;
+    const appName = builtSpec.app_name || builtSpec.name || "my-app";
+    const safeName = appName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const entities = builtSpec.entities || [];
+    const modules = builtSpec.modules || [];
+    const primaryColor = builtSpec.design_system?.colors?.primary || "#000000";
+
+    // Build a standalone Electron app with the spec baked in
+    const indexHtml = generateAppHtml(appName, entities, modules, primaryColor, builtSpec);
+    const mainJs = `const { app, BrowserWindow } = require("electron");
+const path = require("path");
+function createWindow() {
+  const win = new BrowserWindow({ width: 1200, height: 800, title: ${JSON.stringify(appName)}, webPreferences: { nodeIntegration: false } });
+  win.loadFile("index.html");
+  win.setMenuBarVisibility(false);
+}
+app.whenReady().then(createWindow);
+app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });`;
+
+    const packageJson = JSON.stringify({
+      name: safeName,
+      version: "1.0.0",
+      main: "main.js",
+      scripts: { start: "electron ." },
+      dependencies: { electron: "^28.0.0" },
+    }, null, 2);
+
+    const startCommand = `#!/bin/bash
+cd "$(dirname "$0")"
+if [ ! -d "node_modules" ]; then
+  echo "Installing dependencies (first run only)..."
+  npm install
+fi
+echo "Launching ${appName}..."
+npx electron .`;
+
+    // Create zip using JSZip-like approach via Blob
+    import("jszip").then(({ default: JSZip }) => {
+      const zip = new JSZip();
+      const folder = zip.folder(safeName)!;
+      folder.file("index.html", indexHtml);
+      folder.file("main.js", mainJs);
+      folder.file("package.json", packageJson);
+      folder.file("start.command", startCommand, { unixPermissions: "755" });
+      folder.file("spec.json", JSON.stringify(builtSpec, null, 2));
+
+      zip.generateAsync({ type: "blob", platform: "UNIX" }).then((blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `${safeName}.zip`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+    });
+  };
+
   const previewPanel = (
     <div className="flex flex-1 flex-col overflow-hidden bg-gray-50">
       {/* Preview toolbar */}
@@ -385,6 +444,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           <button className="rounded-lg p-1.5 text-gray-400 transition hover:text-black">
             <ExternalLink className="h-4 w-4" />
           </button>
+          {builtSpec && isDev && (
+            <button
+              onClick={handleDownloadApp}
+              className="flex items-center gap-1.5 rounded-lg bg-black px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-gray-800"
+              title="Download as desktop app"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </button>
+          )}
         </div>
       </div>
 
@@ -828,4 +897,83 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       </div>
     </div>
   );
+}
+
+// ── Generate standalone HTML app from spec ──
+function generateAppHtml(appName: string, entities: any[], modules: any[], primaryColor: string, spec: any): string {
+  const sidebarItems = modules.map((m: any) => `<button class="sidebar-item" onclick="showModule('${m.name}')">${m.name}</button>`).join("\n            ");
+
+  const modulePages = modules.map((m: any) => {
+    const entity = entities.find((e: any) => e.name === m.entity);
+    if (m.name === "Dashboard" || m.layout === "dashboard") {
+      const cards = entities.slice(0, 4).map((e: any) =>
+        `<div class="stat-card"><div class="stat-label">${e.name}s</div><div class="stat-value">${Math.floor(Math.random() * 500 + 50)}</div></div>`
+      ).join("");
+      return `<div id="page-${m.name}" class="page"><h2>Dashboard</h2><div class="stats-grid">${cards}</div></div>`;
+    }
+    if (!entity) return `<div id="page-${m.name}" class="page"><h2>${m.name}</h2><p>Module content</p></div>`;
+
+    const fields = entity.fields?.filter((f: any) => f.show_in_table !== false && !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)).slice(0, 6) || [];
+    const headers = fields.map((f: any) => `<th>${f.name.replace(/_/g, " ")}</th>`).join("");
+    const rows = Array.from({ length: 5 }, (_, ri) =>
+      `<tr>${fields.map((f: any) => {
+        if (f.enum_values?.length) return `<td><span class="badge">${f.enum_values[ri % f.enum_values.length]}</span></td>`;
+        if (f.name.includes("name") || f.name.includes("title")) return `<td>Item ${ri + 1}</td>`;
+        if (f.name.includes("email")) return `<td>user${ri+1}@example.com</td>`;
+        if (f.name.includes("amount") || f.name.includes("value")) return `<td>$${(Math.random()*10000).toFixed(0)}</td>`;
+        return `<td>${f.name} ${ri+1}</td>`;
+      }).join("")}</tr>`
+    ).join("");
+
+    return `<div id="page-${m.name}" class="page" style="display:none"><div class="page-header"><h2>${entity.name}s</h2><button class="btn-primary" style="background:${primaryColor}">+ Add ${entity.name}</button></div><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  }).join("\n    ");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>${appName}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;height:100vh;background:#fff;color:#111}
+.sidebar{width:220px;background:#f8f9fa;border-right:1px solid #e5e7eb;padding:16px 12px;display:flex;flex-direction:column}
+.sidebar h1{font-size:14px;font-weight:700;margin-bottom:20px;color:${primaryColor}}
+.sidebar-item{display:block;width:100%;text-align:left;padding:8px 12px;border:none;background:none;border-radius:8px;font-size:13px;color:#555;cursor:pointer;margin-bottom:2px}
+.sidebar-item:hover,.sidebar-item.active{background:#e5e7eb;color:#000}
+.main{flex:1;overflow:auto;padding:24px}
+.page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+h2{font-size:18px;font-weight:600}
+.btn-primary{padding:8px 16px;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:500;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:10px 12px;background:#f9fafb;border-bottom:1px solid #e5e7eb;font-weight:500;color:#666;text-transform:capitalize}
+td{padding:10px 12px;border-bottom:1px solid #f3f4f6}
+tr:hover{background:#f9fafb}
+.badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500;background:#e5e7eb;color:#333}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:16px}
+.stat-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:16px}
+.stat-label{font-size:12px;color:#888}
+.stat-value{font-size:24px;font-weight:700;margin-top:4px}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <h1>${appName}</h1>
+  ${sidebarItems}
+</div>
+<div class="main">
+  ${modulePages}
+</div>
+<script>
+function showModule(name){
+  document.querySelectorAll(".page").forEach(p=>p.style.display="none");
+  const el=document.getElementById("page-"+name);
+  if(el)el.style.display="block";
+  document.querySelectorAll(".sidebar-item").forEach(b=>{b.classList.remove("active");if(b.textContent===name)b.classList.add("active")});
+}
+// Show first module
+const first=document.querySelector(".page");
+if(first){first.style.display="block";document.querySelector(".sidebar-item")?.classList.add("active")}
+</script>
+</body>
+</html>`;
 }
