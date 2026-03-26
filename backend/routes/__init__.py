@@ -18,6 +18,17 @@ from .collaboration import router as collaboration_router
 from .custom_domains import router as custom_domains_router
 from .figma_import import router as figma_import_router
 from .preview_stream import router as preview_stream_router
+from .pricing import router as pricing_router
+from .templates import router as templates_router
+from .whitelabel import router as whitelabel_router
+from .gallery import router as gallery_router
+from .referrals import router as referrals_router
+from .embed import router as embed_router
+from .webhooks import router as webhooks_router
+from .api_keys import router as api_keys_router
+from .csv_io import router as csv_router
+from .audit_log import router as audit_log_router
+from .two_factor import router as two_factor_router
 
 all_routers = [
     auth_router,
@@ -40,4 +51,15 @@ all_routers = [
     custom_domains_router,
     figma_import_router,
     preview_stream_router,
+    pricing_router,
+    templates_router,
+    whitelabel_router,
+    gallery_router,
+    referrals_router,
+    embed_router,
+    webhooks_router,
+    api_keys_router,
+    csv_router,
+    audit_log_router,
+    two_factor_router,
 ]

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   ArrowUp,
   Loader2,
@@ -34,9 +34,14 @@ import {
   Eye,
   Rocket,
   Pencil,
+  Sun,
+  Moon,
+  Keyboard,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { MarketplacePage } from "./MarketplacePage";
 import { MyAppsPage } from "./MyAppsPage";
 import { DevMarketplacePage } from "./DevMarketplacePage";
@@ -149,7 +154,75 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
+  // Theme
+  const { theme, toggleTheme } = useThemeStore();
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+
+  // Sync theme class on mount
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, []);
+
   const hasStartedChat = messages.length > 0 && activeView === "chat";
+
+  // ─── Keyboard shortcuts ───
+  const focusChatInput = useCallback(() => {
+    textareaRef.current?.focus();
+  }, []);
+
+  const shortcuts = useMemo(
+    () => [
+      {
+        key: "Enter",
+        meta: true,
+        action: () => handleSubmit(),
+        description: "Submit chat message",
+      },
+      {
+        key: "k",
+        meta: true,
+        action: focusChatInput,
+        description: "Focus chat input",
+      },
+      {
+        key: "n",
+        meta: true,
+        action: () => startNewChat(),
+        description: "New chat",
+      },
+      {
+        key: "d",
+        meta: true,
+        action: toggleTheme,
+        description: "Toggle dark mode",
+      },
+      {
+        key: ".",
+        meta: true,
+        action: () => setSidebarOpen((prev) => !prev),
+        description: "Toggle sidebar",
+      },
+      {
+        key: "/",
+        meta: true,
+        action: () => setShortcutsOpen((prev) => !prev),
+        description: "Show keyboard shortcuts",
+      },
+      {
+        key: "?",
+        action: () => setShortcutsOpen((prev) => !prev),
+        description: "Show keyboard shortcuts",
+      },
+      {
+        key: "Escape",
+        action: () => setShortcutsOpen(false),
+        description: "Close modal",
+      },
+    ],
+    [focusChatInput, toggleTheme]
+  );
+
+  useKeyboardShortcuts(shortcuts);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1240,7 +1313,7 @@ npx electron .`;
   };
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-white dark:bg-gray-950 dark:text-gray-100">
       {/* Sidebar overlay (mobile) */}
       {sidebarOpen && (
         <div
@@ -1251,7 +1324,7 @@ npx electron .`;
 
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-200 lg:static lg:z-auto ${
+        className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 transition-transform duration-200 lg:static lg:z-auto ${
           sidebarOpen
             ? "translate-x-0"
             : "-translate-x-full lg:translate-x-0 lg:w-0 lg:overflow-hidden lg:border-0"
@@ -1354,15 +1427,15 @@ npx electron .`;
       </div>
 
       {/* Main content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden bg-white dark:bg-gray-950">
         {/* Top bar */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2">
+        <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 px-4 py-2">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100 dark:hover:bg-gray-800"
             >
-              <Menu className="h-4 w-4 text-gray-600" />
+              <Menu className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </button>
 
             {isDev && (
@@ -1400,13 +1473,37 @@ npx electron .`;
             )}
           </div>
 
+          {/* Top bar right actions */}
+          <div className="flex items-center gap-1">
+            {/* Keyboard shortcuts button */}
+            <button
+              onClick={() => setShortcutsOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100 dark:hover:bg-gray-800"
+              title="Keyboard shortcuts"
+            >
+              <Keyboard className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+            </button>
+
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100 dark:hover:bg-gray-800"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4 text-yellow-400" />
+              ) : (
+                <Moon className="h-4 w-4 text-gray-500" />
+              )}
+            </button>
+
           {/* Profile menu */}
           <div className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 transition hover:bg-gray-200 dark:hover:bg-gray-700"
             >
-              <User className="h-4 w-4 text-gray-600" />
+              <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </button>
             {profileOpen && (
               <div className="absolute right-0 top-full z-50 mt-1 w-[220px] rounded-xl border border-gray-200 bg-white py-1 shadow-lg">
@@ -1452,11 +1549,64 @@ npx electron .`;
               </div>
             )}
           </div>
+          </div>
         </div>
 
         {/* View content */}
         {renderContent()}
       </div>
+
+      {/* Keyboard shortcuts modal */}
+      {shortcutsOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40"
+          onClick={() => setShortcutsOpen(false)}
+        >
+          <div
+            className="w-[400px] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-6 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="text-base font-semibold text-black dark:text-white">Keyboard Shortcuts</h2>
+              <button
+                onClick={() => setShortcutsOpen(false)}
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-black dark:hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {[
+                { keys: ["\u2318", "Enter"], desc: "Submit chat message" },
+                { keys: ["\u2318", "K"], desc: "Focus chat input" },
+                { keys: ["\u2318", "N"], desc: "New chat" },
+                { keys: ["\u2318", "D"], desc: "Toggle dark mode" },
+                { keys: ["\u2318", "."], desc: "Toggle sidebar" },
+                { keys: ["\u2318", "/"], desc: "Show this help" },
+                { keys: ["?"], desc: "Show this help" },
+                { keys: ["Esc"], desc: "Close modal" },
+              ].map((s, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  <span className="text-sm text-gray-600 dark:text-gray-300">{s.desc}</span>
+                  <div className="flex items-center gap-1">
+                    {s.keys.map((k, j) => (
+                      <kbd
+                        key={j}
+                        className="inline-flex h-6 min-w-[24px] items-center justify-center rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-1.5 text-[11px] font-medium text-gray-600 dark:text-gray-300"
+                      >
+                        {k}
+                      </kbd>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

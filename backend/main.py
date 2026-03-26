@@ -19,6 +19,19 @@ from routes import all_routers
 # Import all models so Base.metadata knows every table
 import models  # noqa: F401
 
+# Import new models so Base.metadata picks up their tables
+from models.gallery_entry import GalleryEntry  # noqa: F401
+from models.referral import Referral  # noqa: F401
+from models.webhook import Webhook  # noqa: F401
+from models.api_key import ApiKey  # noqa: F401
+
+# Import new route modules
+from routes.gallery import router as gallery_router
+from routes.referrals import router as referrals_router
+from routes.embed import router as embed_router
+from routes.webhooks import router as webhooks_router
+from routes.api_keys import router as api_keys_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -58,6 +71,13 @@ app.add_middleware(
 for router in all_routers:
     app.include_router(router, prefix="/api")
 
+# Register new feature routers
+app.include_router(gallery_router, prefix="/api")
+app.include_router(referrals_router, prefix="/api")
+app.include_router(embed_router, prefix="/api")
+app.include_router(webhooks_router, prefix="/api")
+app.include_router(api_keys_router, prefix="/api")
+
 # ── Serve uploaded files ──
 _uploads_dir = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(__file__), "uploads")))
 _uploads_dir.mkdir(parents=True, exist_ok=True)
@@ -87,3 +107,59 @@ async def serve_live_app(project_id: str):
             status_code=404,
         )
     return HTMLResponse(content=build_path.read_text(encoding="utf-8"))
+
+
+# ── Serve embeddable apps via iframe-friendly route ──
+# /embed/{project_id} serves the deployed app without X-Frame-Options
+# and includes a postMessage API for cross-origin communication.
+from starlette.responses import Response
+
+
+@app.get("/embed/{project_id}", response_class=HTMLResponse)
+async def serve_embed_app(project_id: str):
+    """Serve a deployed app in an embeddable iframe-friendly page."""
+    build_path = BUILDS_DIR / project_id / "index.html"
+    if not build_path.exists():
+        return HTMLResponse(
+            content="<html><body><h1>App not found</h1>"
+            "<p>This app has not been deployed yet.</p></body></html>",
+            status_code=404,
+        )
+
+    app_html = build_path.read_text(encoding="utf-8")
+
+    # Wrap app HTML with postMessage API for cross-origin communication
+    embed_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Embedded App</title>
+<style>
+  html, body {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow: auto; }}
+</style>
+</head>
+<body>
+{app_html}
+<script>
+// postMessage API for cross-origin communication
+(function() {{
+  window.addEventListener('message', function(event) {{
+    if (event.data && event.data.type === 'isibi_ping') {{
+      event.source.postMessage({{ type: 'isibi_pong', projectId: '{project_id}' }}, event.origin);
+    }}
+  }});
+  // Notify parent that embed is ready
+  if (window.parent !== window) {{
+    window.parent.postMessage({{ type: 'isibi_embed_ready', projectId: '{project_id}' }}, '*');
+  }}
+}})();
+</script>
+</body>
+</html>"""
+
+    response = HTMLResponse(content=embed_html)
+    # Remove X-Frame-Options to allow iframe embedding
+    response.headers["X-Frame-Options"] = "ALLOWALL"
+    response.headers["Content-Security-Policy"] = "frame-ancestors *"
+    return response

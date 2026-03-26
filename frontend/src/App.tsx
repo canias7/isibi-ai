@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { LandingPage } from "@/pages/LandingPage";
@@ -6,7 +6,14 @@ import { LoginPage } from "@/pages/LoginPage";
 import { SignupPage } from "@/pages/SignupPage";
 import { VerifyEmailPage } from "@/pages/VerifyEmailPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
+import { TermsPage } from "@/pages/TermsPage";
+import { PrivacyPage } from "@/pages/PrivacyPage";
+import { BuildCrmPage } from "@/pages/seo/BuildCrmPage";
+import { BuildEcommercePage } from "@/pages/seo/BuildEcommercePage";
+import { BuildRestaurantPage } from "@/pages/seo/BuildRestaurantPage";
+import { BuildGymPage } from "@/pages/seo/BuildGymPage";
 import { useAuthStore } from "@/stores/authStore";
+import { useThemeStore } from "@/stores/themeStore";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +30,13 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+  const { theme } = useThemeStore();
   const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
+
+  // Sync dark mode class on mount
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", theme === "dark");
+  }, [theme]);
 
   if (verifyEmail) {
     return (
@@ -39,10 +52,10 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Landing page — always accessible at root */}
+      {/* Landing page */}
       <Route path="/" element={<LandingPage />} />
 
-      {/* Auth routes — redirect to /app if already logged in */}
+      {/* Auth */}
       <Route
         path="/signup"
         element={
@@ -67,7 +80,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Protected app routes */}
+      {/* Protected app */}
       <Route
         path="/app/*"
         element={
@@ -77,7 +90,17 @@ function AppRoutes() {
         }
       />
 
-      {/* Catch-all → landing page */}
+      {/* Legal */}
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+
+      {/* SEO landing pages */}
+      <Route path="/build-crm" element={<BuildCrmPage />} />
+      <Route path="/build-ecommerce" element={<BuildEcommercePage />} />
+      <Route path="/build-restaurant-software" element={<BuildRestaurantPage />} />
+      <Route path="/build-gym-software" element={<BuildGymPage />} />
+
+      {/* Catch-all */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

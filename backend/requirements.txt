@@ -20,3 +20,4 @@ stripe==10.12.0
 cryptography==43.0.1
 dnspython==2.7.0
 sse-starlette==2.1.0
+pyotp==2.9.0
