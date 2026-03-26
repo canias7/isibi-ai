@@ -58,6 +58,9 @@ interface ChatSession {
   messages: Message[];
   model: string;
   createdAt: string;
+  spec: any | null;
+  projectId: string | null;
+  deployUrl: string | null;
 }
 
 const MODELS = [
@@ -173,29 +176,49 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     }
   }, [prompt]);
 
-  const startNewChat = () => {
+  const saveCurrentChat = () => {
     if (messages.length > 0 && activeChatId) {
       setChatSessions((prev) =>
-        prev.map((s) => (s.id === activeChatId ? { ...s, messages } : s))
+        prev.map((s) =>
+          s.id === activeChatId
+            ? { ...s, messages, spec: builtSpec, projectId: builtProjectId, deployUrl }
+            : s
+        )
       );
     }
+  };
+
+  const startNewChat = () => {
+    saveCurrentChat();
     setMessages([]);
     setActiveChatId(null);
+    setBuiltSpec(null);
+    setBuiltProjectId(null);
+    setDeployUrl(null);
+    setDeploying(false);
+    setEditMode(false);
     setError(null);
     setActiveView("chat");
     setChatPanelOpen(true);
+    setPreviewTab("preview");
+    setVersions([]);
+    setSelectedVersionSpec(null);
   };
 
   const loadChat = (session: ChatSession) => {
-    if (messages.length > 0 && activeChatId) {
-      setChatSessions((prev) =>
-        prev.map((s) => (s.id === activeChatId ? { ...s, messages } : s))
-      );
-    }
+    saveCurrentChat();
     setMessages(session.messages);
     setActiveChatId(session.id);
+    setBuiltSpec(session.spec || null);
+    setBuiltProjectId(session.projectId || null);
+    setDeployUrl(session.deployUrl || null);
+    setDeploying(false);
+    setEditMode(false);
     setActiveView("chat");
     setChatPanelOpen(true);
+    setPreviewTab("preview");
+    setVersions([]);
+    setSelectedVersionSpec(null);
   };
 
   const handleSubmit = async () => {
@@ -220,6 +243,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         messages: newMessages,
         model: selectedModel.id,
         createdAt: new Date().toISOString(),
+        spec: null,
+        projectId: null,
+        deployUrl: null,
       };
       setChatSessions((prev) => [newSession, ...prev]);
       setActiveChatId(newId);
@@ -258,6 +284,14 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           const project = await get<{ spec: any }>(`/projects/${res.project_id}`);
           if (project?.spec) {
             setBuiltSpec(project.spec);
+            // Save spec + projectId to the chat session
+            const pid = res.project_id;
+            const sp = project.spec;
+            setChatSessions((prev) =>
+              prev.map((s) =>
+                s.id === cid ? { ...s, spec: sp, projectId: pid } : s
+              )
+            );
           }
         } catch {
           // Preview will show placeholder if fetch fails
