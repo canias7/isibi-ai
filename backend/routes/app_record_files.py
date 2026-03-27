@@ -8,12 +8,9 @@ Routes:
   DELETE /api/apps/{project_id}/files/{table}/{record_id}/{file_id}  — delete file
 """
 
-import base64
 import os
 import uuid
 import logging
-import shutil
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
@@ -24,12 +21,12 @@ from db import get_db
 from auth import get_current_org_id
 from routes.app_auth import get_current_app_user
 from models.app_record_file import AppRecordFile
+from utils.file_storage import save_file, delete_file
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/apps", tags=["App Record Files"])
 
-UPLOADS_DIR = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")))
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
@@ -59,9 +56,9 @@ async def upload_file(
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
-    # Store file as base64 in the database (cloud-safe, no disk writes)
+    # Store file via file_storage utility (cloud or base64-in-DB)
     file_id = uuid.uuid4()
-    file_data_b64 = base64.b64encode(content).decode("ascii")
+    file_data_b64, _ = await save_file(content, file.filename)
     file_key = f"{project_id}/{record_id}/{file_id}"
     file_url = f"/api/files/{file_id}"
 

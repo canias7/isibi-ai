@@ -8,11 +8,9 @@ Routes:
   DELETE /api/apps/{project_id}/field-files/{table}/{record_id}/{field_name}  — remove
 """
 
-import base64
 import os
 import uuid
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select, delete as sa_delete
@@ -21,12 +19,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
 from auth import get_current_org_id
 from models.app_field_file import AppFieldFile
+from utils.file_storage import save_file, delete_file
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/apps", tags=["App Field Files"])
 
-UPLOADS_DIR = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")))
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
@@ -69,9 +67,9 @@ async def upload_field_file(
             sa_delete(AppFieldFile).where(AppFieldFile.id == old.id)
         )
 
-    # Store file as base64 in the database (cloud-safe, no disk writes)
+    # Store file via file_storage utility (cloud or base64-in-DB)
     file_id = uuid.uuid4()
-    file_data_b64 = base64.b64encode(content).decode("ascii")
+    file_data_b64, _ = await save_file(content, file.filename)
     file_url = f"/api/files/{file_id}"
 
     record = AppFieldFile(

@@ -11,14 +11,11 @@ Static serving of /uploads/{project_id}/{filename} is handled via
 StaticFiles mount in main.py.
 """
 
-import base64
 import os
 import uuid
 import logging
-from pathlib import Path
 from typing import Optional
 
-import aiofiles
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy import select, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,13 +23,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
 from auth import get_current_org_id
 from models.file_upload import FileUpload
+from utils.file_storage import save_file, delete_file
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/apps", tags=["File Storage"])
-
-# Base directory for uploaded files (relative to backend/)
-UPLOADS_DIR = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")))
 
 # Max file size: 50 MB
 MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", 50 * 1024 * 1024))
@@ -61,10 +56,10 @@ async def upload_file(
             detail=f"File too large. Maximum size is {MAX_FILE_SIZE // (1024 * 1024)} MB",
         )
 
-    # Store file as base64 in the database (cloud-safe, no disk writes)
+    # Store file via file_storage utility (cloud or base64-in-DB)
     file_uuid = uuid.uuid4()
     safe_filename = file.filename.replace("/", "_").replace("\\", "_")
-    file_data_b64 = base64.b64encode(content).decode("ascii")
+    file_data_b64, _ = await save_file(content, safe_filename)
     file_key = f"uploads/{project_id}/{file_uuid}_{safe_filename}"
     file_url = f"/api/files/{file_uuid}"
 

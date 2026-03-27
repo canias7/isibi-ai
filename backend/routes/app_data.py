@@ -27,6 +27,7 @@ from generator.app_db import get_schema_name, _get_raw_connection, list_schema_t
 from generator.orchestrator import _get_project
 from worker.email_worker import fire_email_triggers
 from worker.webhook_worker import fire_webhooks
+from worker.slack_worker import send_slack_notification
 from utils.sanitize import sanitize_dict, sanitize_sql_identifier
 
 logger = logging.getLogger(__name__)
@@ -85,6 +86,50 @@ def _row_to_dict(record) -> dict[str, Any]:
         elif hasattr(v, "isoformat"):
             d[k] = v.isoformat()
     return d
+
+
+async def _fire_slack_notifications(
+    project_id: str,
+    action: str,
+    table_name: str,
+    row_data: dict[str, Any],
+    db: AsyncSession,
+) -> None:
+    """Send Slack notifications if the project has an enabled Slack integration."""
+    from sqlalchemy import select
+    from models.app_integration import AppIntegration
+
+    try:
+        result = await db.execute(
+            select(AppIntegration).where(
+                AppIntegration.project_id == UUID(project_id),
+                AppIntegration.type == "slack",
+                AppIntegration.enabled.is_(True),
+            )
+        )
+        integrations = result.scalars().all()
+
+        for integ in integrations:
+            config = integ.config or {}
+            webhook_url = config.get("webhook_url")
+            channel = config.get("channel", "#general")
+            if not webhook_url:
+                continue
+
+            # Build a human-readable message
+            name = row_data.get("name") or row_data.get("title") or row_data.get("id", "")
+            if action == "record_created":
+                message = f"New {table_name} created: {name}"
+            elif action == "record_updated":
+                message = f"{table_name} updated: {name}"
+            elif action == "record_deleted":
+                message = f"{table_name} deleted"
+            else:
+                message = f"{table_name} {action}: {name}"
+
+            await send_slack_notification(webhook_url, channel, message)
+    except Exception as e:
+        logger.warning("Slack notification error for project %s: %s", project_id, e)
 
 
 # ── LIST rows ────────────────────────────────────────────────────────
@@ -237,6 +282,12 @@ async def create_row(
         except Exception as e:
             logger.warning("Webhook fire error on create: %s", e)
 
+        # Fire Slack notifications (non-blocking)
+        try:
+            await _fire_slack_notifications(str(project_id), "record_created", table, row_data, db)
+        except Exception as e:
+            logger.warning("Slack fire error on create: %s", e)
+
         return row_data
     except Exception as e:
         logger.error("Insert failed for %s.%s: %s", schema, table, e)
@@ -318,6 +369,12 @@ async def update_row(
         except Exception as e:
             logger.warning("Webhook fire error on update: %s", e)
 
+        # Fire Slack notifications (non-blocking)
+        try:
+            await _fire_slack_notifications(str(project_id), "record_updated", table, row_data, db)
+        except Exception as e:
+            logger.warning("Slack fire error on update: %s", e)
+
         return row_data
     except HTTPException:
         raise
@@ -368,6 +425,12 @@ async def delete_row(
             await fire_webhooks(str(project_id), "record_deleted", table, {"id": row_id}, db)
         except Exception as e:
             logger.warning("Webhook fire error on delete: %s", e)
+
+        # Fire Slack notifications (non-blocking)
+        try:
+            await _fire_slack_notifications(str(project_id), "record_deleted", table, {"id": row_id}, db)
+        except Exception as e:
+            logger.warning("Slack fire error on delete: %s", e)
 
     finally:
         await conn.close()

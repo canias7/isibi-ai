@@ -164,6 +164,7 @@ async def create_checkout(
 
     session = stripe.checkout.Session.create(
         customer=sub.stripe_customer_id,
+        client_reference_id=str(org_id),
         mode="subscription",
         line_items=[{"price": price_id, "quantity": 1}],
         success_url=f"{FRONTEND_URL}/app/settings/billing?success=true",
@@ -237,6 +238,13 @@ async def stripe_webhook(
             if isinstance(data_obj, dict)
             else data_obj.metadata.get("org_id")
         )
+        # Fallback: use client_reference_id if metadata doesn't have org_id
+        if not org_id_str:
+            org_id_str = (
+                data_obj.get("client_reference_id")
+                if isinstance(data_obj, dict)
+                else getattr(data_obj, "client_reference_id", None)
+            )
         plan = (
             data_obj.get("metadata", {}).get("plan")
             if isinstance(data_obj, dict)
@@ -247,12 +255,19 @@ async def stripe_webhook(
             if isinstance(data_obj, dict)
             else data_obj.subscription
         )
+        stripe_customer_id = (
+            data_obj.get("customer")
+            if isinstance(data_obj, dict)
+            else getattr(data_obj, "customer", None)
+        )
 
         if org_id_str and plan:
             org_id = uuid.UUID(org_id_str)
             sub = await _get_or_create_subscription(db, org_id)
             sub.plan = plan
             sub.stripe_subscription_id = stripe_subscription_id
+            if stripe_customer_id:
+                sub.stripe_customer_id = stripe_customer_id
             sub.status = "active"
             plan_config = PLANS.get(plan, {})
             sub.builds_limit = plan_config.get("builds_limit", -1)
@@ -301,6 +316,23 @@ async def stripe_webhook(
             sub.builds_used = 0
             sub.stripe_subscription_id = None
             await db.commit()
+
+    elif event_type == "invoice.payment_failed":
+        stripe_sub_id = (
+            data_obj.get("subscription")
+            if isinstance(data_obj, dict)
+            else getattr(data_obj, "subscription", None)
+        )
+        if stripe_sub_id:
+            result = await db.execute(
+                select(Subscription).where(
+                    Subscription.stripe_subscription_id == stripe_sub_id
+                )
+            )
+            sub = result.scalar_one_or_none()
+            if sub:
+                sub.status = "past_due"
+                await db.commit()
 
     return {"status": "ok", "event_type": event_type}
 
