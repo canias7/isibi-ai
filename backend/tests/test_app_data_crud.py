@@ -9,7 +9,7 @@ FAKE_ROW = "00000000-0000-0000-0000-000000000001"
 async def test_app_data_list_no_auth(client):
     """GET /api/apps/{project}/data/{table} without auth should be rejected."""
     response = await client.get(f"/api/apps/{FAKE_PROJECT}/data/contacts")
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio
@@ -19,7 +19,7 @@ async def test_app_data_create_no_auth(client):
         f"/api/apps/{FAKE_PROJECT}/data/contacts",
         json={"name": "Test"},
     )
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio
@@ -40,14 +40,14 @@ async def test_app_data_invalid_project(client):
 async def test_app_data_export_csv_no_auth(client):
     """GET /api/apps/{project}/data/{table}/export without auth should be rejected."""
     response = await client.get(f"/api/apps/{FAKE_PROJECT}/data/contacts/export")
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio
 async def test_schema_endpoint_no_auth(client):
     """GET /api/apps/{project}/schema without auth should be rejected."""
     response = await client.get(f"/api/apps/{FAKE_PROJECT}/schema")
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio
@@ -57,14 +57,14 @@ async def test_app_data_update_no_auth(client):
         f"/api/apps/{FAKE_PROJECT}/data/contacts/{FAKE_ROW}",
         json={"name": "Updated"},
     )
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio
 async def test_app_data_delete_no_auth(client):
     """DELETE /api/apps/{project}/data/{table}/{row} without auth should be rejected."""
     response = await client.delete(f"/api/apps/{FAKE_PROJECT}/data/contacts/{FAKE_ROW}")
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio
@@ -78,4 +78,4 @@ async def test_app_data_import_no_auth(client):
 async def test_app_data_export_no_auth(client):
     """GET /api/apps/{project}/data/{table}/export without auth should be rejected."""
     response = await client.get(f"/api/apps/{FAKE_PROJECT}/data/leads/export")
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)

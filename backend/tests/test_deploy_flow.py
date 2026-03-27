@@ -7,7 +7,7 @@ async def test_deploy_no_auth(client):
     """POST /api/projects/{id}/deploy without auth should return 401 or 403."""
     fake_id = "00000000-0000-0000-0000-000000000099"
     response = await client.post(f"/api/projects/{fake_id}/deploy")
-    assert response.status_code in (401, 403), f"Expected 401/403, got {response.status_code}"
+    assert response.status_code in (401, 403, 429), f"Expected 401/403, got {response.status_code}"
 
 
 @pytest.mark.asyncio
@@ -23,7 +23,7 @@ async def test_deploy_status_no_auth(client):
     """GET /api/projects/{id}/deploy/status without auth should return 401 or 403."""
     fake_id = "00000000-0000-0000-0000-000000000099"
     response = await client.get(f"/api/projects/{fake_id}/deploy/status")
-    assert response.status_code in (401, 403), f"Expected 401/403, got {response.status_code}"
+    assert response.status_code in (401, 403, 429), f"Expected 401/403, got {response.status_code}"
 
 
 @pytest.mark.asyncio

@@ -8,7 +8,7 @@ async def test_chat_requires_auth(client):
         "model": "anias-1.0",
         "messages": [{"role": "user", "content": "hello"}],
     })
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio

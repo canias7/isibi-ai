@@ -16,9 +16,13 @@ Usage — add to main.py:
     app.add_middleware(RateLimiterMiddleware)
 """
 
+import os
 import time
 import logging
 from typing import Optional
+
+# Disable rate limiting during tests
+RATE_LIMIT_DISABLED = os.getenv("TESTING", "").lower() in ("1", "true", "yes")
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -88,6 +92,10 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         global _request_counter
+
+        # Skip rate limiting during tests
+        if RATE_LIMIT_DISABLED:
+            return await call_next(request)
 
         path = request.url.path
         ip = _get_client_ip(request)

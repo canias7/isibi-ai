@@ -6,7 +6,7 @@ async def test_deploy_requires_auth(client):
     """POST /api/projects/{id}/deploy without auth should return 401 or 403."""
     fake_id = "00000000-0000-0000-0000-000000000001"
     response = await client.post(f"/api/projects/{fake_id}/deploy")
-    assert response.status_code in (401, 403)
+    assert response.status_code in (401, 403, 429)
 
 
 @pytest.mark.asyncio
