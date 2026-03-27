@@ -12,35 +12,7 @@ import {
   Table2, Columns3, Calendar, TrendingUp, Zap, Activity,
   Home, Settings, Menu, Wifi, WifiOff, Loader2, RefreshCw,
 } from "lucide-react";
-import { get as _get, post as _post, patch as _patch, del as _del } from "@/api/client";
-
-/* ── Inline API helpers (used when apiBase is provided, e.g. deployed apps) ── */
-function makeApi(apiBase: string) {
-  const token = () => typeof localStorage !== "undefined" ? localStorage.getItem("token") : null;
-  async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const t = token();
-    const res = await fetch(`${apiBase}${path}`, {
-      ...options,
-      headers: {
-        "Content-Type": "application/json",
-        ...(t ? { Authorization: `Bearer ${t}` } : {}),
-        ...options.headers,
-      },
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw { status: res.status, detail: body.detail ?? res.statusText };
-    }
-    if (res.status === 204) return undefined as T;
-    return res.json();
-  }
-  return {
-    get: function(path: string) { return request(path); },
-    post: function(path: string, body: unknown) { return request(path, { method: "POST", body: JSON.stringify(body) }); },
-    patch: function(path: string, body: unknown) { return request(path, { method: "PATCH", body: JSON.stringify(body) }); },
-    del: function(path: string) { return request(path, { method: "DELETE" }); },
-  };
-}
+import { get, post, patch, del } from "@/api/client";
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Users, ShoppingCart, Building2, Briefcase,
@@ -56,11 +28,6 @@ interface SpecPreviewProps {
   spec: any;
   device: "desktop" | "tablet" | "mobile";
   projectId?: string | null;
-  /** When set, API calls use this base URL instead of the default @/api/client.
-   *  Used by the deployed (standalone) preview bundle. */
-  apiBase?: string;
-  /** When true, start in live mode immediately (used by deployed apps). */
-  startLive?: boolean;
 }
 
 type ViewMode = "list" | "detail" | "create" | "edit";
@@ -109,14 +76,8 @@ function statusColor(index: number) {
 
 /* ═══════════════════════════════════════════════════════════════════ */
 
-export function SpecPreview({ spec, device, projectId, apiBase, startLive }: SpecPreviewProps) {
+export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
   ensureAnimations();
-
-  // Choose API client: use apiBase if provided, otherwise fall back to @/api/client
-  const api = useMemo(() => {
-    if (apiBase) return makeApi(apiBase);
-    return { get: _get, post: _post, patch: _patch, del: _del };
-  }, [apiBase]);
 
   const [activeModule, setActiveModule] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -133,7 +94,7 @@ export function SpecPreview({ spec, device, projectId, apiBase, startLive }: Spe
   const [calendarSelectedDate, setCalendarSelectedDate] = useState<string | null>(null);
 
   // Live mode — toggle between mock data and real API
-  const [liveMode, setLiveMode] = useState(!!startLive);
+  const [liveMode, setLiveMode] = useState(false);
   const [liveDataMap, setLiveDataMap] = useState<Record<string, any[]>>({});
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveCounts, setLiveCounts] = useState<Record<string, number>>({});
@@ -158,9 +119,9 @@ export function SpecPreview({ spec, device, projectId, apiBase, startLive }: Spe
     if (!projectId || !tableName) return;
     setLiveLoading(true);
     try {
-      const res = await api.get(
+      const res = await get<{ data: any[]; total?: number }>(
         `/apps/${projectId}/data/${tableName}?page_size=100`
-      ) as any;
+      );
       const rows = Array.isArray(res) ? res : (res?.data || []);
       setLiveDataMap((prev) => ({ ...prev, [tableName]: rows }));
       setLiveCounts((prev) => ({ ...prev, [tableName]: rows.length }));
@@ -169,7 +130,7 @@ export function SpecPreview({ spec, device, projectId, apiBase, startLive }: Spe
     } finally {
       setLiveLoading(false);
     }
-  }, [projectId, api]);
+  }, [projectId]);
 
   // Fetch live data when switching entities in live mode
   useEffect(() => {
@@ -184,7 +145,7 @@ export function SpecPreview({ spec, device, projectId, apiBase, startLive }: Spe
   const liveCreate = async (tableName: string, data: Record<string, any>) => {
     if (!projectId) return;
     try {
-      await api.post(`/apps/${projectId}/data/${tableName}`, data);
+      await post(`/apps/${projectId}/data/${tableName}`, data);
       showNotification("Created successfully");
       await fetchLiveData(tableName);
     } catch (err: unknown) {
@@ -195,7 +156,7 @@ export function SpecPreview({ spec, device, projectId, apiBase, startLive }: Spe
   const liveUpdate = async (tableName: string, rowId: string, data: Record<string, any>) => {
     if (!projectId) return;
     try {
-      await api.patch(`/apps/${projectId}/data/${tableName}/${rowId}`, data);
+      await patch(`/apps/${projectId}/data/${tableName}/${rowId}`, data);
       showNotification("Updated successfully");
       await fetchLiveData(tableName);
     } catch (err: unknown) {
@@ -206,7 +167,7 @@ export function SpecPreview({ spec, device, projectId, apiBase, startLive }: Spe
   const liveDelete = async (tableName: string, rowId: string) => {
     if (!projectId) return;
     try {
-      await api.del(`/apps/${projectId}/data/${tableName}/${rowId}`);
+      await del(`/apps/${projectId}/data/${tableName}/${rowId}`);
       showNotification("Deleted successfully");
       await fetchLiveData(tableName);
     } catch (err: unknown) {
