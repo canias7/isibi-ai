@@ -14,11 +14,13 @@ Routes:
 """
 
 import re
+import random
 import logging
 from uuid import UUID
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import DATABASE_URL, get_db
@@ -29,6 +31,8 @@ from worker.email_worker import fire_email_triggers
 from worker.webhook_worker import fire_webhooks
 from worker.slack_worker import send_slack_notification
 from utils.sanitize import sanitize_dict, sanitize_sql_identifier
+from models.app_auto_assign_rule import AppAutoAssignRule
+from models.app_duplicate_rule import AppDuplicateRule
 
 logger = logging.getLogger(__name__)
 
@@ -130,6 +134,190 @@ async def _fire_slack_notifications(
             await send_slack_notification(webhook_url, channel, message)
     except Exception as e:
         logger.warning("Slack notification error for project %s: %s", project_id, e)
+
+
+# ── Duplicate Detection ──────────────────────────────────────────────
+
+async def _check_duplicates(
+    project_id: str,
+    table_name: str,
+    body: dict[str, Any],
+    db: AsyncSession,
+) -> dict | None:
+    """Check duplicate rules before inserting a record.
+
+    Returns:
+        None if no duplicates found or no rules exist.
+        {"action": "warn", "warnings": [...]} if duplicates found with warn action.
+        Raises HTTPException 409 if action is "block".
+    """
+    try:
+        result = await db.execute(
+            select(AppDuplicateRule).where(
+                AppDuplicateRule.project_id == UUID(project_id),
+                AppDuplicateRule.entity == table_name,
+                AppDuplicateRule.enabled.is_(True),
+            )
+        )
+        rules = result.scalars().all()
+    except Exception as e:
+        logger.warning("Duplicate rule lookup failed: %s", e)
+        return None
+
+    if not rules:
+        return None
+
+    schema = get_schema_name(project_id)
+    warnings = []
+
+    for rule in rules:
+        match_fields = rule.match_fields
+        if not match_fields or not isinstance(match_fields, list):
+            continue
+
+        # Build query to check for existing records matching on match_fields
+        # Only check fields that are present in the incoming body
+        check_fields = [f for f in match_fields if f in body and body[f] is not None]
+        if not check_fields:
+            continue
+
+        conn = await _get_raw_connection(DATABASE_URL)
+        try:
+            await conn.execute(f'SET search_path TO "{schema}"')
+
+            conditions = []
+            values = []
+            for i, field in enumerate(check_fields):
+                safe_field = field.strip().lower()
+                if not _IDENT_RE.match(safe_field):
+                    continue
+                conditions.append(f'"{safe_field}" = ${i + 1}')
+                values.append(body[field])
+
+            if not conditions:
+                continue
+
+            where_clause = " AND ".join(conditions)
+            row = await conn.fetchrow(
+                f'SELECT * FROM "{table_name}" WHERE {where_clause} '
+                f'AND "deleted_at" IS NULL LIMIT 1',
+                *values,
+            )
+
+            if row:
+                duplicate_data = _row_to_dict(row)
+                field_desc = ", ".join(check_fields)
+
+                if rule.action == "block":
+                    raise HTTPException(
+                        status_code=409,
+                        detail={
+                            "message": f"Duplicate record found: existing record matches on {field_desc}",
+                            "duplicate_record": duplicate_data,
+                            "match_fields": check_fields,
+                        },
+                    )
+                else:
+                    # warn
+                    warnings.append(
+                        f"Possible duplicate: record with same {field_desc} exists "
+                        f"(id: {duplicate_data.get('id', 'unknown')})"
+                    )
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.warning("Duplicate check failed for rule %s: %s", rule.id, e)
+        finally:
+            await conn.close()
+
+    if warnings:
+        return {"_warnings": warnings}
+    return None
+
+
+# ── Auto-Assign on Record Creation ──────────────────────────────────
+
+async def _apply_auto_assign(
+    project_id: str,
+    table_name: str,
+    record_id: str,
+    db: AsyncSession,
+) -> None:
+    """Apply auto-assign rules after a record is created."""
+    try:
+        result = await db.execute(
+            select(AppAutoAssignRule).where(
+                AppAutoAssignRule.project_id == UUID(project_id),
+                AppAutoAssignRule.entity == table_name,
+                AppAutoAssignRule.enabled.is_(True),
+            )
+        )
+        rules = result.scalars().all()
+    except Exception as e:
+        logger.warning("Auto-assign rule lookup failed: %s", e)
+        return
+
+    if not rules:
+        return
+
+    schema = get_schema_name(project_id)
+
+    for rule in rules:
+        members = rule.team_members
+        if not members:
+            continue
+
+        # Determine assignee based on strategy
+        if rule.strategy == "round_robin":
+            assignee = members[rule.counter % len(members)]
+            rule.counter = rule.counter + 1
+        elif rule.strategy == "random":
+            assignee = random.choice(members)
+        elif rule.strategy == "least_loaded":
+            try:
+                conn = await _get_raw_connection(DATABASE_URL)
+                try:
+                    counts = {}
+                    for member in members:
+                        row = await conn.fetchrow(
+                            f'SELECT COUNT(*) as cnt FROM "{schema}"."{table_name}" '
+                            f'WHERE "{rule.assign_field}" = $1 AND "deleted_at" IS NULL',
+                            member,
+                        )
+                        counts[member] = row["cnt"] if row else 0
+                    assignee = min(counts, key=counts.get)
+                finally:
+                    await conn.close()
+            except Exception as e:
+                logger.warning("least_loaded fallback to round_robin: %s", e)
+                assignee = members[rule.counter % len(members)]
+                rule.counter = rule.counter + 1
+        else:
+            assignee = members[0]
+
+        # Update the record in the app's schema
+        try:
+            conn = await _get_raw_connection(DATABASE_URL)
+            try:
+                await conn.execute(
+                    f'UPDATE "{schema}"."{table_name}" SET "{rule.assign_field}" = $1 WHERE "id" = $2',
+                    assignee,
+                    record_id,
+                )
+            finally:
+                await conn.close()
+
+            logger.info(
+                "Auto-assigned %s=%s on %s.%s (strategy=%s)",
+                rule.assign_field, assignee, schema, table_name, rule.strategy,
+            )
+        except Exception as e:
+            logger.error("Auto-assign failed for rule %s: %s", rule.id, e)
+
+    try:
+        await db.commit()
+    except Exception as e:
+        logger.warning("Auto-assign commit failed: %s", e)
 
 
 # ── LIST rows ────────────────────────────────────────────────────────
@@ -246,6 +434,15 @@ async def create_row(
     # Sanitize all string values in body to prevent XSS
     body = sanitize_dict(body)
 
+    # ── Duplicate detection: check before insert ──
+    duplicate_warnings = None
+    try:
+        duplicate_warnings = await _check_duplicates(str(project_id), table, body, db)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("Duplicate detection error: %s", e)
+
     # Filter out keys that aren't valid identifiers
     safe_data = {}
     for k, v in body.items():
@@ -273,6 +470,12 @@ async def create_row(
         )
         row_data = _row_to_dict(row)
 
+        # ── Auto-assign: apply rules after record creation ──
+        try:
+            await _apply_auto_assign(str(project_id), table, row_data.get("id", ""), db)
+        except Exception as e:
+            logger.warning("Auto-assign error on create: %s", e)
+
         # Fire email triggers for record creation
         await fire_email_triggers(str(project_id), "record_created", table, row_data, db)
 
@@ -288,7 +491,13 @@ async def create_row(
         except Exception as e:
             logger.warning("Slack fire error on create: %s", e)
 
+        # Merge duplicate warnings into response if any
+        if duplicate_warnings:
+            row_data.update(duplicate_warnings)
+
         return row_data
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Insert failed for %s.%s: %s", schema, table, e)
         raise HTTPException(status_code=400, detail=f"Insert failed: {str(e)}")

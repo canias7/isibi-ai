@@ -548,7 +548,7 @@ async def api_chat(
     At that point, we auto-generate the spec and create the project.
     """
     if not ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=500, detail="AI service not configured")
+        raise HTTPException(status_code=500, detail="AI service is not configured. Please contact support.")
 
     persona = PERSONAS.get(body.model)
     if not persona:
@@ -644,6 +644,18 @@ async def api_chat(
         # Post-process reply for better formatting
         reply = _postprocess_reply(reply)
 
+    except anthropic.RateLimitError as e:
+        logger.error("Anthropic rate limit error: %s", e)
+        return ChatResponse(
+            reply="Our AI is busy right now. Please try again in a moment.",
+            ready_to_build=False,
+        )
+    except anthropic.InternalServerError as e:
+        logger.error("Anthropic server error: %s", e)
+        return ChatResponse(
+            reply="AI service is temporarily unavailable. Please try again.",
+            ready_to_build=False,
+        )
     except anthropic.APIError as e:
         logger.error("Anthropic API error: %s", e)
         return ChatResponse(
@@ -711,6 +723,12 @@ async def _handle_build(
             prompt=full_prompt,
             name=None,
         )
+
+        if not project.spec:
+            return ChatResponse(
+                reply="I couldn't generate a spec from that. Could you provide more details?",
+                ready_to_build=False,
+            )
 
         entity_count = len(project.spec.get("entities", [])) if project.spec else 0
         build_reply = clean_reply
@@ -836,11 +854,14 @@ def _get_user_error_message(error_type: str) -> str:
             "Please try again and I'll get it right this time."
         ),
         "database": (
-            "There was a database issue. Please try again."
+            "Failed to save your project. Please try again."
         ),
         "api_error": (
             "I'm having trouble connecting to the AI service. "
             "Please try again in a moment."
+        ),
+        "empty_spec": (
+            "I couldn't generate a spec from that. Could you provide more details?"
         ),
         "unknown": (
             "Something went wrong. Please try again or describe your app differently."
@@ -901,7 +922,7 @@ async def api_chat_stream(
       - {"type":"done"}                     — stream complete
     """
     if not ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=500, detail="AI service not configured")
+        raise HTTPException(status_code=500, detail="AI service is not configured. Please contact support.")
 
     persona = PERSONAS.get(body.model)
     if not persona:

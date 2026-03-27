@@ -69,7 +69,7 @@ async def trigger_deploy(
     if not project.spec:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Project has no spec. Generate a spec first.",
+            detail="This project hasn't been built yet. Start a chat to build it.",
         )
 
     # If already deployed and has build data, return existing URL without re-building
@@ -100,7 +100,7 @@ async def trigger_deploy(
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Deploy failed: {str(e)}",
+            detail="Deployment failed. Please try building again.",
         )
 
     return deploy_info
