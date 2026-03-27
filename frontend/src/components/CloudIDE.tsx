@@ -795,8 +795,47 @@ function FileTreeItem({
 // ── Main component ──────────────────────────────────────────────────
 
 export function CloudIDE({ spec, generating, projectId, onComplete }: CloudIDEProps) {
-  // All files that will be generated
-  const allFiles = useMemo(() => (spec ? buildFilesFromSpec(spec) : []), [spec]);
+  // Simulated files (shown during generation animation)
+  const simulatedFiles = useMemo(() => (spec ? buildFilesFromSpec(spec) : []), [spec]);
+
+  // Real files fetched from backend after generation completes
+  const [realFiles, setRealFiles] = useState<GeneratedFile[] | null>(null);
+  const [fetchingReal, setFetchingReal] = useState(false);
+  const fetchedForProject = useRef<string | null>(null);
+
+  // Fetch real generated files once generation completes
+  useEffect(() => {
+    if (generating || !projectId || !spec) return;
+    // Don't refetch for the same project
+    if (fetchedForProject.current === projectId) return;
+
+    let cancelled = false;
+    const fetchFiles = async () => {
+      setFetchingReal(true);
+      try {
+        const token = localStorage.getItem("token");
+        const base = (import.meta.env.VITE_API_URL as string) || "/api";
+        const res = await fetch(`${base}/projects/${projectId}/generated-files`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error("Failed to fetch generated files");
+        const data: GeneratedFile[] = await res.json();
+        if (!cancelled && data.length > 0) {
+          setRealFiles(data);
+          fetchedForProject.current = projectId;
+        }
+      } catch {
+        // Silently fall back to simulated files
+      } finally {
+        if (!cancelled) setFetchingReal(false);
+      }
+    };
+    fetchFiles();
+    return () => { cancelled = true; };
+  }, [generating, projectId, spec]);
+
+  // Use real files if available, otherwise simulated
+  const allFiles = realFiles ?? simulatedFiles;
   const fileTree = useMemo(() => buildTree(allFiles), [allFiles]);
 
   // State
@@ -904,6 +943,27 @@ export function CloudIDE({ spec, generating, projectId, onComplete }: CloudIDEPr
       generationRef.current = false;
     }
   }, [generating]);
+
+  // When real files arrive, mark all as generated and open the first one
+  useEffect(() => {
+    if (!realFiles || realFiles.length === 0) return;
+    const paths = new Set(realFiles.map((f) => f.path));
+    setGeneratedPaths(paths);
+    setGeneratingPath(null);
+    setIsComplete(true);
+    // Expand all parent folders
+    for (const f of realFiles) {
+      expandParents(f.path);
+    }
+    // Open the first file
+    const first = realFiles[0];
+    if (first) {
+      setActiveFile(first.path);
+      setOpenTabs([first.path]);
+      setTypedLines({});
+    }
+    addLog("--- Loaded real generated files from server ---");
+  }, [realFiles, expandParents, addLog]);
 
   // Typing effect: when a file becomes active, reveal lines one by one
   useEffect(() => {

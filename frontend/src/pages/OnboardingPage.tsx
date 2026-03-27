@@ -135,6 +135,7 @@ interface SidebarItem {
   label: string;
   icon: typeof Plus;
   badge?: string;
+  comingSoon?: boolean;
 }
 
 const DEV_SIDEBAR: SidebarItem[] = [
@@ -142,16 +143,16 @@ const DEV_SIDEBAR: SidebarItem[] = [
   { id: "projects", label: "My Projects", icon: FolderOpen },
   { id: "mylistings", label: "My Listings", icon: BarChart3 },
   { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
-  { id: "templates", label: "Templates", icon: LayoutTemplate },
-  { id: "docs", label: "Docs", icon: BookOpen },
-  { id: "history", label: "History", icon: Clock },
+  { id: "templates", label: "Templates", icon: LayoutTemplate, comingSoon: true },
+  { id: "docs", label: "Docs", icon: BookOpen, comingSoon: true },
+  { id: "history", label: "History", icon: Clock, comingSoon: true },
 ];
 
 const USER_SIDEBAR: SidebarItem[] = [
   { id: "myapps", label: "My Apps", icon: AppWindow },
   { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
-  { id: "docs", label: "Docs", icon: BookOpen },
-  { id: "history", label: "History", icon: Clock },
+  { id: "docs", label: "Docs", icon: BookOpen, comingSoon: true },
+  { id: "history", label: "History", icon: Clock, comingSoon: true },
 ];
 
 /** Parse [OPTIONS] blocks from AI messages and render as clickable buttons */
@@ -3033,15 +3034,23 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 <button
                   key={item.id}
                   onClick={() => handleSidebarClick(item.id)}
+                  title={item.comingSoon ? `${item.label} - Coming Soon` : item.label}
                   className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                    isActive
+                    item.comingSoon
+                      ? "text-gray-400 cursor-default"
+                      : isActive
                       ? "bg-gray-200 font-medium text-black"
                       : "text-gray-600 hover:bg-gray-100 hover:text-black"
                   }`}
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
-                  {item.label}
-                  {item.badge && (
+                  <Icon className={`h-4 w-4 shrink-0${item.comingSoon ? " opacity-40" : ""}`} />
+                  <span className={item.comingSoon ? "opacity-60" : ""}>{item.label}</span>
+                  {item.comingSoon && (
+                    <span className="ml-auto rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-400">
+                      SOON
+                    </span>
+                  )}
+                  {item.badge && !item.comingSoon && (
                     <span className="ml-auto rounded-full bg-pink-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
                       {item.badge}
                     </span>

@@ -1247,8 +1247,11 @@ function IntegrationsSettings({
   return (
     <>
       <div className="mb-2">
-        <h2 className="text-lg font-semibold text-black">Integrations</h2>
-        <p className="text-xs text-gray-400">Connect third-party services to your app</p>
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-black">Integrations</h2>
+          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">Coming Soon</span>
+        </div>
+        <p className="text-xs text-gray-400">Connect third-party services to your app (only Slack is fully functional)</p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -1266,11 +1269,15 @@ function IntegrationsSettings({
                   <span className="text-xl">{integ.icon}</span>
                   <span className="text-sm font-medium text-black">{integ.name}</span>
                 </div>
-                {connected && (
+                {connected ? (
                   <span className="rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-medium text-green-700">
                     Connected
                   </span>
-                )}
+                ) : integ.key !== "slack" ? (
+                  <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+                    Coming Soon
+                  </span>
+                ) : null}
               </div>
               <p className="mb-3 text-xs text-gray-500">{integ.description}</p>
               <div className="flex gap-2">
@@ -2302,7 +2309,7 @@ function AdvancedSettings({
         <FormField label="App Brand Name" hint="Replace isibi.ai branding with your own">
           <TextInput value={whiteLabelName} onChange={setWhiteLabelName} placeholder="Your Brand Name" />
         </FormField>
-        <FormField label="Custom Domain" hint="Point your own domain to this app">
+        <FormField label="Custom Domain" hint="Point your own domain to this app (Coming Soon — no actual SSL provisioning yet)">
           <TextInput value={whiteLabelDomain} onChange={setWhiteLabelDomain} placeholder="app.yourdomain.com" />
         </FormField>
       </SectionCard>

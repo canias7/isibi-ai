@@ -28,6 +28,7 @@ def register_all_routers(app):
 
 def _register_content_routers(app):
     """Content management: gallery, plugins, components, reviews, etc."""
+    from routes.generated_files import router as generated_files_router
     from routes.gallery import router as gallery_router
     from routes.referrals import router as referrals_router
     from routes.embed import router as embed_router
@@ -40,6 +41,7 @@ def _register_content_routers(app):
     from routes.reviews import router as reviews_router
     from routes.file_serve import router as file_serve_router
 
+    app.include_router(generated_files_router, prefix="/api")
     app.include_router(gallery_router, prefix="/api")
     app.include_router(referrals_router, prefix="/api")
     app.include_router(embed_router, prefix="/api")
