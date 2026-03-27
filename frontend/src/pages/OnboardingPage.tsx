@@ -1072,6 +1072,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [shareInviteSuccess, setShareInviteSuccess] = useState(false);
   const [wsReconnecting, setWsReconnecting] = useState(false);
+  const [specVersion, setSpecVersion] = useState(0);
+  const [syncStatus, setSyncStatus] = useState<"synced" | "syncing" | "conflict">("synced");
+  const [conflictData, setConflictData] = useState<{ serverSpec: any; serverVersion: number } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
   // WebSocket real-time collab: presence + spec sync
@@ -1119,16 +1122,37 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               is_editing: false,
               last_active: new Date().toISOString(),
             })));
+          } else if (msg.type === "version") {
+            // Initial version sync on connect
+            if (typeof msg.version === "number") setSpecVersion(msg.version);
+            setSyncStatus("synced");
+          } else if (msg.type === "ack") {
+            // Server acknowledged our update
+            if (typeof msg.version === "number") setSpecVersion(msg.version);
+            setSyncStatus("synced");
+          } else if (msg.type === "conflict") {
+            // Conflict detected — show resolution dialog
+            setSyncStatus("conflict");
+            setConflictData({
+              serverSpec: msg.server_spec,
+              serverVersion: msg.server_version,
+            });
           } else if (msg.type === "spec_update" && msg.value != null) {
             // Another user changed the spec — update locally
+            if (typeof msg.version === "number") setSpecVersion(msg.version);
+            setSyncStatus("synced");
             _setBuiltSpec((prev: any) => {
               if (!prev) return prev;
-              if (msg.path) {
-                // Partial update at path (not used yet, but ready)
-                return { ...prev, [msg.path]: msg.value };
-              }
               // Full spec replacement
               return typeof msg.value === "object" ? msg.value : prev;
+            });
+          } else if (msg.type === "op" && msg.spec != null) {
+            // Operation-level update from another user
+            if (typeof msg.version === "number") setSpecVersion(msg.version);
+            setSyncStatus("synced");
+            _setBuiltSpec((prev: any) => {
+              if (!prev) return prev;
+              return typeof msg.spec === "object" ? msg.spec : prev;
             });
           } else if (msg.type === "cursor") {
             // Update presence indicator for the editing user
@@ -1191,7 +1215,14 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     // Skip the initial set (when prevSpecRef is null or same ref)
     if (prevSpecRef.current !== null && prevSpecRef.current !== builtSpec) {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "spec_update", value: builtSpec }));
+        setSyncStatus("syncing");
+        const nextVersion = specVersion + 1;
+        setSpecVersion(nextVersion);
+        wsRef.current.send(JSON.stringify({
+          type: "spec_update",
+          version: specVersion,
+          value: builtSpec,
+        }));
       }
     }
     prevSpecRef.current = builtSpec;
@@ -2215,6 +2246,19 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <span className="text-[10px] font-medium text-amber-700">Reconnecting...</span>
             </div>
           )}
+          {/* Sync status indicator */}
+          {!wsReconnecting && builtProjectId && syncStatus === "synced" && (
+            <div className="mr-2 flex items-center gap-1 rounded-full bg-green-50 border border-green-200 px-2 py-0.5">
+              <Check className="h-3 w-3 text-green-600" />
+              <span className="text-[10px] font-medium text-green-700">Synced</span>
+            </div>
+          )}
+          {!wsReconnecting && builtProjectId && syncStatus === "syncing" && (
+            <div className="mr-2 flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5">
+              <RefreshCw className="h-3 w-3 text-blue-600 animate-spin" />
+              <span className="text-[10px] font-medium text-blue-700">Syncing...</span>
+            </div>
+          )}
           <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">
             <button
               onClick={() => setPreviewDevice("desktop")}
@@ -2930,6 +2974,70 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       )}
 
       {/* QR Code / Get App Modal */}
+      {/* Conflict resolution modal */}
+      {conflictData && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-[420px] rounded-xl border border-red-200 bg-white p-5 shadow-xl">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-red-100">
+                <RefreshCw className="h-4 w-4 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-black">Sync Conflict</h3>
+                <p className="text-[11px] text-gray-500">Another user made changes to the same fields</p>
+              </div>
+            </div>
+            <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <p className="text-xs text-gray-600">
+                Your changes conflict with version <span className="font-mono font-semibold">{conflictData.serverVersion}</span> on the server.
+                You can keep your local version or accept the server&apos;s version.
+              </p>
+              {conflictData.serverSpec?.entities && (
+                <div className="mt-2 max-h-32 overflow-y-auto text-[10px] text-gray-500">
+                  <p className="font-medium text-gray-700">Server entities:</p>
+                  {conflictData.serverSpec.entities.map((e: any, i: number) => (
+                    <span key={i} className="mr-1 inline-block rounded bg-gray-200 px-1.5 py-0.5">{e.name}</span>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  // Keep mine — re-send with force flag
+                  if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+                    wsRef.current.send(JSON.stringify({
+                      type: "spec_update",
+                      version: conflictData.serverVersion,
+                      value: builtSpec,
+                      force: true,
+                    }));
+                  }
+                  setConflictData(null);
+                  setSyncStatus("syncing");
+                }}
+                className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                Keep Mine
+              </button>
+              <button
+                onClick={() => {
+                  // Accept theirs — load server spec
+                  if (conflictData.serverSpec) {
+                    _setBuiltSpec(conflictData.serverSpec);
+                    setSpecVersion(conflictData.serverVersion);
+                  }
+                  setConflictData(null);
+                  setSyncStatus("synced");
+                }}
+                className="flex-1 rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800"
+              >
+                Accept Theirs
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {qrModalOpen && deployUrl && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="w-[360px] rounded-xl border border-gray-200 bg-white p-5 shadow-xl">
