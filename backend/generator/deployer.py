@@ -3901,7 +3901,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
       let imageHtml;
       if (imgSrc && (imgSrc.startsWith("http") || imgSrc.startsWith("/"))) {{
-        imageHtml = '<div class="grid-card-image"><img src="' + escHtml(imgSrc) + '" alt="' + escHtml(title) + '" loading="lazy" onerror="this.parentElement.innerHTML=\'<svg class=\\\'placeholder-icon\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'2\\\'><rect x=\\\'3\\\' y=\\\'3\\\' width=\\\'18\\\' height=\\\'18\\\' rx=\\\'2\\\'/><circle cx=\\\'8.5\\\' cy=\\\'8.5\\\' r=\\\'1.5\\\'/><polyline points=\\\'21 15 16 10 5 21\\\'/></svg>\'"></div>';
+        imageHtml = '<div class="grid-card-image"><img src="' + escHtml(imgSrc) + '" alt="' + escHtml(title) + '" loading="lazy" onerror="this.parentElement.innerHTML=\'<svg class=\&#39;placeholder-icon\&#39; viewBox=\&#39;0 0 24 24\&#39; fill=\&#39;none\&#39; stroke=\&#39;currentColor\&#39; stroke-width=\&#39;2\&#39;><rect x=\&#39;3\&#39; y=\&#39;3\&#39; width=\&#39;18\&#39; height=\&#39;18\&#39; rx=\&#39;2\&#39;/><circle cx=\&#39;8.5\&#39; cy=\&#39;8.5\&#39; r=\&#39;1.5\&#39;/><polyline points=\&#39;21 15 16 10 5 21\&#39;/></svg>\'"></div>';
       }} else {{
         const initials = String(title).slice(0, 2).toUpperCase();
         const bgColor = stringToColor(title);
@@ -3988,7 +3988,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       groupByHtml = '<div class="group-by-bar">' +
         '<span>Group by:</span>' +
         '<select onchange="setGroupBy(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\',this.value)">' + groupOpts + '</select>' +
-        (currentGroupBy ? '<button class="clear-group" onclick="setGroupBy(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\',\\'\\')">Clear grouping</button>' : '') +
+        (currentGroupBy ? '<button class="clear-group" onclick="setGroupBy(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\',&#39;&#39;)">Clear grouping</button>' : '') +
       '</div>';
     }}
 
@@ -5091,7 +5091,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       const req = f.required || (f.nullable === false && !f.computed) ? '<span class="required">*</span>' : '';
       const divider = (fIdx > 0 && fIdx % 4 === 0) ? '<hr class="form-divider">' : '';
       const label = escHtml(f.name.replace(/_/g, " "));
-      const vwAttr = f.visible_when ? ' data-visible-when=\\'true\\'' : '';
+      const vwAttr = f.visible_when ? ' data-visible-when=&#39;true&#39;' : '';
       const vwStyle = f.visible_when ? ' style="transition:all 0.2s ease"' : '';
 
       // Computed field — read-only display with fx badge
@@ -6505,6 +6505,10 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   window.filterByStatus = typeof filterByStatus !== 'undefined' ? filterByStatus : function() {};
   window.switchView = typeof switchView !== 'undefined' ? switchView : function() {};
   window.closeModal = typeof closeModal !== 'undefined' ? closeModal : function() {};
+  window.escHtml = escHtml;
+  window.toggleSidebar = typeof toggleSidebar !== 'undefined' ? toggleSidebar : function() {};
+  window.setBreadcrumb = typeof setBreadcrumb !== 'undefined' ? setBreadcrumb : function() {};
+  window.confirmDeleteAction = typeof confirmDeleteAction !== 'undefined' ? confirmDeleteAction : function() {};
   window.toggleSidebar = typeof toggleSidebar !== 'undefined' ? toggleSidebar : function() {};
   window.setBreadcrumb = typeof setBreadcrumb !== 'undefined' ? setBreadcrumb : function() {};
 
