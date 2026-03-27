@@ -97,6 +97,7 @@ async def lifespan(app: FastAPI):
             await conn.execute(text("ALTER TABLE file_uploads ADD COLUMN IF NOT EXISTS file_data TEXT"))
             await conn.execute(text("ALTER TABLE app_field_files ADD COLUMN IF NOT EXISTS file_data TEXT"))
             await conn.execute(text("ALTER TABLE app_record_files ADD COLUMN IF NOT EXISTS file_data TEXT"))
+            await conn.execute(text("ALTER TABLE projects ALTER COLUMN build_path TYPE TEXT"))
             print("ALL COLUMNS MIGRATED")
         except Exception as e:
             print(f"MIGRATION NOTE: {e}")

@@ -38,7 +38,7 @@ class Project(Base):
     spec = Column(JSONB, nullable=True)
 
     # Build output path (where the generated backend code lives)
-    build_path = Column(String(500), nullable=True)
+    build_path = Column(Text, nullable=True)
 
     # GitHub repo URL (set after export)
     github_repo: Mapped[Optional[str]] = Column(String(500), nullable=True)
