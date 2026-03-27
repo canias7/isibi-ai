@@ -17,6 +17,8 @@ const BuildCrmPage = lazy(() => import("@/pages/seo/BuildCrmPage").then(m => ({ 
 const BuildEcommercePage = lazy(() => import("@/pages/seo/BuildEcommercePage").then(m => ({ default: m.BuildEcommercePage })));
 const BuildRestaurantPage = lazy(() => import("@/pages/seo/BuildRestaurantPage").then(m => ({ default: m.BuildRestaurantPage })));
 const BuildGymPage = lazy(() => import("@/pages/seo/BuildGymPage").then(m => ({ default: m.BuildGymPage })));
+const MarketplacePage = lazy(() => import("@/pages/MarketplacePage").then(m => ({ default: m.MarketplacePage })));
+const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage").then(m => ({ default: m.ComingSoonPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -96,6 +98,15 @@ function AppRoutes() {
       {/* Legal */}
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/security" element={<ComingSoonPage title="Security" />} />
+
+      {/* Marketplace & public pages */}
+      <Route path="/marketplace" element={<MarketplacePage />} />
+      <Route path="/templates" element={<ComingSoonPage title="Templates" />} />
+      <Route path="/about" element={<ComingSoonPage title="About" />} />
+      <Route path="/blog" element={<ComingSoonPage title="Blog" />} />
+      <Route path="/careers" element={<ComingSoonPage title="Careers" />} />
+      <Route path="/contact" element={<ComingSoonPage title="Contact" />} />
 
       {/* SEO landing pages */}
       <Route path="/build-crm" element={<BuildCrmPage />} />

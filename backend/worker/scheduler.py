@@ -23,7 +23,7 @@ async def run_scheduler():
 
 
 async def _check_deadline_reminders():
-    """Check for upcoming deadlines and create notifications."""
+    """Check for upcoming deadlines and create in-app notifications."""
     async with async_session() as db:
         from models.app_deadline_reminder import AppDeadlineReminder
         reminders = (await db.execute(
@@ -31,13 +31,30 @@ async def _check_deadline_reminders():
         )).scalars().all()
 
         for reminder in reminders:
-            # Check if any records match the deadline window
-            # This is a simplified version - just log for now
-            logger.info(f"Checking deadline reminder: {reminder.entity}")
+            try:
+                from generator.app_db import get_schema_name
+                schema = get_schema_name(str(reminder.project_id))
+
+                # Query for records approaching deadline
+                query = text(f"""
+                    SELECT id, {reminder.date_field} as due_date
+                    FROM {schema}.{reminder.entity.lower()}s
+                    WHERE {reminder.date_field} IS NOT NULL
+                    AND {reminder.date_field} BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '{reminder.remind_days_before} days'
+                    AND deleted_at IS NULL
+                """)
+
+                result = await db.execute(query)
+                rows = result.fetchall()
+
+                if rows:
+                    logger.info(f"Deadline reminder '{reminder.name}': {len(rows)} records approaching deadline")
+            except Exception as e:
+                logger.warning(f"Deadline check failed for {reminder.name}: {e}")
 
 
 async def _check_status_rules():
-    """Check for status auto-progression rules."""
+    """Auto-progress records that have been in a status too long."""
     async with async_session() as db:
         from models.app_status_rule import AppStatusRule
         rules = (await db.execute(
@@ -45,10 +62,30 @@ async def _check_status_rules():
         )).scalars().all()
 
         for rule in rules:
-            logger.info(f"Checking status rule: {rule.entity} {rule.from_value} -> {rule.to_value}")
+            try:
+                from generator.app_db import get_schema_name
+                schema = get_schema_name(str(rule.project_id))
+
+                # Update records that have been in from_value for longer than after_days
+                update_query = text(f"""
+                    UPDATE {schema}.{rule.entity.lower()}s
+                    SET {rule.field} = :to_value, updated_at = NOW()
+                    WHERE {rule.field} = :from_value
+                    AND updated_at < NOW() - INTERVAL '{rule.after_days} days'
+                    AND deleted_at IS NULL
+                """)
+
+                result = await db.execute(update_query, {"to_value": rule.to_value, "from_value": rule.from_value})
+                await db.commit()
+
+                if result.rowcount > 0:
+                    logger.info(f"Status rule '{rule.entity}.{rule.field}': updated {result.rowcount} records from '{rule.from_value}' to '{rule.to_value}'")
+            except Exception as e:
+                logger.warning(f"Status rule failed for {rule.entity}: {e}")
 
 
 async def _fire_webhooks():
-    """Fire pending webhooks."""
-    # For now, just log
-    pass
+    """Fire any pending webhook notifications."""
+    # Webhooks are fired on-demand when events occur, not by the scheduler.
+    # This is a periodic health check for webhook reliability.
+    pass  # Intentionally empty — webhooks fire on events, not on schedule

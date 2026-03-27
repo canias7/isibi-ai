@@ -1,9 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
-// Simple GET request cache
-const cache = new Map<string, { data: unknown; timestamp: number }>();
-const CACHE_TTL = 30000; // 30 seconds
-
 async function request<T>(
   path: string,
   options: RequestInit = {}
@@ -33,31 +29,13 @@ async function request<T>(
   return res.json();
 }
 
-export async function get<T>(path: string, useCache = true): Promise<T> {
-  const cacheKey = path;
-  if (useCache) {
-    const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      return cached.data as T;
-    }
-  }
-
-  const data = await request<T>(path);
-
-  if (useCache) {
-    cache.set(cacheKey, { data, timestamp: Date.now() });
-  }
-  return data;
+export async function get<T>(path: string): Promise<T> {
+  return request<T>(path);
 }
 
-export function invalidateCache(pathPrefix?: string) {
-  if (pathPrefix) {
-    for (const key of cache.keys()) {
-      if (key.startsWith(pathPrefix)) cache.delete(key);
-    }
-  } else {
-    cache.clear();
-  }
+/** No-op kept for backward compatibility. React Query handles all caching. */
+export function invalidateCache(_pathPrefix?: string) {
+  // Intentionally empty — React Query manages cache invalidation
 }
 
 export function post<T>(path: string, body: unknown) {

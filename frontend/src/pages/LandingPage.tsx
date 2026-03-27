@@ -497,10 +497,8 @@ export function LandingPage() {
               <h4 className="text-sm font-bold mb-4">Connect</h4>
               <ul className="space-y-2">
                 {[
-                  { label: "Twitter", href: "https://twitter.com/isibi_ai" },
-                  { label: "GitHub", href: "https://github.com/isibi-ai" },
-                  { label: "Discord", href: "https://discord.gg/isibi" },
-                  { label: "Email", href: "mailto:hello@isibi.ai" },
+                  { label: "GitHub", href: "https://github.com/canias7/isibi-ai" },
+                  { label: "Email", href: "mailto:support@isibi.ai" },
                 ].map((item) => (
                   <li key={item.label}>
                     <a href={item.href} target={item.href.startsWith("http") ? "_blank" : undefined} rel={item.href.startsWith("http") ? "noopener noreferrer" : undefined} className="text-sm text-gray-500 transition hover:text-black">{item.label}</a>
