@@ -25,6 +25,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import DATABASE_URL, get_db
 from auth import get_current_org_id
+from fastapi import Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import jwt, JWTError
 from generator.app_db import get_schema_name, _get_raw_connection, list_schema_tables
 from generator.orchestrator import _get_project
 from worker.email_worker import fire_email_triggers
@@ -39,6 +42,58 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/apps", tags=["App Data"])
 
+_bearer = HTTPBearer(auto_error=False)
+_JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
+_JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+
+
+# ── Flexible Auth ────────────────────────────────────────────────────
+# Accepts EITHER a platform JWT (org_id) OR an app-user JWT (project_id)
+
+import os
+
+async def _get_app_auth(
+    project_id: UUID,
+    request: Request,
+    db: AsyncSession,
+) -> None:
+    """Verify caller has access to this project's data.
+
+    Accepts:
+    - Platform JWT (type=platform or no type): verifies org owns project
+    - App-user JWT (type=app_user): verifies project_id matches
+    - No token: returns 401
+    """
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALGORITHM])
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    token_type = payload.get("type", "platform")
+
+    if token_type == "app_user":
+        # App-user JWT: verify project_id matches
+        token_project = payload.get("project_id")
+        if not token_project or str(project_id) != token_project:
+            raise HTTPException(status_code=403, detail="Token not valid for this project")
+        return  # Access granted
+    else:
+        # Platform JWT: verify org owns project
+        org_id_str = payload.get("org_id")
+        if not org_id_str:
+            raise HTTPException(status_code=401, detail="Invalid token claims")
+        try:
+            org_id = UUID(org_id_str)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=401, detail="Invalid org_id in token")
+        await _get_project(db, project_id, org_id)
+        return  # Access granted
+
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
@@ -50,7 +105,6 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
     clean = name.strip().lower()
     if not _IDENT_RE.match(clean):
         raise HTTPException(status_code=400, detail=f"Invalid {label}: {name}")
-    # Double-check via sanitize utility (defense in depth)
     try:
         sanitize_sql_identifier(clean)
     except ValueError:
@@ -365,15 +419,15 @@ async def _log_activity(
 async def list_rows(
     project_id: UUID,
     table_name: str,
+    request: Request,
     page: int = Query(1, ge=1),
     page_size: int = Query(50, ge=1, le=500),
     sort_by: str = Query("id", description="Column to sort by"),
     sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db),
-    org_id: UUID = Depends(get_current_org_id),
 ):
     """List rows in a generated app's table with pagination."""
-    await _ensure_project_access(db, project_id, org_id)
+    await _get_app_auth(project_id, request, db)
 
     table = _validate_identifier(table_name, "table name")
     sort_col = _validate_identifier(sort_by, "sort column")
@@ -427,11 +481,11 @@ async def get_row(
     project_id: UUID,
     table_name: str,
     row_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    org_id: UUID = Depends(get_current_org_id),
 ):
     """Get a single row by its id."""
-    await _ensure_project_access(db, project_id, org_id)
+    await _get_app_auth(project_id, request, db)
 
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
@@ -461,11 +515,11 @@ async def create_row(
     project_id: UUID,
     table_name: str,
     body: dict[str, Any],
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    org_id: UUID = Depends(get_current_org_id),
 ):
     """Insert a new row into a generated app's table."""
-    await _ensure_project_access(db, project_id, org_id)
+    await _get_app_auth(project_id, request, db)
 
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
@@ -563,11 +617,11 @@ async def update_row(
     table_name: str,
     row_id: str,
     body: dict[str, Any],
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    org_id: UUID = Depends(get_current_org_id),
 ):
     """Update an existing row (partial update)."""
-    await _ensure_project_access(db, project_id, org_id)
+    await _get_app_auth(project_id, request, db)
 
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
@@ -673,11 +727,11 @@ async def delete_row(
     project_id: UUID,
     table_name: str,
     row_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    org_id: UUID = Depends(get_current_org_id),
 ):
     """Soft-delete a row by setting deleted_at."""
-    await _ensure_project_access(db, project_id, org_id)
+    await _get_app_auth(project_id, request, db)
 
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
@@ -728,11 +782,11 @@ async def delete_row(
 @router.get("/{project_id}/schema")
 async def get_app_schema(
     project_id: UUID,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    org_id: UUID = Depends(get_current_org_id),
 ):
     """Get the list of tables and their columns for a project's app database."""
-    await _ensure_project_access(db, project_id, org_id)
+    await _get_app_auth(project_id, request, db)
 
     schema = get_schema_name(str(project_id))
     conn = await _get_raw_connection(DATABASE_URL)
