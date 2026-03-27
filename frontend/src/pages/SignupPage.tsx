@@ -16,6 +16,7 @@ export function SignupPage({ onSignup }: Props) {
     first_name: "",
     last_name: "",
     email: "",
+    password: "",
     account_type: "user" as "user" | "developer",
   });
   const [error, setError] = useState<string | null>(null);
@@ -34,6 +35,7 @@ export function SignupPage({ onSignup }: Props) {
     try {
       const res = await post<{ access_token: string; user: any }>("/auth/signup", {
         email: form.email,
+        password: form.password,
         first_name: form.first_name,
         last_name: form.last_name,
         account_type: form.account_type,
@@ -169,6 +171,19 @@ export function SignupPage({ onSignup }: Props) {
                 onChange={(e) => set("email", e.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
                 placeholder="you@example.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => set("password", e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                placeholder="Minimum 8 characters"
+                minLength={8}
                 required
               />
             </div>

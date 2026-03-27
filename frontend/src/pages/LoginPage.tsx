@@ -14,6 +14,7 @@ interface Props {
 
 export function LoginPage({ onLogin, onNeedVerify }: Props) {
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
@@ -29,6 +30,7 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
     try {
       const res = await post<{ access_token: string; user: any }>("/auth/login", {
         email,
+        password,
         turnstile_token: turnstileToken || "dev",
       });
       setAuth(res.access_token, res.user);
@@ -145,6 +147,18 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
               />
             </div>
 
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                placeholder="Enter your password"
+                required
+              />
+            </div>
+
             <div className="flex justify-center">
               <Turnstile
                 key={turnstileKey}
@@ -169,7 +183,7 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
               style={{ backgroundColor: "#ec4899" }}
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Send Login Code
+              Log In
             </button>
           </form>
 
