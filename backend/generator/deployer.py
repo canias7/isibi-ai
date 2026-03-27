@@ -3253,8 +3253,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     const d = document.createElement("div");
     d.textContent = s;
     return d.innerHTML;
-  }
-  window.escHtml = escHtml;}
+  }}
+  window.escHtml = escHtml;}}
 
   // ── Breadcrumb helper ──
   function setBreadcrumb(parts) {{
@@ -6512,19 +6512,19 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
   // Expose for inline onclick handlers
   window.showModule = showModule;
-  window.showDetail = typeof showDetail !== 'undefined' ? showDetail : function() {};
-  window.openEdit = typeof openEdit !== 'undefined' ? openEdit : function() {};
-  window.confirmDelete = typeof confirmDelete !== 'undefined' ? confirmDelete : function() {};
-  window.openCreate = typeof openCreate !== 'undefined' ? openCreate : function() {};
-  window.filterByStatus = typeof filterByStatus !== 'undefined' ? filterByStatus : function() {};
-  window.switchView = typeof switchView !== 'undefined' ? switchView : function() {};
-  window.closeModal = typeof closeModal !== 'undefined' ? closeModal : function() {};
+  window.showDetail = typeof showDetail !== 'undefined' ? showDetail : function() {{}};
+  window.openEdit = typeof openEdit !== 'undefined' ? openEdit : function() {{}};
+  window.confirmDelete = typeof confirmDelete !== 'undefined' ? confirmDelete : function() {{}};
+  window.openCreate = typeof openCreate !== 'undefined' ? openCreate : function() {{}};
+  window.filterByStatus = typeof filterByStatus !== 'undefined' ? filterByStatus : function() {{}};
+  window.switchView = typeof switchView !== 'undefined' ? switchView : function() {{}};
+  window.closeModal = typeof closeModal !== 'undefined' ? closeModal : function() {{}};
   window.escHtml = escHtml;
-  window.toggleSidebar = typeof toggleSidebar !== 'undefined' ? toggleSidebar : function() {};
-  window.setBreadcrumb = typeof setBreadcrumb !== 'undefined' ? setBreadcrumb : function() {};
-  window.confirmDeleteAction = typeof confirmDeleteAction !== 'undefined' ? confirmDeleteAction : function() {};
-  window.toggleSidebar = typeof toggleSidebar !== 'undefined' ? toggleSidebar : function() {};
-  window.setBreadcrumb = typeof setBreadcrumb !== 'undefined' ? setBreadcrumb : function() {};
+  window.toggleSidebar = typeof toggleSidebar !== 'undefined' ? toggleSidebar : function() {{}};
+  window.setBreadcrumb = typeof setBreadcrumb !== 'undefined' ? setBreadcrumb : function() {{}};
+  window.confirmDeleteAction = typeof confirmDeleteAction !== 'undefined' ? confirmDeleteAction : function() {{}};
+  window.toggleSidebar = typeof toggleSidebar !== 'undefined' ? toggleSidebar : function() {{}};
+  window.setBreadcrumb = typeof setBreadcrumb !== 'undefined' ? setBreadcrumb : function() {{}};
 
   // ── Init ──
   function initApp() {{
