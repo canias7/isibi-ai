@@ -2416,6 +2416,117 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   .mobile-nav {{ display:flex; }}
   body {{ padding-bottom:60px; }}
 }}
+
+/* ── Mobile: Swipeable detail tabs dot indicator ── */
+.detail-tab-dots {{
+  display:none;
+  justify-content:center;gap:6px;
+  padding:8px 0 4px;
+}}
+.detail-tab-dot {{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--gray-300);
+  transition:background 0.2s, transform 0.2s;
+}}
+.detail-tab-dot.active {{
+  background:var(--primary);
+  transform:scale(1.3);
+}}
+@media (max-width:768px) {{
+  .detail-tab-dots {{ display:flex; }}
+}}
+
+/* ── Mobile: Pull-to-refresh ── */
+.pull-to-refresh {{
+  display:none;
+  align-items:center;justify-content:center;
+  height:0;overflow:hidden;
+  transition:height 0.25s ease;
+  background:var(--bg);
+}}
+.pull-to-refresh.pulling {{
+  height:50px;
+}}
+.pull-spinner {{
+  width:22px;height:22px;
+  border:2.5px solid var(--gray-200);
+  border-top-color:var(--primary);
+  border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}}
+@media (max-width:768px) {{
+  .pull-to-refresh {{ display:flex; }}
+}}
+
+/* ── Mobile: Floating Action Button (FAB) ── */
+.fab {{
+  display:none;
+  position:fixed;
+  bottom:76px;right:20px;
+  width:56px;height:56px;
+  border-radius:50%;
+  background:var(--primary);
+  color:#fff;border:none;
+  cursor:pointer;z-index:45;
+  align-items:center;justify-content:center;
+  box-shadow:0 4px 16px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
+  transition:transform 0.15s ease, box-shadow 0.15s ease;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}}
+.fab:active {{
+  transform:scale(0.92);
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+}}
+.fab svg {{ width:24px;height:24px;pointer-events:none; }}
+@media (max-width:768px) {{
+  .fab {{ display:flex; }}
+  .topbar-actions .btn.btn-primary.btn-sm {{ display:none; }}
+}}
+
+/* ── Mobile: Card layout for tables ── */
+.mobile-card-list {{
+  display:none;
+  flex-direction:column;gap:10px;
+  padding:12px 16px;
+}}
+.mobile-record-card {{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius-lg);
+  padding:14px 16px;
+  box-shadow:var(--shadow-xs);
+}}
+.mobile-card-title {{
+  font-size:14px;font-weight:600;color:var(--text);
+  margin-bottom:6px;
+}}
+.mobile-card-fields {{
+  display:flex;flex-wrap:wrap;gap:6px 16px;
+  margin-bottom:8px;
+}}
+.mobile-card-field {{
+  font-size:12px;color:var(--text-secondary);
+}}
+.mobile-card-field strong {{
+  color:var(--text-muted);font-weight:500;
+  font-size:11px;text-transform:uppercase;
+  letter-spacing:0.03em;
+}}
+.mobile-card-actions {{
+  display:flex;gap:8px;
+  border-top:1px solid var(--border-light);
+  padding-top:8px;margin-top:4px;
+}}
+.mobile-card-actions button {{
+  font-size:12px;font-weight:500;
+  color:var(--primary);background:none;border:none;
+  cursor:pointer;padding:4px 0;
+  font-family:inherit;
+}}
+@media (max-width:768px) {{
+  .data-table-wrap {{ display:none !important; }}
+  .mobile-card-list {{ display:flex; }}
+}}
 </style>
 </head>
 <body>
@@ -2526,6 +2637,11 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   <div class="mobile-nav-inner" id="mobile-nav-inner"></div>
 </nav>
 
+<!-- Mobile FAB -->
+<button class="fab" id="fab-btn" onclick="openCreate()" aria-label="Add New">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
 <!-- Main -->
 <div class="main">
   <header class="topbar">
@@ -2568,6 +2684,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     </div>
     <div class="topbar-avatar" id="topbar-avatar">{app_initial}</div>
   </header>
+  <div class="pull-to-refresh" id="pull-to-refresh"><div class="pull-spinner"></div></div>
   <div class="content" id="content-area"></div>
 </div>
 
@@ -4643,7 +4760,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     tabs.forEach(function(tab, i) {{
       const countSpan = (tab.key === "related" || tab.key === "activity" || tab.key === "files" || tab.key === "comments")
         ? ' <span class="detail-tab-count" id="tab-count-' + tab.key + '">...</span>' : '';
-      detailHtml += '<button class="detail-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + tab.key + '" onclick="_switchDetailTab(\'' + tab.key + '\')">' + tab.label + countSpan + '</button>';
+      detailHtml += '<button class="detail-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + tab.key + '" onclick="_switchDetailTab(\'' + tab.key + '\');if(window._updateDetailDots)_updateDetailDots()">' + tab.label + countSpan + '</button>';
+    }});
+    detailHtml += '</div>';
+    // Dot indicator for mobile swipe
+    detailHtml += '<div class="detail-tab-dots">';
+    tabs.forEach(function(tab, i) {{
+      detailHtml += '<div class="detail-tab-dot' + (i === 0 ? ' active' : '') + '"></div>';
     }});
     detailHtml += '</div>';
 
@@ -6293,6 +6416,139 @@ function downloadAsHTML() {{
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
+}}
+
+// ── Mobile: Swipeable detail tabs ──
+(function() {{
+  let _touchStartX = 0;
+  let _touchEndX = 0;
+  document.addEventListener('touchstart', function(e) {{
+    const tabs = e.target.closest('.detail-tab-panel, .detail-tabs');
+    if (tabs || e.target.closest('.content')) {{
+      _touchStartX = e.changedTouches[0].screenX;
+    }}
+  }}, {{ passive: true }});
+  document.addEventListener('touchend', function(e) {{
+    _touchEndX = e.changedTouches[0].screenX;
+    const diff = _touchStartX - _touchEndX;
+    if (Math.abs(diff) < 50) return;
+    const tabs = document.querySelectorAll('.detail-tab');
+    if (tabs.length === 0) return;
+    let activeIdx = -1;
+    tabs.forEach(function(t, i) {{ if (t.classList.contains('active')) activeIdx = i; }});
+    if (activeIdx === -1) return;
+    let newIdx = diff > 0 ? activeIdx + 1 : activeIdx - 1;
+    if (newIdx < 0 || newIdx >= tabs.length) return;
+    const tabName = tabs[newIdx].dataset.tab;
+    if (tabName && window._switchDetailTab) window._switchDetailTab(tabName);
+    _updateDetailDots();
+  }}, {{ passive: true }});
+  window._updateDetailDots = function() {{
+    const dots = document.querySelectorAll('.detail-tab-dot');
+    const tabs = document.querySelectorAll('.detail-tab');
+    tabs.forEach(function(t, i) {{
+      if (dots[i]) dots[i].classList.toggle('active', t.classList.contains('active'));
+    }});
+  }};
+}})();
+
+// ── Mobile: Pull-to-refresh ──
+(function() {{
+  let _pullStartY = 0;
+  let _pulling = false;
+  const contentEl = document.getElementById('content-area');
+  const pullEl = document.getElementById('pull-to-refresh');
+  if (!contentEl || !pullEl) return;
+  contentEl.addEventListener('touchstart', function(e) {{
+    if (contentEl.scrollTop === 0) {{
+      _pullStartY = e.touches[0].clientY;
+      _pulling = true;
+    }}
+  }}, {{ passive: true }});
+  contentEl.addEventListener('touchmove', function(e) {{
+    if (!_pulling) return;
+    const dy = e.touches[0].clientY - _pullStartY;
+    if (dy > 60) {{
+      pullEl.classList.add('pulling');
+    }}
+  }}, {{ passive: true }});
+  contentEl.addEventListener('touchend', function() {{
+    if (pullEl.classList.contains('pulling')) {{
+      // Reload current module data
+      const active = document.querySelector('.sidebar-item.active');
+      if (active) {{
+        const modName = active.dataset.module;
+        if (modName) showModule(modName);
+      }}
+      setTimeout(function() {{ pullEl.classList.remove('pulling'); }}, 600);
+    }}
+    _pulling = false;
+  }}, {{ passive: true }});
+}})();
+
+// ── Mobile: Card layout for table data ──
+window._renderMobileCards = function(entity, moduleName, rows) {{
+  const fields = entityFieldMap[entity] || [];
+  const nameField = fields.find(function(f) {{
+    return /name|title/i.test(f.name);
+  }});
+  const statusField = fields.find(function(f) {{
+    return f.enum_values && f.enum_values.length > 0;
+  }});
+  const displayFields = fields.filter(function(f) {{
+    return f !== nameField && f !== statusField && !['id','org_id','deleted_at','version','created_at','updated_at'].includes(f.name);
+  }}).slice(0, 3);
+
+  let html = '';
+  rows.forEach(function(row) {{
+    const id = row.id || row.ID;
+    const title = nameField ? (row[nameField.name] || 'Untitled') : ('Record #' + id);
+    let statusHtml = '';
+    if (statusField && row[statusField.name]) {{
+      statusHtml = '<span class="badge" style="margin-left:8px;font-size:10px">' + escHtml(String(row[statusField.name])) + '</span>';
+    }}
+    let fieldsHtml = '';
+    displayFields.forEach(function(f) {{
+      const val = row[f.name];
+      if (val !== null && val !== undefined && val !== '') {{
+        fieldsHtml += '<div class="mobile-card-field"><strong>' + escHtml(f.name.replace(/_/g,' ')) + ':</strong> ' + escHtml(String(val)) + '</div>';
+      }}
+    }});
+    html += '<div class="mobile-record-card">' +
+      '<div class="mobile-card-title">' + escHtml(String(title)) + statusHtml + '</div>' +
+      '<div class="mobile-card-fields">' + fieldsHtml + '</div>' +
+      '<div class="mobile-card-actions">' +
+        '<button onclick="showDetail(\'' + escHtml(entity) + '\',' + id + ')">View</button>' +
+        '<button onclick="openEdit(\'' + escHtml(entity) + '\',' + id + ')">Edit</button>' +
+        '<button onclick="confirmDelete(\'' + escHtml(entity) + '\',' + id + ')" style="color:var(--danger)">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }});
+  return html;
+}};
+
+// Patch renderTableRows to also render mobile cards
+const _origRenderTable = window.renderTableRows;
+if (_origRenderTable) {{
+  window.renderTableRows = function(entity, moduleName) {{
+    _origRenderTable(entity, moduleName);
+    // Render mobile card layout
+    const container = document.getElementById('module-' + moduleName);
+    if (!container) return;
+    let cardList = container.querySelector('.mobile-card-list');
+    if (!cardList) {{
+      const tableWrap = container.querySelector('.data-table-wrap');
+      if (tableWrap) {{
+        cardList = document.createElement('div');
+        cardList.className = 'mobile-card-list';
+        tableWrap.parentNode.insertBefore(cardList, tableWrap.nextSibling);
+      }}
+    }}
+    if (cardList) {{
+      const rows = dataCache[entity] || [];
+      cardList.innerHTML = window._renderMobileCards(entity, moduleName, rows);
+    }}
+  }};
 }}
 </script>
 </body>

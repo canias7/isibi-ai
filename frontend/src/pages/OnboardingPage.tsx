@@ -68,6 +68,7 @@ import { ERDViewer } from "@/components/ERDViewer";
 import { SpecEditor } from "@/components/SpecEditor";
 import { ProjectSettingsPage } from "./ProjectSettingsPage";
 import { QRCodeSVG } from "@/components/QRCodeSVG";
+import { TourOverlay } from "@/components/TourOverlay";
 
 // Memoized preview so it doesn't re-render while user types in the chat
 const MemoizedPreview = memo(function MemoizedPreview({
@@ -992,6 +993,11 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // Command palette state
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Onboarding tour state
+  const [showTour, setShowTour] = useState(() => {
+    return !localStorage.getItem("onboarding_completed");
+  });
 
   // Toast notification system
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -3469,7 +3475,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
                 {/* Template quick-start cards */}
                 <p className="mb-3 text-xs font-medium text-gray-500">Or start from a template:</p>
-                <div className="mb-8 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div data-tour="template-cards" className="mb-8 grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {[
                     { icon: "🏢", title: "CRM", detail: "Leads, deals, contacts & tracking", prompt: "Build me a CRM with leads, deals pipeline, contacts, and activity tracking" },
                     { icon: "🍕", title: "Restaurant", detail: "Menu, orders, tables & reservations", prompt: "Build me a restaurant management system with menu items, orders, tables, and reservations" },
@@ -3565,7 +3571,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             {/* Input area */}
             <div className="bg-white px-4 pb-6 pt-2">
               <div className="mx-auto w-full max-w-2xl">
-                <div className="rounded-2xl border border-gray-200 bg-white shadow-sm transition focus-within:border-gray-300 focus-within:shadow-md">
+                <div data-tour="chat-input" className="rounded-2xl border border-gray-200 bg-white shadow-sm transition focus-within:border-gray-300 focus-within:shadow-md">
                   <textarea
                     ref={textareaRef}
                     value={prompt}
@@ -3728,7 +3734,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         </div>
 
         {/* Navigation items */}
-        <nav className="flex-1 space-y-0.5 px-2 py-2">
+        <nav data-tour="sidebar-nav" className="flex-1 space-y-0.5 px-2 py-2">
           {sidebarItems
             .filter((item) => item.id !== "chat")
             .map((item) => {
@@ -3778,7 +3784,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </button>
 
             {isDev && (
-              <div className="relative" ref={dropdownRef}>
+              <div data-tour="model-selector" className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setModelOpen(!modelOpen)}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-black transition hover:bg-gray-100"
@@ -3847,7 +3853,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </button>
 
           {/* Profile menu */}
-          <div className="relative" ref={profileRef}>
+          <div data-tour="profile-menu" className="relative" ref={profileRef}>
             <button
               onClick={() => setProfileOpen(!profileOpen)}
               className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 transition hover:bg-gray-200 dark:hover:bg-gray-700"
@@ -4022,6 +4028,11 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Onboarding tour for first-time users */}
+      {showTour && projectsLoaded && chatSessions.length === 0 && activeView === "chat" && (
+        <TourOverlay onComplete={() => setShowTour(false)} />
       )}
 
       {/* Toast notifications */}
