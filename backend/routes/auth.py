@@ -245,3 +245,51 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
     await db.commit()
 
     return {"message": "Password updated successfully."}
+
+
+@router.post("/seed-test-account")
+async def seed_test_account(db: AsyncSession = Depends(get_db)):
+    """One-time endpoint to create a test account with unlimited builds. Remove after use."""
+    from models.subscription import Subscription
+
+    # Check if already exists
+    result = await db.execute(select(User).where(User.email == "test@isibi.ai"))
+    existing = result.scalar_one_or_none()
+    if existing:
+        return {"message": "Test account already exists", "email": "test@isibi.ai", "password": "TestPass123!"}
+
+    org_id = uuid.uuid4()
+    user_id = uuid.uuid4()
+
+    user = User(
+        id=user_id,
+        org_id=org_id,
+        first_name="Test",
+        last_name="Admin",
+        email="test@isibi.ai",
+        password_hash=_hash_password("TestPass123!"),
+        account_type_col="developer",
+        email_verified=True,
+        role="admin",
+        status="active",
+    )
+    db.add(user)
+
+    sub = Subscription(
+        id=uuid.uuid4(),
+        org_id=org_id,
+        plan="teams",
+        status="active",
+        builds_used=0,
+        builds_limit=99999,
+    )
+    db.add(sub)
+
+    await db.commit()
+    return {
+        "message": "Test account created!",
+        "email": "test@isibi.ai",
+        "password": "TestPass123!",
+        "account_type": "developer",
+        "plan": "teams (unlimited)",
+    }
