@@ -53,7 +53,6 @@ async def test_custom_domain_verify_no_auth(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_gallery_list_public(client):
     """GET /api/gallery should work without auth (public endpoint)."""
     response = await client.get("/api/gallery")
@@ -61,7 +60,6 @@ async def test_gallery_list_public(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_components_list_public(client):
     """GET /api/components should return 200 (public listing)."""
     response = await client.get("/api/components")
@@ -69,7 +67,6 @@ async def test_components_list_public(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_plugins_list_public(client):
     """GET /api/plugins should return 200 (public listing)."""
     response = await client.get("/api/plugins")

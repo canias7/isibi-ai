@@ -20,15 +20,12 @@ Usage — add to main.py:
 
 import os
 import time
+import json
 import logging
 from typing import Optional
 
 # Disable rate limiting during tests
 RATE_LIMIT_DISABLED = os.getenv("TESTING", "").lower() in ("1", "true", "yes")
-
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import JSONResponse
 
 logger = logging.getLogger(__name__)
 
@@ -56,13 +53,15 @@ _request_log: dict[tuple[str, str], list[float]] = {}
 _request_counter = 0
 
 
-def _get_client_ip(request: Request) -> str:
-    """Extract the client IP, respecting X-Forwarded-For if present."""
-    forwarded = request.headers.get("x-forwarded-for")
+def _get_client_ip(scope: dict) -> str:
+    """Extract the client IP from ASGI scope, respecting X-Forwarded-For if present."""
+    headers = dict(scope.get("headers", []))
+    forwarded = headers.get(b"x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
-    if request.client:
-        return request.client.host
+        return forwarded.decode().split(",")[0].strip()
+    client = scope.get("client")
+    if client:
+        return client[0]
     return "unknown"
 
 
@@ -107,18 +106,46 @@ async def _get_redis_count(redis_client, ip: str, prefix: str) -> int:
     return int(count) if count else 0
 
 
-class RateLimiterMiddleware(BaseHTTPMiddleware):
-    """Rate limiter with Redis support, falling back to in-memory."""
+async def _send_json_response(send, status_code: int, body: dict, extra_headers: list[tuple[bytes, bytes]] | None = None):
+    """Send a JSON response via raw ASGI send."""
+    body_bytes = json.dumps(body).encode("utf-8")
+    headers = [
+        (b"content-type", b"application/json"),
+        (b"content-length", str(len(body_bytes)).encode()),
+    ]
+    if extra_headers:
+        headers.extend(extra_headers)
+    await send({
+        "type": "http.response.start",
+        "status": status_code,
+        "headers": headers,
+    })
+    await send({
+        "type": "http.response.body",
+        "body": body_bytes,
+    })
 
-    async def dispatch(self, request: Request, call_next):
+
+class RateLimiterMiddleware:
+    """Pure ASGI rate limiter with Redis support, falling back to in-memory."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
         global _request_counter
 
         # Skip rate limiting during tests
         if RATE_LIMIT_DISABLED:
-            return await call_next(request)
+            await self.app(scope, receive, send)
+            return
 
-        path = request.url.path
-        ip = _get_client_ip(request)
+        path = scope.get("path", "/")
+        ip = _get_client_ip(scope)
         now = time.time()
 
         prefix, limit = _get_rate_limit(path)
@@ -138,15 +165,17 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                         "Rate limit exceeded (Redis): ip=%s prefix=%s limit=%d",
                         ip, prefix, limit,
                     )
-                    return JSONResponse(
-                        status_code=429,
-                        content={
+                    await _send_json_response(
+                        send, 429,
+                        {
                             "detail": "Too many requests. Please try again later.",
                             "retry_after": WINDOW_SECONDS,
                         },
-                        headers={"Retry-After": str(WINDOW_SECONDS)},
+                        extra_headers=[(b"retry-after", str(WINDOW_SECONDS).encode())],
                     )
-                return await call_next(request)
+                    return
+                await self.app(scope, receive, send)
+                return
             except Exception as e:
                 logger.warning("Redis rate limit check failed: %s. Falling back to in-memory.", e)
 
@@ -168,18 +197,18 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                 "Rate limit exceeded: ip=%s prefix=%s count=%d limit=%d",
                 ip, prefix, len(timestamps), limit,
             )
-            return JSONResponse(
-                status_code=429,
-                content={
+            await _send_json_response(
+                send, 429,
+                {
                     "detail": "Too many requests. Please try again later.",
                     "retry_after": retry_after,
                 },
-                headers={"Retry-After": str(retry_after)},
+                extra_headers=[(b"retry-after", str(retry_after).encode())],
             )
+            return
 
         # Record this request
         timestamps.append(now)
         _request_log[key] = timestamps
 
-        response = await call_next(request)
-        return response
+        await self.app(scope, receive, send)

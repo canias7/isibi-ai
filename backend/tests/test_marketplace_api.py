@@ -6,7 +6,6 @@ FAKE_ID = "00000000-0000-0000-0000-000000000000"
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_list_marketplace_empty(client):
     """GET /api/template-marketplace should return 200 (public listing)."""
     response = await client.get("/api/template-marketplace")
@@ -14,7 +13,6 @@ async def test_list_marketplace_empty(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_list_marketplace_with_search(client):
     """Search query param should be accepted."""
     response = await client.get("/api/template-marketplace", params={"search": "crm"})
@@ -22,7 +20,6 @@ async def test_list_marketplace_with_search(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_list_marketplace_with_category(client):
     """Category query param should be accepted."""
     response = await client.get("/api/template-marketplace", params={"category": "business"})
@@ -51,7 +48,6 @@ async def test_purchase_no_auth(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_get_nonexistent_template(client):
     """GET /api/template-marketplace/{fake_id} should return 404 or auth error."""
     response = await client.get(f"/api/template-marketplace/{FAKE_ID}")
@@ -73,7 +69,6 @@ async def test_delete_template_no_auth(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_marketplace_sort_options(client):
     """sort_by query param should be accepted."""
     response = await client.get("/api/template-marketplace", params={"sort_by": "newest"})

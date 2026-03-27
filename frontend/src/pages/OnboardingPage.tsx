@@ -1071,37 +1071,131 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [shareInviting, setShareInviting] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [shareInviteSuccess, setShareInviteSuccess] = useState(false);
+  const [wsReconnecting, setWsReconnecting] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
 
-  // Poll presence every 10 seconds when a project is loaded
+  // WebSocket real-time collab: presence + spec sync
   useEffect(() => {
     if (!builtProjectId) {
       setPresenceUsers([]);
+      setWsReconnecting(false);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
       return;
     }
+
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     let cancelled = false;
-    const fetchPresence = async () => {
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const wsBase = (import.meta.env.VITE_API_URL as string | undefined)
+      ?.replace("https://", "wss://")
+      .replace("http://", "ws://")
+      .replace("/api", "") || "ws://localhost:8000";
+
+    const connect = () => {
+      if (cancelled) return;
+      const ws = new WebSocket(`${wsBase}/ws/projects/${builtProjectId}?token=${token}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        if (!cancelled) setWsReconnecting(false);
+      };
+
+      ws.onmessage = (event) => {
+        if (cancelled) return;
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === "presence" && Array.isArray(msg.users)) {
+            setPresenceUsers(msg.users.map((u: any) => ({
+              user_id: u.user_id,
+              name: u.name,
+              color: u.color,
+              is_self: false,
+              is_editing: false,
+              last_active: new Date().toISOString(),
+            })));
+          } else if (msg.type === "spec_update" && msg.value != null) {
+            // Another user changed the spec — update locally
+            _setBuiltSpec((prev: any) => {
+              if (!prev) return prev;
+              if (msg.path) {
+                // Partial update at path (not used yet, but ready)
+                return { ...prev, [msg.path]: msg.value };
+              }
+              // Full spec replacement
+              return typeof msg.value === "object" ? msg.value : prev;
+            });
+          } else if (msg.type === "cursor") {
+            // Update presence indicator for the editing user
+            if (msg.user) {
+              setEditingUser({ name: msg.user.split(" ")[0], visible: true });
+              setTimeout(() => {
+                if (!cancelled) setEditingUser((prev) => prev ? { ...prev, visible: false } : null);
+              }, 5000);
+            }
+          }
+        } catch {
+          // Ignore malformed messages
+        }
+      };
+
+      ws.onclose = () => {
+        wsRef.current = null;
+        if (!cancelled) {
+          setWsReconnecting(true);
+          reconnectTimer = setTimeout(connect, 3000);
+        }
+      };
+
+      ws.onerror = () => {
+        // onclose will fire after onerror
+      };
+    };
+
+    connect();
+
+    // Also do an initial REST fetch for presence (in case WS takes a moment)
+    (async () => {
       try {
         const data = await get<PresenceUser[]>(`/collab/${builtProjectId}/presence`);
         if (!cancelled && data) {
           setPresenceUsers(data);
-          // Check if someone else is editing
-          const editor = data.find((u) => u.is_editing && !u.is_self);
-          if (editor) {
-            setEditingUser({ name: editor.name.split(" ")[0], visible: true });
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-              if (!cancelled) setEditingUser((prev) => prev ? { ...prev, visible: false } : null);
-            }, 5000);
-          }
         }
       } catch {
-        // Presence endpoint may not exist yet, ignore
+        // ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
       }
     };
-    fetchPresence();
-    const interval = setInterval(fetchPresence, 10000);
-    return () => { cancelled = true; clearInterval(interval); };
   }, [builtProjectId]);
+
+  // Send spec updates to WebSocket when builtSpec changes locally
+  const prevSpecRef = useRef<any>(null);
+  useEffect(() => {
+    if (!builtSpec || !builtProjectId) {
+      prevSpecRef.current = builtSpec;
+      return;
+    }
+    // Skip the initial set (when prevSpecRef is null or same ref)
+    if (prevSpecRef.current !== null && prevSpecRef.current !== builtSpec) {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "spec_update", value: builtSpec }));
+      }
+    }
+    prevSpecRef.current = builtSpec;
+  }, [builtSpec, builtProjectId]);
 
   // (Old comingSoonToast effect removed — now using addToast system)
 
@@ -2112,6 +2206,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             <div className="mr-2 flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-2 py-0.5">
               <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
               <span className="text-[10px] font-medium text-blue-700">{editingUser.name} is editing</span>
+            </div>
+          )}
+          {/* WebSocket reconnecting banner */}
+          {wsReconnecting && (
+            <div className="mr-2 flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5">
+              <RefreshCw className="h-3 w-3 text-amber-600 animate-spin" />
+              <span className="text-[10px] font-medium text-amber-700">Reconnecting...</span>
             </div>
           )}
           <div className="flex items-center rounded-lg border border-gray-200 bg-gray-50 p-0.5">

@@ -21,9 +21,10 @@ def test_cache_module_imports():
 
 
 def test_cache_middleware_class_exists():
-    """ResponseCacheMiddleware should be a proper middleware class."""
+    """ResponseCacheMiddleware should be a proper ASGI middleware class."""
     from middleware.cache import ResponseCacheMiddleware
-    assert hasattr(ResponseCacheMiddleware, "dispatch")
+    mw = ResponseCacheMiddleware(app=None)
+    assert callable(mw)
 
 
 # ── Cache behaviour via HTTP ─────────────────────────────────────────

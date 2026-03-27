@@ -21,10 +21,6 @@ import hashlib
 import logging
 from typing import Any
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import Response
-
 logger = logging.getLogger(__name__)
 
 # ── Skip patterns — never cache these ────────────────────────────────
@@ -38,7 +34,7 @@ _SPEC_CONFIG_PATTERNS = ("/schema", "/spec", "/config", "/settings", "/preferenc
 
 # ── In-memory cache store (fallback) ────────────────────────────────
 # key -> (response_body, status_code, headers_list, expires_at)
-_cache: dict[str, tuple[bytes, int, list[tuple[str, str]], float]] = {}
+_cache: dict[str, tuple[bytes, int, list[tuple[bytes, bytes]], float]] = {}
 
 # path_prefix -> set of cache keys (for invalidation)
 _prefix_index: dict[str, set[str]] = {}
@@ -114,7 +110,7 @@ async def _redis_cache_get(redis_client, cache_key: str):
         return (
             data["body"].encode("latin-1"),
             data["status_code"],
-            [(h[0], h[1]) for h in data["headers"]],
+            [(h[0].encode(), h[1].encode()) for h in data["headers"]],
         )
     except Exception as e:
         logger.debug("Redis cache GET failed: %s", e)
@@ -122,13 +118,13 @@ async def _redis_cache_get(redis_client, cache_key: str):
 
 
 async def _redis_cache_set(redis_client, cache_key: str, body: bytes, status_code: int,
-                            headers: list[tuple[str, str]], ttl: int):
+                            headers: list[tuple[bytes, bytes]], ttl: int):
     """Store response in Redis with TTL."""
     try:
         data = json.dumps({
             "body": body.decode("latin-1"),
             "status_code": status_code,
-            "headers": headers,
+            "headers": [[h[0].decode(), h[1].decode()] for h in headers],
         })
         await redis_client.setex(f"cache:{cache_key}", ttl, data)
     except Exception as e:
@@ -137,7 +133,6 @@ async def _redis_cache_set(redis_client, cache_key: str, body: bytes, status_cod
 
 async def _redis_invalidate_prefix(redis_client, path: str):
     """Invalidate Redis cache keys matching a path prefix pattern."""
-    # We use a prefix-index set in Redis to track which cache keys belong to a prefix
     prefix = _get_path_prefix(path)
     idx_key = f"cache_idx:{hashlib.md5(prefix.encode()).hexdigest()}"
     try:
@@ -164,9 +159,37 @@ async def _redis_index_add(redis_client, cache_key: str, path: str, ttl: int):
         logger.debug("Redis index add failed: %s", e)
 
 
-class ResponseCacheMiddleware(BaseHTTPMiddleware):
+def _get_header(headers_list: list, name: bytes) -> bytes | None:
+    """Get a header value from ASGI headers list."""
+    for h_name, h_value in headers_list:
+        if h_name.lower() == name.lower():
+            return h_value
+    return None
+
+
+async def _send_cached_response(send, body: bytes, status_code: int,
+                                 headers: list[tuple[bytes, bytes]], ttl: int, hit: bool):
+    """Send a cached response via raw ASGI."""
+    resp_headers = list(headers)
+    resp_headers.append((b"x-cache", b"HIT" if hit else b"MISS"))
+    resp_headers.append((b"cache-control", f"private, max-age={ttl}".encode()))
+    resp_headers.append((b"content-type", b"application/json"))
+    resp_headers.append((b"content-length", str(len(body)).encode()))
+
+    await send({
+        "type": "http.response.start",
+        "status": status_code,
+        "headers": resp_headers,
+    })
+    await send({
+        "type": "http.response.body",
+        "body": body,
+    })
+
+
+class ResponseCacheMiddleware:
     """
-    Middleware that caches GET responses with Redis support.
+    Pure ASGI middleware that caches GET responses with Redis support.
 
     - GET requests: check cache first, store response if miss
     - POST/PATCH/DELETE: invalidate cached entries for the same path prefix
@@ -174,13 +197,21 @@ class ResponseCacheMiddleware(BaseHTTPMiddleware):
     - Falls back to in-memory when Redis is unavailable
     """
 
-    async def dispatch(self, request: Request, call_next) -> Response:
-        path = request.url.path
-        method = request.method.upper()
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "/")
+        method = scope.get("method", "GET").upper()
 
         # Skip non-cacheable paths
         if _should_skip(path):
-            return await call_next(request)
+            await self.app(scope, receive, send)
+            return
 
         # Get Redis client (may be None)
         try:
@@ -197,20 +228,22 @@ class ResponseCacheMiddleware(BaseHTTPMiddleware):
                     await _redis_invalidate_prefix(redis_client, path)
                 except Exception:
                     pass
-            return await call_next(request)
+            await self.app(scope, receive, send)
+            return
 
         # Only cache GET requests
         if method != "GET":
-            return await call_next(request)
+            await self.app(scope, receive, send)
+            return
 
         # Extract org_id from auth header for cache key isolation
         org_id = ""
-        auth_header = request.headers.get("authorization", "")
+        headers_raw = dict(scope.get("headers", []))
+        auth_header = headers_raw.get(b"authorization", b"")
         if auth_header:
-            # Use a hash of the auth token as org identifier
-            org_id = hashlib.md5(auth_header.encode()).hexdigest()[:12]
+            org_id = hashlib.md5(auth_header).hexdigest()[:12]
 
-        query_string = str(request.url.query) if request.url.query else ""
+        query_string = scope.get("query_string", b"").decode()
         cache_key = _make_cache_key(path, query_string, org_id)
         ttl = _get_ttl(path)
 
@@ -220,16 +253,8 @@ class ResponseCacheMiddleware(BaseHTTPMiddleware):
                 cached = await _redis_cache_get(redis_client, cache_key)
                 if cached is not None:
                     body, status_code, headers_list = cached
-                    response = Response(
-                        content=body,
-                        status_code=status_code,
-                        media_type="application/json",
-                    )
-                    for header_name, header_value in headers_list:
-                        response.headers[header_name] = header_value
-                    response.headers["X-Cache"] = "HIT"
-                    response.headers["Cache-Control"] = f"private, max-age={ttl}"
-                    return response
+                    await _send_cached_response(send, body, status_code, headers_list, ttl, hit=True)
+                    return
             except Exception as e:
                 logger.debug("Redis cache check failed: %s", e)
 
@@ -240,38 +265,50 @@ class ResponseCacheMiddleware(BaseHTTPMiddleware):
             body, status_code, headers_list, expires_at = cached
             if expires_at > now:
                 # Cache HIT
-                response = Response(
-                    content=body,
-                    status_code=status_code,
-                    media_type="application/json",
-                )
-                for header_name, header_value in headers_list:
-                    response.headers[header_name] = header_value
-                response.headers["X-Cache"] = "HIT"
-                response.headers["Cache-Control"] = f"private, max-age={ttl}"
-                return response
+                await _send_cached_response(send, body, status_code, headers_list, ttl, hit=True)
+                return
             else:
                 # Expired — remove
                 _cache.pop(cache_key, None)
 
-        # Cache MISS — call downstream
-        response = await call_next(request)
+        # Cache MISS — call downstream, capture response
+        response_started = False
+        response_status = 0
+        response_headers: list[tuple[bytes, bytes]] = []
+        body_parts: list[bytes] = []
+
+        async def send_wrapper(message):
+            nonlocal response_started, response_status, response_headers
+
+            if message["type"] == "http.response.start":
+                response_started = True
+                response_status = message.get("status", 200)
+                response_headers = list(message.get("headers", []))
+                # Add cache headers and forward
+                out_headers = list(response_headers)
+                out_headers.append((b"x-cache", b"MISS"))
+                out_headers.append((b"cache-control", f"private, max-age={ttl}".encode()))
+                await send({
+                    "type": "http.response.start",
+                    "status": response_status,
+                    "headers": out_headers,
+                })
+            elif message["type"] == "http.response.body":
+                body_chunk = message.get("body", b"")
+                if body_chunk:
+                    body_parts.append(body_chunk)
+                await send(message)
+
+        await self.app(scope, receive, send_wrapper)
 
         # Only cache successful JSON responses
-        if response.status_code == 200:
-            # Read response body
-            body_parts: list[bytes] = []
-            async for chunk in response.body_iterator:
-                if isinstance(chunk, str):
-                    body_parts.append(chunk.encode())
-                else:
-                    body_parts.append(chunk)
+        if response_status == 200 and body_parts:
             body = b"".join(body_parts)
 
-            # Collect response headers to preserve
+            # Collect response headers to preserve (skip content-type/content-length)
             preserve_headers = []
-            for name, value in response.headers.items():
-                if name.lower() in ("content-type", "content-length"):
+            for name, value in response_headers:
+                if name.lower() in (b"content-type", b"content-length"):
                     continue
                 preserve_headers.append((name, value))
 
@@ -279,7 +316,7 @@ class ResponseCacheMiddleware(BaseHTTPMiddleware):
             if redis_client:
                 try:
                     await _redis_cache_set(redis_client, cache_key, body,
-                                           response.status_code, preserve_headers, ttl)
+                                           response_status, preserve_headers, ttl)
                     await _redis_index_add(redis_client, cache_key, path, ttl)
                 except Exception as e:
                     logger.debug("Redis cache store failed: %s", e)
@@ -296,26 +333,10 @@ class ResponseCacheMiddleware(BaseHTTPMiddleware):
                     for k in oldest_keys:
                         _cache.pop(k, None)
 
-            _cache[cache_key] = (body, response.status_code, preserve_headers, expires_at)
+            _cache[cache_key] = (body, response_status, preserve_headers, expires_at)
 
             # Index by path prefix for invalidation
             prefix = _get_path_prefix(path)
             if prefix not in _prefix_index:
                 _prefix_index[prefix] = set()
             _prefix_index[prefix].add(cache_key)
-
-            # Return new response with cache headers
-            new_response = Response(
-                content=body,
-                status_code=response.status_code,
-                media_type="application/json",
-            )
-            for name, value in preserve_headers:
-                new_response.headers[name] = value
-            new_response.headers["X-Cache"] = "MISS"
-            new_response.headers["Cache-Control"] = f"private, max-age={ttl}"
-            return new_response
-
-        # Non-200 responses pass through
-        response.headers["X-Cache"] = "SKIP"
-        return response

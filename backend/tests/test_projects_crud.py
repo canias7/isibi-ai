@@ -31,7 +31,6 @@ async def test_create_project_no_auth(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_list_projects_empty(client):
     """GET /api/projects with valid auth should return 200 and a list."""
     token = _make_test_token()
@@ -45,7 +44,6 @@ async def test_list_projects_empty(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_get_nonexistent_project(client):
     """GET /api/projects/{random_uuid} should return 404."""
     token = _make_test_token()
@@ -58,7 +56,6 @@ async def test_get_nonexistent_project(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_delete_nonexistent_project(client):
     """DELETE /api/projects/{random_uuid} should return 404."""
     token = _make_test_token()

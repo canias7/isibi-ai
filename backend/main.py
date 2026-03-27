@@ -175,26 +175,52 @@ _SKIP_HOSTS = {
 }
 
 
-@app.middleware("http")
-async def custom_domain_middleware(request: StarletteRequest, call_next):
-    """If the Host header matches a registered custom domain, serve that project's HTML."""
-    host = (request.headers.get("host") or "").split(":")[0].lower()
-    if (
-        host in _SKIP_HOSTS
-        or request.url.path.startswith("/api")
-        or request.url.path.startswith("/ws")
-        or request.url.path.startswith("/live")
-        or request.url.path.startswith("/health")
-    ):
-        return await call_next(request)
+class CustomDomainMiddleware:
+    """Pure ASGI middleware: if the Host header matches a registered custom domain, serve that project's HTML."""
 
-    project_id = get_project_id_for_domain(host)
-    if project_id:
-        data = await _get_build_data(project_id)
-        if data and "index_html" in data:
-            return HTMLResponse(content=data["index_html"])
+    def __init__(self, app):
+        self.app = app
 
-    return await call_next(request)
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "/")
+        headers_dict = dict(scope.get("headers", []))
+        host_raw = headers_dict.get(b"host", b"").decode()
+        host = host_raw.split(":")[0].lower()
+
+        if (
+            host in _SKIP_HOSTS
+            or path.startswith("/api")
+            or path.startswith("/ws")
+            or path.startswith("/live")
+            or path.startswith("/health")
+        ):
+            await self.app(scope, receive, send)
+            return
+
+        project_id = get_project_id_for_domain(host)
+        if project_id:
+            data = await _get_build_data(project_id)
+            if data and "index_html" in data:
+                body = data["index_html"].encode("utf-8")
+                await send({
+                    "type": "http.response.start",
+                    "status": 200,
+                    "headers": [
+                        (b"content-type", b"text/html; charset=utf-8"),
+                        (b"content-length", str(len(body)).encode()),
+                    ],
+                })
+                await send({"type": "http.response.body", "body": body})
+                return
+
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(CustomDomainMiddleware)
 
 
 # ── Register all routers via the registry ──

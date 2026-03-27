@@ -47,7 +47,6 @@ async def test_barcode_lookup_no_auth(client):
 
 
 @pytest.mark.asyncio
-@pytest.mark.xfail(reason="BaseHTTPMiddleware async DB event loop")
 async def test_file_serve_nonexistent(client):
     """GET /api/files/{id} for a nonexistent file should return 404."""
     response = await client.get(f"/api/files/{FAKE_UUID}")
