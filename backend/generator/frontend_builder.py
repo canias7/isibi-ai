@@ -25,7 +25,9 @@ def _write(base_dir: str, rel_path: str, content: str):
 
 def _snake(name: str) -> str:
     """PascalCase -> snake_case."""
-    return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
+    if not name:
+        return "unknown"
+    return re.sub(r"(?<!^)(?=[A-Z])", "_", str(name)).lower()
 
 
 def _field_input_type(field: dict) -> str:
@@ -379,7 +381,7 @@ def _gen_layout(app_name: str, modules: list, primary: str) -> str:
     breadcrumb_entries = [{"path": "/", "label": "Dashboard"}]
     for mod in modules:
         label = mod.get("label", mod.get("name", "Module"))
-        entity = mod.get("entity", label)
+        entity = mod.get("entity") or mod.get("name") or label
         slug = _snake(entity).replace("_", "-")
         icon = mod.get("icon", "")
         nav_items.append({"label": label, "href": f"/{slug}", "icon": icon})
