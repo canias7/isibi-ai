@@ -55,19 +55,17 @@ async def deploy_app(project_id: str, spec: dict, db: AsyncSession) -> dict:
     html_content = generate_full_app_html(spec, api_base_url, project_id)
     html_content = _inject_plugins(html_content, spec, project_id)
 
-    # Fix quote escaping in generated JS.
-    # The f-string outputs \'' (backslash + two quotes) in onclick string builders,
-    # creating '' (two adjacent string literals) which is a JS parse error.
-    # Also outputs '\' (quote + backslash + quote) at closing positions.
-    # Fix: replace \'' with just ' and '\' with just '
-    # These only appear in the JS code for building onclick HTML strings.
+    # Fix quote escaping in generated JS onclick builders.
+    # The f-string outputs \'' (backslash+quote+quote) which creates broken JS.
+    # Replace with &#39; (HTML entity for ') so the browser renders proper quotes
+    # in onclick attribute values: onclick="showModule(&#39;Dashboard&#39;)"
     import re as _re
     def _fix_js_quotes(match):
         js = match.group(1)
-        # \'' (3 chars: backslash, quote, quote) -> ' (single quote)
-        js = js.replace("\\''", "'")
-        # '\' (3 chars: quote, backslash, quote) -> ' (single quote)
-        js = js.replace("'\\'", "'")
+        # \'' -> &#39; (opening quote in onclick)
+        js = js.replace("\\''", "&#39;")
+        # '\' -> &#39; (closing quote in onclick)
+        js = js.replace("'\\'", "&#39;")
         return "<script>" + js + "</script>"
     html_content = _re.sub(r"<script>(.*?)</script>", _fix_js_quotes, html_content, flags=_re.DOTALL)
 
