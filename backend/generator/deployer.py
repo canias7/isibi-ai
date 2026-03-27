@@ -49,7 +49,7 @@ async def deploy_app(project_id: str, spec: dict, db: AsyncSession) -> dict:
     spec.setdefault("design_system", {})
 
     # Determine the base URL for the API (used by the generated app)
-    api_base_url = os.getenv("API_BASE_URL", "")
+    api_base_url = os.getenv("API_BASE_URL") or os.getenv("APP_HOST") or "https://api.isibi.ai"
 
     # Generate the full standalone HTML (with plugin injection)
     html_content = generate_full_app_html(spec, api_base_url, project_id)
