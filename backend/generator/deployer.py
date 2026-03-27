@@ -6668,9 +6668,9 @@ window._renderMobileCards = function(entity, moduleName, rows) {{
       '<div class="mobile-card-title">' + escHtml(String(title)) + statusHtml + '</div>' +
       '<div class="mobile-card-fields">' + fieldsHtml + '</div>' +
       '<div class="mobile-card-actions">' +
-        '<button onclick="showDetail(\'' + escHtml(entity) + '\',' + id + ')">View</button>' +
-        '<button onclick="openEdit(\'' + escHtml(entity) + '\',' + id + ')">Edit</button>' +
-        '<button onclick="confirmDelete(\'' + escHtml(entity) + '\',' + id + ')" style="color:var(--danger)">Delete</button>' +
+        '<button onclick="showDetail(' + "'" + escHtml(entity) + "'" + ',' + id + ')">View</button>' +
+        '<button onclick="openEdit(' + "'" + escHtml(entity) + "'" + ',' + id + ')">Edit</button>' +
+        '<button onclick="confirmDelete(' + "'" + escHtml(entity) + "'" + ',' + id + ')" style="color:var(--danger)">Delete</button>' +
       '</div>' +
     '</div>';
   }});
