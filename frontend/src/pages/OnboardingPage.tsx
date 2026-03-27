@@ -54,7 +54,7 @@ import {
   ChevronRight,
   Sparkles,
 } from "lucide-react";
-import { post, get } from "@/api/client";
+import { post, get, del } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
@@ -343,19 +343,22 @@ function getRelativeTime(date: Date): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** Sidebar project list with search, grouping, and status dots */
+/** Sidebar project list with search, grouping, status dots, entity count, and delete */
 function SidebarProjectList({
   chatSessions,
   activeChatId,
   onLoadChat,
   onClone,
+  onDelete,
 }: {
   chatSessions: ChatSession[];
   activeChatId: string | null;
   onLoadChat: (s: ChatSession) => void;
   onClone?: (s: ChatSession) => void;
+  onDelete?: (s: ChatSession) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const filtered = search.trim()
     ? chatSessions.filter((s) => s.title.toLowerCase().includes(search.toLowerCase()))
@@ -379,46 +382,103 @@ function SidebarProjectList({
             placeholder="Search projects..."
             className="w-full bg-transparent text-[12px] text-black placeholder-gray-400 focus:outline-none"
           />
+          {search && (
+            <button onClick={() => setSearch("")} className="shrink-0 text-gray-400 hover:text-gray-600">
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
       </div>
       <div className="max-h-56 space-y-1 overflow-y-auto">
         {groups.length === 0 && (
-          <p className="px-2 py-2 text-[11px] text-gray-400">No matching projects</p>
+          <p className="px-2 py-2 text-[11px] text-gray-400">
+            {search.trim() ? "No projects match your search" : "No projects yet"}
+          </p>
         )}
         {groups.map((group) => (
           <div key={group.label}>
             <p className="px-2.5 pt-1.5 pb-0.5 text-[9px] font-semibold uppercase tracking-wider text-gray-400">
               {group.label}
             </p>
-            {group.sessions.map((session) => (
-              <div key={session.id} className="group/proj flex items-center">
-                <button
-                  onClick={() => onLoadChat(session)}
-                  className={`flex flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition ${
-                    activeChatId === session.id
-                      ? "bg-white font-medium text-black shadow-sm"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                >
-                  <div className={`h-2 w-2 shrink-0 rounded-full ${
-                    session.deployUrl ? "bg-green-500" : session.spec ? "bg-green-400" : "bg-amber-400"
-                  }`} title={session.deployUrl ? "Deployed" : session.spec ? "Built" : "In progress"} />
-                  <span className="truncate flex-1">{session.title}</span>
-                  <span className="shrink-0 text-[10px] text-gray-400">
-                    {getRelativeTime(new Date(session.createdAt))}
-                  </span>
-                </button>
-                {onClone && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onClone(session); }}
-                    className="ml-0.5 hidden shrink-0 rounded p-1 text-gray-400 transition hover:bg-gray-200 hover:text-black group-hover/proj:flex items-center justify-center"
-                    title="Duplicate project"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            ))}
+            {group.sessions.map((session) => {
+              const entityCount = session.spec?.entities?.length ?? 0;
+              const isConfirming = confirmDeleteId === session.id;
+
+              return (
+                <div key={session.id}>
+                  {isConfirming ? (
+                    <div className="mx-1 my-0.5 rounded-lg border border-red-200 bg-red-50 p-2">
+                      <p className="text-[11px] text-red-700 font-medium mb-1.5">
+                        Delete {session.title}? This cannot be undone.
+                      </p>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => {
+                            setConfirmDeleteId(null);
+                            onDelete?.(session);
+                          }}
+                          className="rounded bg-red-600 px-2.5 py-1 text-[11px] font-medium text-white hover:bg-red-700 transition"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="rounded bg-white border border-gray-200 px-2.5 py-1 text-[11px] text-gray-600 hover:bg-gray-50 transition"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group/proj flex items-center">
+                      <button
+                        onClick={() => onLoadChat(session)}
+                        className={`flex flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition ${
+                          activeChatId === session.id
+                            ? "bg-white font-medium text-black shadow-sm"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div className={`h-2 w-2 shrink-0 rounded-full ${
+                          session.deployUrl ? "bg-green-500" : session.spec ? "bg-amber-400" : "bg-gray-400"
+                        }`} title={session.deployUrl ? "Deployed" : session.spec ? "Built" : "Generating"} />
+                        <span className="truncate flex-1">{session.title}</span>
+                        <span className="flex items-center gap-1.5 shrink-0">
+                          {entityCount > 0 && (
+                            <span className="rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-500" title={`${entityCount} entities`}>
+                              {entityCount}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-gray-400">
+                            {getRelativeTime(new Date(session.createdAt))}
+                          </span>
+                        </span>
+                      </button>
+                      <div className="hidden shrink-0 items-center group-hover/proj:flex">
+                        {onClone && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onClone(session); }}
+                            className="rounded p-1 text-gray-400 transition hover:bg-gray-200 hover:text-black"
+                            title="Duplicate project"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(session.id); }}
+                            className="rounded p-1 text-gray-400 transition hover:bg-red-100 hover:text-red-600"
+                            title="Delete project"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         ))}
       </div>
@@ -1078,34 +1138,25 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     }
   };
 
-  const deleteProject = async (sessionId: string, projectId: string | null) => {
+  const deleteProject = async (session: ChatSession) => {
+    const sessionId = session.id;
+    const projectId = session.projectId;
+
     // Remove from local state
     setChatSessions((prev) => prev.filter((s) => s.id !== sessionId));
 
     // If it has a project ID, delete from server too
     if (projectId) {
       try {
-        await post(`/projects/${projectId}/delete`, {});
+        await del(`/projects/${projectId}`);
       } catch {
-        // Try DELETE method
-        try {
-          const { del } = await import("@/api/client");
-          await del(`/projects/${projectId}`);
-        } catch {
-          // Ignore — already removed from UI
-        }
+        // Ignore — already removed from UI
       }
     }
 
-    // If we just deleted the active chat, reset
+    // If we just deleted the active chat, reset to new chat
     if (activeChatId === sessionId) {
-      setMessages([]);
-      setActiveChatId(null);
-      setBuiltSpec(null);
-      setBuiltProjectId(null);
-      setDeployUrl(null);
-      setLivePreview(false);
-      setLivePreviewError(null);
+      startNewChat();
     }
   };
 
@@ -2835,7 +2886,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                             onClick={(e) => {
                               e.stopPropagation();
                               if (confirm("Delete this project? This cannot be undone.")) {
-                                deleteProject(session.id, session.projectId);
+                                deleteProject(session);
                               }
                             }}
                             className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-300 opacity-0 transition hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
@@ -3193,6 +3244,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             activeChatId={activeChatId}
             onLoadChat={loadChat}
             onClone={cloneProject}
+            onDelete={deleteProject}
           />
         )}
 

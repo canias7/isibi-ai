@@ -183,7 +183,7 @@ export function LandingPage() {
             </button>
           </div>
 
-          {/* Animated mockup */}
+          {/* Animated mockup — typing → building → finished app, 8s loop */}
           <div className="mx-auto mt-16 max-w-4xl">
             <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-black/10">
               {/* Browser chrome */}
@@ -200,41 +200,93 @@ export function LandingPage() {
                 {/* Chat side */}
                 <div className="w-2/5 border-r border-gray-100 p-4 sm:p-6 bg-gray-50/50">
                   <div className="space-y-4">
-                    <div className="rounded-lg bg-white border border-gray-100 px-3 py-2 text-xs text-gray-600 shadow-sm">
-                      Build me a project management app with kanban boards
+                    {/* Typing chat bubble */}
+                    <div className="rounded-lg bg-white border border-gray-100 px-3 py-2 text-xs text-gray-600 shadow-sm overflow-hidden">
+                      <span className="demo-typing">Build me a CRM for real estate</span>
                     </div>
-                    <div className="rounded-lg px-3 py-2 text-xs text-white" style={{ backgroundColor: "#ec4899" }}>
+                    {/* AI response — appears after typing */}
+                    <div className="rounded-lg px-3 py-2 text-xs text-white demo-ai-response" style={{ backgroundColor: "#ec4899" }}>
                       <p className="font-medium">Building your app...</p>
                       <p className="mt-1 opacity-80">Creating database schema, API endpoints, and UI components</p>
                     </div>
+                    {/* Build steps */}
                     <div className="space-y-2">
-                      {["Database tables created", "API routes generated", "UI components built", "Deploying..."].map((item, i) => (
-                        <div key={item} className="flex items-center gap-2 text-xs text-gray-500" style={{ animation: `fadeSlideIn 0.5s ease ${i * 0.3 + 1}s both` }}>
+                      {["Database tables created", "API routes generated", "UI components built", "Deployed!"].map((item, i) => (
+                        <div key={item} className={`flex items-center gap-2 text-xs text-gray-500 demo-step demo-step-${i}`}>
                           <span className="text-green-500">&#10003;</span> {item}
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
-                {/* Preview side */}
-                <div className="w-3/5 p-4 sm:p-6">
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Preview</span>
-                    <span className="rounded-full px-2 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 border border-green-200">Live</span>
+                {/* Preview side — code lines → finished app */}
+                <div className="w-3/5 p-4 sm:p-6 relative overflow-hidden">
+                  {/* Phase 2: Code lines building */}
+                  <div className="demo-code-phase absolute inset-0 p-4 sm:p-6">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Generating...</span>
+                      <span className="demo-pulse rounded-full px-2 py-0.5 text-[10px] font-medium text-yellow-700 bg-yellow-50 border border-yellow-200">Building</span>
+                    </div>
+                    <div className="space-y-1.5 font-mono text-[10px] text-gray-400">
+                      {[
+                        "CREATE TABLE contacts (",
+                        "  id UUID PRIMARY KEY,",
+                        "  name TEXT NOT NULL,",
+                        "  email VARCHAR(255),",
+                        "  company TEXT,",
+                        "  deal_value NUMERIC,",
+                        "  status TEXT DEFAULT 'lead',",
+                        ");",
+                        "",
+                        "GET  /api/contacts",
+                        "POST /api/contacts",
+                        "GET  /api/deals",
+                        "POST /api/deals",
+                      ].map((line, i) => (
+                        <div key={i} className={`demo-code-line demo-code-line-${i}`}>
+                          <span className="text-pink-400 mr-2">{i < 8 ? "SQL" : "API"}</span>
+                          {line}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                  {/* Fake kanban */}
-                  <div className="grid grid-cols-3 gap-2">
-                    {["To Do", "In Progress", "Done"].map((col) => (
-                      <div key={col} className="rounded-lg bg-gray-50 p-2">
-                        <p className="text-[10px] font-semibold text-gray-500 mb-2">{col}</p>
-                        {[1, 2].map((card) => (
-                          <div key={card} className="mb-1.5 rounded bg-white p-2 shadow-sm border border-gray-100">
-                            <div className="h-1.5 rounded-full bg-gray-200 w-full mb-1" />
-                            <div className="h-1.5 rounded-full bg-gray-100 w-3/4" />
+
+                  {/* Phase 3: Finished app */}
+                  <div className="demo-app-phase">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Live Preview</span>
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-medium text-green-700 bg-green-50 border border-green-200">Live</span>
+                    </div>
+                    <div className="flex gap-2 min-h-[240px]">
+                      {/* Mini sidebar */}
+                      <div className="w-20 rounded-lg bg-gray-50 p-2 hidden sm:block">
+                        {["Dashboard", "Contacts", "Deals", "Pipeline"].map((item, i) => (
+                          <div key={item} className={`rounded px-2 py-1.5 text-[9px] mb-1 ${i === 0 ? "text-white font-medium" : "text-gray-400"}`} style={i === 0 ? { backgroundColor: "#ec4899" } : {}}>
+                            {item}
                           </div>
                         ))}
                       </div>
-                    ))}
+                      {/* Main area */}
+                      <div className="flex-1">
+                        <div className="grid grid-cols-3 gap-1.5 mb-3">
+                          {["$340K", "89", "24"].map((val, i) => (
+                            <div key={i} className="rounded-lg border border-gray-100 bg-white p-2 text-center">
+                              <p className="text-xs font-bold" style={{ color: "#ec4899" }}>{val}</p>
+                              <p className="text-[8px] text-gray-400">{["Revenue", "Contacts", "Deals"][i]}</p>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="space-y-1.5">
+                          {[1, 2, 3].map((row) => (
+                            <div key={row} className="flex items-center gap-2 rounded border border-gray-100 bg-white p-2">
+                              <div className="h-5 w-5 rounded-full bg-pink-100 shrink-0" />
+                              <div className="flex-1"><div className="h-1.5 w-16 rounded bg-gray-200 mb-0.5" /><div className="h-1 w-10 rounded bg-gray-100" /></div>
+                              <div className="h-4 w-12 rounded-full bg-green-50 border border-green-200" />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -248,6 +300,124 @@ export function LandingPage() {
         </div>
 
         <style>{`
+          /* ── 8-second demo animation loop ── */
+
+          /* Phase 1 (0–2s): Typing animation in chat bubble */
+          .demo-typing {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid #ec4899;
+            width: 0;
+            animation: demoType 1.8s steps(32, end) 0s forwards,
+                       demoBlink 0.5s step-end infinite,
+                       demoReset 8s linear infinite;
+          }
+          @keyframes demoType {
+            from { width: 0; }
+            to { width: 100%; }
+          }
+          @keyframes demoBlink {
+            50% { border-color: transparent; }
+          }
+          @keyframes demoReset {
+            0%, 95% { opacity: 1; }
+            97% { opacity: 0; }
+            100% { opacity: 1; }
+          }
+
+          /* Phase 1→2 (2s): AI response appears */
+          .demo-ai-response {
+            opacity: 0;
+            animation: demoFadeIn 0.4s ease 2s forwards, demoLoop 8s linear infinite;
+          }
+          @keyframes demoFadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes demoLoop {
+            0%, 20% { opacity: 0; }
+            28% { opacity: 1; }
+            92% { opacity: 1; }
+            97% { opacity: 0; }
+            100% { opacity: 0; }
+          }
+
+          /* Build steps appear one by one (2.5s–4s) */
+          .demo-step {
+            opacity: 0;
+            animation: demoStepLoop 8s linear infinite;
+          }
+          .demo-step-0 { animation-delay: 0s; }
+          .demo-step-1 { animation-delay: 0.3s; }
+          .demo-step-2 { animation-delay: 0.6s; }
+          .demo-step-3 { animation-delay: 0.9s; }
+          @keyframes demoStepLoop {
+            0%, 30% { opacity: 0; transform: translateX(-8px); }
+            35% { opacity: 1; transform: translateX(0); }
+            92% { opacity: 1; }
+            97% { opacity: 0; }
+            100% { opacity: 0; }
+          }
+
+          /* Phase 2 (2–5s): Code lines appear */
+          .demo-code-phase {
+            opacity: 0;
+            animation: demoCodePhase 8s linear infinite;
+          }
+          @keyframes demoCodePhase {
+            0%, 22% { opacity: 0; }
+            28% { opacity: 1; }
+            58% { opacity: 1; }
+            63% { opacity: 0; }
+            100% { opacity: 0; }
+          }
+          .demo-code-line {
+            opacity: 0;
+            animation: demoCodeLine 8s linear infinite;
+          }
+          .demo-code-line-0 { animation-delay: 0s; }
+          .demo-code-line-1 { animation-delay: 0.12s; }
+          .demo-code-line-2 { animation-delay: 0.24s; }
+          .demo-code-line-3 { animation-delay: 0.36s; }
+          .demo-code-line-4 { animation-delay: 0.48s; }
+          .demo-code-line-5 { animation-delay: 0.6s; }
+          .demo-code-line-6 { animation-delay: 0.72s; }
+          .demo-code-line-7 { animation-delay: 0.84s; }
+          .demo-code-line-8 { animation-delay: 0.96s; }
+          .demo-code-line-9 { animation-delay: 1.08s; }
+          .demo-code-line-10 { animation-delay: 1.2s; }
+          .demo-code-line-11 { animation-delay: 1.32s; }
+          .demo-code-line-12 { animation-delay: 1.44s; }
+          @keyframes demoCodeLine {
+            0%, 25% { opacity: 0; transform: translateY(4px); }
+            30% { opacity: 1; transform: translateY(0); }
+            58% { opacity: 1; }
+            63% { opacity: 0; }
+            100% { opacity: 0; }
+          }
+
+          /* Phase 3 (5–8s): Finished app */
+          .demo-app-phase {
+            opacity: 0;
+            animation: demoAppPhase 8s linear infinite;
+          }
+          @keyframes demoAppPhase {
+            0%, 60% { opacity: 0; transform: scale(0.98); }
+            65% { opacity: 1; transform: scale(1); }
+            92% { opacity: 1; transform: scale(1); }
+            97% { opacity: 0; transform: scale(0.98); }
+            100% { opacity: 0; }
+          }
+
+          .demo-pulse {
+            animation: demoPulse 1s ease-in-out infinite;
+          }
+          @keyframes demoPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+          }
+
           @keyframes fadeSlideIn {
             from { opacity: 0; transform: translateX(-8px); }
             to { opacity: 1; transform: translateX(0); }
@@ -439,6 +609,61 @@ export function LandingPage() {
                 </Link>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────── HOW IT COMPARES ──────────────── */}
+      <section id="compare" data-animate className={`py-24 bg-gray-50/50 ${fadeIn("compare")}`}>
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="text-center mb-16">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Comparison</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
+              How isibi.ai compares
+            </h2>
+            <p className="mt-4 text-gray-500">See why builders choose us over the alternatives.</p>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm border-collapse">
+              <thead>
+                <tr>
+                  <th className="text-left py-4 px-4 font-semibold text-gray-500 border-b border-gray-200 w-1/5" />
+                  <th className="py-4 px-4 font-bold border-b-2 text-center w-1/5" style={{ borderColor: "#ec4899", color: "#ec4899", backgroundColor: "rgba(236,72,153,0.04)" }}>
+                    isibi.ai
+                  </th>
+                  <th className="py-4 px-4 font-semibold text-gray-500 border-b border-gray-200 text-center w-1/5">Lovable</th>
+                  <th className="py-4 px-4 font-semibold text-gray-500 border-b border-gray-200 text-center w-1/5">Bubble</th>
+                  <th className="py-4 px-4 font-semibold text-gray-500 border-b border-gray-200 text-center w-1/5">Retool</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { feature: "AI-Powered", isibi: true, lovable: true, bubble: false, retool: false },
+                  { feature: "No Code Required", isibi: true, lovable: true, bubble: true, retool: false },
+                  { feature: "Custom Database", isibi: true, lovable: false, bubble: true, retool: true },
+                  { feature: "Deploy Instantly", isibi: true, lovable: true, bubble: false, retool: false },
+                  { feature: "App Marketplace", isibi: true, lovable: false, bubble: true, retool: false },
+                  { feature: "Starts Free", isibi: true, lovable: false, bubble: false, retool: false },
+                ].map(({ feature, isibi, lovable, bubble, retool }, i) => (
+                  <tr key={feature} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                    <td className="py-3 px-4 font-medium text-gray-700 border-b border-gray-100">{feature}</td>
+                    <td className="py-3 px-4 text-center border-b border-gray-100" style={{ backgroundColor: "rgba(236,72,153,0.04)" }}>
+                      {isibi ? <span className="text-lg" style={{ color: "#ec4899" }}>&#10003;</span> : <span className="text-gray-300">&mdash;</span>}
+                    </td>
+                    <td className="py-3 px-4 text-center border-b border-gray-100">
+                      {lovable ? <span className="text-green-500">&#10003;</span> : <span className="text-gray-300">&mdash;</span>}
+                    </td>
+                    <td className="py-3 px-4 text-center border-b border-gray-100">
+                      {bubble ? <span className="text-green-500">&#10003;</span> : <span className="text-gray-300">&mdash;</span>}
+                    </td>
+                    <td className="py-3 px-4 text-center border-b border-gray-100">
+                      {retool ? <span className="text-green-500">&#10003;</span> : <span className="text-gray-300">&mdash;</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

@@ -1,115 +1,201 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 export function BuildEcommercePage() {
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
+
+  useEffect(() => {
+    document.title = "Build E-commerce Software in Minutes | isibi.ai";
+    const meta = document.querySelector('meta[name="description"]');
+    if (meta) {
+      meta.setAttribute("content", "Build a custom online store with AI. Product catalog, shopping cart, checkout, order management, and analytics — no coding required. Deploy in minutes with isibi.ai.");
+    } else {
+      const newMeta = document.createElement("meta");
+      newMeta.name = "description";
+      newMeta.content = "Build a custom online store with AI. Product catalog, shopping cart, checkout, order management, and analytics — no coding required. Deploy in minutes with isibi.ai.";
+      document.head.appendChild(newMeta);
+    }
+    return () => { document.title = "isibi.ai"; };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white text-black">
-      {/* Hero */}
-      <section className="max-w-4xl mx-auto px-6 pt-24 pb-16 text-center">
-        <div className="text-5xl mb-6">
-          <span role="img" aria-label="shopping cart">&#x1F6D2;</span>
-        </div>
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Build an E-commerce App with AI
-        </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
-          Describe your online store and let isibi.ai generate a complete
-          e-commerce application with product catalog, cart, checkout, and
-          order management.
-        </p>
-        <Link
-          to="/signup"
-          className="inline-block bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-        >
-          Start Building Free
-        </Link>
-      </section>
+    <div className="min-h-screen bg-white text-black" style={{ fontFamily: "'Inter', sans-serif" }}>
 
-      {/* Features */}
-      <section className="max-w-4xl mx-auto px-6 py-16">
-        <h2 className="text-2xl font-bold mb-8 text-center">
-          Full-featured e-commerce in minutes
-        </h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          {[
-            {
-              icon: "\u{1F4E6}",
-              title: "Product Catalog",
-              desc: "Manage products with images, variants, pricing, and inventory tracking. Bulk import via CSV.",
-            },
-            {
-              icon: "\u{1F6D2}",
-              title: "Shopping Cart & Checkout",
-              desc: "Seamless cart experience with Stripe-powered checkout. Support for discounts and promo codes.",
-            },
-            {
-              icon: "\u{1F4CB}",
-              title: "Order Management",
-              desc: "Track orders from placement to fulfillment. Automated email notifications at every stage.",
-            },
-            {
-              icon: "\u{1F4B3}",
-              title: "Payments & Analytics",
-              desc: "Integrated payment processing with real-time revenue dashboards and sales analytics.",
-            },
-          ].map((f) => (
-            <div key={f.title} className="border border-gray-200 rounded-lg p-6">
-              <div className="text-2xl mb-3">{f.icon}</div>
-              <h3 className="font-semibold text-lg mb-2">{f.title}</h3>
-              <p className="text-gray-600 text-sm">{f.desc}</p>
-            </div>
-          ))}
+      {/* ── NAV ── */}
+      <nav className="fixed top-0 z-50 w-full bg-white/90 backdrop-blur border-b border-gray-100">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <Link to="/" className="text-xl font-bold tracking-tight">
+            isibi<span className="text-gray-400">.ai</span>
+          </Link>
+          <Link to="/signup" className="rounded-lg bg-pink-500 px-5 py-2 text-sm font-medium text-white hover:bg-pink-600 transition">
+            Get started
+          </Link>
+        </div>
+      </nav>
+
+      {/* ── HERO ── */}
+      <section className="relative pt-32 pb-20 px-6 text-center overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-pink-50/60 to-white" />
+        <div className="relative z-10 mx-auto max-w-4xl">
+          <p className="text-sm font-semibold uppercase tracking-widest text-pink-500 mb-4">AI-Powered Store Builder</p>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight tracking-tight">
+            Build Your <span style={{ color: "#ec4899" }}>E-commerce Store</span> in Minutes
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-500 leading-relaxed">
+            Describe your online store and our AI builds it — product catalog, shopping cart, checkout flow, order management, and analytics. No coding. No templates. Fully custom.
+          </p>
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link to="/signup" className="rounded-xl px-8 py-4 text-sm font-semibold text-white shadow-lg hover:shadow-xl hover:brightness-110 transition" style={{ backgroundColor: "#ec4899" }}>
+              Start Building Your Store — Free
+            </Link>
+            <Link to="/#how-it-works" className="rounded-xl border-2 border-black px-8 py-4 text-sm font-semibold text-black hover:bg-black hover:text-white transition">
+              See How It Works
+            </Link>
+          </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="bg-gray-50 py-16">
-        <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-2xl font-bold mb-10 text-center">How It Works</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+      {/* ── 6 FEATURE BULLETS ── */}
+      <section className="py-20 bg-gray-50/50">
+        <div className="mx-auto max-w-7xl px-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 text-center">Features</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-center sm:text-4xl">Full-featured e-commerce in minutes</h2>
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              {
-                step: "1",
-                title: "Describe",
-                desc: "Tell us what you sell, your brand style, and what features matter most to your store.",
-              },
-              {
-                step: "2",
-                title: "Preview",
-                desc: "See your store come to life instantly. Tweak the design, layout, and features in real time.",
-              },
-              {
-                step: "3",
-                title: "Deploy",
-                desc: "Go live with one click. Connect your domain and start accepting orders immediately.",
-              },
-            ].map((s) => (
-              <div key={s.step} className="text-center">
-                <div className="w-10 h-10 rounded-full bg-black text-white flex items-center justify-center mx-auto mb-4 font-bold">
-                  {s.step}
-                </div>
-                <h3 className="font-semibold text-lg mb-2">{s.title}</h3>
-                <p className="text-gray-600 text-sm">{s.desc}</p>
+              { icon: "\u{1F4E6}", title: "Product Catalog", desc: "Manage products with images, variants, pricing tiers, and inventory tracking. Bulk import via CSV with one click." },
+              { icon: "\u{1F6D2}", title: "Shopping Cart & Checkout", desc: "Seamless add-to-cart experience with multi-step checkout, promo codes, shipping calculator, and tax handling." },
+              { icon: "\u{1F4B3}", title: "Payment Processing", desc: "Integrated Stripe and PayPal support. Handle subscriptions, one-time payments, refunds, and invoices." },
+              { icon: "\u{1F4CB}", title: "Order Management", desc: "Track orders from placement to fulfillment. Automated status emails, packing slips, and return handling." },
+              { icon: "\u{1F4CA}", title: "Sales Analytics", desc: "Real-time revenue dashboards, conversion funnels, top-selling products, and customer lifetime value reports." },
+              { icon: "\u{1F50D}", title: "SEO & Marketing", desc: "Auto-generated meta tags, sitemap, product schema markup, and built-in discount and coupon engine." },
+            ].map((f) => (
+              <div key={f.title} className="group rounded-2xl border border-gray-200 bg-white p-6 transition hover:border-pink-200 hover:shadow-lg hover:shadow-pink-500/5">
+                <div className="text-3xl mb-4">{f.icon}</div>
+                <h3 className="text-base font-bold">{f.title}</h3>
+                <p className="mt-1 text-sm text-gray-500">{f.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Footer */}
-      <section className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <h2 className="text-3xl font-bold mb-4">
-          Launch your online store today
-        </h2>
-        <p className="text-gray-600 mb-8">
-          No developers needed. Build, customize, and deploy your e-commerce app with AI.
-        </p>
-        <Link
-          to="/signup"
-          className="inline-block bg-black text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-800 transition-colors"
-        >
-          Get Started for Free
-        </Link>
+      {/* ── WHAT YOU GET ── */}
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 text-center">What You Get</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-center sm:text-4xl">A complete store, ready to sell</h2>
+          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { icon: "\u{1F4BB}", label: "Admin Dashboard", desc: "Manage products, orders, and customers from a single beautiful dashboard" },
+              { icon: "\u{1F5C2}", label: "Full CRUD", desc: "Create, edit, and organize products, categories, customers, and orders" },
+              { icon: "\u{1F4F1}", label: "Mobile Storefront", desc: "Responsive storefront that looks great on any device — phone, tablet, or desktop" },
+              { icon: "\u{1F4C8}", label: "Analytics", desc: "Revenue charts, conversion tracking, and exportable reports for data-driven decisions" },
+            ].map((item) => (
+              <div key={item.label} className="text-center">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-pink-50 text-3xl">{item.icon}</div>
+                <h3 className="font-bold text-lg">{item.label}</h3>
+                <p className="mt-2 text-sm text-gray-500">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
+
+      {/* ── SEE IT IN ACTION ── */}
+      <section className="py-20 bg-gray-50/50">
+        <div className="mx-auto max-w-5xl px-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 text-center">See It In Action</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-center sm:text-4xl">Your store, built by AI</h2>
+          <div className="mt-12 mx-auto max-w-4xl">
+            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl shadow-black/10">
+              <div className="flex items-center gap-2 border-b border-gray-100 bg-gray-50 px-4 py-3">
+                <span className="h-3 w-3 rounded-full bg-red-400" />
+                <span className="h-3 w-3 rounded-full bg-yellow-400" />
+                <span className="h-3 w-3 rounded-full bg-green-400" />
+                <div className="ml-3 flex-1 rounded-md bg-white px-3 py-1 text-xs text-gray-400 border border-gray-100">my-store.isibi.ai</div>
+              </div>
+              <div className="flex min-h-[320px]">
+                <div className="w-48 border-r border-gray-100 bg-gray-50 p-4 hidden sm:block">
+                  {["Dashboard", "Products", "Orders", "Customers", "Discounts", "Settings"].map((item, i) => (
+                    <div key={item} className={`rounded-lg px-3 py-2 text-xs mb-1 ${i === 0 ? "bg-pink-500 text-white font-medium" : "text-gray-500 hover:bg-gray-100"}`}>{item}</div>
+                  ))}
+                </div>
+                <div className="flex-1 p-4 sm:p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div><div className="h-2 w-20 rounded bg-gray-300 mb-1" /><div className="h-1.5 w-32 rounded bg-gray-200" /></div>
+                    <div className="h-7 w-24 rounded-lg bg-pink-500" />
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {["$8.2K", "142", "23"].map((val, i) => (
+                      <div key={i} className="rounded-lg border border-gray-100 bg-white p-3 text-center">
+                        <p className="text-sm font-bold" style={{ color: "#ec4899" }}>{val}</p>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{["Revenue", "Orders", "Products"][i]}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-2">
+                    {[1, 2, 3, 4].map((row) => (
+                      <div key={row} className="flex items-center gap-3 rounded-lg border border-gray-100 bg-white p-2.5">
+                        <div className="h-8 w-8 rounded-lg bg-pink-50 border border-pink-100" />
+                        <div className="flex-1"><div className="h-1.5 w-20 rounded bg-gray-200 mb-1" /><div className="h-1 w-14 rounded bg-gray-100" /></div>
+                        <div className="text-xs font-medium text-gray-400">$29.99</div>
+                        <div className="h-5 w-14 rounded-full bg-green-50 border border-green-200" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="py-20">
+        <div className="mx-auto max-w-3xl px-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 text-center">FAQ</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-center sm:text-4xl">E-commerce questions, answered</h2>
+          <div className="mt-12 space-y-3">
+            {[
+              { q: "Can I accept real payments through my store?", a: "Yes. The generated store integrates with Stripe for payment processing. You connect your own Stripe account and start accepting credit cards, Apple Pay, and Google Pay immediately." },
+              { q: "Can I manage product variants like size and color?", a: "Absolutely. The AI generates a full variant system — sizes, colors, materials, or any custom attribute. Each variant gets its own price, SKU, and inventory count." },
+              { q: "How does this compare to Shopify?", a: "isibi.ai builds a store tailored exactly to your needs — no monthly platform fees eating into your margins. You own the code, customize freely, and deploy anywhere. Perfect for businesses that want full control without the Shopify tax." },
+            ].map((item, i) => (
+              <div key={i} className="rounded-xl border border-gray-200 bg-white overflow-hidden transition hover:border-gray-300">
+                <button onClick={() => setFaqOpen(faqOpen === i ? null : i)} className="flex w-full items-center justify-between px-6 py-4 text-left">
+                  <span className="text-sm font-semibold text-black pr-4">{item.q}</span>
+                  <svg className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${faqOpen === i ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ${faqOpen === i ? "max-h-60 pb-4" : "max-h-0"}`}>
+                  <p className="px-6 text-sm leading-relaxed text-gray-500">{item.a}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── BOTTOM CTA ── */}
+      <section className="py-24 bg-gray-50/50">
+        <div className="mx-auto max-w-4xl px-6 text-center">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-5xl">Launch your online store today</h2>
+          <p className="mx-auto mt-4 max-w-md text-gray-500">No credit card required. Describe your store and start selling in minutes.</p>
+          <div className="mt-10">
+            <Link to="/signup" className="inline-block rounded-xl px-12 py-4 text-base font-semibold text-white shadow-lg hover:shadow-xl hover:brightness-110 transition" style={{ backgroundColor: "#ec4899" }}>
+              Start Building Your Store — Free
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <footer className="border-t border-gray-200 bg-white py-8">
+        <div className="mx-auto max-w-7xl px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <span className="text-sm font-bold">isibi<span className="text-gray-400">.ai</span></span>
+          <p className="text-xs text-gray-400">&copy; 2026 isibi.ai. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

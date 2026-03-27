@@ -23,6 +23,7 @@ from fastapi.responses import HTMLResponse
 from db import engine, Base, async_session
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_logger import RequestLoggerMiddleware
+from middleware.cache import ResponseCacheMiddleware
 from utils.errors import global_exception_handler
 from router_registry import register_all_routers
 
@@ -116,6 +117,11 @@ async def lifespan(app: FastAPI):
         await scheduler_task
     except asyncio.CancelledError:
         pass
+
+    # Close all schema connection pools
+    from generator.app_db import close_all_pools
+    await close_all_pools()
+
     await engine.dispose()
     logger.info("Database engine closed")
 
@@ -136,6 +142,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Response caching (must be before rate limiter so cached responses skip it)
+app.add_middleware(ResponseCacheMiddleware)
 
 # Rate limiting
 app.add_middleware(RateLimiterMiddleware)

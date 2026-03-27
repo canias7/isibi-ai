@@ -33,6 +33,7 @@ from worker.slack_worker import send_slack_notification
 from utils.sanitize import sanitize_dict, sanitize_sql_identifier
 from models.app_auto_assign_rule import AppAutoAssignRule
 from models.app_duplicate_rule import AppDuplicateRule
+from models.app_activity_entry import AppActivityEntry
 
 logger = logging.getLogger(__name__)
 
@@ -320,6 +321,44 @@ async def _apply_auto_assign(
         logger.warning("Auto-assign commit failed: %s", e)
 
 
+# ── Activity Logging ─────────────────────────────────────────────────
+
+async def _log_activity(
+    project_id: str,
+    table_name: str,
+    record_id: str,
+    action: str,
+    db: AsyncSession,
+    changes: dict | None = None,
+) -> None:
+    """Auto-log an activity entry after create/update/delete."""
+    try:
+        if action == "updated" and changes:
+            # Log one entry per changed field for granular tracking
+            for field, vals in changes.items():
+                entry = AppActivityEntry(
+                    project_id=UUID(project_id),
+                    table_name=table_name,
+                    record_id=record_id,
+                    action=action,
+                    field_name=field,
+                    old_value=str(vals.get("from", "")) if vals.get("from") is not None else None,
+                    new_value=str(vals.get("to", "")) if vals.get("to") is not None else None,
+                )
+                db.add(entry)
+        else:
+            entry = AppActivityEntry(
+                project_id=UUID(project_id),
+                table_name=table_name,
+                record_id=record_id,
+                action=action,
+            )
+            db.add(entry)
+        await db.commit()
+    except Exception as e:
+        logger.warning("Activity log error for %s/%s: %s", table_name, record_id, e)
+
+
 # ── LIST rows ────────────────────────────────────────────────────────
 
 @router.get("/{project_id}/data/{table_name}")
@@ -327,7 +366,7 @@ async def list_rows(
     project_id: UUID,
     table_name: str,
     page: int = Query(1, ge=1),
-    page_size: int = Query(50, ge=1, le=200),
+    page_size: int = Query(50, ge=1, le=500),
     sort_by: str = Query("id", description="Column to sort by"),
     sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
     db: AsyncSession = Depends(get_db),
@@ -342,24 +381,29 @@ async def list_rows(
 
     await _ensure_table_exists(str(project_id), table)
 
+    # Enforce hard LIMIT cap for safety (default 100, max 500)
+    effective_page_size = min(page_size, 500)
+
     conn = await _get_raw_connection(DATABASE_URL)
     try:
         await conn.execute(f'SET search_path TO "{schema}"')
 
-        # Count total rows (excluding soft-deleted)
+        # Optimized COUNT(*): uses deleted_at IS NULL filter which benefits from
+        # a partial index: CREATE INDEX idx_{table}_active ON {table} (id) WHERE deleted_at IS NULL
         count_row = await conn.fetchrow(
             f'SELECT COUNT(*) as total FROM "{table}" WHERE "deleted_at" IS NULL'
         )
         total = count_row["total"] if count_row else 0
 
-        # Fetch page
-        offset = (page - 1) * page_size
+        # Fetch page with explicit LIMIT (capped at 500)
+        # Index hint: ensure index on (deleted_at, {sort_col}) for best performance
+        offset = (page - 1) * effective_page_size
         rows = await conn.fetch(
             f'SELECT * FROM "{table}" '
             f'WHERE "deleted_at" IS NULL '
             f'ORDER BY "{sort_col}" {sort_dir.upper()} '
             f"LIMIT $1 OFFSET $2",
-            page_size,
+            effective_page_size,
             offset,
         )
 
@@ -367,9 +411,9 @@ async def list_rows(
             "data": [_row_to_dict(r) for r in rows],
             "pagination": {
                 "page": page,
-                "page_size": page_size,
+                "page_size": effective_page_size,
                 "total": total,
-                "total_pages": max(1, (total + page_size - 1) // page_size),
+                "total_pages": max(1, (total + effective_page_size - 1) // effective_page_size),
             },
         }
     finally:
@@ -491,6 +535,12 @@ async def create_row(
         except Exception as e:
             logger.warning("Slack fire error on create: %s", e)
 
+        # Log activity: record created
+        try:
+            await _log_activity(str(project_id), table, row_data.get("id", ""), "created", db)
+        except Exception as e:
+            logger.warning("Activity log error on create: %s", e)
+
         # Merge duplicate warnings into response if any
         if duplicate_warnings:
             row_data.update(duplicate_warnings)
@@ -558,6 +608,12 @@ async def update_row(
     try:
         await conn.execute(f'SET search_path TO "{schema}"')
 
+        # Fetch old values before updating (for activity log change tracking)
+        old_row = await conn.fetchrow(
+            f'SELECT * FROM "{table}" WHERE "id" = $1 AND "deleted_at" IS NULL',
+            row_id,
+        )
+
         row = await conn.fetchrow(
             f'UPDATE "{table}" SET {set_clause} '
             f'WHERE "id" = {id_param} AND "deleted_at" IS NULL '
@@ -568,6 +624,22 @@ async def update_row(
             raise HTTPException(status_code=404, detail="Row not found")
 
         row_data = _row_to_dict(row)
+
+        # Build changes dict for activity log
+        changes = {}
+        if old_row:
+            old_dict = _row_to_dict(dict(old_row))
+            for field in safe_data:
+                old_val = old_dict.get(field)
+                new_val = row_data.get(field)
+                if str(old_val) != str(new_val):
+                    changes[field] = {"from": old_val, "to": new_val}
+
+        # Log activity: record updated
+        try:
+            await _log_activity(str(project_id), table, row_id, "updated", db, changes=changes or None)
+        except Exception as e:
+            logger.warning("Activity log error on update: %s", e)
 
         # Fire email triggers for record update
         await fire_email_triggers(str(project_id), "record_updated", table, row_data, db)
@@ -640,6 +712,12 @@ async def delete_row(
             await _fire_slack_notifications(str(project_id), "record_deleted", table, {"id": row_id}, db)
         except Exception as e:
             logger.warning("Slack fire error on delete: %s", e)
+
+        # Log activity: record deleted
+        try:
+            await _log_activity(str(project_id), table, row_id, "deleted", db)
+        except Exception as e:
+            logger.warning("Activity log error on delete: %s", e)
 
     finally:
         await conn.close()

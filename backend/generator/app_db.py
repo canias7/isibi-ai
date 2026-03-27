@@ -8,6 +8,8 @@ generated apps while keeping everything in a single PostgreSQL database.
 """
 
 import re
+import time
+import asyncio
 import logging
 from uuid import UUID
 
@@ -83,6 +85,120 @@ def map_spec_type_to_sql(db_type: str) -> str:
     return stripped
 
 
+# ── Connection Pool Cache ────────────────────────────────────────────
+
+_POOL_SIZE_PER_SCHEMA = 3
+_MAX_TOTAL_POOLS = 50
+_POOL_IDLE_TIMEOUT_SECONDS = 600  # 10 minutes
+
+# schema_name → (pool, last_used_timestamp)
+_schema_pools: dict[str, tuple[asyncpg.Pool, float]] = {}
+_pool_lock = asyncio.Lock()
+
+
+def _make_raw_dsn(db_url: str) -> str:
+    """Convert a SQLAlchemy-style URL to a plain PostgreSQL DSN."""
+    raw = db_url
+    if "+asyncpg" in raw:
+        raw = raw.replace("+asyncpg", "")
+    return raw
+
+
+async def _get_or_create_pool(schema: str, db_url: str) -> asyncpg.Pool:
+    """
+    Return a connection pool for the given schema. Creates one if it
+    doesn't exist yet. Evicts idle pools when the total exceeds the cap.
+    """
+    now = time.monotonic()
+
+    async with _pool_lock:
+        # Check for existing pool
+        if schema in _schema_pools:
+            pool, _ = _schema_pools[schema]
+            _schema_pools[schema] = (pool, now)
+            return pool
+
+        # Evict idle pools if at capacity
+        if len(_schema_pools) >= _MAX_TOTAL_POOLS:
+            idle_schemas = sorted(
+                _schema_pools.keys(),
+                key=lambda s: _schema_pools[s][1],
+            )
+            for idle_schema in idle_schemas:
+                if len(_schema_pools) < _MAX_TOTAL_POOLS:
+                    break
+                old_pool, last_used = _schema_pools[idle_schema]
+                if now - last_used > _POOL_IDLE_TIMEOUT_SECONDS:
+                    try:
+                        await old_pool.close()
+                    except Exception:
+                        pass
+                    del _schema_pools[idle_schema]
+                    logger.info("Evicted idle pool for schema %s", idle_schema)
+
+            # If still at capacity after evicting idle, evict the oldest
+            if len(_schema_pools) >= _MAX_TOTAL_POOLS:
+                oldest = min(_schema_pools.keys(), key=lambda s: _schema_pools[s][1])
+                old_pool, _ = _schema_pools[oldest]
+                try:
+                    await old_pool.close()
+                except Exception:
+                    pass
+                del _schema_pools[oldest]
+                logger.info("Evicted oldest pool for schema %s", oldest)
+
+        # Create new pool
+        dsn = _make_raw_dsn(db_url)
+
+        async def _init_conn(conn):
+            await conn.execute(f'SET search_path TO "{schema}"')
+
+        pool = await asyncpg.create_pool(
+            dsn,
+            min_size=1,
+            max_size=_POOL_SIZE_PER_SCHEMA,
+            init=_init_conn,
+        )
+        _schema_pools[schema] = (pool, now)
+        logger.info("Created pool for schema %s (total pools: %d)", schema, len(_schema_pools))
+        return pool
+
+
+async def cleanup_idle_pools() -> int:
+    """
+    Close pools that haven't been used in the last 10 minutes.
+    Returns the number of pools closed.
+    """
+    now = time.monotonic()
+    closed = 0
+    async with _pool_lock:
+        to_remove = []
+        for schema, (pool, last_used) in _schema_pools.items():
+            if now - last_used > _POOL_IDLE_TIMEOUT_SECONDS:
+                to_remove.append(schema)
+        for schema in to_remove:
+            pool, _ = _schema_pools.pop(schema)
+            try:
+                await pool.close()
+            except Exception:
+                pass
+            closed += 1
+            logger.info("Cleaned up idle pool for schema %s", schema)
+    return closed
+
+
+async def close_all_pools() -> None:
+    """Close all connection pools. Call on shutdown."""
+    async with _pool_lock:
+        for schema, (pool, _) in _schema_pools.items():
+            try:
+                await pool.close()
+            except Exception:
+                pass
+        _schema_pools.clear()
+        logger.info("All schema connection pools closed")
+
+
 # ── Schema helpers ───────────────────────────────────────────────────
 
 def _schema_name(project_id: str | UUID) -> str:
@@ -103,11 +219,9 @@ async def _get_raw_connection(db_url: str) -> asyncpg.Connection:
     """
     Get a raw asyncpg connection from a SQLAlchemy-style URL.
 
-    Converts postgresql+asyncpg://... → postgresql://...
+    Converts postgresql+asyncpg://... -> postgresql://...
     """
-    raw = db_url
-    if "+asyncpg" in raw:
-        raw = raw.replace("+asyncpg", "")
+    raw = _make_raw_dsn(db_url)
     return await asyncpg.connect(raw)
 
 
@@ -173,6 +287,25 @@ async def create_app_schema(
             logger.info("Creating table %s.%s", schema, table_name)
             await conn.execute(create_sql)
 
+            # Create performance indexes for common query patterns
+            # 1. Partial index on active rows (deleted_at IS NULL) for faster counts and listings
+            try:
+                await conn.execute(
+                    f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_active" '
+                    f'ON "{schema}"."{table_name}" ("id") WHERE "deleted_at" IS NULL'
+                )
+            except Exception:
+                pass  # Index creation is best-effort
+
+            # 2. Index on deleted_at for soft-delete filtering
+            try:
+                await conn.execute(
+                    f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_deleted_at" '
+                    f'ON "{schema}"."{table_name}" ("deleted_at")'
+                )
+            except Exception:
+                pass
+
     finally:
         await conn.close()
 
@@ -198,6 +331,15 @@ async def drop_app_schema(schema_name: str, db_url: str) -> None:
     finally:
         await conn.close()
 
+    # Also close the pool for this schema if it exists
+    async with _pool_lock:
+        if schema_name in _schema_pools:
+            pool, _ = _schema_pools.pop(schema_name)
+            try:
+                await pool.close()
+            except Exception:
+                pass
+
 
 async def get_schema_connection(
     project_id: str,
@@ -212,6 +354,24 @@ async def get_schema_connection(
     conn = await _get_raw_connection(db_url)
     await conn.execute(f'SET search_path TO "{schema}"')
     return conn
+
+
+async def get_schema_pool(
+    project_id: str,
+    db_url: str,
+) -> asyncpg.Pool:
+    """
+    Get a connection pool for the project's schema.
+
+    Usage:
+        pool = await get_schema_pool(project_id, db_url)
+        async with pool.acquire() as conn:
+            rows = await conn.fetch("SELECT * FROM my_table")
+
+    The pool automatically sets search_path on each connection.
+    """
+    schema = _schema_name(project_id)
+    return await _get_or_create_pool(schema, db_url)
 
 
 def get_schema_name(project_id: str | UUID) -> str:

@@ -189,6 +189,9 @@ def _register_collaboration_routers(app):
     app.include_router(collab_editing_router, prefix="/api")
     app.include_router(collab_ws_router)  # WebSocket at /ws/projects/{id}, no /api prefix
     app.include_router(app_google_sheets_router, prefix="/api")
+
+    from routes.app_calendar_export import router as app_calendar_export_router
+    app.include_router(app_calendar_export_router, prefix="/api")
     # Public embeds router (no auth, no /api prefix)
     app.include_router(app_embeds_public_router)
 
