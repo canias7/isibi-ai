@@ -224,6 +224,174 @@ _ENTITY_WORDS = frozenset({
     "recipe", "workout", "class", "room", "guest", "vehicle", "case",
 })
 
+# Domain detection keywords (domain -> keywords)
+_DOMAIN_MAP = {
+    "restaurant": {"restaurant", "menu", "order", "reservation", "table", "dish", "kitchen", "waiter", "chef", "dine", "food"},
+    "healthcare": {"patient", "doctor", "appointment", "clinic", "hospital", "medical", "health", "diagnosis", "prescription", "nurse"},
+    "education": {"student", "course", "class", "teacher", "grade", "enrollment", "school", "university", "lesson", "assignment"},
+    "ecommerce": {"product", "cart", "checkout", "shop", "store", "price", "inventory", "catalog", "shipping", "payment"},
+    "real_estate": {"property", "listing", "tenant", "lease", "landlord", "rent", "building", "apartment", "mortgage", "realtor"},
+    "fitness": {"workout", "exercise", "member", "gym", "trainer", "class", "session", "routine", "fitness", "membership"},
+    "crm": {"lead", "contact", "deal", "pipeline", "customer", "sales", "opportunity", "account", "prospect", "client"},
+    "project_management": {"task", "project", "sprint", "milestone", "board", "ticket", "issue", "backlog", "timeline", "deadline"},
+    "hospitality": {"guest", "room", "booking", "hotel", "checkin", "checkout", "amenity", "housekeeping", "concierge", "suite"},
+    "hr": {"employee", "payroll", "leave", "department", "recruitment", "onboarding", "performance", "attendance", "benefit", "salary"},
+}
+
+
+def _analyze_conversation_context(messages: list[dict]) -> dict:
+    """Analyze conversation messages to extract domain, entities, preferences, and build readiness.
+
+    Returns a dict with:
+        domain: detected domain (e.g. "restaurant")
+        entities_mentioned: list of entity words found in the conversation
+        preferences: dict of detected user preferences (roles, features, etc.)
+        ready_to_build: whether we have enough context to build
+        build_confidence: float 0-1 indicating confidence
+    """
+    all_user_text = " ".join(
+        m.get("content", "") for m in messages if m.get("role") == "user"
+    ).lower()
+    words = set(all_user_text.split())
+
+    # Detect domain
+    domain_scores: dict[str, int] = {}
+    for domain, keywords in _DOMAIN_MAP.items():
+        score = len(words & keywords)
+        if score > 0:
+            domain_scores[domain] = score
+    detected_domain = max(domain_scores, key=domain_scores.get) if domain_scores else "general"
+
+    # Detect entities mentioned
+    entities_mentioned = sorted(words & _ENTITY_WORDS)
+
+    # Detect preferences from conversation
+    preferences: dict = {}
+    # Roles
+    role_keywords = {"admin", "manager", "user", "viewer", "editor", "owner", "staff", "member"}
+    found_roles = words & role_keywords
+    if found_roles:
+        preferences["roles"] = ", ".join(sorted(found_roles))
+    # Feature keywords
+    feature_keywords = {
+        "reservations", "notifications", "reports", "analytics", "dashboard",
+        "calendar", "chat", "messaging", "export", "import", "search",
+        "filter", "automation", "workflow", "approval", "billing",
+        "invoicing", "scheduling", "tracking", "integration",
+    }
+    found_features = sorted(words & feature_keywords)
+    if found_features:
+        preferences["features"] = found_features
+
+    # Calculate build confidence
+    confidence = 0.0
+    user_msg_count = sum(1 for m in messages if m.get("role") == "user")
+
+    # Base confidence from message count
+    confidence += min(user_msg_count * 0.25, 0.5)
+    # Boost for detected domain
+    if detected_domain != "general":
+        confidence += 0.15
+    # Boost for entities mentioned
+    confidence += min(len(entities_mentioned) * 0.1, 0.3)
+    # Boost for detailed messages (word count)
+    if len(all_user_text.split()) > 15:
+        confidence += 0.15
+    # Boost for preferences
+    if preferences:
+        confidence += 0.1
+    # Cap at 1.0
+    confidence = min(confidence, 1.0)
+
+    ready_to_build = confidence > 0.7 and user_msg_count >= 2
+
+    return {
+        "domain": detected_domain,
+        "entities_mentioned": entities_mentioned,
+        "preferences": preferences,
+        "ready_to_build": ready_to_build,
+        "build_confidence": round(confidence, 2),
+    }
+
+
+def _build_conversation_summary(messages: list[dict]) -> str:
+    """Build a summary of prior conversation context for session continuity.
+
+    When a chat is loaded from conversation_history, this injects a summary
+    at the top so the AI can continue where it left off.
+    """
+    if len(messages) < 2:
+        return ""
+
+    ctx = _analyze_conversation_context(messages[:-1])  # Exclude the latest message
+    if ctx["domain"] == "general" and not ctx["entities_mentioned"]:
+        return ""
+
+    parts = [f"Previous context: User wants to build a {ctx['domain']} app"]
+    if ctx["entities_mentioned"]:
+        parts[0] += f" with {', '.join(ctx['entities_mentioned'])}"
+    parts[0] += "."
+
+    if ctx["preferences"]:
+        pref_parts = []
+        if ctx["preferences"].get("roles"):
+            pref_parts.append(f"roles: {ctx['preferences']['roles']}")
+        if ctx["preferences"].get("features"):
+            pref_parts.append(f"features: {', '.join(ctx['preferences']['features'])}")
+        if pref_parts:
+            parts.append(f"They prefer {'; '.join(pref_parts)}.")
+
+    return " ".join(parts)
+
+
+def _postprocess_reply(reply: str) -> str:
+    """Post-process the AI response for better formatting.
+
+    - Ensures numbered lists are formatted as option cards with [OPTIONS] tags
+    - Ensures questions have 3-4 options
+    - Splits [READY_TO_BUILD] from preceding text (handled in _handle_build)
+    """
+    # If response already has [OPTIONS], leave it alone
+    if "[OPTIONS]" in reply:
+        return reply
+
+    # Detect numbered lists that look like options (e.g. "1. Something\n2. Something")
+    numbered_pattern = re.compile(r"^(\d+)\.\s+(.+)$", re.MULTILINE)
+    numbered_matches = numbered_pattern.findall(reply)
+
+    if len(numbered_matches) >= 2 and "[READY_TO_BUILD]" not in reply:
+        # Convert numbered list into [OPTIONS] block
+        # Find the text before the first numbered item
+        first_match_pos = reply.find(f"{numbered_matches[0][0]}. {numbered_matches[0][1]}")
+        preamble = reply[:first_match_pos].strip() if first_match_pos > 0 else ""
+
+        # Build options with emojis
+        option_emojis = ["🔹", "🔸", "🔹", "🔸", "🔹"]
+        options = []
+        for i, (_, text) in enumerate(numbered_matches[:5]):
+            emoji = option_emojis[i % len(option_emojis)]
+            clean_text = text.strip().rstrip(".")
+            options.append(f"- {emoji} {clean_text}")
+
+        # Add a catch-all option if there isn't one
+        last_opt = options[-1].lower() if options else ""
+        if not any(kw in last_opt for kw in ["all", "everything", "surprise", "above"]):
+            options.append("- 🎯 All of the above — give me everything")
+
+        formatted = preamble + "\n\n[OPTIONS]\n" + "\n".join(options) + "\n[/OPTIONS]"
+        return formatted.strip()
+
+    # If the AI is asking a question but has no options, add default options
+    if "?" in reply and "[READY_TO_BUILD]" not in reply and len(reply.split()) < 80:
+        # Only add options for short question-style replies without existing structure
+        lines = reply.strip().split("\n")
+        has_bullets = any(line.strip().startswith(("-", "*", "•")) for line in lines)
+        if not has_bullets and len(lines) <= 5:
+            # Don't modify — the persona prompts handle this well enough
+            pass
+
+    return reply
+
 
 def _should_build_immediately(messages: list[dict]) -> bool:
     """Determine if AI should build now or ask a question.
@@ -430,8 +598,32 @@ async def api_chat(
     if prefs_prompt:
         system_prompt = system_prompt + "\n\n" + prefs_prompt
 
-    # Force build if conversation context is sufficient
-    if _should_build_immediately(body.messages):
+    # Analyze conversation context for smarter decisions
+    conv_context = _analyze_conversation_context(body.messages)
+
+    # Inject domain-specific RAG hints if domain is clear
+    if conv_context["domain"] != "general":
+        system_prompt = system_prompt + (
+            f"\n\n## Detected Context\n"
+            f"Domain: {conv_context['domain']}\n"
+            f"Entities mentioned: {', '.join(conv_context['entities_mentioned']) if conv_context['entities_mentioned'] else 'none yet'}\n"
+            f"Use this to reference the correct RAG specs and include these entities in the build."
+        )
+
+    # Inject entities into build prompt when user mentions specific ones
+    if conv_context["entities_mentioned"]:
+        system_prompt = system_prompt + (
+            f"\n\nThe user has mentioned these specific entities: {', '.join(conv_context['entities_mentioned'])}. "
+            "Include all of them in the generated app."
+        )
+
+    # Inject conversation summary for session continuity
+    conv_summary = _build_conversation_summary(body.messages)
+    if conv_summary:
+        system_prompt = system_prompt + "\n\n" + conv_summary
+
+    # Force build if conversation context is sufficient (either old heuristic or new context analysis)
+    if _should_build_immediately(body.messages) or conv_context["ready_to_build"]:
         system_prompt = (
             "IMPORTANT: Generate [READY_TO_BUILD] NOW with a summary. "
             "Do not ask any questions.\n\n" + system_prompt
@@ -448,6 +640,9 @@ async def api_chat(
         )
 
         reply = response.content[0].text.strip()
+
+        # Post-process reply for better formatting
+        reply = _postprocess_reply(reply)
 
     except anthropic.APIError as e:
         logger.error("Anthropic API error: %s", e)
@@ -655,15 +850,32 @@ def _get_user_error_message(error_type: str) -> str:
 
 
 def _build_full_prompt(messages: list[dict], summary: str) -> str:
-    """Combine conversation history into a single prompt for spec generation."""
+    """Combine conversation history into a single prompt for spec generation.
+
+    Enriches the prompt with conversation context analysis (domain, entities)
+    so the spec generator can produce more accurate results.
+    """
     user_messages = [m["content"] for m in messages if m["role"] == "user"]
+    ctx = _analyze_conversation_context(messages)
+
+    prompt_parts = []
+
+    # Add domain/entity context for better spec generation
+    if ctx["domain"] != "general" or ctx["entities_mentioned"]:
+        context_line = f"Domain: {ctx['domain']}."
+        if ctx["entities_mentioned"]:
+            context_line += f" Key entities: {', '.join(ctx['entities_mentioned'])}."
+        if ctx["preferences"].get("features"):
+            context_line += f" Requested features: {', '.join(ctx['preferences']['features'])}."
+        prompt_parts.append(context_line)
 
     if summary:
-        return f"{summary}\n\nUser's original requirements:\n" + "\n".join(
-            f"- {msg}" for msg in user_messages
-        )
+        prompt_parts.append(summary)
 
-    return "\n\n".join(user_messages)
+    prompt_parts.append("User's original requirements:")
+    prompt_parts.extend(f"- {msg}" for msg in user_messages)
+
+    return "\n\n".join(prompt_parts)
 
 
 # ── Streaming chat endpoint (SSE) ────────────────────────────────
@@ -739,8 +951,29 @@ async def api_chat_stream(
     if prefs_prompt:
         system_prompt = system_prompt + "\n\n" + prefs_prompt
 
+    # Analyze conversation context for smarter decisions (streaming)
+    conv_context = _analyze_conversation_context(body.messages)
+
+    if conv_context["domain"] != "general":
+        system_prompt = system_prompt + (
+            f"\n\n## Detected Context\n"
+            f"Domain: {conv_context['domain']}\n"
+            f"Entities mentioned: {', '.join(conv_context['entities_mentioned']) if conv_context['entities_mentioned'] else 'none yet'}\n"
+            f"Use this to reference the correct RAG specs and include these entities in the build."
+        )
+
+    if conv_context["entities_mentioned"]:
+        system_prompt = system_prompt + (
+            f"\n\nThe user has mentioned these specific entities: {', '.join(conv_context['entities_mentioned'])}. "
+            "Include all of them in the generated app."
+        )
+
+    conv_summary = _build_conversation_summary(body.messages)
+    if conv_summary:
+        system_prompt = system_prompt + "\n\n" + conv_summary
+
     # Force build if conversation context is sufficient
-    if _should_build_immediately(body.messages):
+    if _should_build_immediately(body.messages) or conv_context["ready_to_build"]:
         system_prompt = (
             "IMPORTANT: Generate [READY_TO_BUILD] NOW with a summary. "
             "Do not ask any questions.\n\n" + system_prompt

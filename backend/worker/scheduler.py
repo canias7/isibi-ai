@@ -1,7 +1,7 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta
-from sqlalchemy import select, text
+from datetime import datetime, timedelta, timezone
+from sqlalchemy import select, text, update, delete
 from db import async_session
 
 logger = logging.getLogger(__name__)
@@ -15,6 +15,9 @@ async def run_scheduler():
             await _check_deadline_reminders()
             await _check_status_rules()
             await _fire_webhooks()
+            await _check_expired_subscriptions()
+            await _send_daily_digest_reports()
+            await _cleanup_expired_record_locks()
         except asyncio.CancelledError:
             logger.info("Scheduler cancelled, shutting down")
             break
@@ -89,3 +92,133 @@ async def _fire_webhooks():
     # Webhooks are fired on-demand when events occur, not by the scheduler.
     # This is a periodic health check for webhook reliability.
     pass  # Intentionally empty — webhooks fire on events, not on schedule
+
+
+async def _check_expired_subscriptions():
+    """Downgrade expired subscriptions to free plan."""
+    async with async_session() as db:
+        try:
+            from models.subscription import Subscription
+
+            now = datetime.now(timezone.utc)
+            result = await db.execute(
+                select(Subscription).where(
+                    Subscription.plan != "free",
+                    Subscription.status.in_(("canceled", "past_due")),
+                    Subscription.current_period_end.isnot(None),
+                    Subscription.current_period_end < now,
+                )
+            )
+            expired = result.scalars().all()
+
+            for sub in expired:
+                sub.plan = "free"
+                sub.status = "active"
+                sub.builds_used = 0
+                sub.builds_limit = 3
+                sub.updated_at = now
+                logger.info(f"Downgraded subscription {sub.id} (org {sub.org_id}) to free — expired at {sub.current_period_end}")
+
+            if expired:
+                await db.commit()
+                logger.info(f"Downgraded {len(expired)} expired subscriptions to free")
+        except Exception as e:
+            logger.warning(f"Expired subscription check failed: {e}")
+
+
+async def _send_daily_digest_reports():
+    """Send daily digest emails for AppScheduledReport entries with schedule=daily."""
+    async with async_session() as db:
+        try:
+            from models.app_scheduled_report import AppScheduledReport
+
+            now = datetime.now(timezone.utc)
+            cutoff = now - timedelta(hours=24)
+
+            # Find daily reports that haven't been sent in the last 24 hours
+            result = await db.execute(
+                select(AppScheduledReport).where(
+                    AppScheduledReport.enabled == True,
+                    AppScheduledReport.schedule == "daily",
+                    (
+                        (AppScheduledReport.last_sent_at.is_(None))
+                        | (AppScheduledReport.last_sent_at < cutoff)
+                    ),
+                )
+            )
+            reports = result.scalars().all()
+
+            for report in reports:
+                try:
+                    # Build a summary of entities for this project
+                    from generator.app_db import get_schema_name
+                    schema = get_schema_name(str(report.project_id))
+
+                    entity_summaries = []
+                    for entity_name in (report.entities or []):
+                        try:
+                            count_result = await db.execute(
+                                text(f"SELECT COUNT(*) FROM {schema}.{entity_name.lower()}s WHERE deleted_at IS NULL")
+                            )
+                            count = count_result.scalar() or 0
+                            entity_summaries.append(f"{entity_name}: {count} records")
+                        except Exception:
+                            entity_summaries.append(f"{entity_name}: unable to count")
+
+                    summary = "\n".join(entity_summaries) if entity_summaries else "No entity data available."
+
+                    # Send email via SMTP if configured, otherwise log
+                    import os
+                    smtp_host = os.getenv("SMTP_HOST")
+                    if smtp_host:
+                        import smtplib
+                        from email.mime.text import MIMEText
+
+                        msg = MIMEText(
+                            f"Daily Report: {report.name}\n\n{summary}\n\nGenerated at {now.isoformat()}",
+                            "plain",
+                        )
+                        msg["Subject"] = f"[isibi] Daily Report: {report.name}"
+                        msg["From"] = os.getenv("SMTP_FROM", "noreply@isibi.ai")
+                        msg["To"] = report.recipient_email
+
+                        with smtplib.SMTP(smtp_host, int(os.getenv("SMTP_PORT", "587"))) as server:
+                            smtp_user = os.getenv("SMTP_USER")
+                            if smtp_user:
+                                server.starttls()
+                                server.login(smtp_user, os.getenv("SMTP_PASS", ""))
+                            server.send_message(msg)
+
+                        logger.info(f"Sent daily digest '{report.name}' to {report.recipient_email}")
+                    else:
+                        logger.info(f"Daily digest '{report.name}' ready (no SMTP configured): {summary[:200]}")
+
+                    # Mark as sent
+                    report.last_sent_at = now
+                    report.updated_at = now
+                except Exception as e:
+                    logger.warning(f"Failed to send digest '{report.name}': {e}")
+
+            if reports:
+                await db.commit()
+                logger.info(f"Processed {len(reports)} daily digest reports")
+        except Exception as e:
+            logger.warning(f"Daily digest check failed: {e}")
+
+
+async def _cleanup_expired_record_locks():
+    """Delete expired record locks so records become editable again."""
+    async with async_session() as db:
+        try:
+            from models.app_record_lock import AppRecordLock
+
+            now = datetime.now(timezone.utc)
+            result = await db.execute(
+                delete(AppRecordLock).where(AppRecordLock.expires_at < now)
+            )
+            await db.commit()
+
+            if result.rowcount and result.rowcount > 0:
+                logger.info(f"Cleaned up {result.rowcount} expired record locks")
+        except Exception as e:
+            logger.warning(f"Record lock cleanup failed: {e}")

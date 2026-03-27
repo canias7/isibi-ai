@@ -81,22 +81,37 @@ async def deploy_app(project_id: str, spec: dict, db: AsyncSession) -> dict:
     import json
     (build_dir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
-    # Write service worker for offline caching
-    sw_content = """
-const CACHE_NAME = 'app-v1';
-self.addEventListener('install', (e) => { self.skipWaiting(); });
-self.addEventListener('activate', (e) => { e.waitUntil(clients.claim()); });
-self.addEventListener('fetch', (e) => {
+    # Write service worker for offline caching (caches app shell for offline access)
+    sw_content = f"""
+const CACHE_NAME = 'app-v2';
+const APP_SHELL = [
+  '/live/{project_id}',
+  '/live/{project_id}/manifest.json',
+  '/live/{project_id}/icon.svg',
+];
+self.addEventListener('install', (e) => {{
+  e.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting())
+  );
+}});
+self.addEventListener('activate', (e) => {{
+  e.waitUntil(
+    caches.keys().then((names) => Promise.all(
+      names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n))
+    )).then(() => clients.claim())
+  );
+}});
+self.addEventListener('fetch', (e) => {{
   e.respondWith(
-    caches.match(e.request).then((r) => r || fetch(e.request).then((res) => {
-      if (res.status === 200 && e.request.method === 'GET') {
+    caches.match(e.request).then((r) => r || fetch(e.request).then((res) => {{
+      if (res.status === 200 && e.request.method === 'GET') {{
         const clone = res.clone();
         caches.open(CACHE_NAME).then((c) => c.put(e.request, clone));
-      }
+      }}
       return res;
-    })).catch(() => caches.match('/'))
+    }})).catch(() => caches.match('/live/{project_id}'))
   );
-});
+}});
 """
     (build_dir / "sw.js").write_text(sw_content.strip(), encoding="utf-8")
 
@@ -1183,6 +1198,124 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 .detail-actions {{
   display:flex;gap:8px;margin-top:20px;
 }}
+/* ── Detail tabs ── */
+.detail-tabs {{
+  display:flex;gap:0;border-bottom:1px solid var(--border);
+  margin-bottom:0;overflow-x:auto;
+  scrollbar-width:none;-ms-overflow-style:none;
+}}
+.detail-tabs::-webkit-scrollbar {{ display:none; }}
+.detail-tab {{
+  padding:10px 18px;font-size:13px;font-weight:500;
+  color:var(--text-muted);cursor:pointer;
+  border-bottom:2px solid transparent;
+  white-space:nowrap;transition:all var(--transition);
+  background:none;border-top:none;border-left:none;border-right:none;
+}}
+.detail-tab:hover {{ color:var(--text);background:var(--bg); }}
+.detail-tab.active {{
+  color:var(--primary);border-bottom-color:var(--primary);font-weight:600;
+}}
+.detail-tab-count {{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:18px;height:18px;padding:0 5px;
+  font-size:10px;font-weight:700;border-radius:9px;
+  background:var(--primary-light);color:var(--primary);margin-left:6px;
+}}
+.detail-tab-panel {{ display:none;padding:0; }}
+.detail-tab-panel.active {{ display:block; }}
+/* ── Related records mini-table ── */
+.related-section {{ padding:16px 24px; }}
+.related-section h4 {{
+  font-size:13px;font-weight:600;color:var(--text);
+  margin-bottom:12px;display:flex;align-items:center;gap:8px;
+}}
+.related-mini-table {{
+  width:100%;border-collapse:collapse;font-size:13px;
+}}
+.related-mini-table th {{
+  text-align:left;padding:8px 12px;font-size:11px;
+  font-weight:600;color:var(--text-muted);text-transform:uppercase;
+  letter-spacing:0.05em;border-bottom:1px solid var(--border);background:var(--bg);
+}}
+.related-mini-table td {{
+  padding:8px 12px;border-bottom:1px solid var(--border-light);color:var(--text);
+}}
+.related-mini-table tr:hover {{ background:var(--bg);cursor:pointer; }}
+.related-mini-table tr:last-child td {{ border-bottom:none; }}
+.related-empty {{
+  padding:24px;text-align:center;color:var(--text-muted);
+  font-size:13px;font-style:italic;
+}}
+/* ── Inline editing ── */
+.detail-field-value-wrapper {{
+  display:flex;align-items:flex-start;gap:6px;position:relative;
+  cursor:pointer;padding:4px 6px;margin:-4px -6px;
+  border-radius:var(--radius);transition:background var(--transition);
+}}
+.detail-field-value-wrapper:hover {{ background:var(--bg); }}
+.detail-field-value-wrapper .edit-icon {{
+  opacity:0;flex-shrink:0;color:var(--text-muted);
+  transition:opacity var(--transition);margin-top:2px;
+}}
+.detail-field-value-wrapper:hover .edit-icon {{ opacity:1; }}
+.inline-edit-input {{
+  width:100%;padding:6px 10px;border:1px solid var(--primary);
+  border-radius:var(--radius);font-size:14px;color:var(--text);
+  background:var(--bg-card);outline:none;font-family:inherit;
+  box-shadow:0 0 0 3px var(--primary-light);
+}}
+.inline-edit-input:focus {{ border-color:var(--primary); }}
+.inline-edit-hint {{ font-size:11px;color:var(--text-muted);margin-top:4px; }}
+/* ── Activity timeline ── */
+.activity-timeline {{ padding:16px 24px; }}
+.activity-item {{
+  display:flex;gap:12px;padding:12px 0;
+  border-bottom:1px solid var(--border-light);
+}}
+.activity-item:last-child {{ border-bottom:none; }}
+.activity-dot {{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--primary);margin-top:6px;flex-shrink:0;
+}}
+.activity-content {{ flex:1;min-width:0; }}
+.activity-text {{ font-size:13px;color:var(--text); }}
+.activity-time {{ font-size:11px;color:var(--text-muted);margin-top:2px; }}
+/* ── Comments section ── */
+.comments-section {{ padding:16px 24px; }}
+.comment-item {{
+  padding:12px 0;border-bottom:1px solid var(--border-light);
+}}
+.comment-item:last-child {{ border-bottom:none; }}
+.comment-header {{
+  display:flex;align-items:center;gap:8px;margin-bottom:6px;
+}}
+.comment-avatar {{
+  width:24px;height:24px;border-radius:50%;
+  background:var(--primary-light);color:var(--primary);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex-shrink:0;
+}}
+.comment-author {{ font-size:12px;font-weight:600;color:var(--text); }}
+.comment-time {{ font-size:11px;color:var(--text-muted); }}
+.comment-body {{ font-size:13px;color:var(--text);line-height:1.5; }}
+.comment-input-row {{ display:flex;gap:8px;margin-top:16px; }}
+.comment-input {{
+  flex:1;padding:8px 12px;border:1px solid var(--border);
+  border-radius:var(--radius);font-size:13px;
+  font-family:inherit;outline:none;
+}}
+.comment-input:focus {{ border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light); }}
+/* ── Files section ── */
+.files-section {{ padding:16px 24px; }}
+.file-item {{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 0;border-bottom:1px solid var(--border-light);
+}}
+.file-item:last-child {{ border-bottom:none; }}
+.file-icon {{ color:var(--text-muted); }}
+.file-name {{ font-size:13px;color:var(--text);flex:1; }}
+.file-size {{ font-size:11px;color:var(--text-muted); }}
 @media (max-width:600px) {{
   .detail-fields-grid {{ grid-template-columns:1fr; }}
 }}
@@ -2249,7 +2382,15 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         </div>
       </div>
     </div>
-    <div class="topbar-actions" id="topbar-actions"></div>
+    <div class="topbar-actions" id="topbar-actions">
+      <button id="pwa-install-btn" onclick="installApp()" style="display:none;background:var(--primary);color:#fff;border:none;padding:5px 12px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background var(--transition);margin-right:4px" title="Install as app">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Install App
+      </button>
+      <button onclick="downloadAsHTML()" style="background:none;border:1px solid var(--border);padding:5px 8px;border-radius:var(--radius);cursor:pointer;color:var(--text-secondary);transition:all var(--transition)" title="Download as HTML file">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+    </div>
     <div class="topbar-avatar" id="topbar-avatar">{app_initial}</div>
   </header>
   <div class="content" id="content-area"></div>
@@ -3754,10 +3895,322 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     return future ? "in " + diffMonth + " months" : diffMonth + " months ago";
   }}
 
+  // ── Inline editing helpers ──
+  var _inlineEditingEntity = null;
+  var _inlineEditingId = null;
+
+  function _renderFieldDisplay(f, record) {{
+    let val = record[f.name] ?? "";
+    let displayVal;
+
+    if (f.computed) {{
+      const computedVal = evalComputed(f.computed, record);
+      val = computedVal !== "" ? computedVal : "";
+    }}
+
+    const relEntity = getRelatedEntityForField(f.name, f);
+    if (relEntity && val) {{
+      val = getFkDisplayName(relEntity, val);
+    }}
+
+    const fxBadge = f.computed ? ' <span style="display:inline-block;background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;vertical-align:middle">fx</span>' : '';
+
+    if (val === "" || val === null || val === undefined) {{
+      displayVal = '<span class="empty">Not set</span>';
+    }} else if (f.enum_values && f.enum_values.length) {{
+      const badgeClass = getBadgeClass(String(val));
+      displayVal = '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(val)) + '</span>';
+    }} else if (f.type === "boolean" || val === true || val === false) {{
+      displayVal = val && val !== "false" ? '<span style="color:var(--success)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>';
+    }} else if (isRichTextField(f.name) && val && (String(val).includes("<") || String(val).includes("&lt;"))) {{
+      displayVal = '<div style="line-height:1.6">' + String(val) + '</div>';
+    }} else if (/email/i.test(f.name) && val) {{
+      displayVal = '<a href="mailto:' + escHtml(String(val)) + '">' + escHtml(String(val)) + '</a>';
+    }} else if (/phone|tel|mobile|cell/i.test(f.name) && val) {{
+      const formatted = formatValue(val, f.name, f.type);
+      displayVal = '<a href="tel:' + escHtml(String(val).replace(/[^+\\d]/g, "")) + '">' + escHtml(formatted) + '</a>';
+    }} else if (/url|website|link|homepage/i.test(f.name) && val && /^https?:\\/\\//i.test(String(val))) {{
+      displayVal = '<a href="' + escHtml(String(val)) + '" target="_blank" rel="noopener">' + escHtml(String(val)) + '</a>';
+    }} else if (/date|_at$/i.test(f.name) && val) {{
+      const formatted = formatValue(val, f.name, f.type);
+      const relative = formatRelativeTime(String(val));
+      displayVal = escHtml(formatted) + (relative ? ' <span class="relative-time">(' + escHtml(relative) + ')</span>' : '');
+    }} else {{
+      const formatted = formatValue(val, f.name, f.type);
+      displayVal = escHtml(formatted);
+    }}
+
+    return {{ displayVal: displayVal, fxBadge: fxBadge }};
+  }}
+
+  function _startInlineEdit(fieldName, currentValue, fieldDef) {{
+    const wrapper = document.getElementById("detail-field-" + fieldName);
+    if (!wrapper) return;
+    const rawVal = currentValue === "Not set" ? "" : currentValue;
+    let inputHtml;
+    if (fieldDef.enum_values && fieldDef.enum_values.length) {{
+      inputHtml = '<select class="inline-edit-input" id="inline-input-' + fieldName + '" onkeydown="if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">';
+      fieldDef.enum_values.forEach(function(ev) {{
+        inputHtml += '<option value="' + escHtml(ev) + '"' + (ev === rawVal ? ' selected' : '') + '>' + escHtml(ev) + '</option>';
+      }});
+      inputHtml += '</select>';
+    }} else if (fieldDef.type === "boolean") {{
+      inputHtml = '<select class="inline-edit-input" id="inline-input-' + fieldName + '" onkeydown="if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">' +
+        '<option value="true"' + (rawVal ? ' selected' : '') + '>Yes</option>' +
+        '<option value="false"' + (!rawVal ? ' selected' : '') + '>No</option></select>';
+    }} else if (fieldDef.type === "text" || /description|notes|body|content|bio/i.test(fieldName)) {{
+      inputHtml = '<textarea class="inline-edit-input" id="inline-input-' + fieldName + '" rows="3" ' +
+        'onkeydown="if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">' + escHtml(rawVal) + '</textarea>';
+    }} else {{
+      const inputType = /date/i.test(fieldName) || fieldDef.type === "date" ? "date" :
+                        /email/i.test(fieldName) ? "email" :
+                        fieldDef.type === "number" || fieldDef.type === "integer" || fieldDef.type === "decimal" ? "number" : "text";
+      inputHtml = '<input class="inline-edit-input" id="inline-input-' + fieldName + '" type="' + inputType + '" value="' + escHtml(rawVal) + '" ' +
+        'onkeydown="if(event.key===\'Enter\')_saveInlineEdit(\'' + fieldName + '\');if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">';
+    }}
+    wrapper.innerHTML = inputHtml + '<div class="inline-edit-hint">Enter to save, Escape to cancel</div>';
+    const inp = document.getElementById("inline-input-" + fieldName);
+    if (inp) {{ inp.focus(); if (inp.select) inp.select(); }}
+  }}
+
+  window._cancelInlineEdit = function(fieldName) {{
+    if (!_inlineEditingEntity || !_inlineEditingId) return;
+    showDetail(_inlineEditingEntity, _inlineEditingId);
+  }};
+
+  window._saveInlineEdit = async function(fieldName) {{
+    if (!_inlineEditingEntity || !_inlineEditingId) return;
+    const inp = document.getElementById("inline-input-" + fieldName);
+    if (!inp) return;
+    const newValue = inp.value;
+    const patchBody = {{}};
+    patchBody[fieldName] = newValue;
+    try {{
+      const resp = await fetch(API_BASE + "/apps/{project_id}/data/" + _inlineEditingEntity + "/" + _inlineEditingId, {{
+        method: "PATCH",
+        headers: {{ "Content-Type": "application/json", ...authHeaders() }},
+        body: JSON.stringify(patchBody),
+      }});
+      if (!resp.ok) throw new Error("Save failed");
+      const updated = await resp.json();
+      // Update the cache
+      const rows = dataCache[_inlineEditingEntity] || [];
+      const idx = rows.findIndex(r => String(r.id || r.ID) === String(_inlineEditingId));
+      if (idx >= 0) {{ Object.assign(rows[idx], updated); }}
+      showToast("Field updated", "success");
+      showDetail(_inlineEditingEntity, _inlineEditingId);
+    }} catch (e) {{
+      showToast("Failed to save: " + e.message, "error");
+    }}
+  }};
+
+  // ── Find reverse FK relationships (entities referencing the current one) ──
+  function _findReverseRelations(entityName) {{
+    const relations = [];
+    const entityNames = Object.keys(ENTITY_FIELDS);
+    for (const otherEntity of entityNames) {{
+      if (otherEntity === entityName) continue;
+      const otherFields = ENTITY_FIELDS[otherEntity] || [];
+      for (const f of otherFields) {{
+        const relTarget = getRelatedEntityForField(f.name, f);
+        if (relTarget && relTarget.toLowerCase() === entityName.toLowerCase()) {{
+          relations.push({{ entity: otherEntity, fkField: f.name }});
+        }}
+      }}
+    }}
+    return relations;
+  }}
+
+  // ── Load and render related records ──
+  async function _loadRelatedRecords(entity, fkField, recordId, containerId) {{
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    try {{
+      const resp = await fetch(API_BASE + "/apps/{project_id}/data/" + entity + "?" + fkField + "=" + recordId, {{
+        headers: authHeaders(),
+      }});
+      if (!resp.ok) throw new Error("Failed to load");
+      const data = await resp.json();
+      const rows = data.results || data.data || data || [];
+      if (!Array.isArray(rows) || rows.length === 0) {{
+        container.innerHTML = '<div class="related-empty">No related records found</div>';
+        // Update tab count
+        const countEl = document.getElementById("tab-count-related");
+        if (countEl) countEl.textContent = "0";
+        return;
+      }}
+      // Update tab count
+      const countEl = document.getElementById("tab-count-related");
+      if (countEl) countEl.textContent = String(rows.length);
+      const fields = ENTITY_FIELDS[entity] || [];
+      const displayFields = fields.filter(f => !["id","org_id","deleted_at","version"].includes(f.name)).slice(0, 5);
+      let tableHtml = '<table class="related-mini-table"><thead><tr>';
+      displayFields.forEach(function(f) {{
+        tableHtml += '<th>' + escHtml(f.name.replace(/_/g, " ")) + '</th>';
+      }});
+      tableHtml += '</tr></thead><tbody>';
+      rows.slice(0, 20).forEach(function(row) {{
+        const rid = row.id || row.ID || "";
+        tableHtml += '<tr onclick="showDetail(\'' + escHtml(entity) + '\',\'' + escHtml(String(rid)) + '\')">';
+        displayFields.forEach(function(f) {{
+          let v = row[f.name] ?? "";
+          tableHtml += '<td>' + escHtml(String(v)).slice(0, 60) + '</td>';
+        }});
+        tableHtml += '</tr>';
+      }});
+      tableHtml += '</tbody></table>';
+      container.innerHTML = tableHtml;
+    }} catch (e) {{
+      container.innerHTML = '<div class="related-empty">Could not load related records</div>';
+    }}
+  }}
+
+  // ── Load activity log ──
+  async function _loadActivityLog(entity, recordId, containerId) {{
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    try {{
+      const resp = await fetch(API_BASE + "/apps/{project_id}/data/" + entity + "/" + recordId + "/activity", {{
+        headers: authHeaders(),
+      }});
+      if (!resp.ok) throw new Error("No activity");
+      const data = await resp.json();
+      const items = data.results || data.data || data || [];
+      if (!Array.isArray(items) || items.length === 0) {{
+        container.innerHTML = '<div class="related-empty">No activity recorded yet</div>';
+        return;
+      }}
+      const countEl = document.getElementById("tab-count-activity");
+      if (countEl) countEl.textContent = String(items.length);
+      let html = '<div class="activity-timeline">';
+      items.forEach(function(item) {{
+        const timeStr = item.created_at || item.timestamp || "";
+        html += '<div class="activity-item">' +
+          '<div class="activity-dot"></div>' +
+          '<div class="activity-content">' +
+            '<div class="activity-text">' + escHtml(item.description || item.action || "Change recorded") + '</div>' +
+            '<div class="activity-time">' + escHtml(formatRelativeTime(timeStr) || timeStr) + '</div>' +
+          '</div></div>';
+      }});
+      html += '</div>';
+      container.innerHTML = html;
+    }} catch (e) {{
+      container.innerHTML = '<div class="related-empty">No activity recorded yet</div>';
+    }}
+  }}
+
+  // ── Load comments ──
+  async function _loadComments(entity, recordId, containerId) {{
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    try {{
+      const resp = await fetch(API_BASE + "/apps/{project_id}/data/" + entity + "/" + recordId + "/comments", {{
+        headers: authHeaders(),
+      }});
+      if (!resp.ok) throw new Error("No comments");
+      const data = await resp.json();
+      const items = data.results || data.data || data || [];
+      let html = '<div class="comments-section">';
+      if (Array.isArray(items) && items.length > 0) {{
+        const countEl = document.getElementById("tab-count-comments");
+        if (countEl) countEl.textContent = String(items.length);
+        items.forEach(function(c) {{
+          const author = c.author || c.user || "User";
+          const initial = (String(author)[0] || "U").toUpperCase();
+          html += '<div class="comment-item">' +
+            '<div class="comment-header">' +
+              '<div class="comment-avatar">' + initial + '</div>' +
+              '<span class="comment-author">' + escHtml(author) + '</span>' +
+              '<span class="comment-time">' + escHtml(formatRelativeTime(c.created_at || "") || "") + '</span>' +
+            '</div>' +
+            '<div class="comment-body">' + escHtml(c.text || c.body || c.content || "") + '</div>' +
+          '</div>';
+        }});
+      }} else {{
+        html += '<div class="related-empty">No comments yet</div>';
+      }}
+      // Comment input
+      html += '<div class="comment-input-row">' +
+        '<input class="comment-input" id="new-comment-input" placeholder="Add a comment..." onkeydown="if(event.key===\'Enter\')_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">' +
+        '<button class="btn btn-primary btn-sm" onclick="_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">Post</button>' +
+      '</div></div>';
+      container.innerHTML = html;
+    }} catch (e) {{
+      container.innerHTML = '<div class="comments-section"><div class="related-empty">No comments yet</div>' +
+        '<div class="comment-input-row">' +
+        '<input class="comment-input" id="new-comment-input" placeholder="Add a comment..." onkeydown="if(event.key===\'Enter\')_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">' +
+        '<button class="btn btn-primary btn-sm" onclick="_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">Post</button>' +
+        '</div></div>';
+    }}
+  }}
+
+  window._postComment = async function(entity, recordId) {{
+    const inp = document.getElementById("new-comment-input");
+    if (!inp || !inp.value.trim()) return;
+    try {{
+      const resp = await fetch(API_BASE + "/apps/{project_id}/data/" + entity + "/" + recordId + "/comments", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json", ...authHeaders() }},
+        body: JSON.stringify({{ text: inp.value.trim() }}),
+      }});
+      if (resp.ok) {{
+        showToast("Comment added", "success");
+        _loadComments(entity, recordId, "detail-tab-comments");
+      }}
+    }} catch (e) {{ showToast("Failed to post comment", "error"); }}
+  }};
+
+  // ── Load files ──
+  async function _loadFiles(entity, recordId, containerId) {{
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    try {{
+      const resp = await fetch(API_BASE + "/apps/{project_id}/data/" + entity + "/" + recordId + "/files", {{
+        headers: authHeaders(),
+      }});
+      if (!resp.ok) throw new Error("No files");
+      const data = await resp.json();
+      const items = data.results || data.data || data || [];
+      if (!Array.isArray(items) || items.length === 0) {{
+        container.innerHTML = '<div class="files-section"><div class="related-empty">No files attached</div></div>';
+        return;
+      }}
+      const countEl = document.getElementById("tab-count-files");
+      if (countEl) countEl.textContent = String(items.length);
+      let html = '<div class="files-section">';
+      items.forEach(function(file) {{
+        const name = file.name || file.filename || "File";
+        const size = file.size ? (file.size > 1048576 ? (file.size / 1048576).toFixed(1) + " MB" : (file.size / 1024).toFixed(0) + " KB") : "";
+        html += '<div class="file-item">' +
+          '<svg class="file-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>' +
+          '<span class="file-name">' + escHtml(name) + '</span>' +
+          '<span class="file-size">' + escHtml(size) + '</span>' +
+        '</div>';
+      }});
+      html += '</div>';
+      container.innerHTML = html;
+    }} catch (e) {{
+      container.innerHTML = '<div class="files-section"><div class="related-empty">No files attached</div></div>';
+    }}
+  }}
+
+  // ── Switch detail tab ──
+  window._switchDetailTab = function(tabName) {{
+    document.querySelectorAll(".detail-tab").forEach(function(t) {{
+      t.classList.toggle("active", t.dataset.tab === tabName);
+    }});
+    document.querySelectorAll(".detail-tab-panel").forEach(function(p) {{
+      p.classList.toggle("active", p.id === "detail-tab-" + tabName);
+    }});
+  }};
+
   window.showDetail = function(entity, id) {{
     const rows = dataCache[entity] || [];
     const record = rows.find(r => String(r.id || r.ID) === String(id));
     if (!record) return;
+
+    _inlineEditingEntity = entity;
+    _inlineEditingId = id;
 
     const fields = ENTITY_FIELDS[entity] || [];
     const visibleFields = fields.filter(f =>
@@ -3776,7 +4229,49 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       statusBadgeHtml = '<span class="detail-status-badge badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(record[statusField.name])) + '</span>';
     }}
 
+    // Categorize fields: overview (name, status, dates) vs details (everything else)
+    const overviewPatterns = /^(name|title|status|state|stage|phase|email|phone|type|category|priority|created_at|updated_at|date|start|end|due)$/i;
+    const overviewFields = [];
+    const detailFields = [];
+    visibleFields.forEach(function(f) {{
+      if (overviewPatterns.test(f.name) || (f.enum_values && f.enum_values.length > 0)) {{
+        overviewFields.push(f);
+      }} else {{
+        detailFields.push(f);
+      }}
+    }});
+    // If categorization is lopsided, just split evenly
+    if (overviewFields.length === 0) {{
+      const half = Math.ceil(visibleFields.length / 2);
+      overviewFields.push(...visibleFields.slice(0, half));
+      detailFields.push(...visibleFields.slice(half));
+    }} else if (detailFields.length === 0) {{
+      // Move some from overview to details
+      while (overviewFields.length > 4 && detailFields.length < 3) {{
+        detailFields.push(overviewFields.pop());
+      }}
+    }}
+
+    // Find reverse FK relations
+    const reverseRelations = _findReverseRelations(entity);
+
+    // Build tabs
+    const tabs = [
+      {{ key: "overview", label: "Overview" }},
+    ];
+    if (detailFields.length > 0) {{
+      tabs.push({{ key: "details", label: "Details" }});
+    }}
+    if (reverseRelations.length > 0) {{
+      tabs.push({{ key: "related", label: "Related" }});
+    }}
+    tabs.push({{ key: "activity", label: "Activity" }});
+    tabs.push({{ key: "files", label: "Files" }});
+    tabs.push({{ key: "comments", label: "Comments" }});
+
     const content = document.getElementById("content-area");
+    const editIconSvg = '<svg class="edit-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+
     let detailHtml = '<div class="detail-view">' +
       '<div class="detail-header">' +
         '<button class="back-btn" onclick="showModule(\'' + escHtml(currentModule) + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>' +
@@ -3786,62 +4281,104 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
           '<button class="btn btn-danger btn-sm" onclick="deleteRecord(\'' + entity + '\',\'' + id + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' +
         '</div>' +
       '</div>' +
-      '<div class="detail-body"><div class="detail-fields-grid">';
+      '<div class="detail-body">';
 
-    visibleFields.forEach(f => {{
-      let val = record[f.name] ?? "";
-      let displayVal;
-
-      // Computed field: calculate value from record data
-      if (f.computed) {{
-        const computedVal = evalComputed(f.computed, record);
-        val = computedVal !== "" ? computedVal : "";
-      }}
-
-      // FK display
-      const relEntity = getRelatedEntityForField(f.name, f);
-      if (relEntity && val) {{
-        val = getFkDisplayName(relEntity, val);
-      }}
-
-      const fxBadge = f.computed ? ' <span style="display:inline-block;background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;vertical-align:middle">fx</span>' : '';
-
-      if (val === "" || val === null || val === undefined) {{
-        // Empty field
-        displayVal = '<span class="empty">Not set</span>';
-      }} else if (f.enum_values && f.enum_values.length) {{
-        const badgeClass = getBadgeClass(String(val));
-        displayVal = '<span class="badge ' + badgeClass + '"><span class="badge-dot"></span>' + escHtml(String(val)) + '</span>';
-      }} else if (f.type === "boolean" || val === true || val === false) {{
-        displayVal = val && val !== "false" ? '<span style="color:var(--success)">Yes</span>' : '<span style="color:var(--text-muted)">No</span>';
-      }} else if (isRichTextField(f.name) && val && (String(val).includes("<") || String(val).includes("&lt;"))) {{
-        displayVal = '<div style="line-height:1.6">' + String(val) + '</div>';
-      }} else if (/email/i.test(f.name) && val) {{
-        // Email: clickable mailto link
-        displayVal = '<a href="mailto:' + escHtml(String(val)) + '">' + escHtml(String(val)) + '</a>';
-      }} else if (/phone|tel|mobile|cell/i.test(f.name) && val) {{
-        // Phone: clickable tel link
-        const formatted = formatValue(val, f.name, f.type);
-        displayVal = '<a href="tel:' + escHtml(String(val).replace(/[^+\\d]/g, "")) + '">' + escHtml(formatted) + '</a>';
-      }} else if (/url|website|link|homepage/i.test(f.name) && val && /^https?:\\/\\//i.test(String(val))) {{
-        // URL: clickable link
-        displayVal = '<a href="' + escHtml(String(val)) + '" target="_blank" rel="noopener">' + escHtml(String(val)) + '</a>';
-      }} else if (/date|_at$/i.test(f.name) && val) {{
-        // Date fields: show formatted date with relative time
-        const formatted = formatValue(val, f.name, f.type);
-        const relative = formatRelativeTime(String(val));
-        displayVal = escHtml(formatted) + (relative ? ' <span class="relative-time">(' + escHtml(relative) + ')</span>' : '');
-      }} else {{
-        const formatted = formatValue(val, f.name, f.type);
-        displayVal = escHtml(formatted);
-      }}
-
-      detailHtml += '<div class="detail-field"><div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + fxBadge + '</div><div class="detail-field-value">' + displayVal + '</div></div>';
+    // Render tabs
+    detailHtml += '<div class="detail-tabs">';
+    tabs.forEach(function(tab, i) {{
+      const countSpan = (tab.key === "related" || tab.key === "activity" || tab.key === "files" || tab.key === "comments")
+        ? ' <span class="detail-tab-count" id="tab-count-' + tab.key + '">...</span>' : '';
+      detailHtml += '<button class="detail-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + tab.key + '" onclick="_switchDetailTab(\'' + tab.key + '\')">' + tab.label + countSpan + '</button>';
     }});
+    detailHtml += '</div>';
 
-    detailHtml += '</div></div></div>';
+    // ── Overview tab panel ──
+    detailHtml += '<div class="detail-tab-panel active" id="detail-tab-overview"><div class="detail-fields-grid">';
+    overviewFields.forEach(function(f) {{
+      const rendered = _renderFieldDisplay(f, record);
+      const isEditable = !f.computed && !["created_at","updated_at","id","org_id","deleted_at","version"].includes(f.name);
+      const rawVal = record[f.name] ?? "";
+      if (isEditable) {{
+        detailHtml += '<div class="detail-field">' +
+          '<div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + rendered.fxBadge + '</div>' +
+          '<div class="detail-field-value-wrapper" id="detail-field-' + f.name + '">' +
+            '<div class="detail-field-value">' + rendered.displayVal + '</div>' +
+            editIconSvg +
+          '</div></div>';
+      }} else {{
+        detailHtml += '<div class="detail-field"><div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + rendered.fxBadge + '</div><div class="detail-field-value">' + rendered.displayVal + '</div></div>';
+      }}
+    }});
+    detailHtml += '</div></div>';
+
+    // ── Details tab panel ──
+    if (detailFields.length > 0) {{
+      detailHtml += '<div class="detail-tab-panel" id="detail-tab-details"><div class="detail-fields-grid">';
+      detailFields.forEach(function(f) {{
+        const rendered = _renderFieldDisplay(f, record);
+        const isEditable = !f.computed && !["created_at","updated_at","id","org_id","deleted_at","version"].includes(f.name);
+        const rawVal = record[f.name] ?? "";
+        if (isEditable) {{
+          detailHtml += '<div class="detail-field">' +
+            '<div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + rendered.fxBadge + '</div>' +
+            '<div class="detail-field-value-wrapper" id="detail-field-' + f.name + '">' +
+              '<div class="detail-field-value">' + rendered.displayVal + '</div>' +
+              editIconSvg +
+            '</div></div>';
+        }} else {{
+          detailHtml += '<div class="detail-field"><div class="detail-field-label">' + escHtml(f.name.replace(/_/g, " ")) + rendered.fxBadge + '</div><div class="detail-field-value">' + rendered.displayVal + '</div></div>';
+        }}
+      }});
+      detailHtml += '</div></div>';
+    }}
+
+    // ── Related tab panel ──
+    if (reverseRelations.length > 0) {{
+      detailHtml += '<div class="detail-tab-panel" id="detail-tab-related">';
+      reverseRelations.forEach(function(rel, ri) {{
+        detailHtml += '<div class="related-section"><h4>' +
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4V7"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>' +
+          'Related ' + escHtml(rel.entity) + '</h4>' +
+          '<div id="related-container-' + ri + '"><div class="related-empty">Loading...</div></div></div>';
+      }});
+      detailHtml += '</div>';
+    }}
+
+    // ── Activity tab panel ──
+    detailHtml += '<div class="detail-tab-panel" id="detail-tab-activity"><div id="activity-container"><div class="related-empty">Loading...</div></div></div>';
+
+    // ── Files tab panel ──
+    detailHtml += '<div class="detail-tab-panel" id="detail-tab-files"><div id="files-container"><div class="related-empty">Loading...</div></div></div>';
+
+    // ── Comments tab panel ──
+    detailHtml += '<div class="detail-tab-panel" id="detail-tab-comments"><div class="related-empty">Loading...</div></div>';
+
+    detailHtml += '</div></div>';
 
     content.innerHTML = detailHtml;
+
+    // Fix inline edit onclick — we need to pass the field definition as an object, not via HTML attribute
+    // Re-bind inline edit click handlers with proper JS closures
+    visibleFields.forEach(function(f) {{
+      const el = document.getElementById("detail-field-" + f.name);
+      if (el) {{
+        el.onclick = function(e) {{
+          e.stopPropagation();
+          const rawVal = record[f.name] ?? "";
+          _startInlineEdit(f.name, String(rawVal), f);
+        }};
+      }}
+    }});
+
+    // Load async data for tabs
+    if (reverseRelations.length > 0) {{
+      reverseRelations.forEach(function(rel, ri) {{
+        _loadRelatedRecords(rel.entity, rel.fkField, id, "related-container-" + ri);
+      }});
+    }}
+    _loadActivityLog(entity, id, "activity-container");
+    _loadFiles(entity, id, "files-container");
+    _loadComments(entity, id, "detail-tab-comments");
   }};
 
   // ── Modal: Create ──
@@ -5306,19 +5843,45 @@ let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => {{
   e.preventDefault();
   deferredPrompt = e;
+  // Show the topbar install button
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'inline-flex';
+  // Show bottom banner
   const banner = document.createElement('div');
   banner.id = 'install-banner';
   banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:{primary_color};color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;z-index:9999;font-family:inherit;font-size:14px;box-shadow:0 -4px 20px rgba(0,0,0,0.1);backdrop-filter:blur(10px)';
   banner.innerHTML = '<span style="font-weight:500">Install {app_name} as an app for quick access</span><div style="display:flex;gap:8px"><button onclick="installApp()" style="background:#fff;color:{primary_color};border:none;padding:8px 20px;border-radius:8px;font-weight:600;cursor:pointer;font-size:13px;font-family:inherit">Install</button><button onclick="this.parentElement.parentElement.remove()" style="background:transparent;color:rgba(255,255,255,0.9);border:1px solid rgba(255,255,255,0.3);padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-family:inherit">Later</button></div>';
   document.body.appendChild(banner);
 }});
+window.addEventListener('appinstalled', () => {{
+  const banner = document.getElementById('install-banner');
+  if (banner) banner.remove();
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+  deferredPrompt = null;
+}});
 function installApp() {{
   const banner = document.getElementById('install-banner');
   if (banner) banner.remove();
   if (deferredPrompt) {{
     deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(() => {{ deferredPrompt = null; }});
+    deferredPrompt.userChoice.then(() => {{
+      deferredPrompt = null;
+      const btn = document.getElementById('pwa-install-btn');
+      if (btn) btn.style.display = 'none';
+    }});
   }}
+}}
+function downloadAsHTML() {{
+  const html = document.documentElement.outerHTML;
+  const blob = new Blob(['<!DOCTYPE html>' + html], {{type:'text/html'}});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '{safe_name}.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
 }}
 </script>
 </body>

@@ -66,6 +66,7 @@ import { CloudIDE } from "@/components/CloudIDE";
 import { ERDViewer } from "@/components/ERDViewer";
 import { SpecEditor } from "@/components/SpecEditor";
 import { ProjectSettingsPage } from "./ProjectSettingsPage";
+import { QRCodeSVG } from "@/components/QRCodeSVG";
 
 // Memoized preview so it doesn't re-render while user types in the chat
 const MemoizedPreview = memo(function MemoizedPreview({
@@ -642,6 +643,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [sharePermission, setSharePermission] = useState<"edit" | "view">("edit");
   const [shareCopied, setShareCopied] = useState(false);
   const [shareInviting, setShareInviting] = useState(false);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
   const [shareInviteSuccess, setShareInviteSuccess] = useState(false);
 
   // Poll presence every 10 seconds when a project is loaded
@@ -1369,16 +1371,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       return;
     }
 
-    // If already deployed, just open the URL
+    // If already deployed, show QR modal
     if (deployUrl) {
-      const w = window.open(deployUrl, "_blank");
-      if (!w) {
-        alert(`Your app is live at: ${deployUrl}\n\nOpen it in Chrome and click "Install" in the address bar to add it as an app.`);
-      }
+      setQrModalOpen(true);
       return;
     }
 
-    // Not deployed yet — deploy first, then open
+    // Not deployed yet — deploy first, then show QR
     setDeploying(true);
     try {
       const res = await post<{ url: string; status: string }>(
@@ -1395,11 +1394,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             prev.map((s) => (s.id === cid ? { ...s, deployUrl: fullUrl } : s))
           );
         }
-        // Open in new tab
-        const w = window.open(fullUrl, "_blank");
-        if (!w) {
-          alert(`Your app is live at: ${fullUrl}\n\nOpen it in Chrome and click "Install" in the address bar to add it as an app.`);
-        }
+        // Show QR modal after deploy
+        setQrModalOpen(true);
       } else {
         alert("Deploy succeeded but no URL was returned. Check the backend logs.");
       }
@@ -2190,6 +2186,17 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </button>
             </div>
 
+            {/* QR Code for mobile access */}
+            {deployUrl && (
+              <div className="mb-4 border-t border-gray-100 pt-3">
+                <label className="mb-2 block text-xs font-medium text-gray-600">Scan to open on mobile</label>
+                <div className="flex justify-center rounded-lg border border-gray-100 bg-gray-50 p-3">
+                  <QRCodeSVG value={deployUrl} size={140} />
+                </div>
+                <p className="mt-1.5 text-center text-[10px] text-gray-400">Point your phone camera at this code</p>
+              </div>
+            )}
+
             {/* Current viewers */}
             {presenceUsers.length > 0 && (
               <div className="border-t border-gray-100 pt-3">
@@ -2216,6 +2223,67 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* QR Code / Get App Modal */}
+      {qrModalOpen && deployUrl && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/30">
+          <div className="w-[360px] rounded-xl border border-gray-200 bg-white p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-black">Get App</h3>
+              <button
+                onClick={() => setQrModalOpen(false)}
+                className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-black"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* QR Code */}
+            <div className="mb-4 flex flex-col items-center">
+              <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <QRCodeSVG value={deployUrl} size={180} />
+              </div>
+              <p className="mt-2 text-xs text-gray-500">Scan with your phone camera to open</p>
+            </div>
+
+            {/* App URL */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                <LinkIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" />
+                <span className="flex-1 truncate text-xs text-gray-600">{deployUrl}</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(deployUrl);
+                  }}
+                  className="shrink-0 rounded-md border border-gray-200 bg-white px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex gap-2">
+              <a
+                href={deployUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800"
+              >
+                <ExternalLink className="h-3.5 w-3.5" />
+                Open in Browser
+              </a>
+              <button
+                onClick={() => setShareModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                Share
+              </button>
+            </div>
           </div>
         </div>
       )}
