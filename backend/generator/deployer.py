@@ -3334,7 +3334,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   // Router
   // Navigates between modules, dispatches to components.
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  window.showModule = function(name) {{
+  function showModule(name) {{
     // Handle built-in Analytics page
     if (name === "__analytics__") {{
       document.getElementById("sidebar").classList.remove("open");
@@ -6490,6 +6490,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     }};
     document.body.appendChild(helpBtn);
   }}
+
+  // Expose for inline onclick handlers
+  window.showModule = showModule;
 
   // ── Init ──
   function initApp() {{
