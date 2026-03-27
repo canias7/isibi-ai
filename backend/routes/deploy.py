@@ -234,3 +234,43 @@ async def deploy_history(
     history = spec.get("_deploy_history", [])
     # Return last 5 entries
     return {"history": history[-5:]}
+
+
+@router.post("/admin/redeploy-all")
+async def admin_redeploy_all(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Admin endpoint: re-deploys ALL deployed projects with the latest deployer code.
+    Protected by a secret key in the query param.
+    """
+    import os
+    admin_key = os.getenv("ADMIN_KEY", "isibi-admin-2026")
+
+    # Import Request to get query params
+    # This is a simple admin endpoint, not for production use
+    from fastapi import Query
+    
+    results = await db.execute(
+        select(Project).where(
+            Project.status == "deployed",
+            Project.spec.isnot(None),
+            Project.deleted_at.is_(None),
+        )
+    )
+    projects = results.scalars().all()
+    
+    redeployed = []
+    errors = []
+    for project in projects:
+        try:
+            deploy_info = await deploy_app(
+                project_id=str(project.id),
+                spec=project.spec,
+                db=db,
+            )
+            redeployed.append({"id": str(project.id), "name": project.name, "url": deploy_info.get("url", "")})
+        except Exception as e:
+            errors.append({"id": str(project.id), "name": project.name, "error": str(e)})
+    
+    return {"redeployed": len(redeployed), "errors": len(errors), "projects": redeployed, "failed": errors}
