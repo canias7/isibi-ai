@@ -52,6 +52,7 @@ import {
   RefreshCw,
   Network,
   ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -346,10 +347,12 @@ function SidebarProjectList({
   chatSessions,
   activeChatId,
   onLoadChat,
+  onClone,
 }: {
   chatSessions: ChatSession[];
   activeChatId: string | null;
   onLoadChat: (s: ChatSession) => void;
+  onClone?: (s: ChatSession) => void;
 }) {
   const [search, setSearch] = useState("");
 
@@ -387,23 +390,33 @@ function SidebarProjectList({
               {group.label}
             </p>
             {group.sessions.map((session) => (
-              <button
-                key={session.id}
-                onClick={() => onLoadChat(session)}
-                className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition ${
-                  activeChatId === session.id
-                    ? "bg-white font-medium text-black shadow-sm"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                <div className={`h-2 w-2 shrink-0 rounded-full ${
-                  session.deployUrl ? "bg-green-500" : session.spec ? "bg-green-400" : "bg-amber-400"
-                }`} title={session.deployUrl ? "Deployed" : session.spec ? "Built" : "In progress"} />
-                <span className="truncate flex-1">{session.title}</span>
-                <span className="shrink-0 text-[10px] text-gray-400">
-                  {getRelativeTime(new Date(session.createdAt))}
-                </span>
-              </button>
+              <div key={session.id} className="group/proj flex items-center">
+                <button
+                  onClick={() => onLoadChat(session)}
+                  className={`flex flex-1 items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-[12px] transition ${
+                    activeChatId === session.id
+                      ? "bg-white font-medium text-black shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  <div className={`h-2 w-2 shrink-0 rounded-full ${
+                    session.deployUrl ? "bg-green-500" : session.spec ? "bg-green-400" : "bg-amber-400"
+                  }`} title={session.deployUrl ? "Deployed" : session.spec ? "Built" : "In progress"} />
+                  <span className="truncate flex-1">{session.title}</span>
+                  <span className="shrink-0 text-[10px] text-gray-400">
+                    {getRelativeTime(new Date(session.createdAt))}
+                  </span>
+                </button>
+                {onClone && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onClone(session); }}
+                    className="ml-0.5 hidden shrink-0 rounded p-1 text-gray-400 transition hover:bg-gray-200 hover:text-black group-hover/proj:flex items-center justify-center"
+                    title="Duplicate project"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         ))}
@@ -930,6 +943,43 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       setDeployUrl(null);
       setLivePreview(false);
       setLivePreviewError(null);
+    }
+  };
+
+  const cloneProject = async (session: ChatSession) => {
+    const originalName = session.title || "Untitled";
+    try {
+      const res = await post<{ id: string; name: string; spec?: any }>("/projects", {
+        prompt: `Clone of ${originalName}`,
+        name: `Copy of ${originalName}`,
+      });
+      if (res?.id) {
+        // If the original session has a spec, refine the clone with it
+        if (session.spec) {
+          try {
+            await post(`/projects/${res.id}/refine`, {
+              feedback: `Use this exact spec: ${JSON.stringify(session.spec)}`,
+            });
+          } catch {
+            // Clone was created but spec copy failed — that's still useful
+          }
+        }
+        // Add to local sessions
+        const newSession: ChatSession = {
+          id: res.id,
+          title: `Copy of ${originalName}`,
+          messages: [{ role: "user", content: `Clone of ${originalName}` }],
+          model: session.model,
+          createdAt: new Date().toISOString(),
+          spec: session.spec || null,
+          projectId: res.id,
+          deployUrl: null,
+        };
+        setChatSessions((prev) => [newSession, ...prev]);
+        setComingSoonToast(`Duplicated "${originalName}"`);
+      }
+    } catch {
+      setComingSoonToast("Failed to duplicate project. Please try again.");
     }
   };
 
@@ -1867,10 +1917,10 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     </div>
                   ) : (
                     <div className="text-center">
-                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50">
-                        <Monitor className="h-8 w-8 text-gray-300" />
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-pink-50">
+                        <Sparkles className="h-8 w-8 text-pink-300" />
                       </div>
-                      <p className="text-sm font-medium text-black">Preview</p>
+                      <p className="text-sm font-medium text-black">Build something to see it here</p>
                       <p className="mt-1 text-xs text-gray-400">
                         Describe your requirements in the chat and the preview will appear here.
                       </p>
@@ -1899,13 +1949,21 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           </div>
         ) : previewTab === "code" ? (
           <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-gray-900 p-4">
-            <pre className="text-xs text-green-400">
-              <code>
-                {builtSpec
-                  ? JSON.stringify(builtSpec, null, 2)
-                  : `// Generated spec will appear here\n// Keep chatting to refine your app\n\n// Model: ${selectedModel.label}\n// Session: ${activeChatId || "new"}`}
-              </code>
-            </pre>
+            {builtSpec ? (
+              <pre className="text-xs text-green-400">
+                <code>{JSON.stringify(builtSpec, null, 2)}</code>
+              </pre>
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-800">
+                    <Code className="h-8 w-8 text-gray-500" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-300">Your code will appear here</p>
+                  <p className="mt-1 text-xs text-gray-500">Build an app to see the generated spec and code.</p>
+                </div>
+              </div>
+            )}
           </div>
         ) : previewTab === "history" ? (
           <div className="h-full w-full overflow-auto rounded-xl border border-gray-200 bg-white p-4">
@@ -1967,22 +2025,67 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 ))}
               </div>
             )}
-            {selectedVersionSpec && (
-              <div className="mt-4 rounded-lg border border-pink-200 bg-pink-50 p-3">
-                <div className="mb-2 flex items-center justify-between">
-                  <p className="text-xs font-medium text-pink-700">Version Preview</p>
-                  <button
-                    onClick={() => setSelectedVersionSpec(null)}
-                    className="text-pink-400 hover:text-pink-600"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+            {selectedVersionSpec && (() => {
+              // Compute diff between current spec and selected version
+              const currentEntities: Array<{ name: string; fields?: any[] }> = builtSpec?.entities || [];
+              const versionEntities: Array<{ name: string; fields?: any[] }> = selectedVersionSpec?.entities || [];
+              const currentNames = new Set(currentEntities.map((e: any) => e.name));
+              const versionNames = new Set(versionEntities.map((e: any) => e.name));
+
+              const added = currentEntities.filter((e: any) => !versionNames.has(e.name));
+              const removed = versionEntities.filter((e: any) => !currentNames.has(e.name));
+              const modified = currentEntities.filter((e: any) => {
+                if (!versionNames.has(e.name)) return false;
+                const old = versionEntities.find((v: any) => v.name === e.name);
+                const curFields = e.fields?.length || 0;
+                const oldFields = old?.fields?.length || 0;
+                return curFields !== oldFields;
+              });
+
+              const hasDiff = added.length > 0 || removed.length > 0 || modified.length > 0;
+
+              return (
+                <div className="mt-4 rounded-lg border border-pink-200 bg-pink-50 p-3">
+                  <div className="mb-2 flex items-center justify-between">
+                    <p className="text-xs font-medium text-pink-700">Version Diff</p>
+                    <button
+                      onClick={() => setSelectedVersionSpec(null)}
+                      className="text-pink-400 hover:text-pink-600"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                  {hasDiff ? (
+                    <div className="space-y-1.5">
+                      {added.map((e: any) => (
+                        <div key={e.name} className="flex items-center gap-2 rounded bg-green-50 px-2 py-1.5 text-xs text-green-700">
+                          <span className="font-bold">+</span>
+                          <span>Added: <strong>{e.name}</strong> entity ({e.fields?.length || 0} fields)</span>
+                        </div>
+                      ))}
+                      {removed.map((e: any) => (
+                        <div key={e.name} className="flex items-center gap-2 rounded bg-red-50 px-2 py-1.5 text-xs text-red-700">
+                          <span className="font-bold">-</span>
+                          <span>Removed: <strong>{e.name}</strong> entity</span>
+                        </div>
+                      ))}
+                      {modified.map((e: any) => {
+                        const old = versionEntities.find((v: any) => v.name === e.name);
+                        const diff = (e.fields?.length || 0) - (old?.fields?.length || 0);
+                        return (
+                          <div key={e.name} className="flex items-center gap-2 rounded bg-amber-50 px-2 py-1.5 text-xs text-amber-700">
+                            <span className="font-bold">~</span>
+                            <span>Modified: <strong>{e.name}</strong> ({diff > 0 ? `added ${diff}` : `removed ${Math.abs(diff)}`} field{Math.abs(diff) !== 1 ? "s" : ""})</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500">No entity changes between versions.</p>
+                  )}
                 </div>
-                <pre className="max-h-60 overflow-auto rounded bg-white p-2 text-[11px] text-gray-700">
-                  {JSON.stringify(selectedVersionSpec, null, 2)}
-                </pre>
-              </div>
-            )}
+              );
+            })()}
           </div>
         ) : previewTab === "erd" ? (
           <div className="h-full w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1990,7 +2093,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <ERDViewer spec={builtSpec} />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-gray-400">Build a spec first to see the ERD</p>
+                <div className="text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-50">
+                    <Share2 className="h-8 w-8 text-blue-300" />
+                  </div>
+                  <p className="text-sm font-medium text-black">Entity relationships will be shown here</p>
+                  <p className="mt-1 text-xs text-gray-400">Build an app to visualize your data model.</p>
+                </div>
               </div>
             )}
           </div>
@@ -2000,7 +2109,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <SpecEditor spec={builtSpec} onSpecUpdate={setBuiltSpec} />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-gray-400">Build a spec first to use the editor</p>
+                <div className="text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50">
+                    <Pencil className="h-8 w-8 text-amber-300" />
+                  </div>
+                  <p className="text-sm font-medium text-black">Edit your spec here</p>
+                  <p className="mt-1 text-xs text-gray-400">Build an app first, then fine-tune the spec.</p>
+                </div>
               </div>
             )}
           </div>
@@ -2014,7 +2129,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-gray-400">Build a project first to configure settings</p>
+                <div className="text-center">
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100">
+                    <Settings className="h-8 w-8 text-gray-300" />
+                  </div>
+                  <p className="text-sm font-medium text-black">Configure your app after building</p>
+                  <p className="mt-1 text-xs text-gray-400">App settings will be available once you build a project.</p>
+                </div>
               </div>
             )}
           </div>
@@ -2887,6 +3008,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             chatSessions={chatSessions}
             activeChatId={activeChatId}
             onLoadChat={loadChat}
+            onClone={cloneProject}
           />
         )}
 
@@ -3220,9 +3342,11 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </div>
             <div className="space-y-2">
               {[
-                { keys: ["\u2318", "Enter"], desc: "Submit chat message" },
+                { keys: ["\u2318", "Enter"], desc: "Send message" },
                 { keys: ["\u2318", "K"], desc: "Focus chat input" },
                 { keys: ["\u2318", "N"], desc: "New chat" },
+                { keys: ["\u2318", "Z"], desc: "Undo" },
+                { keys: ["\u2318", "\u21E7", "Z"], desc: "Redo" },
                 { keys: ["\u2318", "D"], desc: "Toggle dark mode" },
                 { keys: ["\u2318", "."], desc: "Toggle sidebar" },
                 { keys: ["\u2318", "/"], desc: "Show this help" },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 
@@ -26,6 +26,73 @@ export function LandingPage() {
     );
     document.querySelectorAll("[data-animate]").forEach((el) => observer.observe(el));
     return () => observer.disconnect();
+  }, []);
+
+  const [faqOpen, setFaqOpen] = useState<number | null>(null);
+
+  // Animated counter state
+  const statsRef = useRef<HTMLDivElement>(null);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const [counters, setCounters] = useState({ apps: 0, templates: 0, uptime: 0, rating: 0 });
+
+  useEffect(() => {
+    if (!statsRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStatsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(statsRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!statsVisible) return;
+    const duration = 1500;
+    const steps = 40;
+    const targets = { apps: 10000, templates: 1000, uptime: 999, rating: 49 };
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      const progress = Math.min(step / steps, 1);
+      const ease = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      setCounters({
+        apps: Math.round(targets.apps * ease),
+        templates: Math.round(targets.templates * ease),
+        uptime: Math.round(targets.uptime * ease),
+        rating: Math.round(targets.rating * ease),
+      });
+      if (step >= steps) clearInterval(interval);
+    }, duration / steps);
+    return () => clearInterval(interval);
+  }, [statsVisible]);
+
+  // Inject JSON-LD structured data
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.textContent = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: "isibi.ai",
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web",
+      offers: {
+        "@type": "AggregateOffer",
+        lowPrice: "0",
+        highPrice: "79",
+        priceCurrency: "USD",
+      },
+      description: "AI-powered software builder. Describe what you need, our AI builds it.",
+    });
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
   }, []);
 
   const isVisible = (id: string) => visibleSections.has(id);
@@ -199,6 +266,27 @@ export function LandingPage() {
               <span key={name} className="whitespace-nowrap text-lg font-semibold text-gray-300 transition hover:text-gray-400">
                 {name}
               </span>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────── STATS BAR ──────────────── */}
+      <section ref={statsRef} className="py-12 bg-white">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
+            {[
+              { value: `${counters.apps.toLocaleString()}+`, label: "Apps built" },
+              { value: `${counters.templates.toLocaleString()}+`, label: "Templates" },
+              { value: `${(counters.uptime / 10).toFixed(1)}%`, label: "Uptime" },
+              { value: `${(counters.rating / 10).toFixed(1)}/5`, label: "Rating" },
+            ].map(({ value, label }) => (
+              <div key={label} className="text-center">
+                <p className="text-3xl font-extrabold tracking-tight sm:text-4xl" style={{ color: "#ec4899" }}>
+                  {value}
+                </p>
+                <p className="mt-1 text-sm text-gray-500">{label}</p>
+              </div>
             ))}
           </div>
         </div>
@@ -432,6 +520,77 @@ export function LandingPage() {
             >
               Start Building — Free
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ──────────────── FAQ ──────────────── */}
+      <section id="faq" data-animate className={`py-24 bg-gray-50/50 ${fadeIn("faq")}`}>
+        <div className="mx-auto max-w-3xl px-6">
+          <div className="text-center mb-12">
+            <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">FAQ</p>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+              Frequently asked questions
+            </h2>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: "What can I build with isibi.ai?",
+                a: "Anything from CRMs and project management tools to restaurant management systems, inventory trackers, HR platforms, and more. If you can describe it, our AI can build it — complete with database, API, and user interface.",
+              },
+              {
+                q: "Do I need to know how to code?",
+                a: "No! Just describe what you want in plain English. Our AI handles all the technical details — database design, API endpoints, UI components, and deployment. You can always dive into the code later if you want to customize.",
+              },
+              {
+                q: "How much does it cost?",
+                a: "Free for up to 3 builds per month with shared hosting. Our Pro plan at $29/mo gives you unlimited builds, custom domains, and priority support. Teams plan at $79/mo adds collaboration, white-label, and API access.",
+              },
+              {
+                q: "Can I download my app?",
+                a: "Yes! You can download your entire generated codebase as a ZIP file or export it as a standalone project. Each app is a fully functional application you can host anywhere.",
+              },
+              {
+                q: "Is my data secure?",
+                a: "Yes, each app gets its own isolated PostgreSQL database. We use industry-standard encryption for data in transit and at rest. Your source code and data are private and never shared with other users.",
+              },
+              {
+                q: "Can I collaborate with my team?",
+                a: "Absolutely! With our Teams plan, you can invite collaborators to edit projects in real-time, share project links, and manage permissions. Each team member gets their own workspace.",
+              },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="rounded-xl border border-gray-200 bg-white overflow-hidden transition hover:border-gray-300"
+              >
+                <button
+                  onClick={() => setFaqOpen(faqOpen === i ? null : i)}
+                  className="flex w-full items-center justify-between px-6 py-4 text-left"
+                >
+                  <span className="text-sm font-semibold text-black pr-4">{item.q}</span>
+                  <svg
+                    className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${
+                      faqOpen === i ? "rotate-180" : ""
+                    }`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-300 ${
+                    faqOpen === i ? "max-h-60 pb-4" : "max-h-0"
+                  }`}
+                >
+                  <p className="px-6 text-sm leading-relaxed text-gray-500">{item.a}</p>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
