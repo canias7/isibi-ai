@@ -2345,6 +2345,8 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   const LAYOUT_HINTS = {layout_hints_js};
   const APP_NAME = "{app_name}";
   const ROWS_PER_PAGE = 10;
+  const MAX_INITIAL_ROWS = 50;  // virtual scrolling: limit initial render
+  const loadMoreState = {{}};  // moduleName -> max rows to display
 
   // ── State ──
   let currentModule = null;
@@ -2363,6 +2365,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   const pageState = {{}};
   const viewMode = {{}};  // track current view per module: "table" | "kanban" | "calendar" | "cards"
 
+  // ── API response cache with 30s TTL ──
+  const apiCache = {{}};  // key -> {{ data, ts }}
+  const API_CACHE_TTL = 30000;  // 30 seconds
+
   // ── Notifications state ──
   const notifications = [];
   let notifUnread = 0;
@@ -2372,6 +2378,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
   // ── Global search state ──
   let gsearchTimer = null;
+  let searchDebounceTimer = null;
 
   // ── Auth ──
   function getToken() {{
@@ -2482,17 +2489,29 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   function stopLoading() {{ loadingCount = Math.max(0, loadingCount - 1); if (!loadingCount) loadingBar.classList.remove("active"); }}
 
   // ── API helpers ──
-  async function apiGet(table) {{
+  async function apiGet(table, forceRefresh) {{
+    // Check cache first (30s TTL)
+    const cacheKey = table.toLowerCase();
+    if (!forceRefresh && apiCache[cacheKey] && (Date.now() - apiCache[cacheKey].ts < API_CACHE_TTL)) {{
+      return apiCache[cacheKey].data;
+    }}
     startLoading();
     try {{
       const res = await fetch(API_BASE + "/api/apps/" + PROJECT_ID + "/data/" + table, {{ headers: apiHeaders() }});
       if (!res.ok) throw new Error("API error " + res.status);
       const data = await res.json();
-      return Array.isArray(data) ? data : (data.items || data.data || []);
+      const rows = Array.isArray(data) ? data : (data.items || data.data || []);
+      apiCache[cacheKey] = {{ data: rows, ts: Date.now() }};
+      return rows;
     }} catch (e) {{
       showToast("Failed to load data: " + e.message, "error");
       return [];
     }} finally {{ stopLoading(); }}
+  }}
+
+  // Invalidate cache for a table after mutations
+  function invalidateCache(table) {{
+    delete apiCache[table.toLowerCase()];
   }}
 
   async function apiCreate(table, record) {{
@@ -2502,6 +2521,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         method: "POST", headers: apiHeaders(), body: JSON.stringify(record)
       }});
       if (!res.ok) {{ const t = await res.text(); throw new Error(t || "Create failed"); }}
+      invalidateCache(table);
       return await res.json();
     }} catch (e) {{
       showToast("Failed to create: " + e.message, "error");
@@ -2516,6 +2536,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         method: "PATCH", headers: apiHeaders(), body: JSON.stringify(record)
       }});
       if (!res.ok) {{ const t = await res.text(); throw new Error(t || "Update failed"); }}
+      invalidateCache(table);
       return await res.json();
     }} catch (e) {{
       showToast("Failed to update: " + e.message, "error");
@@ -2530,6 +2551,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         method: "DELETE", headers: apiHeaders()
       }});
       if (!res.ok) throw new Error("Delete failed");
+      invalidateCache(table);
       return true;
     }} catch (e) {{
       showToast("Failed to delete: " + e.message, "error");
@@ -3088,15 +3110,18 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
   window.searchKanban = function(moduleName, entity, value) {{
     searchState[moduleName] = value;
-    const fields = ENTITY_FIELDS[entity] || [];
-    const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 &&
-      /status|state|stage|phase/i.test(f.name));
-    const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
-    const extraFields = fields.filter(f =>
-      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name) &&
-      f.name !== statusField.name && (!nameField || f.name !== nameField.name)
-    ).slice(0, 3);
-    renderKanbanCards(moduleName, entity, statusField, nameField, extraFields);
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {{
+      const fields = ENTITY_FIELDS[entity] || [];
+      const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 &&
+        /status|state|stage|phase/i.test(f.name));
+      const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
+      const extraFields = fields.filter(f =>
+        !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name) &&
+        f.name !== statusField.name && (!nameField || f.name !== nameField.name)
+      ).slice(0, 3);
+      renderKanbanCards(moduleName, entity, statusField, nameField, extraFields);
+    }}, 300);
   }};
 
   // ══════════════════════════════════════════
@@ -3259,7 +3284,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
       let imageHtml;
       if (imgSrc && (imgSrc.startsWith("http") || imgSrc.startsWith("/"))) {{
-        imageHtml = '<div class="grid-card-image"><img src="' + escHtml(imgSrc) + '" alt="' + escHtml(title) + '" onerror="this.parentElement.innerHTML=\'<svg class=\\\'placeholder-icon\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'2\\\'><rect x=\\\'3\\\' y=\\\'3\\\' width=\\\'18\\\' height=\\\'18\\\' rx=\\\'2\\\'/><circle cx=\\\'8.5\\\' cy=\\\'8.5\\\' r=\\\'1.5\\\'/><polyline points=\\\'21 15 16 10 5 21\\\'/></svg>\'"></div>';
+        imageHtml = '<div class="grid-card-image"><img src="' + escHtml(imgSrc) + '" alt="' + escHtml(title) + '" loading="lazy" onerror="this.parentElement.innerHTML=\'<svg class=\\\'placeholder-icon\\\' viewBox=\\\'0 0 24 24\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' stroke-width=\\\'2\\\'><rect x=\\\'3\\\' y=\\\'3\\\' width=\\\'18\\\' height=\\\'18\\\' rx=\\\'2\\\'/><circle cx=\\\'8.5\\\' cy=\\\'8.5\\\' r=\\\'1.5\\\'/><polyline points=\\\'21 15 16 10 5 21\\\'/></svg>\'"></div>';
       }} else {{
         const initials = String(title).slice(0, 2).toUpperCase();
         const bgColor = stringToColor(title);
@@ -3299,7 +3324,8 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
   window.searchCards = function(moduleName, entity, value) {{
     searchState[moduleName] = value;
-    renderCardGridCards(moduleName, entity);
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => renderCardGridCards(moduleName, entity), 300);
   }};
 
   // ══════════════════════════════════════════
@@ -3358,7 +3384,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
           tabsHtml +
         '</div>' +
         groupByHtml +
-        '<div style="overflow-x:auto"><table id="table-' + moduleName + '">' +
+        '<div style="overflow-x:auto;max-height:600px;overflow-y:auto"><table id="table-' + moduleName + '">' +
           '<thead><tr>' + headers + '</tr></thead>' +
           '<tbody id="tbody-' + moduleName + '"></tbody>' +
         '</table></div>' +
@@ -3448,6 +3474,14 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       }}
       if (footer) footer.innerHTML = '';
       return;
+    }}
+
+    // Virtual scrolling: limit total visible rows
+    const maxRows = loadMoreState[moduleName] || MAX_INITIAL_ROWS;
+    const totalRowCount = rows.length;
+    const hasMoreRows = totalRowCount > maxRows;
+    if (hasMoreRows) {{
+      rows = rows.slice(0, maxRows);
     }}
 
     // Pagination
@@ -3619,10 +3653,15 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
     // Footer with pagination
     if (footer) {{
+      let loadMoreHtml = '';
+      if (hasMoreRows) {{
+        loadMoreHtml = '<div style="text-align:center;padding:8px 0"><button class="btn btn-secondary btn-sm" onclick="loadMoreRows(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\')">' +
+          'Load more (' + (totalRowCount - maxRows) + ' remaining)</button></div>';
+      }}
       if (totalPages <= 1) {{
-        footer.innerHTML = '<span>Showing ' + rows.length + ' record' + (rows.length !== 1 ? 's' : '') + '</span><span></span>';
+        footer.innerHTML = '<span>Showing ' + rows.length + (hasMoreRows ? ' of ' + totalRowCount : '') + ' record' + (rows.length !== 1 ? 's' : '') + '</span><span></span>' + loadMoreHtml;
       }} else {{
-        let paginationHtml = '<span>Showing ' + (start + 1) + '-' + Math.min(start + ROWS_PER_PAGE, rows.length) + ' of ' + rows.length + '</span>';
+        let paginationHtml = '<span>Showing ' + (start + 1) + '-' + Math.min(start + ROWS_PER_PAGE, rows.length) + ' of ' + rows.length + (hasMoreRows ? ' (of ' + totalRowCount + ' total)' : '') + '</span>';
         paginationHtml += '<div class="pagination">';
         paginationHtml += '<button class="page-btn" ' + (page <= 1 ? 'disabled' : '') + ' onclick="goToPage(\'' + moduleName + '\',\'' + entity + '\',' + (page - 1) + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>';
         for (let p = 1; p <= totalPages; p++) {{
@@ -3634,7 +3673,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         }}
         paginationHtml += '<button class="page-btn" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="goToPage(\'' + moduleName + '\',\'' + entity + '\',' + (page + 1) + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>';
         paginationHtml += '</div>';
-        footer.innerHTML = paginationHtml;
+        footer.innerHTML = paginationHtml + loadMoreHtml;
       }}
     }}
   }}
@@ -3667,7 +3706,8 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   window.searchTable = function(moduleName, entity, value) {{
     searchState[moduleName] = value;
     pageState[moduleName] = 1;
-    renderTableRows(entity, moduleName);
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => renderTableRows(entity, moduleName), 300);
   }};
 
   // ── Status filter ──
@@ -3683,6 +3723,13 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   // ── Pagination ──
   window.goToPage = function(moduleName, entity, page) {{
     pageState[moduleName] = page;
+    renderTableRows(entity, moduleName);
+  }};
+
+  window.loadMoreRows = function(moduleName, entity) {{
+    const current = loadMoreState[moduleName] || MAX_INITIAL_ROWS;
+    loadMoreState[moduleName] = current + 50;
+    pageState[moduleName] = 1;
     renderTableRows(entity, moduleName);
   }};
 
