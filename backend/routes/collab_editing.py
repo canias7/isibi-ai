@@ -4,9 +4,12 @@ Real-Time Collaborative Editing — WebSocket-based real-time sync.
 
 WebSocket  /ws/projects/{project_id}   — real-time cursor / spec / chat / presence
 GET        /api/collab/{project_id}/presence — who is currently online
+
+Presence is tracked in Redis (SADD/SREM) when available, with in-memory fallback.
 """
 
 import os
+import json
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -35,18 +38,72 @@ _COLORS = [
     "#ef4444", "#06b6d4", "#6366f1", "#14b8a6", "#f97316",
 ]
 
+_PRESENCE_TTL = 300  # 5 minutes
+
 
 def _pick_color(index: int) -> str:
     return _COLORS[index % len(_COLORS)]
 
 
 def _presence_list(project_id: str) -> List[dict]:
-    """Return a list of users currently in the project room."""
+    """Return a list of users currently in the project room (in-memory)."""
     room = _rooms.get(project_id, {})
     return [
         {"user_id": uid, "name": info["name"], "color": info["color"]}
         for uid, info in room.items()
     ]
+
+
+# ── Redis presence helpers ───────────────────────────────────────────
+
+async def _get_redis():
+    """Get Redis client, returns None if unavailable."""
+    try:
+        from utils.redis_client import get_redis
+        return await get_redis()
+    except Exception:
+        return None
+
+
+async def _redis_presence_add(project_id: str, user_id: str, name: str, color: str):
+    """Add user to Redis presence set."""
+    redis_client = await _get_redis()
+    if not redis_client:
+        return
+    try:
+        user_json = json.dumps({"user_id": user_id, "name": name, "color": color})
+        key = f"presence:{project_id}"
+        await redis_client.sadd(key, user_json)
+        await redis_client.expire(key, _PRESENCE_TTL)
+    except Exception as e:
+        logger.debug("Redis presence add failed: %s", e)
+
+
+async def _redis_presence_remove(project_id: str, user_id: str, name: str, color: str):
+    """Remove user from Redis presence set."""
+    redis_client = await _get_redis()
+    if not redis_client:
+        return
+    try:
+        user_json = json.dumps({"user_id": user_id, "name": name, "color": color})
+        key = f"presence:{project_id}"
+        await redis_client.srem(key, user_json)
+    except Exception as e:
+        logger.debug("Redis presence remove failed: %s", e)
+
+
+async def _redis_presence_list(project_id: str) -> List[dict] | None:
+    """Get presence list from Redis. Returns None if Redis unavailable."""
+    redis_client = await _get_redis()
+    if not redis_client:
+        return None
+    try:
+        key = f"presence:{project_id}"
+        members = await redis_client.smembers(key)
+        return [json.loads(m) for m in members]
+    except Exception as e:
+        logger.debug("Redis presence list failed: %s", e)
+        return None
 
 
 # ── WebSocket endpoint (mounted on app directly, not via /api) ──────
@@ -93,6 +150,9 @@ async def collab_ws(websocket: WebSocket, project_id: str, token: str = Query(de
         "name": user_name,
         "color": color,
     }
+
+    # Add to Redis presence
+    await _redis_presence_add(project_id, user_id, user_name, color)
 
     # Broadcast updated presence to everyone in the room
     presence_msg = {
@@ -161,6 +221,9 @@ async def collab_ws(websocket: WebSocket, project_id: str, token: str = Query(de
             }
             await _broadcast(project_id, presence_msg, exclude=None)
 
+        # Remove from Redis presence
+        await _redis_presence_remove(project_id, user_id, user_name, color)
+
 
 async def _broadcast(project_id: str, message: dict, exclude: str | None):
     """Send a JSON message to all users in a project room, optionally excluding one."""
@@ -183,8 +246,19 @@ async def _broadcast(project_id: str, message: dict, exclude: str | None):
 @router.get("/{project_id}/presence")
 async def get_presence(project_id: str, org_id: uuid.UUID = Depends(get_current_org_id)):
     """Return a list of users currently viewing/editing this project."""
+    # Try Redis first for cross-instance presence
+    redis_users = await _redis_presence_list(project_id)
+    if redis_users is not None:
+        return {
+            "project_id": project_id,
+            "users": redis_users,
+            "count": len(redis_users),
+        }
+
+    # Fall back to in-memory
+    users = _presence_list(project_id)
     return {
         "project_id": project_id,
-        "users": _presence_list(project_id),
-        "count": len(_presence_list(project_id)),
+        "users": users,
+        "count": len(users),
     }

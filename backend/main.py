@@ -122,6 +122,11 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
+    # Close Redis connection
+    from utils.redis_client import close_redis
+    await close_redis()
+    logger.info("Redis connection closed")
+
     # Close all schema connection pools
     from generator.app_db import close_all_pools
     await close_all_pools()
@@ -219,6 +224,7 @@ async def health():
     import time as _t
     from middleware.cache import _cache as _cache_store
     from generator.app_db import _schema_pools
+    from utils.redis_client import get_redis
 
     # Check DB connectivity
     db_status = "connected"
@@ -227,6 +233,16 @@ async def health():
             await session.execute(text("SELECT 1"))
     except Exception:
         db_status = "disconnected"
+
+    # Check Redis connectivity
+    redis_status = "not configured"
+    try:
+        redis_client = await get_redis()
+        if redis_client:
+            await redis_client.ping()
+            redis_status = "connected"
+    except Exception:
+        redis_status = "disconnected"
 
     # Count registered routes
     routes_count = len(app.routes)
@@ -242,6 +258,7 @@ async def health():
         "version": app.version,
         "uptime_seconds": int(_t.time() - _APP_START_TIME),
         "database": db_status,
+        "redis": redis_status,
         "routes_count": routes_count,
         "cache_entries": cache_entries,
         "active_pools": active_pools,

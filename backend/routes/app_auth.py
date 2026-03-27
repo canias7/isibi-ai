@@ -14,8 +14,11 @@ Routes:
 """
 
 import os
+import json
 import uuid
+import hashlib
 import secrets
+import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -30,6 +33,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
 from models.app_user import AppUser
 
+_logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/apps", tags=["App Auth"])
 
 # In-memory reset code store: key = "{project_id}:{email}" -> {"code": str, "expires": datetime}
@@ -41,6 +46,63 @@ JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 APP_JWT_EXPIRE_HOURS = int(os.getenv("APP_JWT_EXPIRE_HOURS", "72"))
 
 security = HTTPBearer()
+
+SESSION_EXPIRY_SECONDS = 86400  # 24 hours
+
+
+# ── Redis session helpers ────────────────────────────────────────────
+
+async def _get_redis():
+    """Get Redis client, returns None if unavailable."""
+    try:
+        from utils.redis_client import get_redis
+        return await get_redis()
+    except Exception:
+        return None
+
+
+async def _store_session(token: str, user_data: dict):
+    """Store a session in Redis with 24h expiry."""
+    redis_client = await _get_redis()
+    if not redis_client:
+        return
+    try:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        await redis_client.setex(
+            f"session:{token_hash}",
+            SESSION_EXPIRY_SECONDS,
+            json.dumps(user_data),
+        )
+    except Exception as e:
+        _logger.debug("Redis session store failed: %s", e)
+
+
+async def _revoke_session(token: str):
+    """Remove a session from Redis (instant revocation)."""
+    redis_client = await _get_redis()
+    if not redis_client:
+        return
+    try:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        await redis_client.delete(f"session:{token_hash}")
+    except Exception as e:
+        _logger.debug("Redis session revoke failed: %s", e)
+
+
+async def _check_session(token: str) -> dict | None:
+    """Check if a session exists in Redis. Returns user data or None."""
+    redis_client = await _get_redis()
+    if not redis_client:
+        return None  # No Redis = can't check, fall through to JWT validation
+    try:
+        token_hash = hashlib.sha256(token.encode()).hexdigest()
+        raw = await redis_client.get(f"session:{token_hash}")
+        if raw is None:
+            return None
+        return json.loads(raw)
+    except Exception as e:
+        _logger.debug("Redis session check failed: %s", e)
+        return None
 
 
 # ── Request / Response schemas ───────────────────────────────────────
@@ -165,6 +227,14 @@ async def app_signup(
     await db.refresh(app_user)
 
     token = _make_app_token(app_user, project_id)
+
+    # Store session in Redis for instant revocation support
+    await _store_session(token, {
+        "user_id": str(app_user.id),
+        "project_id": str(project_id),
+        "email": app_user.email,
+    })
+
     return AppTokenResponse(access_token=token, user=_app_user_response(app_user))
 
 
@@ -192,7 +262,27 @@ async def app_login(
         raise HTTPException(status_code=403, detail="Account is deactivated.")
 
     token = _make_app_token(app_user, project_id)
+
+    # Store session in Redis for instant revocation support
+    await _store_session(token, {
+        "user_id": str(app_user.id),
+        "project_id": str(project_id),
+        "email": app_user.email,
+    })
+
     return AppTokenResponse(access_token=token, user=_app_user_response(app_user))
+
+
+# ── Logout ────────────────────────────────────────────────────────
+
+@router.post("/{project_id}/auth/logout")
+async def app_logout(
+    project_id: uuid.UUID,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Logout — revoke the current session token."""
+    await _revoke_session(credentials.credentials)
+    return {"message": "Logged out successfully."}
 
 
 # ── Me ───────────────────────────────────────────────────────────────

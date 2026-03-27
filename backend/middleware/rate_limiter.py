@@ -1,6 +1,8 @@
 from __future__ import annotations
 """
-In-memory rate limiter middleware for FastAPI.
+Rate limiter middleware for FastAPI with Redis support.
+
+Uses Redis when REDIS_URL is configured, falls back to in-memory dict otherwise.
 
 Tracks requests per IP per minute with configurable limits per route prefix.
 
@@ -47,7 +49,7 @@ WINDOW_SECONDS = 60
 _CLEANUP_INTERVAL = 500
 
 
-# ── Storage ──────────────────────────────────────────────────────────
+# ── In-memory storage (fallback) ────────────────────────────────────
 
 # key = (ip, route_prefix), value = list of timestamps
 _request_log: dict[tuple[str, str], list[float]] = {}
@@ -87,8 +89,26 @@ def _cleanup_old_entries(now: float) -> None:
         del _request_log[key]
 
 
+# ── Redis rate limiting ─────────────────────────────────────────────
+
+async def _check_rate_limit_redis(redis_client, ip: str, prefix: str, limit: int) -> bool:
+    """Check rate limit using Redis INCR with EXPIRE. Returns True if allowed."""
+    key = f"rl:{ip}:{prefix}:{int(time.time()) // 60}"
+    count = await redis_client.incr(key)
+    if count == 1:
+        await redis_client.expire(key, 60)
+    return count <= limit
+
+
+async def _get_redis_count(redis_client, ip: str, prefix: str) -> int:
+    """Get current request count from Redis for retry-after calculation."""
+    key = f"rl:{ip}:{prefix}:{int(time.time()) // 60}"
+    count = await redis_client.get(key)
+    return int(count) if count else 0
+
+
 class RateLimiterMiddleware(BaseHTTPMiddleware):
-    """Simple in-memory rate limiter based on client IP and route prefix."""
+    """Rate limiter with Redis support, falling back to in-memory."""
 
     async def dispatch(self, request: Request, call_next):
         global _request_counter
@@ -101,12 +121,40 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         ip = _get_client_ip(request)
         now = time.time()
 
-        # Periodic cleanup
+        prefix, limit = _get_rate_limit(path)
+
+        # Try Redis first
+        try:
+            from utils.redis_client import get_redis
+            redis_client = await get_redis()
+        except Exception:
+            redis_client = None
+
+        if redis_client:
+            try:
+                allowed = await _check_rate_limit_redis(redis_client, ip, prefix, limit)
+                if not allowed:
+                    logger.warning(
+                        "Rate limit exceeded (Redis): ip=%s prefix=%s limit=%d",
+                        ip, prefix, limit,
+                    )
+                    return JSONResponse(
+                        status_code=429,
+                        content={
+                            "detail": "Too many requests. Please try again later.",
+                            "retry_after": WINDOW_SECONDS,
+                        },
+                        headers={"Retry-After": str(WINDOW_SECONDS)},
+                    )
+                return await call_next(request)
+            except Exception as e:
+                logger.warning("Redis rate limit check failed: %s. Falling back to in-memory.", e)
+
+        # ── In-memory fallback ──
         _request_counter += 1
         if _request_counter % _CLEANUP_INTERVAL == 0:
             _cleanup_old_entries(now)
 
-        prefix, limit = _get_rate_limit(path)
         key = (ip, prefix)
 
         # Get current window timestamps
