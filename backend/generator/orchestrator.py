@@ -32,6 +32,7 @@ from db import DATABASE_URL
 from models.project import Project
 from .ai_generator import generate_spec, refine_spec
 from .builder import build_backend
+from .frontend_builder import build_frontend
 from .app_db import create_app_schema, drop_app_schema
 from .spec_validator import validate_and_repair
 
@@ -96,6 +97,10 @@ async def create_project(
         build_dir = os.path.join(PROJECTS_DIR, str(project.id), "backend")
         build_backend(spec, build_dir)
         project.build_path = build_dir
+
+        # 4a. Build React frontend
+        frontend_dir = os.path.join(PROJECTS_DIR, str(project.id), "frontend")
+        build_frontend(spec, frontend_dir)
 
         # 4b. Create isolated database schema + tables for the app
         try:
@@ -177,6 +182,10 @@ async def refine_project(
         # Rebuild backend
         build_dir = os.path.join(PROJECTS_DIR, str(project.id), "backend")
         build_backend(updated_spec, build_dir)
+
+        # Rebuild React frontend
+        frontend_dir = os.path.join(PROJECTS_DIR, str(project.id), "frontend")
+        build_frontend(updated_spec, frontend_dir)
 
         # Recreate database schema (drop + create to reflect entity changes)
         try:

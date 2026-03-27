@@ -51,6 +51,7 @@ import {
   Search,
   RefreshCw,
   Network,
+  ChevronRight,
 } from "lucide-react";
 import { post, get } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
@@ -677,7 +678,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   // Auto-hide coming soon toast
   useEffect(() => {
     if (!comingSoonToast) return;
-    const t = setTimeout(() => setComingSoonToast(null), 3500);
+    const t = setTimeout(() => setComingSoonToast(null), 3000);
     return () => clearTimeout(t);
   }, [comingSoonToast]);
 
@@ -1234,8 +1235,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             >
               <Mic className="h-3.5 w-3.5" />
             </button>
-            {prompt.length > 0 && (
-              <span className="ml-1 text-[10px] text-gray-400">
+            {prompt.length >= 100 && (
+              <span className="ml-1 text-[10px] text-gray-300">
                 {prompt.length} / {MAX_CHARS}
               </span>
             )}
@@ -2637,9 +2638,10 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                           setPrompt(examplePrompt);
                           submitMessage(examplePrompt);
                         }}
-                        className="rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] text-gray-600 transition hover:border-gray-400 hover:bg-gray-50 hover:text-black hover:shadow-sm"
+                        className="group flex items-center gap-2 cursor-pointer rounded-full border border-gray-200 bg-white px-3.5 py-2 text-[12px] text-gray-600 transition hover:border-gray-400 hover:bg-gray-50 hover:text-black hover:shadow-sm"
                       >
-                        {examplePrompt}
+                        <span>&ldquo;{examplePrompt}&rdquo;</span>
+                        <ChevronRight className="h-3 w-3 shrink-0 text-gray-300 transition group-hover:text-gray-500" />
                       </button>
                     ))}
                   </div>
@@ -2710,8 +2712,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                       >
                         <Mic className="h-3.5 w-3.5" />
                       </button>
-                      {prompt.length > 0 && (
-                        <span className="text-[10px] text-gray-400">
+                      {prompt.length >= 100 && (
+                        <span className="text-[10px] text-gray-300">
                           {prompt.length} / {MAX_CHARS}
                         </span>
                       )}
@@ -2802,10 +2804,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
               Projects
             </p>
-            <div className="animate-pulse space-y-1.5 px-2">
-              <div className="h-4 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2" />
-              <div className="h-4 bg-gray-200 rounded w-5/6" />
+            <div className="animate-pulse space-y-2 px-2">
+              {[3/4, 1/2, 5/6].map((w, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-lg px-2 py-1.5">
+                  <div className="h-4 w-4 shrink-0 rounded bg-gray-200" />
+                  <div className="h-3.5 bg-gray-200 rounded" style={{ width: `${w * 100}%` }} />
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -3116,12 +3121,12 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         </div>
       )}
 
-      {/* Coming soon toast */}
+      {/* Coming soon toast — top of page, auto-dismiss 3s */}
       {comingSoonToast && (
-        <div className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 animate-bounce-in">
-          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 shadow-lg">
+        <div className="fixed top-4 left-1/2 z-[200] -translate-x-1/2 animate-bounce-in">
+          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-lg">
             <span className="text-sm">&#9888;&#65039;</span>
-            <p className="text-xs font-medium text-amber-800">{comingSoonToast}</p>
+            <p className="text-sm font-medium text-amber-800">{comingSoonToast}</p>
           </div>
         </div>
       )}
