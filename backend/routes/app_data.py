@@ -13,6 +13,7 @@ Routes:
   DELETE /api/apps/{project_id}/data/{table_name}/{row_id}  — soft delete
 """
 
+import os
 import re
 import random
 import logging
