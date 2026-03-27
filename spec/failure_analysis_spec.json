@@ -199,7 +199,64 @@
             "heading": "No Cases yet",
             "subtext": "Add case",
             "action_label": "Add Case"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "received",
+                "examination",
+                "testing",
+                "analysis",
+                "reporting",
+                "delivered"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "client",
+            "component"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Delivered",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "delivered"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -288,6 +345,17 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Completed Cases",
+        "entity": "Case",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "delivered"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
       }
     ]
   },

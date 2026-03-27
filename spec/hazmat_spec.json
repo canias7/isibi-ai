@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "e.g. Building A, Room 101",
+          "help_text": "Physical location"
         },
         {
           "name": "type",
@@ -108,6 +110,66 @@
           }
         },
         {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "scheduled_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "priority",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "low",
+            "medium",
+            "high",
+            "urgent"
+          ],
+          "badge_colors": {
+            "low": "slate",
+            "medium": "blue",
+            "high": "amber",
+            "urgent": "red"
+          }
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -167,7 +229,80 @@
             "heading": "No Jobs yet",
             "subtext": "Add job",
             "action_label": "Add Job"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "scheduled_date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "response",
+                "containment",
+                "cleanup",
+                "testing",
+                "clearance",
+                "closed"
+              ]
+            },
+            {
+              "field": "priority",
+              "label": "Priority",
+              "options": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "location",
+            "agency_report",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Closed",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "closed"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -253,6 +388,17 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Completed Jobs",
+        "entity": "Job",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "closed"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
       }
     ]
   },

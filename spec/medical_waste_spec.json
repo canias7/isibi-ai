@@ -187,7 +187,61 @@
             "heading": "No Pickups yet",
             "subtext": "Add pickup",
             "action_label": "Add Pickup"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "scheduled",
+                "collected",
+                "manifested",
+                "treated",
+                "disposed"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "facility"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -279,6 +333,25 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Active Pickups",
+        "entity": "Pickup",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "scheduled"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Total Weight Lbs",
+        "entity": "Pickup",
+        "method": "sum",
+        "field": "weight_lbs",
+        "icon": "DollarSign",
+        "color": "amber"
       }
     ]
   },

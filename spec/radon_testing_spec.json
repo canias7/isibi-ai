@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Customer name",
+          "help_text": "Customer full name"
         },
         {
           "name": "address",
@@ -51,7 +53,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "level_pci",
@@ -171,7 +175,56 @@
             "heading": "No Tests yet",
             "subtext": "Add test",
             "action_label": "Add Test"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "placed",
+                "collecting",
+                "analyzing",
+                "reported"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "customer",
+            "address"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -260,6 +313,14 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Level Pci",
+        "entity": "Test",
+        "method": "sum",
+        "field": "level_pci",
+        "icon": "DollarSign",
+        "color": "amber"
       }
     ]
   },

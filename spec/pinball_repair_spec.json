@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Customer name",
+          "help_text": "Customer full name"
         },
         {
           "name": "machine",
@@ -98,7 +100,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Price must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Price in USD"
         },
         {
           "name": "status",
@@ -188,7 +196,58 @@
             "heading": "No Jobs yet",
             "subtext": "Add job",
             "action_label": "Add Job"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "received",
+                "diagnosing",
+                "parts_sourcing",
+                "repairing",
+                "testing",
+                "ready"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "customer",
+            "machine"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -279,6 +338,14 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Price",
+        "entity": "Job",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "amber"
       }
     ]
   },

@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "phone",
@@ -51,7 +53,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "conditions",
@@ -63,6 +71,47 @@
           "show_in_form": true,
           "input_component": "textarea",
           "display_component": "text"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
+        },
+        {
+          "name": "date_of_birth",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "address",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "created_at",
@@ -122,7 +171,46 @@
             "heading": "No Patients yet",
             "subtext": "Create your first patient",
             "action_label": "Add Patient"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date_of_birth"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "phone",
+            "email",
+            "address"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -256,6 +344,19 @@
           }
         },
         {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -314,7 +415,66 @@
             "heading": "No Treatments yet",
             "subtext": "Create your first treatment",
             "action_label": "Add Treatment"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "scheduled",
+                "completed",
+                "cancelled"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "patient_name",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Completed",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -407,6 +567,35 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Treatments",
+        "entity": "Treatment",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Treatments",
+        "entity": "Treatment",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "scheduled"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Completed Treatments",
+        "entity": "Treatment",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "completed"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
       }
     ]
   },

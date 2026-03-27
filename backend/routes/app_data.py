@@ -27,6 +27,7 @@ from generator.app_db import get_schema_name, _get_raw_connection, list_schema_t
 from generator.orchestrator import _get_project
 from worker.email_worker import fire_email_triggers
 from worker.webhook_worker import fire_webhooks
+from utils.sanitize import sanitize_dict, sanitize_sql_identifier
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,11 @@ def _validate_identifier(name: str, label: str = "identifier") -> str:
     """Validate and return a safe SQL identifier."""
     clean = name.strip().lower()
     if not _IDENT_RE.match(clean):
+        raise HTTPException(status_code=400, detail=f"Invalid {label}: {name}")
+    # Double-check via sanitize utility (defense in depth)
+    try:
+        sanitize_sql_identifier(clean)
+    except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid {label}: {name}")
     return clean
 
@@ -192,6 +198,9 @@ async def create_row(
     if not body:
         raise HTTPException(status_code=400, detail="Request body cannot be empty")
 
+    # Sanitize all string values in body to prevent XSS
+    body = sanitize_dict(body)
+
     # Filter out keys that aren't valid identifiers
     safe_data = {}
     for k, v in body.items():
@@ -257,6 +266,9 @@ async def update_row(
 
     if not body:
         raise HTTPException(status_code=400, detail="Request body cannot be empty")
+
+    # Sanitize all string values in body to prevent XSS
+    body = sanitize_dict(body)
 
     # Build SET clause
     safe_data = {}

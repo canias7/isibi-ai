@@ -23,6 +23,8 @@ from fastapi import Path as FastAPIPath
 from fastapi.responses import HTMLResponse
 from db import engine, Base, async_session
 from routes import all_routers
+from middleware.rate_limiter import RateLimiterMiddleware
+from utils.errors import global_exception_handler
 
 # Import all models so Base.metadata knows every table
 import models  # noqa: F401
@@ -218,13 +220,24 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# CORS — configurable via ALLOWED_ORIGINS env var (comma-separated).
+# Defaults to * for development; set to specific origins in production.
+_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[o.strip() for o in _ALLOWED_ORIGINS],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Rate limiting — must be added after CORS so preflight OPTIONS requests
+# are handled before rate limiting kicks in.
+app.add_middleware(RateLimiterMiddleware)
+
+# Global exception handler — returns structured JSON, never raw stack traces
+app.add_exception_handler(Exception, global_exception_handler)
 
 # ── Custom Domain Middleware ──
 # Resolves custom domains via the Host header and serves the matching project
