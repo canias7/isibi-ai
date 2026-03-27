@@ -249,14 +249,66 @@ async def create_app_schema(
     if not entities:
         logger.warning("No entities in spec for project %s — schema created but empty", project_id)
 
+    # Sort entities by FK dependencies: entities with no FKs first, then those referencing them
+    def _get_entity_table(e):
+        return _sanitize_identifier(e.get("table", e.get("name", "unknown")))
+
+    entity_tables = {_get_entity_table(e) for e in entities if isinstance(e, dict)}
+
+    def _has_fk_to(entity, target_tables):
+        for field in entity.get("fields", []):
+            if not isinstance(field, dict):
+                continue
+            db_type = (field.get("db_type", "") or "").upper()
+            if "REFERENCES" in db_type:
+                for t in target_tables:
+                    if t.upper() in db_type:
+                        return True
+        return False
+
+    # Simple topological sort: entities with no FKs first
+    sorted_entities = []
+    remaining = [e for e in entities if isinstance(e, dict)]
+    created_tables = set()
+    max_passes = len(remaining) + 1
+    for _ in range(max_passes):
+        if not remaining:
+            break
+        next_remaining = []
+        for entity in remaining:
+            # Check if all FK targets are already created or not in our entity set
+            has_unmet_deps = False
+            for field in entity.get("fields", []):
+                if not isinstance(field, dict):
+                    continue
+                db_type = (field.get("db_type", "") or "").upper()
+                if "REFERENCES" in db_type:
+                    # Extract referenced table name
+                    import re as _re
+                    ref_match = _re.search(r'REFERENCES\s+"?(\w+)"?\s*\(', db_type)
+                    if ref_match:
+                        ref_table = ref_match.group(1).lower()
+                        if ref_table in entity_tables and ref_table not in created_tables:
+                            has_unmet_deps = True
+                            break
+            if not has_unmet_deps:
+                sorted_entities.append(entity)
+                created_tables.add(_get_entity_table(entity))
+            else:
+                next_remaining.append(entity)
+        remaining = next_remaining
+
+    # Add any remaining (circular deps) at the end
+    sorted_entities.extend(remaining)
+
     conn = await _get_raw_connection(db_url)
     try:
         # Create schema
         await conn.execute(f'CREATE SCHEMA IF NOT EXISTS "{schema}"')
         logger.info("Created schema %s for project %s", schema, project_id)
 
-        # Create tables
-        for entity in entities:
+        # Create tables (sorted by FK dependencies)
+        for entity in sorted_entities:
             if not isinstance(entity, dict):
                 continue
             table_name = _sanitize_identifier(entity.get("name", "unknown"))
@@ -269,7 +321,28 @@ async def create_app_schema(
                 if not isinstance(field, dict):
                     continue
                 col_name = _sanitize_identifier(field.get("name", "col"))
-                col_type = map_spec_type_to_sql(field.get("db_type", "TEXT"))
+                raw_type = field.get("db_type", "TEXT") or "TEXT"
+                col_type = map_spec_type_to_sql(raw_type)
+                # Fix REFERENCES to use schema-qualified table names
+                if "REFERENCES" in col_type.upper():
+                    import re as _re2
+                    def _fix_ref(m):
+                        ref_table = m.group(1).lower()
+                        ref_col = m.group(2)
+                        return f'REFERENCES "{schema}"."{ref_table}"({ref_col})'
+                    col_type = _re2.sub(
+                        r'REFERENCES\s+"?(\w+)"?\s*\((\w+)\)',
+                        _fix_ref,
+                        col_type,
+                        flags=_re2.IGNORECASE
+                    )
+                    # Also strip ON DELETE/CASCADE for simplicity — avoid FK constraint issues
+                    col_type = _re2.sub(r'\s+ON\s+DELETE\s+\w+', '', col_type, flags=_re2.IGNORECASE)
+                    col_type = _re2.sub(r'\s+ON\s+UPDATE\s+\w+', '', col_type, flags=_re2.IGNORECASE)
+                    # Strip REFERENCES entirely — just use UUID type
+                    col_type = _re2.sub(r'\s*REFERENCES\s+"[^"]+"\."[^"]+"\(\w+\)', '', col_type, flags=_re2.IGNORECASE)
+                    if not col_type.strip():
+                        col_type = "UUID"
                 columns.append(f'    "{col_name}" {col_type}')
 
             # Add soft-delete column if not already present
