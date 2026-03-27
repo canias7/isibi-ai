@@ -642,7 +642,7 @@ body {{
   margin-bottom:24px;
 }}
 .stat-card {{
-  background:linear-gradient(135deg, var(--bg-card) 0%, #f8f9ff 100%);
+  background:linear-gradient(135deg, var(--bg-card) 0%, color-mix(in srgb, {primary_color} 5%, white) 100%);
   border:1px solid var(--border);
   border-radius:var(--radius-lg);
   padding:20px 24px;
@@ -656,8 +656,8 @@ body {{
   overflow:hidden;
 }}
 .stat-card::after {{
-  content:'';position:absolute;top:0;right:0;width:80px;height:80px;
-  background:radial-gradient(circle at top right, var(--primary-light), transparent 70%);
+  content:'';position:absolute;top:0;right:0;width:100px;height:100px;
+  background:radial-gradient(circle at top right, color-mix(in srgb, {primary_color} 8%, transparent), transparent 70%);
   pointer-events:none;
 }}
 .stat-card:hover {{ box-shadow:var(--shadow-md);transform:translateY(-2px); }}
@@ -666,7 +666,7 @@ body {{
   flex-shrink:0;
 }}
 .stat-icon {{
-  width:48px;height:48px;border-radius:var(--radius-lg);
+  width:48px;height:48px;border-radius:50%;
   display:flex;align-items:center;justify-content:center;
   background:var(--primary-light);color:var(--primary);
   box-shadow:0 2px 8px rgba(0,0,0,0.06);
@@ -764,7 +764,7 @@ body {{
   display:flex;align-items:center;gap:12px;
   padding:12px 20px;
   border-bottom:1px solid var(--border-light);
-  transition:background var(--transition);
+  transition:background 100ms ease;
 }}
 .activity-item:last-child {{ border-bottom:none; }}
 .activity-item:hover {{ background:var(--bg); }}
@@ -774,6 +774,7 @@ body {{
 }}
 .activity-text {{
   flex:1;font-size:13px;color:var(--text-secondary);min-width:0;
+  display:flex;align-items:center;flex-wrap:wrap;gap:4px;
 }}
 .activity-text strong {{ color:var(--text);font-weight:600; }}
 .activity-time {{
@@ -840,13 +841,17 @@ body {{
   box-shadow:var(--shadow-xs);
   overflow:hidden;
 }}
+.table-scroll-wrapper {{
+  overflow-x:auto;
+  position:relative;
+}}
 table {{
   width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
 }}
 th {{
   text-align:left;padding:10px 16px;
-  background:#fafafa;
-  border-bottom:1px solid var(--border);
+  background:transparent;
+  border-bottom:2px solid var(--border);
   font-weight:600;font-size:11px;
   color:#6b7280;
   text-transform:uppercase;
@@ -874,7 +879,7 @@ td {{
 tr:last-child td {{ border-bottom:none; }}
 tbody tr {{
   cursor:pointer;
-  transition:all 0.1s ease;
+  transition:all 100ms ease;
   border-left:3px solid transparent;
 }}
 tbody tr:nth-child(even) {{ background:#fafafa; }}
@@ -885,7 +890,7 @@ tbody tr:hover {{
 tbody tr:hover .row-actions {{ opacity:1;pointer-events:auto; }}
 .row-actions {{
   opacity:0;pointer-events:none;
-  transition:opacity 0.1s ease;
+  transition:opacity 100ms ease;
   display:inline-flex;gap:2px;
 }}
 td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
@@ -922,6 +927,8 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 .badge-pink::before {{ background:#ec4899; }}
 .badge-slate {{ background:#f8fafc;color:#475569; }}
 .badge-slate::before {{ background:#94a3b8; }}
+.badge-sm {{ font-size:10px;padding:1px 7px;border-radius:4px; }}
+.badge-sm::before {{ width:5px;height:5px; }}
 
 /* ── Avatar ── */
 .avatar {{
@@ -1331,7 +1338,7 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
   letter-spacing:0.05em;
 }}
 .form-group label .required {{
-  color:var(--danger);margin-left:2px;font-size:14px;line-height:1;
+  color:var(--primary);margin-left:2px;font-size:14px;line-height:1;
 }}
 .form-group input,
 .form-group select,
@@ -1380,6 +1387,7 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
   transition:all var(--transition);font-family:inherit;
 }}
 .btn-cancel-outline:hover {{ background:var(--bg);border-color:#d1d5db; }}
+.btn-cancel-outline:active {{ transform:scale(0.97); }}
 .save-spinner {{
   display:inline-block;width:14px;height:14px;
   border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;
@@ -1718,13 +1726,12 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
   }}
   .slide-over.show {{ right:0;transform:translateY(0); }}
   .table-scroll-wrapper {{
-    overflow-x:auto;
     -webkit-overflow-scrolling:touch;
-    position:relative;
   }}
   .table-scroll-wrapper::after {{
-    content:'';position:absolute;top:0;right:0;bottom:0;width:24px;
-    background:linear-gradient(to left, rgba(0,0,0,0.04), transparent);
+    content:'';position:sticky;top:0;right:0;bottom:0;width:32px;float:right;
+    height:100%;margin-left:-32px;
+    background:linear-gradient(to left, rgba(0,0,0,0.06), transparent);
     pointer-events:none;z-index:1;
   }}
   .search-input {{ min-width:140px; }}
@@ -3025,7 +3032,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     const userName = userEmail ? userEmail.split("@")[0].replace(/[._]/g, " ").replace(/\\b\\w/g, l => l.toUpperCase()) : "there";
     const hour = new Date().getHours();
     const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+    const today = new Date();
+    const dateStr = today.toLocaleDateString('en-US', {{ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }});
     let welcomeHtml = '<div class="dashboard-welcome" style="margin-bottom:24px">' +
+      '<p style="font-size:12px;color:var(--text-muted);margin:0 0 4px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em">' + escHtml(dateStr) + '</p>' +
       '<h2 style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">' + greeting + ', ' + escHtml(userName) + '!</h2>' +
       '<p style="font-size:14px;color:var(--text-muted);margin:0">Here\\u2019s what\\u2019s happening with your data today.</p>' +
     '</div>';
@@ -3163,9 +3173,12 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
           const nameField = fields.find(f => /^(name|title|subject|label)$/i.test(f.name));
           const label = nameField ? (r[nameField.name] || "Untitled") : ("Record #" + (r.id || "").toString().slice(0, 6));
           const time = relativeTime(r.created_at);
+          const initials = String(label).split(/\\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
+          const avatarColor = stringToColor(String(label));
+          const badgeClass = "badge-" + ["primary","info","success","warning","purple"][Math.abs(r._entity.length) % 5];
           return '<div class="activity-item">' +
-            '<div class="activity-dot" style="background:' + stringToColor(r._entity) + '"></div>' +
-            '<div class="activity-text"><strong>' + escHtml(label) + '</strong> added to <span style="color:var(--primary);font-weight:500">' + escHtml(r._entity) + '</span></div>' +
+            '<div class="avatar avatar-sm" style="background:' + avatarColor + ';font-size:10px">' + escHtml(initials) + '</div>' +
+            '<div class="activity-text"><strong>' + escHtml(label) + '</strong> added to <span class="badge badge-sm ' + badgeClass + '" style="font-size:10px;padding:1px 7px;vertical-align:middle;margin-left:2px">' + escHtml(r._entity) + '</span></div>' +
             '<div class="activity-time">' + escHtml(time) + '</div>' +
           '</div>';
         }}).join("");
@@ -3525,7 +3538,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
           tabsHtml +
         '</div>' +
         groupByHtml +
-        '<div style="overflow-x:auto;max-height:600px;overflow-y:auto"><table id="table-' + moduleName + '">' +
+        '<div class="table-scroll-wrapper" style="max-height:600px;overflow-y:auto"><table id="table-' + moduleName + '">' +
           '<thead><tr>' + headers + '</tr></thead>' +
           '<tbody id="tbody-' + moduleName + '"></tbody>' +
         '</table></div>' +

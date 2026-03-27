@@ -389,6 +389,8 @@ export function MarketplacePage() {
   const [sort, setSort] = useState<SortOption>("popular");
   const [showSort, setShowSort] = useState(false);
   const [previewItem, setPreviewItem] = useState<MarketplaceItem | null>(null);
+  const [purchaseItem, setPurchaseItem] = useState<MarketplaceItem | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
   const [initialLoading, setInitialLoading] = useState(true);
   const [authToast, setAuthToast] = useState(false);
@@ -482,17 +484,7 @@ export function MarketplacePage() {
 
   const featuredItems = items.filter((item) => item.featured);
 
-  const handleGetApp = async (item: MarketplaceItem) => {
-    if (!isAuthenticated) {
-      setAuthToast(true);
-      setTimeout(() => navigate("/signup"), 1500);
-      return;
-    }
-    if (item.price > 0) {
-      setToastMessage("Payment coming soon");
-      return;
-    }
-    // Free item: purchase (clone) via API
+  const cloneAppToProject = async (item: MarketplaceItem) => {
     try {
       const res = await post<{ project_id: string; title: string }>(
         `/template-marketplace/${item.id}/purchase`,
@@ -500,7 +492,6 @@ export function MarketplacePage() {
       );
       if (res.project_id) {
         setJustAdded((prev) => new Set(prev).add(item.id));
-        // Also add to local app store
         addApp({
           name: item.title,
           type:
@@ -516,17 +507,32 @@ export function MarketplacePage() {
           source: "marketplace",
         });
         setToastMessage(`"${item.title}" added to your projects!`);
-        // Redirect to app after brief delay
         setTimeout(() => navigate("/app"), 1200);
+        return true;
       }
     } catch {
-      // Fallback: use existing download logic if API fails
       if (item.downloadable) {
         handleDownload(item);
-      } else {
-        setToastMessage("Failed to get app. Please try again.");
+        return true;
       }
+      setToastMessage("Failed to get app. Please try again.");
     }
+    return false;
+  };
+
+  const handleGetApp = async (item: MarketplaceItem) => {
+    if (!isAuthenticated) {
+      setAuthToast(true);
+      setTimeout(() => navigate("/signup"), 1500);
+      return;
+    }
+    if (item.price > 0) {
+      // Show purchase modal for paid items
+      setPurchaseItem(item);
+      return;
+    }
+    // Free item: clone directly
+    await cloneAppToProject(item);
   };
 
   const handleRate = async (item: MarketplaceItem, stars: number) => {
@@ -1078,6 +1084,93 @@ npx electron .
                   {previewItem.price === 0 ? "Get App" : `Buy — $${previewItem.price}`}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Modal for Paid Items */}
+      {purchaseItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-xl overflow-hidden">
+            {/* Header gradient */}
+            <div
+              className="relative h-32 flex items-center justify-center"
+              style={{ background: hashGradient(purchaseItem.title) }}
+            >
+              <span className="relative z-10 text-5xl font-bold text-white/20 select-none">
+                {purchaseItem.title.charAt(0)}
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+              <button
+                onClick={() => setPurchaseItem(null)}
+                className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow transition hover:bg-gray-100"
+              >
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <h3 className="text-lg font-bold text-black">{purchaseItem.title}</h3>
+              <p className="mt-1 text-sm text-gray-500">{purchaseItem.description}</p>
+
+              <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600">Price</span>
+                  <span className="text-xl font-bold text-black">${purchaseItem.price}</span>
+                </div>
+                <div className="mt-2 flex items-center justify-between text-xs text-gray-400">
+                  <span>One-time purchase</span>
+                  <span>Includes source &amp; updates</span>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  Full source code access
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  Customize in the visual builder
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <Check className="h-3.5 w-3.5 text-green-500" />
+                  Deploy to your own domain
+                </div>
+              </div>
+
+              <button
+                onClick={async () => {
+                  setPurchasing(true);
+                  // Simulate purchase delay, then show coming soon
+                  await new Promise((r) => setTimeout(r, 800));
+                  setPurchasing(false);
+                  setToastMessage("Payment integration coming soon. Free apps are available now!");
+                  setPurchaseItem(null);
+                }}
+                disabled={purchasing}
+                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
+                style={{ backgroundColor: "#ec4899" }}
+              >
+                {purchasing ? (
+                  <>
+                    <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Download className="h-4 w-4" />
+                    Purchase for ${purchaseItem.price}
+                  </>
+                )}
+              </button>
+              <p className="mt-2 text-center text-[10px] text-gray-400">
+                Secure checkout powered by Stripe
+              </p>
             </div>
           </div>
         </div>

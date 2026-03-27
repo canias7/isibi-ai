@@ -98,6 +98,11 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     print("ALL TABLES CREATED")
 
+    # Load verified custom domains into in-memory index
+    from routes.custom_domain_ssl import load_verified_domains
+    async with async_session() as session:
+        await load_verified_domains(session)
+
     # Start background scheduler
     from worker.scheduler import run_scheduler
     scheduler_task = asyncio.create_task(run_scheduler())
@@ -144,7 +149,12 @@ app.add_exception_handler(Exception, global_exception_handler)
 # ── Custom Domain Middleware ──
 from routes.custom_domain_ssl import get_project_id_for_domain
 
-_SKIP_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "apps.isibi.ai", "testserver", "test"}
+_SKIP_HOSTS = {
+    "localhost", "127.0.0.1", "0.0.0.0",
+    "apps.isibi.ai", "isibi.ai", "www.isibi.ai",
+    "isibi-backend.onrender.com",
+    "testserver", "test",
+}
 
 
 @app.middleware("http")

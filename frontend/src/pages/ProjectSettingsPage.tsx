@@ -2309,7 +2309,7 @@ function AdvancedSettings({
         <FormField label="App Brand Name" hint="Replace isibi.ai branding with your own">
           <TextInput value={whiteLabelName} onChange={setWhiteLabelName} placeholder="Your Brand Name" />
         </FormField>
-        <FormField label="Custom Domain" hint="Point your own domain to this app (Coming Soon — no actual SSL provisioning yet)">
+        <FormField label="Custom Domain" hint="Point your domain to this app. Add a CNAME record to isibi-backend.onrender.com, then verify.">
           <TextInput value={whiteLabelDomain} onChange={setWhiteLabelDomain} placeholder="app.yourdomain.com" />
         </FormField>
       </SectionCard>

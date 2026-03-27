@@ -28,7 +28,8 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects", tags=["Custom Domain SSL"])
 
-PLATFORM_CNAME = "apps.isibi.ai"
+PLATFORM_CNAME = "isibi-backend.onrender.com"
+RENDER_IP = "216.24.57.1"  # Render's static IP for A-record fallback
 
 
 # ── Schemas ──────────────────────────────────────────────────────────
@@ -78,27 +79,94 @@ async def _set_custom_domain(project: Project, domain_data: dict | None, db: Asy
     await db.commit()
 
 
-def _verify_dns(domain: str) -> bool:
-    """Check whether the domain has a CNAME pointing to PLATFORM_CNAME."""
+def _verify_dns(domain: str) -> dict:
+    """
+    Check whether the domain has a CNAME pointing to PLATFORM_CNAME
+    or an A record pointing to RENDER_IP.
+
+    Returns {"verified": bool, "method": str, "detail": str}.
+    """
+    # Try CNAME check first (preferred)
     try:
         import dns.resolver
-        answers = dns.resolver.resolve(domain, "CNAME")
-        for rdata in answers:
-            target = str(rdata.target).rstrip(".")
-            if target.lower() == PLATFORM_CNAME.lower():
-                return True
-        return False
+
+        # 1. Check CNAME record
+        try:
+            answers = dns.resolver.resolve(domain, "CNAME")
+            for rdata in answers:
+                target = str(rdata.target).rstrip(".")
+                if target.lower() == PLATFORM_CNAME.lower():
+                    return {"verified": True, "method": "CNAME", "detail": f"CNAME points to {PLATFORM_CNAME}"}
+            # CNAME exists but points elsewhere
+            targets = [str(r.target).rstrip(".") for r in answers]
+            return {
+                "verified": False,
+                "method": "CNAME",
+                "detail": f"CNAME points to {', '.join(targets)} instead of {PLATFORM_CNAME}",
+            }
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+            pass  # No CNAME — try A record
+        except dns.resolver.NoNameservers:
+            pass
+
+        # 2. Check A record as fallback
+        try:
+            answers = dns.resolver.resolve(domain, "A")
+            ips = [str(rdata.address) for rdata in answers]
+            if RENDER_IP in ips:
+                return {"verified": True, "method": "A", "detail": f"A record points to {RENDER_IP}"}
+            return {
+                "verified": False,
+                "method": "A",
+                "detail": f"A record points to {', '.join(ips)} instead of {RENDER_IP}",
+            }
+        except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN):
+            return {
+                "verified": False,
+                "method": "none",
+                "detail": (
+                    f"DNS not configured yet. Add a CNAME record pointing {domain} "
+                    f"to {PLATFORM_CNAME}, or an A record pointing to {RENDER_IP}"
+                ),
+            }
+        except dns.resolver.NoNameservers:
+            return {
+                "verified": False,
+                "method": "none",
+                "detail": "DNS servers unreachable. Please try again in a few minutes.",
+            }
+
     except ImportError:
         # dnspython not installed — fall back to socket resolution
         try:
-            resolved = socket.getfqdn(domain)
-            # Basic check: if it resolves at all, consider it a soft pass
-            socket.gethostbyname(domain)
-            return True
+            addr = socket.gethostbyname(domain)
+            if addr == RENDER_IP:
+                return {"verified": True, "method": "A-socket", "detail": f"Resolves to {RENDER_IP}"}
+            # It resolves somewhere — might be correct via CNAME chain
+            # Do a best-effort CNAME check via getfqdn
+            fqdn = socket.getfqdn(domain)
+            if PLATFORM_CNAME.lower() in fqdn.lower():
+                return {"verified": True, "method": "CNAME-socket", "detail": f"FQDN matches {PLATFORM_CNAME}"}
+            return {
+                "verified": False,
+                "method": "socket",
+                "detail": (
+                    f"Domain resolves to {addr} but expected {RENDER_IP}. "
+                    f"Add a CNAME record pointing {domain} to {PLATFORM_CNAME}"
+                ),
+            }
         except socket.gaierror:
-            return False
-    except Exception:
-        return False
+            return {
+                "verified": False,
+                "method": "none",
+                "detail": (
+                    f"DNS not configured yet. Add a CNAME record pointing {domain} "
+                    f"to {PLATFORM_CNAME}, or an A record pointing to {RENDER_IP}"
+                ),
+            }
+    except Exception as exc:
+        logger.warning("DNS verification error for %s: %s", domain, exc)
+        return {"verified": False, "method": "error", "detail": f"DNS check failed: {exc}"}
 
 
 # ── In-memory index: domain -> project_id (for middleware lookup) ───
@@ -109,6 +177,24 @@ _domain_index: dict[str, str] = {}
 def get_project_id_for_domain(domain: str) -> str | None:
     """Look up project_id by custom domain. Used by middleware in main.py."""
     return _domain_index.get(domain.lower())
+
+
+async def load_verified_domains(db: AsyncSession):
+    """Load all verified custom domains into _domain_index on startup."""
+    try:
+        result = await db.execute(
+            select(Project).where(Project.deleted_at.is_(None))
+        )
+        projects = result.scalars().all()
+        count = 0
+        for project in projects:
+            domain_data = _get_custom_domain(project)
+            if domain_data and domain_data.get("status") == "verified":
+                _domain_index[domain_data["domain"].lower()] = str(project.id)
+                count += 1
+        logger.info("Loaded %d verified custom domains into index", count)
+    except Exception as exc:
+        logger.warning("Failed to load custom domains on startup: %s", exc)
 
 
 # ── Routes ───────────────────────────────────────────────────────────
@@ -143,8 +229,10 @@ async def register_custom_domain(
         "domain": domain,
         "status": "pending",
         "cname_target": PLATFORM_CNAME,
+        "render_ip": RENDER_IP,
         "dns_instructions": (
-            f"Add a CNAME record pointing {domain} to {PLATFORM_CNAME}. "
+            f"Add a CNAME record pointing {domain} to {PLATFORM_CNAME}, "
+            f"or an A record pointing to {RENDER_IP}. "
             f"Once DNS propagates, use the verify endpoint to confirm."
         ),
     }
@@ -163,13 +251,18 @@ async def verify_custom_domain(
         raise HTTPException(status_code=404, detail="No custom domain registered for this project")
 
     domain = domain_data["domain"]
-    verified = _verify_dns(domain)
+    result = _verify_dns(domain)
+    verified = result["verified"]
 
     if verified:
         domain_data["status"] = "verified"
         domain_data["verified_at"] = datetime.now(timezone.utc).isoformat()
+        # Update in-memory index so middleware can serve this domain immediately
+        _domain_index[domain] = project_id
+        logger.info("Custom domain verified: %s -> project %s (method: %s)", domain, project_id, result["method"])
     else:
         domain_data["status"] = "dns_not_found"
+        domain_data["verified_at"] = None
 
     await _set_custom_domain(project, domain_data, db)
 
@@ -177,8 +270,15 @@ async def verify_custom_domain(
         "domain": domain,
         "status": domain_data["status"],
         "verified": verified,
+        "method": result["method"],
+        "detail": result["detail"],
         "cname_target": PLATFORM_CNAME,
+        "render_ip": RENDER_IP,
         "verified_at": domain_data.get("verified_at"),
+        "dns_instructions": (
+            f"Option 1: Add a CNAME record pointing {domain} to {PLATFORM_CNAME}\n"
+            f"Option 2: Add an A record pointing {domain} to {RENDER_IP}"
+        ) if not verified else None,
     }
 
 

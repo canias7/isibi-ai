@@ -57,6 +57,74 @@ GENERIC_APP_NAMES = {
     "untitled app", "new project", "unnamed", "sample",
 }
 
+# Generic entity names that should be renamed based on domain context
+GENERIC_ENTITY_NAMES = {
+    "item", "record", "entry", "thing", "object", "data",
+    "item1", "item2", "entity1", "entity2", "entity3",
+    "record1", "record2", "entry1", "entry2",
+}
+
+# Domain-specific entity name suggestions — maps (domain_keyword, generic_name) -> better_name
+DOMAIN_ENTITY_RENAMES: dict[tuple[str, str], str] = {
+    # Restaurant domain
+    ("restaurant", "item"): "MenuItem",
+    ("restaurant", "record"): "Order",
+    ("restaurant", "entry"): "Reservation",
+    ("food", "item"): "MenuItem",
+    ("food", "record"): "Order",
+    ("menu", "item"): "MenuItem",
+    ("dining", "item"): "MenuItem",
+    # E-commerce domain
+    ("shop", "item"): "Product",
+    ("store", "item"): "Product",
+    ("ecommerce", "item"): "Product",
+    ("commerce", "item"): "Product",
+    ("shop", "record"): "Order",
+    ("store", "record"): "Order",
+    # Healthcare domain
+    ("hospital", "item"): "Patient",
+    ("clinic", "item"): "Patient",
+    ("health", "item"): "Patient",
+    ("medical", "item"): "Patient",
+    ("hospital", "record"): "Appointment",
+    ("clinic", "record"): "Appointment",
+    # Education domain
+    ("school", "item"): "Student",
+    ("education", "item"): "Student",
+    ("university", "item"): "Student",
+    ("school", "record"): "Course",
+    ("education", "record"): "Course",
+    # Real estate domain
+    ("property", "item"): "Listing",
+    ("real estate", "item"): "Property",
+    ("realty", "item"): "Property",
+    # HR domain
+    ("hr", "item"): "Employee",
+    ("human resource", "item"): "Employee",
+    ("hr", "record"): "LeaveRequest",
+    # Fitness domain
+    ("gym", "item"): "Workout",
+    ("fitness", "item"): "Exercise",
+    # Generic fallbacks for numbered entities
+    ("restaurant", "item1"): "MenuItem",
+    ("restaurant", "item2"): "Order",
+    ("restaurant", "entity1"): "MenuItem",
+    ("restaurant", "entity2"): "Order",
+    ("shop", "item1"): "Product",
+    ("shop", "item2"): "Order",
+    ("store", "item1"): "Product",
+    ("store", "item2"): "Order",
+    ("hospital", "item1"): "Patient",
+    ("hospital", "item2"): "Appointment",
+    ("school", "item1"): "Student",
+    ("school", "item2"): "Course",
+}
+
+# Fallback rename: if no domain match, rename based on position
+GENERIC_ENTITY_FALLBACKS = [
+    "Record", "Entry", "Category", "Activity", "Note", "Log",
+]
+
 REQUIRED_FIELD_ATTRIBUTES = [
     "name",
     "db_type",
@@ -248,47 +316,119 @@ FALLBACK_BADGE_COLORS = [
 ]
 
 # Icon map for module generation — smart icon selection based on entity name
+# 80+ mappings to minimize fallback to generic "Box" icon
 ICON_MAP: dict[str, str] = {
+    # People & accounts
     "user": "Users", "contact": "Users", "customer": "Users",
     "person": "Users", "people": "Users", "client": "Users",
     "employee": "Briefcase", "staff": "Users", "member": "UserCheck",
-    "deal": "DollarSign", "opportunity": "DollarSign",
-    "order": "ShoppingCart", "purchase": "ShoppingCart",
+    "lead": "UserPlus", "prospect": "UserPlus", "applicant": "UserPlus",
+    "candidate": "UserPlus", "tenant": "UserCheck", "guest": "UserCheck",
+    "author": "Pen", "contributor": "UserCheck", "participant": "UserCheck",
+    "volunteer": "Heart", "donor": "Heart",
+    # Sales & commerce
+    "deal": "DollarSign", "opportunity": "DollarSign", "quote": "FileText",
+    "order": "ShoppingCart", "purchase": "ShoppingCart", "sale": "DollarSign",
     "product": "Package", "item": "Package", "inventory": "Package",
-    "task": "CheckSquare", "todo": "CheckSquare",
-    "project": "FolderOpen", "workspace": "Layers",
-    "invoice": "FileText", "bill": "FileText", "receipt": "FileText",
-    "payment": "CreditCard", "transaction": "CreditCard",
+    "sku": "Package", "catalog": "ShoppingBag", "cart": "ShoppingCart",
+    "coupon": "Percent", "discount": "Percent", "promotion": "Megaphone",
+    # Tasks & projects
+    "task": "CheckSquare", "todo": "CheckSquare", "checklist": "ListChecks",
+    "project": "FolderOpen", "workspace": "Layers", "board": "Kanban",
+    "milestone": "Flag", "sprint": "Zap", "epic": "Layers",
+    "subtask": "ListChecks", "workitem": "CheckSquare",
+    # Finance & billing
+    "invoice": "Receipt", "bill": "Receipt", "receipt": "Receipt",
+    "payment": "CreditCard", "transaction": "CreditCard", "charge": "CreditCard",
+    "refund": "RotateCcw", "payout": "Banknote",
+    "expense": "Receipt", "budget": "Wallet", "income": "TrendingUp",
+    "account": "Landmark", "ledger": "BookOpen",
+    "salary": "Banknote", "payroll": "Banknote", "commission": "DollarSign",
+    # Communication
     "message": "MessageSquare", "chat": "MessageSquare",
     "conversation": "MessageSquare", "comment": "MessageSquare",
-    "notification": "Bell", "alert": "Bell",
-    "setting": "Settings", "config": "Settings",
-    "lead": "UserPlus",
-    "ticket": "Ticket", "issue": "ClipboardList",
+    "notification": "Bell", "alert": "Bell", "announcement": "Megaphone",
+    "email": "Mail", "newsletter": "Mail", "sms": "Smartphone",
+    "feedback": "MessageCircle", "review": "Star", "rating": "Star",
+    "testimonial": "Quote",
+    # Configuration
+    "setting": "Settings", "config": "Settings", "preference": "Sliders",
+    "permission": "Shield", "role": "ShieldCheck", "policy": "Shield",
+    # Support
+    "ticket": "Ticket", "issue": "ClipboardList", "bug": "Bug",
+    "request": "Inbox", "inquiry": "HelpCircle", "case": "Briefcase",
+    # Calendar & time
     "event": "Calendar", "appointment": "CalendarDays",
     "meeting": "CalendarDays", "schedule": "CalendarDays",
-    "report": "BarChart3", "analytics": "BarChart3",
-    "document": "FileText", "file": "FileText",
-    "category": "Tag", "tag": "Tag", "label": "Tag",
-    "campaign": "Zap", "email": "Mail",
-    "property": "Building2", "listing": "Building2",
-    "vehicle": "Car", "shipment": "Truck", "delivery": "Truck",
-    "class": "BookOpen", "course": "BookOpen", "lesson": "BookOpen",
-    "room": "DoorOpen", "space": "DoorOpen",
-    "goal": "Target", "target": "Target",
-    "workflow": "GitBranch", "automation": "Zap",
-    "expense": "Receipt", "budget": "Wallet",
-    "supplier": "Factory", "vendor": "Factory",
-    "contract": "FileSignature", "agreement": "FileSignature",
-    "feedback": "MessageCircle", "review": "Star",
-    "asset": "HardDrive", "resource": "Database",
-    "location": "MapPin", "address": "MapPin", "branch": "MapPin",
-    "department": "Building", "team": "Users",
-    "subscription": "Repeat", "plan": "CreditCard",
-    "menu": "UtensilsCrossed", "recipe": "ChefHat",
-    "patient": "HeartPulse", "doctor": "Stethoscope",
-    "student": "GraduationCap", "teacher": "BookOpen",
     "reservation": "CalendarCheck", "booking": "CalendarCheck",
+    "shift": "Clock", "timeentry": "Clock", "timesheet": "Clock",
+    "holiday": "Palmtree", "leave": "CalendarOff", "absence": "CalendarOff",
+    # Analytics & reporting
+    "report": "BarChart3", "analytics": "BarChart3", "metric": "TrendingUp",
+    "dashboard": "LayoutDashboard", "chart": "PieChart", "kpi": "Activity",
+    "log": "ScrollText", "audit": "ClipboardList",
+    # Documents & files
+    "document": "FileText", "file": "FileText", "attachment": "Paperclip",
+    "template": "LayoutTemplate", "form": "ClipboardList",
+    "note": "StickyNote", "article": "Newspaper", "post": "FileText",
+    "page": "FileText", "content": "FileText",
+    # Organization
+    "category": "Tag", "tag": "Tag", "label": "Tag", "type": "Tag",
+    "group": "FolderOpen", "folder": "FolderOpen",
+    "campaign": "Zap", "channel": "Radio",
+    # Real estate & property
+    "property": "Building2", "listing": "Building2", "unit": "DoorOpen",
+    "facility": "Building", "warehouse": "Warehouse",
+    # Logistics & transport
+    "vehicle": "Car", "shipment": "Truck", "delivery": "Truck",
+    "route": "Route", "trip": "Plane", "fleet": "Truck",
+    "package": "Package", "parcel": "Package",
+    # Education
+    "class": "BookOpen", "course": "BookOpen", "lesson": "BookOpen",
+    "student": "GraduationCap", "teacher": "BookOpen", "instructor": "BookOpen",
+    "exam": "ClipboardList", "assignment": "FileText", "grade": "Award",
+    "enrollment": "UserPlus", "certificate": "Award", "diploma": "Award",
+    "curriculum": "BookOpen", "module": "Layers",
+    # Spaces & locations
+    "room": "DoorOpen", "space": "DoorOpen", "seat": "Armchair",
+    "location": "MapPin", "address": "MapPin", "branch": "MapPin",
+    "region": "Globe", "zone": "Map", "area": "Map",
+    "department": "Building", "team": "Users", "division": "GitBranch",
+    # Goals & strategy
+    "goal": "Target", "target": "Target", "objective": "Target",
+    "initiative": "Lightbulb", "idea": "Lightbulb",
+    # Automation
+    "workflow": "GitBranch", "automation": "Zap", "pipeline": "GitBranch",
+    "integration": "Plug", "webhook": "Webhook", "trigger": "Zap",
+    # Supply chain
+    "supplier": "Factory", "vendor": "Factory", "manufacturer": "Factory",
+    # Legal & contracts
+    "contract": "FileSignature", "agreement": "FileSignature",
+    "proposal": "FileText", "nda": "Shield", "warranty": "ShieldCheck",
+    # Assets & hardware
+    "asset": "HardDrive", "resource": "Database", "device": "Smartphone",
+    "equipment": "Wrench", "tool": "Wrench", "machine": "Cog",
+    # Plans & subscriptions
+    "subscription": "Repeat", "plan": "CreditCard", "tier": "Layers",
+    "membership": "CreditCard", "license": "Key",
+    # Food & hospitality
+    "menu": "UtensilsCrossed", "recipe": "ChefHat", "dish": "UtensilsCrossed",
+    "menuitem": "UtensilsCrossed", "ingredient": "Apple",
+    "table": "LayoutGrid", "restaurant": "UtensilsCrossed",
+    # Healthcare
+    "patient": "HeartPulse", "doctor": "Stethoscope",
+    "prescription": "Pill", "medication": "Pill", "diagnosis": "Activity",
+    "treatment": "Stethoscope", "lab": "FlaskConical", "test": "FlaskConical",
+    "vitalsign": "Activity", "record": "ClipboardList",
+    "insurance": "Shield", "claim": "FileText",
+    # Social & media
+    "follower": "UserPlus", "connection": "Link", "friend": "Users",
+    "media": "Image", "video": "Video", "podcast": "Headphones",
+    "playlist": "ListMusic", "album": "Disc", "photo": "Image",
+    "gallery": "Images", "story": "BookOpen",
+    # Surveys & forms
+    "survey": "ClipboardList", "question": "HelpCircle", "answer": "MessageSquare",
+    "response": "Inbox", "poll": "BarChart3",
 }
 
 DEFAULT_DESIGN_SYSTEM: dict[str, Any] = {
@@ -472,6 +612,9 @@ def validate_and_repair(spec: dict) -> dict:
     # 17. Fix generic app names — generate from entity names
     _fix_generic_app_name(spec)
 
+    # 24. Fix generic entity names — rename "Item", "Record", "Entity1" etc.
+    _fix_generic_entity_names(spec)
+
     # Build entity lookup table (for FK detection)
     entity_tables: dict[str, str] = {}  # table_name -> entity_name
     for ent in spec["entities"]:
@@ -566,6 +709,9 @@ def validate_and_repair(spec: dict) -> dict:
                 ui["edit_form"] = _generate_form(ent, prefilled=True)
             if "detail_view" not in ui or not isinstance(ui.get("detail_view"), dict):
                 ui["detail_view"] = _generate_detail_view(ent)
+
+    # 25. Auto-detect relationships between entities
+    _auto_detect_relationships(spec)
 
     # 6. Module generation
     if not spec["modules"]:
@@ -1017,9 +1163,10 @@ def _generate_stat_cards(entities: list) -> list[dict]:
     cards: list[dict] = []
     color_idx = 0
 
-    # Track whether we've added a revenue card and an active-filter card
+    # Track whether we've added special cards
     has_revenue_card = False
     has_active_card = False
+    has_date_card = False
 
     # Active-like status values
     active_statuses = {
@@ -1099,8 +1246,74 @@ def _generate_stat_cards(entities: list) -> list[dict]:
                         has_active_card = True
                         break
 
-    # Ensure at least 4 cards if we have enough entities
-    # (the revenue + active cards should help, but if not, the per-entity counts fill it)
+        # Look for a date field to generate a "This Week's {Entity}s" card
+        if not has_date_card:
+            for f in fields:
+                if not isinstance(f, dict):
+                    continue
+                fname = (f.get("name") or "").lower()
+                db_upper = (f.get("db_type") or "").upper()
+                # Match date fields (but not system timestamps)
+                if (
+                    ("DATE" in db_upper or "TIMESTAMPTZ" in db_upper)
+                    and fname not in ("created_at", "updated_at", "deleted_at")
+                    and fname in ("date", "due_date", "start_date", "event_date",
+                                  "order_date", "booking_date", "scheduled_at",
+                                  "appointment_date", "delivery_date")
+                ):
+                    date_label = f"This Week's {name}s" if not name.endswith("s") else f"This Week's {name}"
+                    cards.append({
+                        "label": date_label,
+                        "entity": name,
+                        "aggregate": "count",
+                        "filter": {"_date_range": {"field": f.get("name"), "range": "this_week"}},
+                        "icon": "CalendarDays",
+                        "color": STAT_CARD_COLORS[color_idx % len(STAT_CARD_COLORS)],
+                    })
+                    color_idx += 1
+                    has_date_card = True
+                    break
+
+            # Fallback: use created_at for a "This Week" card if no specific date field found
+            if not has_date_card and len(cards) < 4:
+                date_label = f"This Week's {name}s" if not name.endswith("s") else f"This Week's {name}"
+                cards.append({
+                    "label": date_label,
+                    "entity": name,
+                    "aggregate": "count",
+                    "filter": {"_date_range": {"field": "created_at", "range": "this_week"}},
+                    "icon": "CalendarDays",
+                    "color": STAT_CARD_COLORS[color_idx % len(STAT_CARD_COLORS)],
+                })
+                color_idx += 1
+                has_date_card = True
+
+    # Ensure at least 4 cards — pad with entity count cards if needed
+    if len(cards) < 4:
+        for ent in entities:
+            if len(cards) >= 4:
+                break
+            if not isinstance(ent, dict):
+                continue
+            name = ent.get("name", "Item")
+            # Don't duplicate existing entity count cards
+            existing_labels = {c.get("label", "") for c in cards}
+            label_candidate = f"Total {name}s" if not name.endswith("s") else f"Total {name}"
+            if label_candidate in existing_labels:
+                # Try a "New {Entity}s" card instead
+                label_candidate = f"New {name}s" if not name.endswith("s") else f"New {name}"
+                if label_candidate in existing_labels:
+                    continue
+                cards.append({
+                    "label": label_candidate,
+                    "entity": name,
+                    "aggregate": "count",
+                    "filter": {"_date_range": {"field": "created_at", "range": "today"}},
+                    "icon": "Plus",
+                    "color": STAT_CARD_COLORS[color_idx % len(STAT_CARD_COLORS)],
+                })
+                color_idx += 1
+
     return cards[:6]
 
 
@@ -1305,3 +1518,194 @@ def _fix_generic_app_name(spec: dict) -> None:
             "Generic app_name '%s' replaced with '%s'",
             app_name, spec["app_name"],
         )
+
+
+def _fix_generic_entity_names(spec: dict) -> None:
+    """
+    Detect generic entity names (Item, Record, Entity1, etc.) and rename
+    them based on the app domain inferred from app_name and other entities.
+    """
+    entities = spec.get("entities", [])
+    if not entities:
+        return
+
+    # Detect domain keywords from app_name and existing entity names
+    domain_keywords: list[str] = []
+    app_name = (spec.get("app_name") or "").lower()
+    for word in app_name.split():
+        word_clean = re.sub(r"[^a-z]", "", word)
+        if word_clean and len(word_clean) > 2:
+            domain_keywords.append(word_clean)
+
+    # Also gather non-generic entity names as domain context
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        name = (ent.get("name") or "").lower()
+        if name and name not in GENERIC_ENTITY_NAMES:
+            domain_keywords.append(name)
+
+    used_names: set[str] = {
+        ent.get("name", "") for ent in entities
+        if isinstance(ent, dict) and ent.get("name", "").lower() not in GENERIC_ENTITY_NAMES
+    }
+
+    generic_idx = 0
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        name = ent.get("name", "")
+        name_lower = name.lower()
+
+        # Strip trailing numbers for matching: "Item1" -> "item"
+        name_base = re.sub(r"\d+$", "", name_lower)
+
+        if name_base not in GENERIC_ENTITY_NAMES and name_lower not in GENERIC_ENTITY_NAMES:
+            continue
+
+        # Try domain-specific rename
+        new_name: str | None = None
+        for kw in domain_keywords:
+            key = (kw, name_lower)
+            if key in DOMAIN_ENTITY_RENAMES:
+                new_name = DOMAIN_ENTITY_RENAMES[key]
+                break
+            # Also try the base form
+            key_base = (kw, name_base)
+            if key_base in DOMAIN_ENTITY_RENAMES:
+                new_name = DOMAIN_ENTITY_RENAMES[key_base]
+                break
+
+        # Fallback: use generic but more descriptive names
+        if not new_name:
+            while generic_idx < len(GENERIC_ENTITY_FALLBACKS):
+                candidate = GENERIC_ENTITY_FALLBACKS[generic_idx]
+                generic_idx += 1
+                if candidate not in used_names:
+                    new_name = candidate
+                    break
+
+        if new_name and new_name not in used_names:
+            old_name = ent["name"]
+            ent["name"] = new_name
+            ent["table"] = _generate_table_name(new_name)
+            used_names.add(new_name)
+            logger.info(
+                "Generic entity name '%s' renamed to '%s'",
+                old_name, new_name,
+            )
+
+
+def _auto_detect_relationships(spec: dict) -> None:
+    """
+    Detect logical relationships between entities even when the AI
+    didn't generate FK fields. Looks for:
+      - Fields like 'customer_name' when entity 'Customer' exists -> add customer_id FK
+      - Parent-child naming (Order -> OrderItem) -> add parent FK
+    """
+    entities = spec.get("entities", [])
+    if not entities:
+        return
+
+    # Build lookup: lowercase entity name -> entity dict
+    entity_map: dict[str, dict] = {}
+    entity_tables: dict[str, str] = {}
+    for ent in entities:
+        if isinstance(ent, dict) and ent.get("name"):
+            entity_map[ent["name"].lower()] = ent
+            if ent.get("table"):
+                entity_tables[ent["table"]] = ent["name"]
+
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        ent_name = ent.get("name", "")
+        ent_name_lower = ent_name.lower()
+        fields = ent.get("fields", [])
+        if not isinstance(fields, list):
+            continue
+
+        field_names = {f.get("name", "") for f in fields if isinstance(f, dict)}
+        # Skip if there are already FK fields
+        existing_fks = {f.get("name", "") for f in fields if isinstance(f, dict) and f.get("name", "").endswith("_id") and f.get("name") not in ("id", "org_id")}
+
+        # 1. Detect fields like "customer_name", "customer_email" that reference another entity
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            fname = f.get("name", "")
+            # Look for patterns like "entity_something"
+            parts = fname.split("_")
+            if len(parts) >= 2:
+                potential_entity = parts[0]
+                fk_field_name = f"{potential_entity}_id"
+                if (
+                    potential_entity in entity_map
+                    and potential_entity != ent_name_lower
+                    and fk_field_name not in field_names
+                    and fk_field_name not in existing_fks
+                ):
+                    # Add FK field
+                    ref_ent = entity_map[potential_entity]
+                    ref_table = ref_ent.get("table", _generate_table_name(ref_ent["name"]))
+                    fk = {
+                        "name": fk_field_name,
+                        "db_type": f"UUID REFERENCES {ref_table}(id)",
+                        "ts_type": "string",
+                        "nullable": True,
+                        "editable": True,
+                        "show_in_table": True,
+                        "show_in_form": True,
+                        "input_component": "relation_select",
+                        "display_component": "relation_link",
+                        "fk_entity": ref_ent["name"],
+                    }
+                    # Insert after org_id
+                    insert_idx = 2
+                    for i, existing in enumerate(fields):
+                        if isinstance(existing, dict) and existing.get("name") in ("id", "org_id"):
+                            insert_idx = i + 1
+                    ent["fields"].insert(insert_idx, fk)
+                    field_names.add(fk_field_name)
+                    existing_fks.add(fk_field_name)
+                    logger.info(
+                        "Auto-detected relationship: %s -> %s (added %s)",
+                        ent_name, ref_ent["name"], fk_field_name,
+                    )
+                    break  # Only add one auto-FK per entity to avoid noise
+
+        # 2. Detect parent-child by naming: "OrderItem" has parent "Order"
+        for other_name_lower, other_ent in entity_map.items():
+            if other_name_lower == ent_name_lower:
+                continue
+            # Check if this entity name starts with the other entity name
+            # e.g. "OrderItem" starts with "Order", "InvoiceLine" starts with "Invoice"
+            if (
+                ent_name_lower.startswith(other_name_lower)
+                and len(ent_name) > len(other_ent["name"])
+            ):
+                fk_field_name = f"{other_name_lower}_id"
+                if fk_field_name not in field_names and fk_field_name not in existing_fks:
+                    ref_table = other_ent.get("table", _generate_table_name(other_ent["name"]))
+                    fk = {
+                        "name": fk_field_name,
+                        "db_type": f"UUID REFERENCES {ref_table}(id)",
+                        "ts_type": "string",
+                        "nullable": False,
+                        "editable": True,
+                        "show_in_table": True,
+                        "show_in_form": True,
+                        "input_component": "relation_select",
+                        "display_component": "relation_link",
+                        "fk_entity": other_ent["name"],
+                    }
+                    insert_idx = 2
+                    for i, existing in enumerate(fields):
+                        if isinstance(existing, dict) and existing.get("name") in ("id", "org_id"):
+                            insert_idx = i + 1
+                    ent["fields"].insert(insert_idx, fk)
+                    field_names.add(fk_field_name)
+                    logger.info(
+                        "Auto-detected parent relationship: %s -> %s (added %s)",
+                        ent_name, other_ent["name"], fk_field_name,
+                    )

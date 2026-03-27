@@ -464,6 +464,168 @@ function TypingIndicator({ modelLabel }: { modelLabel: string }) {
   );
 }
 
+/** Build progress steps with timed advancement, checkmarks, and estimated time */
+function BuildProgressSteps() {
+  const [activeStep, setActiveStep] = useState(0);
+
+  const steps = [
+    { label: "Analyzing requirements...", delay: 0 },
+    { label: "Designing database...", delay: 3000 },
+    { label: "Generating components...", delay: 6000 },
+    { label: "Setting up API...", delay: 9000 },
+    { label: "Almost ready...", delay: 12000 },
+  ];
+
+  useEffect(() => {
+    const timers = steps.map((step, idx) => {
+      if (idx === 0) return null; // First step is immediate
+      return setTimeout(() => setActiveStep(idx), step.delay);
+    });
+    return () => timers.forEach((t) => t && clearTimeout(t));
+  }, []);
+
+  return (
+    <div className="text-center">
+      {/* Pulsing pink circle */}
+      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center">
+        <div className="absolute h-16 w-16 animate-ping rounded-full bg-pink-400/20" />
+        <div className="relative h-12 w-12 animate-pulse rounded-full bg-gradient-to-br from-pink-400 to-pink-600 shadow-lg shadow-pink-200" />
+      </div>
+      <p className="text-sm font-semibold text-black">Building your app...</p>
+      {/* Progress steps */}
+      <div className="mt-5 space-y-2.5 text-left inline-block">
+        {steps.map((step, idx) => {
+          const isCompleted = idx < activeStep;
+          const isActive = idx === activeStep;
+          const isPending = idx > activeStep;
+          return (
+            <div
+              key={idx}
+              className={`flex items-center gap-2.5 text-xs transition-all duration-300 ${
+                isCompleted
+                  ? "text-green-600"
+                  : isActive
+                  ? "text-pink-600"
+                  : "text-gray-300"
+              }`}
+              style={{
+                opacity: isPending ? 0.4 : 1,
+                transform: isPending ? "translateY(2px)" : "translateY(0)",
+                transition: "all 0.4s ease",
+              }}
+            >
+              {isCompleted ? (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-green-100">
+                  <Check className="h-2.5 w-2.5 text-green-600" />
+                </span>
+              ) : isActive ? (
+                <Loader2 className="h-4 w-4 animate-spin text-pink-500" />
+              ) : (
+                <span className="flex h-4 w-4 items-center justify-center rounded-full border border-gray-200">
+                  <span className="h-1.5 w-1.5 rounded-full bg-gray-200" />
+                </span>
+              )}
+              <span className={isActive ? "font-medium" : ""}>{step.label}</span>
+            </div>
+          );
+        })}
+      </div>
+      {/* Estimated time */}
+      <p className="mt-4 text-[11px] text-gray-400">Usually takes 10-15 seconds</p>
+    </div>
+  );
+}
+
+/** Skeleton preview that shows a wireframe while the real spec loads */
+function SkeletonPreview({ appName, entityNames }: { appName?: string; entityNames?: string[] }) {
+  const displayName = appName || "Your App";
+  const entities = entityNames && entityNames.length > 0 ? entityNames : ["Dashboard"];
+  return (
+    <div className="flex h-full w-full animate-pulse">
+      {/* Skeleton sidebar */}
+      <div className="w-48 bg-gray-900 p-3 flex flex-col gap-1">
+        <div className="mb-4 px-2">
+          <div className="h-4 w-24 rounded bg-gray-700" />
+          <div className="mt-1 h-2 w-16 rounded bg-gray-800" />
+        </div>
+        {entities.map((name, i) => (
+          <div
+            key={i}
+            className={`flex items-center gap-2 rounded-lg px-2 py-2 ${
+              i === 0 ? "bg-gray-800" : ""
+            }`}
+          >
+            <div className="h-4 w-4 rounded bg-gray-700" />
+            <span className="text-xs text-gray-500">{name}</span>
+          </div>
+        ))}
+      </div>
+      {/* Skeleton main content */}
+      <div className="flex-1 bg-gray-50 p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <div className="h-5 w-32 rounded bg-gray-200" />
+            <div className="mt-2 h-3 w-48 rounded bg-gray-100" />
+          </div>
+          <div className="h-8 w-24 rounded-lg bg-gray-200" />
+        </div>
+        {/* Skeleton stat cards */}
+        <div className="mb-6 grid grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((n) => (
+            <div key={n} className="rounded-xl border border-gray-100 bg-white p-4">
+              <div className="h-3 w-16 rounded bg-gray-100" />
+              <div className="mt-2 h-6 w-12 rounded bg-gray-200" />
+            </div>
+          ))}
+        </div>
+        {/* Skeleton table */}
+        <div className="rounded-xl border border-gray-100 bg-white">
+          <div className="border-b border-gray-100 px-4 py-3 flex gap-8">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="h-3 w-20 rounded bg-gray-100" />
+            ))}
+          </div>
+          {[1, 2, 3, 4, 5].map((row) => (
+            <div key={row} className="border-b border-gray-50 px-4 py-3 flex gap-8">
+              {[1, 2, 3, 4].map((col) => (
+                <div key={col} className="h-3 w-20 rounded bg-gray-50" />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Parse app name and entity names from conversation messages */
+function parseConversationHints(messages: Message[]): { appName?: string; entityNames?: string[] } {
+  let appName: string | undefined;
+  const entityNames: string[] = [];
+
+  for (const msg of messages) {
+    if (msg.role !== "assistant") continue;
+    const content = msg.content;
+
+    // Try to extract app name from bold text like **Restaurant Manager**
+    const boldMatch = content.match(/\*\*([A-Z][A-Za-z\s&]+(?:Manager|App|Hub|System|Portal|Tracker|Platform)?)\*\*/);
+    if (boldMatch && !appName) {
+      appName = boldMatch[1].trim();
+    }
+
+    // Try to extract entity-like nouns from bullet lists
+    const bulletMatches = content.matchAll(/[-•]\s+\*\*([A-Z][A-Za-z]+(?:s)?)\*\*/g);
+    for (const m of bulletMatches) {
+      const name = m[1].replace(/s$/, "");
+      if (name.length > 2 && name.length < 30 && !entityNames.includes(name)) {
+        entityNames.push(name);
+      }
+    }
+  }
+
+  return { appName, entityNames: entityNames.length > 0 ? entityNames.slice(0, 6) : undefined };
+}
+
 export function OnboardingPage({ onSpecCreated }: Props) {
   const { user, clearAuth, isAuthenticated } = useAuthStore();
   const isDev = user?.account_type === "developer";
@@ -1099,9 +1261,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
         if (res.ready_to_build && res.project_id) {
           setBuiltProjectId(res.project_id);
-          // Switch to cloud IDE to show streaming file generation
+          // Switch to preview tab immediately to show skeleton while spec loads
           setIsGenerating(true);
-          setPreviewTab("cloud");
+          setPreviewTab("preview");
 
           // Refresh billing info after build starts
           try {
@@ -1129,8 +1291,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   s.id === cid ? { ...s, spec: sp, projectId: pid } : s
                 )
               );
-              // Spec arrived — let CloudIDE finish its animation, then auto-switch
-              // CloudIDE's onComplete callback will handle the transition
+              // Spec arrived — transition from skeleton to real preview
+              setIsGenerating(false);
             }
           } catch {
             // Preview will show placeholder if fetch fails
@@ -1889,33 +2051,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 </>
               ) : (
                 <div className="flex h-full items-center justify-center p-8">
-                  {loading ? (
-                    <div className="text-center">
-                      {/* Pulsing pink circle */}
-                      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center">
-                        <div className="absolute h-16 w-16 animate-ping rounded-full bg-pink-400/20" />
-                        <div className="relative h-12 w-12 animate-pulse rounded-full bg-gradient-to-br from-pink-400 to-pink-600 shadow-lg shadow-pink-200" />
-                      </div>
-                      <p className="text-sm font-semibold text-black">Building your app...</p>
-                      {/* Animated progress steps */}
-                      <div className="mt-5 space-y-2 text-left inline-block">
-                        <div className="flex items-center gap-2 text-xs text-green-600 animate-fade-in" style={{ animationDelay: "0s" }}>
-                          <span>&#10003;</span><span>Analyzing requirements...</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-green-600 animate-fade-in" style={{ animationDelay: "0.6s", animationFillMode: "backwards" }}>
-                          <span>&#10003;</span><span>Designing database schema...</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-pink-500 animate-fade-in" style={{ animationDelay: "1.2s", animationFillMode: "backwards" }}>
-                          <span className="inline-block animate-spin">&#10227;</span><span>Generating components...</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 animate-fade-in" style={{ animationDelay: "1.8s", animationFillMode: "backwards" }}>
-                          <span>&#9675;</span><span>Setting up API endpoints...</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-400 animate-fade-in" style={{ animationDelay: "2.4s", animationFillMode: "backwards" }}>
-                          <span>&#9675;</span><span>Configuring deployment...</span>
-                        </div>
-                      </div>
-                    </div>
+                  {isGenerating ? (
+                    (() => {
+                      const hints = parseConversationHints(messages);
+                      return <SkeletonPreview appName={hints.appName} entityNames={hints.entityNames} />;
+                    })()
+                  ) : loading ? (
+                    <BuildProgressSteps />
                   ) : (
                     <div className="text-center">
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-pink-50">
@@ -2222,29 +2364,70 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </button>
             </div>
 
-            {/* Share link */}
+            {/* Share link with Copy Link button */}
             <div className="mb-4">
               <label className="mb-1.5 block text-xs font-medium text-gray-600">Share link</label>
               <div className="flex items-center gap-2">
                 <div className="flex flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
                   <LinkIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                   <span className="truncate text-xs text-gray-600">
-                    https://isibi.ai/app?project={builtProjectId}
+                    {deployUrl || `https://isibi.ai/app?project=${builtProjectId}`}
                   </span>
                 </div>
                 <button
                   onClick={() => {
-                    navigator.clipboard.writeText(`https://isibi.ai/app?project=${builtProjectId}`);
+                    const url = deployUrl || `https://isibi.ai/app?project=${builtProjectId}`;
+                    navigator.clipboard.writeText(url);
                     setShareCopied(true);
                     setTimeout(() => setShareCopied(false), 2000);
                   }}
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border transition ${
+                  className={`flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition ${
                     shareCopied
                       ? "border-green-300 bg-green-50 text-green-600"
-                      : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                      : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                   }`}
                 >
-                  {shareCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  {shareCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                  {shareCopied ? "Copied!" : "Copy Link"}
+                </button>
+              </div>
+            </div>
+
+            {/* Social share buttons */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-medium text-gray-600">Share on social</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    const url = deployUrl || `https://isibi.ai/app?project=${builtProjectId}`;
+                    const text = encodeURIComponent("Check out this app I built with isibi.ai!");
+                    window.open(`https://twitter.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}`, "_blank");
+                  }}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                  Twitter
+                </button>
+                <button
+                  onClick={() => {
+                    const url = deployUrl || `https://isibi.ai/app?project=${builtProjectId}`;
+                    window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, "_blank");
+                  }}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+                  LinkedIn
+                </button>
+                <button
+                  onClick={() => {
+                    const url = deployUrl || `https://isibi.ai/app?project=${builtProjectId}`;
+                    const text = encodeURIComponent(`Check out this app I built: ${url}`);
+                    window.open(`https://wa.me/?text=${text}`, "_blank");
+                  }}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                >
+                  <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                  WhatsApp
                 </button>
               </div>
             </div>
