@@ -2844,10 +2844,14 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     // Show up to 5 items in the bottom nav
     const items = SIDEBAR_ITEMS.slice(0, 5);
     container.innerHTML = items.map(function(item) {{
-      return '<button class="mobile-nav-item" data-module="' + item.name + '" onclick="showModule(\'' + item.name.replace(/'/g, "\\\\'") + '\')">' +
+      return '<button class="mobile-nav-item" data-module="' + item.name + '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + getMobileNavIconPath(item.icon) + '</svg>' +
         '<span>' + item.name + '</span></button>';
     }}).join("");
+    // Bind onclick via JS to avoid quote escaping issues in HTML attributes
+    container.querySelectorAll(".mobile-nav-item").forEach(function(btn) {{
+      btn.addEventListener("click", function() {{ showModule(btn.dataset.module); }});
+    }});
   }}
   function getMobileNavIconPath(iconId) {{
     const paths = {{
