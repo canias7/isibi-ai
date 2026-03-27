@@ -25,6 +25,8 @@ from db import DATABASE_URL, get_db
 from auth import get_current_org_id
 from generator.app_db import get_schema_name, _get_raw_connection, list_schema_tables
 from generator.orchestrator import _get_project
+from worker.email_worker import fire_email_triggers
+from worker.webhook_worker import fire_webhooks
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +217,18 @@ async def create_row(
             f'INSERT INTO "{table}" ({col_names}) VALUES ({placeholders}) RETURNING *',
             *values,
         )
-        return _row_to_dict(row)
+        row_data = _row_to_dict(row)
+
+        # Fire email triggers for record creation
+        await fire_email_triggers(str(project_id), "record_created", table, row_data, db)
+
+        # Fire webhooks (non-blocking — don't fail the request)
+        try:
+            await fire_webhooks(str(project_id), "record_created", table, row_data, db)
+        except Exception as e:
+            logger.warning("Webhook fire error on create: %s", e)
+
+        return row_data
     except Exception as e:
         logger.error("Insert failed for %s.%s: %s", schema, table, e)
         raise HTTPException(status_code=400, detail=f"Insert failed: {str(e)}")
@@ -282,7 +295,18 @@ async def update_row(
         if not row:
             raise HTTPException(status_code=404, detail="Row not found")
 
-        return _row_to_dict(row)
+        row_data = _row_to_dict(row)
+
+        # Fire email triggers for record update
+        await fire_email_triggers(str(project_id), "record_updated", table, row_data, db)
+
+        # Fire webhooks (non-blocking — don't fail the request)
+        try:
+            await fire_webhooks(str(project_id), "record_updated", table, row_data, db)
+        except Exception as e:
+            logger.warning("Webhook fire error on update: %s", e)
+
+        return row_data
     except HTTPException:
         raise
     except Exception as e:
@@ -323,6 +347,15 @@ async def delete_row(
         # asyncpg returns "UPDATE N" — check if any rows were affected
         if result == "UPDATE 0":
             raise HTTPException(status_code=404, detail="Row not found")
+
+        # Fire email triggers for record deletion
+        await fire_email_triggers(str(project_id), "record_deleted", table, {"id": row_id}, db)
+
+        # Fire webhooks (non-blocking — don't fail the request)
+        try:
+            await fire_webhooks(str(project_id), "record_deleted", table, {"id": row_id}, db)
+        except Exception as e:
+            logger.warning("Webhook fire error on delete: %s", e)
 
     finally:
         await conn.close()

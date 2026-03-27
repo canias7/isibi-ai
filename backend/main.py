@@ -190,6 +190,10 @@ async def lifespan(app: FastAPI):
             print("ALL COLUMNS MIGRATED")
         except Exception as e:
             print(f"MIGRATION NOTE: {e}")
+        # NOTE: Alembic is the preferred way to manage schema changes (adding/removing
+        # columns, renaming tables, etc.).  Run `alembic revision --autogenerate -m "desc"`
+        # then `alembic upgrade head`.  The create_all below is kept as a fallback so that
+        # brand-new deployments still get every table on first boot.
         await conn.run_sync(Base.metadata.create_all)
     print("ALL TABLES CREATED")
 
@@ -225,35 +229,29 @@ app.add_middleware(
 # ── Custom Domain Middleware ──
 # Resolves custom domains via the Host header and serves the matching project
 
-class CustomDomainMiddleware(BaseHTTPMiddleware):
+_SKIP_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "apps.isibi.ai", "testserver", "test"}
+
+
+@app.middleware("http")
+async def custom_domain_middleware(request: StarletteRequest, call_next):
     """If the Host header matches a registered custom domain, serve that project's HTML."""
-
-    SKIP_HOSTS = {"localhost", "127.0.0.1", "0.0.0.0", "apps.isibi.ai"}
-
-    async def dispatch(self, request: StarletteRequest, call_next):
-        host = (request.headers.get("host") or "").split(":")[0].lower()
-        # Skip API requests, known hosts, and internal paths
-        if (
-            host in self.SKIP_HOSTS
-            or request.url.path.startswith("/api")
-            or request.url.path.startswith("/ws")
-            or request.url.path.startswith("/live")
-            or request.url.path.startswith("/health")
-        ):
-            return await call_next(request)
-
-        project_id = get_project_id_for_domain(host)
-        if project_id:
-            # Serve the deployed app for this custom domain
-            data = await _get_build_data(project_id)
-            if data and "index_html" in data:
-                from fastapi.responses import HTMLResponse as _HTML
-                return _HTML(content=data["index_html"])
-
+    host = (request.headers.get("host") or "").split(":")[0].lower()
+    if (
+        host in _SKIP_HOSTS
+        or request.url.path.startswith("/api")
+        or request.url.path.startswith("/ws")
+        or request.url.path.startswith("/live")
+        or request.url.path.startswith("/health")
+    ):
         return await call_next(request)
 
+    project_id = get_project_id_for_domain(host)
+    if project_id:
+        data = await _get_build_data(project_id)
+        if data and "index_html" in data:
+            return HTMLResponse(content=data["index_html"])
 
-app.add_middleware(CustomDomainMiddleware)
+    return await call_next(request)
 
 for router in all_routers:
     app.include_router(router, prefix="/api")
