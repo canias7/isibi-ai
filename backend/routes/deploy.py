@@ -274,3 +274,40 @@ async def admin_redeploy_all(
             errors.append({"id": str(project.id), "name": project.name, "error": str(e)})
     
     return {"redeployed": len(redeployed), "errors": len(errors), "projects": redeployed, "failed": errors}
+
+
+@router.post("/admin/create-schemas")
+async def admin_create_schemas(
+    db: AsyncSession = Depends(get_db),
+):
+    """Create database schemas for all deployed projects that don't have one yet."""
+    from generator.app_db import create_app_schema, get_schema_name
+    from db import DATABASE_URL
+
+    results = await db.execute(
+        select(Project).where(
+            Project.spec.isnot(None),
+            Project.deleted_at.is_(None),
+        )
+    )
+    projects = results.scalars().all()
+
+    created = []
+    skipped = []
+    errors = []
+    for project in projects:
+        try:
+            schema_name = get_schema_name(str(project.id))
+            spec = project.spec if isinstance(project.spec, dict) else {}
+            if not spec.get("entities"):
+                skipped.append(str(project.id))
+                continue
+            await create_app_schema(str(project.id), spec, DATABASE_URL)
+            created.append({"id": str(project.id), "schema": schema_name})
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                skipped.append(str(project.id))
+            else:
+                errors.append({"id": str(project.id), "error": str(e)})
+
+    return {"created": len(created), "skipped": len(skipped), "errors": len(errors), "details": created, "failed": errors}
