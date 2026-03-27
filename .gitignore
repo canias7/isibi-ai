@@ -9,6 +9,7 @@ backend/.env
 
 # Build
 frontend/dist/
+frontend/dist-preview/
 *.egg-info/
 
 # IDE

@@ -232,6 +232,11 @@ _uploads_dir = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(__file
 _uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
+# ── Serve preview bundle static files (for deployed apps) ──
+_static_dir = Path(os.path.join(os.path.dirname(__file__), "static"))
+_static_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(_static_dir)), name="static")
+
 
 # ── API v1 versioning redirect ──
 
