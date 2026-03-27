@@ -1076,6 +1076,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [shareCopied, setShareCopied] = useState(false);
   const [shareInviting, setShareInviting] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [desktopDownloading, setDesktopDownloading] = useState(false);
   const [shareInviteSuccess, setShareInviteSuccess] = useState(false);
   const [wsReconnecting, setWsReconnecting] = useState(false);
   const [specVersion, setSpecVersion] = useState(0);
@@ -2036,6 +2037,44 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       alert(`Error: ${msg}`);
     } finally {
       setDeploying(false);
+    }
+  };
+
+  const handleDesktopDownload = async () => {
+    if (!builtProjectId) return;
+    setDesktopDownloading(true);
+    try {
+      const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BASE_URL}/projects/${builtProjectId}/download/desktop`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Download failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const appName = (builtSpec?.app_name || builtSpec?.name || "my-app")
+        .toLowerCase()
+        .replace(/\s+/g, "-")
+        .replace(/[^a-z0-9-]/g, "");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${appName}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err: unknown) {
+      const e = err as Record<string, string>;
+      alert(`Desktop download failed: ${e?.message || "Unknown error"}`);
+    } finally {
+      setDesktopDownloading(false);
     }
   };
 
@@ -3062,12 +3101,43 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </button>
             </div>
 
-            {/* QR Code */}
+            {/* Desktop App Download */}
+            <div className="mb-4">
+              <button
+                onClick={handleDesktopDownload}
+                disabled={desktopDownloading}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+              >
+                {desktopDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Packaging your app...
+                  </>
+                ) : (
+                  <>
+                    <Monitor className="h-4 w-4" />
+                    Download Desktop App
+                  </>
+                )}
+              </button>
+              <p className="mt-1.5 text-center text-[10px] text-gray-400">
+                Requires Node.js. Runs on Mac, Windows &amp; Linux.
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="mb-4 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-200" />
+              <span className="text-[10px] font-medium text-gray-400">OR</span>
+              <div className="h-px flex-1 bg-gray-200" />
+            </div>
+
+            {/* QR Code for mobile */}
             <div className="mb-4 flex flex-col items-center">
               <div className="rounded-xl border border-gray-100 bg-gray-50 p-4">
-                <QRCodeSVG value={deployUrl} size={180} />
+                <QRCodeSVG value={deployUrl} size={140} />
               </div>
-              <p className="mt-2 text-xs text-gray-500">Scan with your phone camera to open</p>
+              <p className="mt-2 text-xs text-gray-500">Scan to open on mobile</p>
             </div>
 
             {/* App URL */}
@@ -3107,7 +3177,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                 href={deployUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-black px-3 py-2 text-xs font-medium text-white transition hover:bg-gray-800"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Open in Browser
