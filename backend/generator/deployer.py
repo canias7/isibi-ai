@@ -6508,7 +6508,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
   // Check auth on load
   if (checkAuth()) {{
-    initApp();
+    try {{
+      initApp();
+    }} catch(e) {{
+      console.error("Init error:", e);
+      document.getElementById("content-area").innerHTML = '<div style="padding:40px;text-align:center"><h2>Loading...</h2><p style="color:#888">If this persists, try refreshing the page.</p><pre style="text-align:left;background:#f5f5f5;padding:12px;border-radius:8px;font-size:12px;margin-top:16px">' + e.message + '</pre></div>';
+    }}
   }}
 }})();
 </script>
