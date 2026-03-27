@@ -3227,7 +3227,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     const duration = 4000;
     toast.innerHTML = iconSvg +
       '<span class="toast-message">' + escHtml(msg) + '</span>' +
-      '<button class="toast-close" onclick="this.parentElement.classList.remove(\'show\');setTimeout(()=>this.parentElement.remove(),350)">' +
+      '<button class="toast-close" onclick="this.parentElement.classList.remove(\\\x27show\\\x27);setTimeout(()=>this.parentElement.remove(),350)">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
       '</button>' +
       '<div class="toast-progress"><div class="toast-progress-bar"></div></div>';
@@ -3254,7 +3254,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     d.textContent = s;
     return d.innerHTML;
   }}
-  window.escHtml = escHtml;}}
+  window.escHtml = escHtml;
 
   // ── Breadcrumb helper ──
   function setBreadcrumb(parts) {{
@@ -3430,10 +3430,10 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
         const currentView = viewMode[name] || "table";
         toggleHtml = '<div class="view-toggle">' +
-          '<button class="view-toggle-btn' + (currentView === "table" ? " active" : "") + '" onclick="switchView(\'' + escHtml(name) + '\',\'table\')">' +
+          '<button class="view-toggle-btn' + (currentView === "table" ? " active" : "") + '" onclick="switchView(\\x27' + escHtml(name) + '\\x27,\\x27table\\x27)">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>' +
             'Table</button>' +
-          '<button class="view-toggle-btn' + (currentView === smartLayout ? " active" : "") + '" onclick="switchView(\'' + escHtml(name) + '\',\'' + smartLayout + '\')">' +
+          '<button class="view-toggle-btn' + (currentView === smartLayout ? " active" : "") + '" onclick="switchView(\\x27' + escHtml(name) + '\\x27,\\x27' + smartLayout + '\\x27)">' +
             altIcon + altLabel + '</button>' +
           '</div>';
       }}
@@ -3548,7 +3548,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     let quickActionsHtml = '<div class="quick-actions-row">';
     entityNames.forEach(eName => {{
       const modName = (SIDEBAR_ITEMS.find(si => si.entity === eName) || {{}}).name || eName;
-      quickActionsHtml += '<button class="quick-action-btn" onclick="showModule(\'' + escHtml(modName) + '\');setTimeout(()=>openCreate(),100)">' +
+      quickActionsHtml += '<button class="quick-action-btn" onclick="showModule(\\x27' + escHtml(modName) + '\\x27);setTimeout(()=>openCreate(),100)">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
         'New ' + escHtml(eName) +
         '</button>';
@@ -3674,7 +3674,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     container.innerHTML = '<div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">' +
       '<div class="search-input">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-        '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchKanban(\'' + moduleName + '\',\'' + entity + '\',this.value)">' +
+        '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchKanban(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,this.value)">' +
       '</div></div>' +
       '<div class="kanban-board" id="kanban-' + moduleName + '"></div>';
 
@@ -3712,7 +3712,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
           }}
           return val ? '<div class="kanban-card-field"><strong>' + escHtml(f.name.replace(/_/g, " ")) + ':</strong> ' + escHtml(String(val)) + '</div>' : '';
         }}).join("");
-        return '<div class="kanban-card" onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')">' +
+        return '<div class="kanban-card" onclick="showDetail(\\x27' + entity + '\\x27,\\x27' + rowId + '\\x27)">' +
           '<div class="kanban-card-title">' + escHtml(title) + '</div>' +
           extrasHtml +
         '</div>';
@@ -3807,7 +3807,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       const isToday = isCurrentMonth && today.getDate() === day;
       const events = eventMap[day] || [];
       const eventsHtml = events.slice(0, 3).map(e =>
-        '<div class="calendar-event" onclick="event.stopPropagation();showDetail(\'' + entity + '\',\'' + e.id + '\')">' + escHtml(e.label) + '</div>'
+        '<div class="calendar-event" onclick="event.stopPropagation();showDetail(\\x27' + entity + '\\x27,\\x27' + e.id + '\\x27)">' + escHtml(e.label) + '</div>'
       ).join("");
       const moreHtml = events.length > 3 ? '<div style="font-size:10px;color:var(--text-muted);padding:0 6px">+' + (events.length - 3) + ' more</div>' : '';
       cellsHtml += '<div class="calendar-cell' + (isToday ? ' today' : '') + '">' +
@@ -3827,11 +3827,11 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       '<div class="calendar-header">' +
         '<h3>' + monthNames[month] + ' ' + year + '</h3>' +
         '<div class="calendar-nav">' +
-          '<button class="calendar-nav-btn" onclick="navigateCalendar(\'' + moduleName + '\',\'' + entity + '\',-1)">' +
+          '<button class="calendar-nav-btn" onclick="navigateCalendar(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,-1)">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>' +
           '</button>' +
-          '<button class="calendar-nav-btn" onclick="navigateCalendarToday(\'' + moduleName + '\',\'' + entity + '\')" style="padding:5px 10px;width:auto;font-size:12px;font-weight:500;font-family:inherit">Today</button>' +
-          '<button class="calendar-nav-btn" onclick="navigateCalendar(\'' + moduleName + '\',\'' + entity + '\',1)">' +
+          '<button class="calendar-nav-btn" onclick="navigateCalendarToday(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27)" style="padding:5px 10px;width:auto;font-size:12px;font-weight:500;font-family:inherit">Today</button>' +
+          '<button class="calendar-nav-btn" onclick="navigateCalendar(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,1)">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>' +
           '</button>' +
         '</div>' +
@@ -3865,7 +3865,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     container.innerHTML = '<div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">' +
       '<div class="search-input">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-        '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchCards(\'' + moduleName + '\',\'' + entity + '\',this.value)">' +
+        '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchCards(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,this.value)">' +
       '</div></div>' +
       '<div class="card-grid" id="cardgrid-' + moduleName + '"></div>';
 
@@ -3915,7 +3915,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
       let imageHtml;
       if (imgSrc && (imgSrc.startsWith("http") || imgSrc.startsWith("/"))) {{
-        imageHtml = '<div class="grid-card-image"><img src="' + escHtml(imgSrc) + '" alt="' + escHtml(title) + '" loading="lazy" onerror="this.parentElement.innerHTML=\'<svg class=\&#39;placeholder-icon\&#39; viewBox=\&#39;0 0 24 24\&#39; fill=\&#39;none\&#39; stroke=\&#39;currentColor\&#39; stroke-width=\&#39;2\&#39;><rect x=\&#39;3\&#39; y=\&#39;3\&#39; width=\&#39;18\&#39; height=\&#39;18\&#39; rx=\&#39;2\&#39;/><circle cx=\&#39;8.5\&#39; cy=\&#39;8.5\&#39; r=\&#39;1.5\&#39;/><polyline points=\&#39;21 15 16 10 5 21\&#39;/></svg>\'"></div>';
+        imageHtml = '<div class="grid-card-image"><img src="' + escHtml(imgSrc) + '" alt="' + escHtml(title) + '" loading="lazy" onerror="this.parentElement.innerHTML=\\x27<svg class=\&#39;placeholder-icon\&#39; viewBox=\&#39;0 0 24 24\&#39; fill=\&#39;none\&#39; stroke=\&#39;currentColor\&#39; stroke-width=\&#39;2\&#39;><rect x=\&#39;3\&#39; y=\&#39;3\&#39; width=\&#39;18\&#39; height=\&#39;18\&#39; rx=\&#39;2\&#39;/><circle cx=\&#39;8.5\&#39; cy=\&#39;8.5\&#39; r=\&#39;1.5\&#39;/><polyline points=\&#39;21 15 16 10 5 21\&#39;/></svg>\\x27"></div>';
       }} else {{
         const initials = String(title).slice(0, 2).toUpperCase();
         const bgColor = stringToColor(title);
@@ -3942,7 +3942,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       }}
       footerHtml += '</div>';
 
-      return '<div class="grid-card" onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')">' +
+      return '<div class="grid-card" onclick="showDetail(\\x27' + entity + '\\x27,\\x27' + rowId + '\\x27)">' +
         imageHtml +
         '<div class="grid-card-body">' +
           '<div class="grid-card-title">' + escHtml(title) + '</div>' +
@@ -3976,16 +3976,16 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     let tabsHtml = '';
     if (enumField) {{
       tabsHtml = '<div class="status-tabs" id="status-tabs-' + moduleName + '">' +
-        '<button class="status-tab active" data-filter="" onclick="filterByStatus(\'' + moduleName + '\',\'' + entity + '\',\'\',this)">All</button>' +
+        '<button class="status-tab active" data-filter="" onclick="filterByStatus(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,\\x27\\x27,this)">All</button>' +
         enumField.enum_values.map(v =>
-          '<button class="status-tab" data-filter="' + escHtml(v) + '" onclick="filterByStatus(\'' + moduleName + '\',\'' + entity + '\',\'' + escHtml(v) + '\',this)">' + escHtml(v) + '</button>'
+          '<button class="status-tab" data-filter="' + escHtml(v) + '" onclick="filterByStatus(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,\\x27' + escHtml(v) + '\\x27,this)">' + escHtml(v) + '</button>'
         ).join('') +
       '</div>';
     }}
 
-    const headers = '<th style="width:36px;cursor:default" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" onchange="bulkToggleAll(\'' + escHtml(entity) + '\',\'' + escHtml(moduleName) + '\',this.checked)"></th>' +
+    const headers = '<th style="width:36px;cursor:default" onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" onchange="bulkToggleAll(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27,this.checked)"></th>' +
       visibleFields.map(f =>
-      '<th onclick="sortTable(\'' + moduleName + '\',\'' + entity + '\',\'' + f.name + '\',this)">' +
+      '<th onclick="sortTable(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,\\x27' + f.name + '\\x27,this)">' +
       escHtml(f.name.replace(/_/g, " ")) +
       '<span class="sort-icon">&#x25B4;&#x25BE;</span></th>'
     ).join('') + '<th style="text-align:right;cursor:default">Actions</th>';
@@ -4001,8 +4001,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       ).join('');
       groupByHtml = '<div class="group-by-bar">' +
         '<span>Group by:</span>' +
-        '<select onchange="setGroupBy(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\',this.value)">' + groupOpts + '</select>' +
-        (currentGroupBy ? '<button class="clear-group" onclick="setGroupBy(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\',&#39;&#39;)">Clear grouping</button>' : '') +
+        '<select onchange="setGroupBy(\\x27' + escHtml(moduleName) + '\\x27,\\x27' + escHtml(entity) + '\\x27,this.value)">' + groupOpts + '</select>' +
+        (currentGroupBy ? '<button class="clear-group" onclick="setGroupBy(\\x27' + escHtml(moduleName) + '\\x27,\\x27' + escHtml(entity) + '\\x27,&#39;&#39;)">Clear grouping</button>' : '') +
       '</div>';
     }}
 
@@ -4011,7 +4011,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
         '<div class="table-toolbar">' +
           '<div class="search-input">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-            '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchTable(\'' + moduleName + '\',\'' + entity + '\',this.value)">' +
+            '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchTable(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,this.value)">' +
           '</div>' +
           '<button class="btn btn-ghost btn-sm refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="Refresh data">' +
             '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>' +
@@ -4156,7 +4156,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
         // Inline edit handler attribute (double-click) for editable fields
         const canEdit = !NON_EDITABLE_FIELDS.includes(f.name) && !f.computed && !relEntity;
-        const dblClick = canEdit ? ' ondblclick="startInlineEdit(\'' + escHtml(entity) + '\',\'' + rowId + '\',\'' + f.name + '\',this,event)"' : '';
+        const dblClick = canEdit ? ' ondblclick="startInlineEdit(\\x27' + escHtml(entity) + '\\x27,\\x27' + rowId + '\\x27,\\x27' + f.name + '\\x27,this,event)"' : '';
 
         // Status badge for enum fields
         if (f.enum_values && f.enum_values.length) {{
@@ -4204,13 +4204,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
       const isChecked = bulkSelected[entity] && bulkSelected[entity].has(String(rowId));
       const trClasses = [rowColorClass, isChecked ? "bulk-selected" : ""].filter(Boolean).join(" ");
-      return '<tr onclick="showDetail(\'' + entity + '\',\'' + rowId + '\')" data-id="' + rowId + '"' + (trClasses ? ' class="' + trClasses + '"' : '') + '>' +
-        '<td onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" ' + (isChecked ? 'checked' : '') + ' onchange="bulkToggleRow(\'' + escHtml(entity) + '\',\'' + rowId + '\',\'' + escHtml(currentModule) + '\',this.checked)"></td>' +
+      return '<tr onclick="showDetail(\\x27' + entity + '\\x27,\\x27' + rowId + '\\x27)" data-id="' + rowId + '"' + (trClasses ? ' class="' + trClasses + '"' : '') + '>' +
+        '<td onclick="event.stopPropagation()"><input type="checkbox" class="bulk-cb" ' + (isChecked ? 'checked' : '') + ' onchange="bulkToggleRow(\\x27' + escHtml(entity) + '\\x27,\\x27' + rowId + '\\x27,\\x27' + escHtml(currentModule) + '\\x27,this.checked)"></td>' +
         cells +
         '<td style="text-align:right" onclick="event.stopPropagation()">' +
           '<span class="row-actions">' +
-          '<button class="btn btn-ghost btn-sm" onclick="openEdit(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
-          '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteRecord(\'' + entity + '\',\'' + rowId + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
+          '<button class="btn btn-ghost btn-sm" onclick="openEdit(\\x27' + entity + '\\x27,\\x27' + rowId + '\\x27)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+          '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" onclick="deleteRecord(\\x27' + entity + '\\x27,\\x27' + rowId + '\\x27)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>' +
           '</span>' +
         '</td></tr>';
     }}
@@ -4255,7 +4255,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
         }}
 
         groupedHtml += '<div class="group-section">' +
-          '<div class="group-header" onclick="toggleGroupCollapse(\'' + escHtml(gKey) + '\')">' +
+          '<div class="group-header" onclick="toggleGroupCollapse(\\x27' + escHtml(gKey) + '\\x27)">' +
             '<svg class="group-chevron' + (isCollapsed ? ' collapsed' : '') + '" data-chevron-key="' + escHtml(gKey) + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>' +
             '<span>' + escHtml(gVal) + '</span>' +
             '<span class="group-count">(' + gRows.length + ')</span>' +
@@ -4297,7 +4297,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     if (footer) {{
       let loadMoreHtml = '';
       if (hasMoreRows) {{
-        loadMoreHtml = '<div style="text-align:center;padding:8px 0"><button class="btn btn-secondary btn-sm" onclick="loadMoreRows(\'' + escHtml(moduleName) + '\',\'' + escHtml(entity) + '\')">' +
+        loadMoreHtml = '<div style="text-align:center;padding:8px 0"><button class="btn btn-secondary btn-sm" onclick="loadMoreRows(\\x27' + escHtml(moduleName) + '\\x27,\\x27' + escHtml(entity) + '\\x27)">' +
           'Load more (' + (totalRowCount - maxRows) + ' remaining)</button></div>';
       }}
       if (totalPages <= 1) {{
@@ -4305,15 +4305,15 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       }} else {{
         let paginationHtml = '<span>Showing ' + (start + 1) + '-' + Math.min(start + ROWS_PER_PAGE, rows.length) + ' of ' + rows.length + (hasMoreRows ? ' (of ' + totalRowCount + ' total)' : '') + '</span>';
         paginationHtml += '<div class="pagination">';
-        paginationHtml += '<button class="page-btn" ' + (page <= 1 ? 'disabled' : '') + ' onclick="goToPage(\'' + moduleName + '\',\'' + entity + '\',' + (page - 1) + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>';
+        paginationHtml += '<button class="page-btn" ' + (page <= 1 ? 'disabled' : '') + ' onclick="goToPage(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,' + (page - 1) + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>';
         for (let p = 1; p <= totalPages; p++) {{
           if (totalPages > 7 && p > 3 && p < totalPages - 1 && Math.abs(p - page) > 1) {{
             if (p === 4 || p === totalPages - 2) paginationHtml += '<span style="padding:0 4px;color:var(--text-muted)">...</span>';
             continue;
           }}
-          paginationHtml += '<button class="page-btn' + (p === page ? ' active' : '') + '" onclick="goToPage(\'' + moduleName + '\',\'' + entity + '\',' + p + ')">' + p + '</button>';
+          paginationHtml += '<button class="page-btn' + (p === page ? ' active' : '') + '" onclick="goToPage(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,' + p + ')">' + p + '</button>';
         }}
-        paginationHtml += '<button class="page-btn" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="goToPage(\'' + moduleName + '\',\'' + entity + '\',' + (page + 1) + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>';
+        paginationHtml += '<button class="page-btn" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="goToPage(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,' + (page + 1) + ')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>';
         paginationHtml += '</div>';
         footer.innerHTML = paginationHtml + loadMoreHtml;
       }}
@@ -4453,24 +4453,24 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     const rawVal = currentValue === "Not set" ? "" : currentValue;
     let inputHtml;
     if (fieldDef.enum_values && fieldDef.enum_values.length) {{
-      inputHtml = '<select class="inline-edit-input" id="inline-input-' + fieldName + '" onkeydown="if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">';
+      inputHtml = '<select class="inline-edit-input" id="inline-input-' + fieldName + '" onkeydown="if(event.key===\\x27Escape\\x27)_cancelInlineEdit(\\x27' + fieldName + '\\x27)">';
       fieldDef.enum_values.forEach(function(ev) {{
         inputHtml += '<option value="' + escHtml(ev) + '"' + (ev === rawVal ? ' selected' : '') + '>' + escHtml(ev) + '</option>';
       }});
       inputHtml += '</select>';
     }} else if (fieldDef.type === "boolean") {{
-      inputHtml = '<select class="inline-edit-input" id="inline-input-' + fieldName + '" onkeydown="if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">' +
+      inputHtml = '<select class="inline-edit-input" id="inline-input-' + fieldName + '" onkeydown="if(event.key===\\x27Escape\\x27)_cancelInlineEdit(\\x27' + fieldName + '\\x27)">' +
         '<option value="true"' + (rawVal ? ' selected' : '') + '>Yes</option>' +
         '<option value="false"' + (!rawVal ? ' selected' : '') + '>No</option></select>';
     }} else if (fieldDef.type === "text" || /description|notes|body|content|bio/i.test(fieldName)) {{
       inputHtml = '<textarea class="inline-edit-input" id="inline-input-' + fieldName + '" rows="3" ' +
-        'onkeydown="if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">' + escHtml(rawVal) + '</textarea>';
+        'onkeydown="if(event.key===\\x27Escape\\x27)_cancelInlineEdit(\\x27' + fieldName + '\\x27)">' + escHtml(rawVal) + '</textarea>';
     }} else {{
       const inputType = /date/i.test(fieldName) || fieldDef.type === "date" ? "date" :
                         /email/i.test(fieldName) ? "email" :
                         fieldDef.type === "number" || fieldDef.type === "integer" || fieldDef.type === "decimal" ? "number" : "text";
       inputHtml = '<input class="inline-edit-input" id="inline-input-' + fieldName + '" type="' + inputType + '" value="' + escHtml(rawVal) + '" ' +
-        'onkeydown="if(event.key===\'Enter\')_saveInlineEdit(\'' + fieldName + '\');if(event.key===\'Escape\')_cancelInlineEdit(\'' + fieldName + '\')">';
+        'onkeydown="if(event.key===\\x27Enter\\x27)_saveInlineEdit(\\x27' + fieldName + '\\x27);if(event.key===\\x27Escape\\x27)_cancelInlineEdit(\\x27' + fieldName + '\\x27)">';
     }}
     wrapper.innerHTML = inputHtml + '<div class="inline-edit-hint">Enter to save, Escape to cancel</div>';
     const inp = document.getElementById("inline-input-" + fieldName);
@@ -4555,7 +4555,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       tableHtml += '</tr></thead><tbody>';
       rows.slice(0, 20).forEach(function(row) {{
         const rid = row.id || row.ID || "";
-        tableHtml += '<tr onclick="showDetail(\'' + escHtml(entity) + '\',\'' + escHtml(String(rid)) + '\')">';
+        tableHtml += '<tr onclick="showDetail(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(String(rid)) + '\\x27)">';
         displayFields.forEach(function(f) {{
           let v = row[f.name] ?? "";
           tableHtml += '<td>' + escHtml(String(v)).slice(0, 60) + '</td>';
@@ -4635,15 +4635,15 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       }}
       // Comment input
       html += '<div class="comment-input-row">' +
-        '<input class="comment-input" id="new-comment-input" placeholder="Add a comment..." onkeydown="if(event.key===\'Enter\')_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">' +
-        '<button class="btn btn-primary btn-sm" onclick="_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">Post</button>' +
+        '<input class="comment-input" id="new-comment-input" placeholder="Add a comment..." onkeydown="if(event.key===\\x27Enter\\x27)_postComment(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(recordId) + '\\x27)">' +
+        '<button class="btn btn-primary btn-sm" onclick="_postComment(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(recordId) + '\\x27)">Post</button>' +
       '</div></div>';
       container.innerHTML = html;
     }} catch (e) {{
       container.innerHTML = '<div class="comments-section"><div class="related-empty">No comments yet</div>' +
         '<div class="comment-input-row">' +
-        '<input class="comment-input" id="new-comment-input" placeholder="Add a comment..." onkeydown="if(event.key===\'Enter\')_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">' +
-        '<button class="btn btn-primary btn-sm" onclick="_postComment(\'' + escHtml(entity) + '\',\'' + escHtml(recordId) + '\')">Post</button>' +
+        '<input class="comment-input" id="new-comment-input" placeholder="Add a comment..." onkeydown="if(event.key===\\x27Enter\\x27)_postComment(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(recordId) + '\\x27)">' +
+        '<button class="btn btn-primary btn-sm" onclick="_postComment(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(recordId) + '\\x27)">Post</button>' +
         '</div></div>';
     }}
   }}
@@ -4778,11 +4778,11 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
     let detailHtml = '<div class="detail-view">' +
       '<div class="detail-header">' +
-        '<button class="back-btn" onclick="showModule(\'' + escHtml(currentModule) + '\')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>' +
+        '<button class="back-btn" onclick="showModule(\\x27' + escHtml(currentModule) + '\\x27)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>' +
         '<h2>' + escHtml(title) + statusBadgeHtml + '</h2>' +
         '<div class="detail-header-actions">' +
-          '<button class="btn btn-primary btn-sm" onclick="openEdit(\'' + entity + '\',\'' + id + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="deleteRecord(\'' + entity + '\',\'' + id + '\')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="openEdit(\\x27' + entity + '\\x27,\\x27' + id + '\\x27)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteRecord(\\x27' + entity + '\\x27,\\x27' + id + '\\x27)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' +
         '</div>' +
       '</div>' +
       '<div class="detail-body">';
@@ -4792,7 +4792,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     tabs.forEach(function(tab, i) {{
       const countSpan = (tab.key === "related" || tab.key === "activity" || tab.key === "files" || tab.key === "comments")
         ? ' <span class="detail-tab-count" id="tab-count-' + tab.key + '">...</span>' : '';
-      detailHtml += '<button class="detail-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + tab.key + '" onclick="_switchDetailTab(\'' + tab.key + '\');if(window._updateDetailDots)_updateDetailDots()">' + tab.label + countSpan + '</button>';
+      detailHtml += '<button class="detail-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + tab.key + '" onclick="_switchDetailTab(\\x27' + tab.key + '\\x27);if(window._updateDetailDots)_updateDetailDots()">' + tab.label + countSpan + '</button>';
     }});
     detailHtml += '</div>';
     // Dot indicator for mobile swipe
@@ -5774,7 +5774,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
             break;
           }}
         }}
-        html += '<div class="gsearch-item" onclick="navigateToSearchResult(\'' + escHtml(entity) + '\',\'' + rowId + '\')">' +
+        html += '<div class="gsearch-item" onclick="navigateToSearchResult(\\x27' + escHtml(entity) + '\\x27,\\x27' + rowId + '\\x27)">' +
           '<div class="gsearch-item-text"><strong>' + escHtml(title) + '</strong>' + (context ? '<br><span style="font-size:11px;color:var(--text-muted)">' + escHtml(context) + '</span>' : '') + '</div>' +
           '<div class="gsearch-item-entity">' + escHtml(entity) + '</div>' +
         '</div>';
@@ -5867,7 +5867,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
         /status|state|stage|phase/i.test(f.name));
       const wrap = document.getElementById("bulk-status-wrap");
       if (statusField && wrap) {{
-        wrap.innerHTML = '<select onchange="bulkChangeStatus(\'' + escHtml(entity) + '\',this.value)">' +
+        wrap.innerHTML = '<select onchange="bulkChangeStatus(\\x27' + escHtml(entity) + '\\x27,this.value)">' +
           '<option value="">Change Status...</option>' +
           statusField.enum_values.map(v => '<option value="' + escHtml(v) + '">' + escHtml(v) + '</option>').join("") +
         '</select>';
@@ -6087,8 +6087,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       html += '<div class="overview-mini-table">' +
         '<div class="overview-mini-table-header"><h4>' + escHtml(e) + 's</h4>' +
         '<div class="overview-mini-table-actions">' +
-        '<button onclick="showModule(\'' + escHtml(modName) + '\')">View All</button>' +
-        '<button onclick="showModule(\'' + escHtml(modName) + '\');setTimeout(()=>openCreate(),100)">+ Add</button>' +
+        '<button onclick="showModule(\\x27' + escHtml(modName) + '\\x27)">View All</button>' +
+        '<button onclick="showModule(\\x27' + escHtml(modName) + '\\x27);setTimeout(()=>openCreate(),100)">+ Add</button>' +
         '</div></div>' +
         '<table><thead><tr>';
       fields.forEach(f => {{
@@ -6102,7 +6102,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     html += '<div class="overview-quick-add"><h4>Quick Add</h4><div class="overview-quick-add-btns">';
     entityNames.forEach(e => {{
       const modName = (SIDEBAR_ITEMS.find(si => si.entity === e) || {{}}).name || e;
-      html += '<button onclick="showModule(\'' + escHtml(modName) + '\');setTimeout(()=>openCreate(),100)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New ' + escHtml(e) + '</button>';
+      html += '<button onclick="showModule(\\x27' + escHtml(modName) + '\\x27);setTimeout(()=>openCreate(),100)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New ' + escHtml(e) + '</button>';
     }});
     html += '</div></div>';
 
@@ -6372,10 +6372,10 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
   function buildRichTextToolbar() {{
     return '<div class="rt-toolbar">' +
-      '<button type="button" title="Bold (Ctrl+B)" onmousedown="event.preventDefault();rtExec(\'bold\')"><b>B</b></button>' +
-      '<button type="button" title="Italic (Ctrl+I)" onmousedown="event.preventDefault();rtExec(\'italic\')"><i>I</i></button>' +
-      '<button type="button" title="Bullet List" onmousedown="event.preventDefault();rtInsertList(\'ul\')">&#x2022;</button>' +
-      '<button type="button" title="Numbered List" onmousedown="event.preventDefault();rtInsertList(\'ol\')">1.</button>' +
+      '<button type="button" title="Bold (Ctrl+B)" onmousedown="event.preventDefault();rtExec(\\x27bold\\x27)"><b>B</b></button>' +
+      '<button type="button" title="Italic (Ctrl+I)" onmousedown="event.preventDefault();rtExec(\\x27italic\\x27)"><i>I</i></button>' +
+      '<button type="button" title="Bullet List" onmousedown="event.preventDefault();rtInsertList(\\x27ul\\x27)">&#x2022;</button>' +
+      '<button type="button" title="Numbered List" onmousedown="event.preventDefault();rtInsertList(\\x27ol\\x27)">1.</button>' +
     '</div>';
   }}
 
