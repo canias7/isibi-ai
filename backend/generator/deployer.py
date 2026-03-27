@@ -3313,12 +3313,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       if (nav.children.length > 1) nav.insertBefore(analyticsBtn, nav.children[1]);
       else nav.appendChild(analyticsBtn);
     }}
-    // Add "Insights" section label and Overview item if 3+ entities
+    // Add Overview item at the end if 3+ entities (no duplicate section)
     if (Object.keys(ENTITY_FIELDS).length >= 3) {{
-      const insightsLabel = document.createElement("div");
-      insightsLabel.className = "sidebar-section-label";
-      insightsLabel.textContent = "Insights";
-      nav.appendChild(insightsLabel);
       const overviewBtn = document.createElement("button");
       overviewBtn.className = "sidebar-item";
       overviewBtn.dataset.module = "__overview__";
