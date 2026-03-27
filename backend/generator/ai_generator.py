@@ -12,7 +12,7 @@ import os
 import re
 import traceback
 import anthropic
-from .rag import build_rag_context, get_full_spec_as_schema_reference
+from .rag import build_rag_context, get_full_spec_as_schema_reference, get_best_few_shot_example
 
 logger = logging.getLogger(__name__)
 
@@ -84,18 +84,31 @@ async def generate_spec(user_prompt: str, conversation_history: list[dict] | Non
     rag_context = build_rag_context(user_prompt)
     schema_reference = get_full_spec_as_schema_reference()
 
+    # Get best-matching spec as a few-shot example
+    few_shot_example = get_best_few_shot_example(user_prompt)
+
     # Build messages
     messages: list[dict] = []
 
     if conversation_history:
         messages.extend(conversation_history)
 
+    # Build few-shot section if available
+    few_shot_section = ""
+    if few_shot_example:
+        few_shot_section = f"""
+## Example of a well-structured spec for a similar domain
+{few_shot_example}
+
+Now generate a spec for the user's request, following this exact structure.
+"""
+
     user_message = f"""## User Request
 {user_prompt}
 
 ## Reference Patterns (from existing specs — use as STRUCTURAL TEMPLATES)
 {rag_context}
-
+{few_shot_section}
 ## JSON Schema Template (follow this exact structure)
 {schema_reference}
 
@@ -212,6 +225,60 @@ Now generate the COMPLETE JSON spec for what the user requested.
     spec = _ensure_required_fields(spec)
     spec = _enforce_format(spec)
     _validate_spec(spec)
+
+    # Score spec quality and log it; re-generate if score is too low
+    from .spec_validator import score_spec_quality
+    quality = score_spec_quality(spec)
+    logger.info(
+        "Spec quality score: %d/100 | Strengths: %s | Issues: %s",
+        quality["score"],
+        "; ".join(quality["strengths"][:3]),
+        "; ".join(quality["issues"][:3]),
+    )
+
+    if quality["score"] < 60:
+        logger.warning(
+            "Spec quality score %d < 60 — triggering re-generation with more specific prompt",
+            quality["score"],
+        )
+        # Build a more specific prompt with the issues as guidance
+        issue_guidance = "\n".join(f"- Fix: {issue}" for issue in quality["issues"])
+        retry_messages = messages + [
+            {"role": "assistant", "content": raw_text},
+            {
+                "role": "user",
+                "content": (
+                    f"The spec you generated has quality issues (score: {quality['score']}/100):\n"
+                    f"{issue_guidance}\n\n"
+                    "Please regenerate the COMPLETE JSON spec addressing ALL of these issues. "
+                    "Ensure every entity has complete fields with all 10 attributes, "
+                    "FK relationships between related entities, ui_config, and 4+ dashboard stat cards. "
+                    "Output ONLY the JSON object."
+                ),
+            },
+        ]
+        try:
+            retry_response = client.messages.create(
+                model=MODEL,
+                max_tokens=64000,
+                system=SYSTEM_PROMPT,
+                messages=retry_messages,
+            )
+            retry_text = retry_response.content[0].text.strip()
+            retry_spec = _robust_json_parse(retry_text)
+            if isinstance(retry_spec, dict):
+                retry_spec = _ensure_required_fields(retry_spec)
+                retry_spec = _enforce_format(retry_spec)
+                _validate_spec(retry_spec)
+                retry_quality = score_spec_quality(retry_spec)
+                logger.info(
+                    "Re-generated spec quality score: %d/100 (was %d)",
+                    retry_quality["score"], quality["score"],
+                )
+                if retry_quality["score"] > quality["score"]:
+                    spec = retry_spec
+        except Exception as e:
+            logger.warning("Quality re-generation failed: %s — using original spec", e)
 
     return spec
 

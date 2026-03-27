@@ -1709,3 +1709,188 @@ def _auto_detect_relationships(spec: dict) -> None:
                         "Auto-detected parent relationship: %s -> %s (added %s)",
                         ent_name, other_ent["name"], fk_field_name,
                     )
+
+
+# ── Spec Quality Scoring ──────────────────────────────────────────────
+
+def score_spec_quality(spec: dict) -> dict:
+    """Score a generated spec on a 0-100 scale with detailed feedback.
+
+    Returns:
+        {
+            "score": 85,
+            "issues": ["Missing FK between Order and Customer", ...],
+            "strengths": ["Good entity naming", "Complete ui_config", ...]
+        }
+    """
+    score = 0
+    issues: list[str] = []
+    strengths: list[str] = []
+
+    entities = spec.get("entities", [])
+    modules = spec.get("modules", [])
+    dashboard = spec.get("dashboard", {})
+    design_system = spec.get("design_system", {})
+
+    # ── 1. Entity count (max 15 pts) ──
+    entity_count = len([e for e in entities if isinstance(e, dict)])
+    if entity_count >= 4:
+        score += 15
+        strengths.append(f"Good entity count ({entity_count} entities)")
+    elif entity_count >= 2:
+        score += 10
+        issues.append(f"Only {entity_count} entities — consider adding more")
+    elif entity_count >= 1:
+        score += 5
+        issues.append(f"Only {entity_count} entity — spec is too simple")
+    else:
+        issues.append("No entities defined")
+
+    # ── 2. Entity naming quality (max 10 pts) ──
+    entity_names = [e.get("name", "") for e in entities if isinstance(e, dict)]
+    good_names = [n for n in entity_names if n and n[0].isupper() and "_" not in n and len(n) > 2]
+    if len(good_names) == len(entity_names) and entity_names:
+        score += 10
+        strengths.append("Good entity naming (PascalCase)")
+    elif good_names:
+        score += 5
+        bad_names = [n for n in entity_names if n not in good_names]
+        if bad_names:
+            issues.append(f"Poor naming for entities: {', '.join(bad_names[:3])}")
+
+    # ── 3. Field completeness (max 20 pts) ──
+    REQUIRED_FIELD_ATTRS = {"name", "db_type", "ts_type", "nullable", "editable",
+                            "show_in_table", "show_in_form", "input_component",
+                            "display_component"}
+    total_fields = 0
+    complete_fields = 0
+    missing_enum_badges = 0
+
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        for field in ent.get("fields", []):
+            if not isinstance(field, dict):
+                continue
+            fname = field.get("name", "")
+            if fname in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version"):
+                continue
+            total_fields += 1
+            if REQUIRED_FIELD_ATTRS.issubset(field.keys()):
+                complete_fields += 1
+            # Check enum fields have badge_colors
+            if field.get("enum_values") and not field.get("badge_colors"):
+                missing_enum_badges += 1
+
+    if total_fields > 0:
+        completeness_ratio = complete_fields / total_fields
+        field_score = int(completeness_ratio * 20)
+        score += field_score
+        if completeness_ratio >= 0.9:
+            strengths.append(f"Complete field definitions ({complete_fields}/{total_fields})")
+        else:
+            issues.append(f"{total_fields - complete_fields} fields missing required attributes")
+
+    if missing_enum_badges > 0:
+        issues.append(f"{missing_enum_badges} enum field(s) missing badge_colors")
+
+    # ── 4. Relationships / FKs (max 10 pts) ──
+    fk_count = 0
+    entity_name_set = {e.get("name", "") for e in entities if isinstance(e, dict)}
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        for field in ent.get("fields", []):
+            if isinstance(field, dict) and field.get("fk_entity"):
+                fk_count += 1
+
+    if entity_count >= 3:
+        if fk_count >= 2:
+            score += 10
+            strengths.append(f"Good relationships ({fk_count} FK fields)")
+        elif fk_count >= 1:
+            score += 5
+            issues.append("Only 1 FK relationship — consider connecting more entities")
+        else:
+            issues.append("No FK relationships between entities")
+    elif fk_count > 0:
+        score += 10
+        strengths.append("Has FK relationships")
+    else:
+        score += 5  # Small specs don't need FKs
+
+    # ── 5. UI config completeness (max 15 pts) ──
+    entities_with_ui = 0
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        ui = ent.get("ui_config", {})
+        if isinstance(ui, dict) and ui.get("list_view") and ui.get("create_form"):
+            entities_with_ui += 1
+
+    if entity_count > 0:
+        ui_ratio = entities_with_ui / entity_count
+        ui_score = int(ui_ratio * 15)
+        score += ui_score
+        if ui_ratio >= 0.9:
+            strengths.append("Complete ui_config for all entities")
+        elif ui_ratio < 0.5:
+            issues.append(f"Only {entities_with_ui}/{entity_count} entities have complete ui_config")
+
+    # ── 6. Dashboard quality (max 10 pts) ──
+    stat_cards = dashboard.get("stat_cards", []) if isinstance(dashboard, dict) else []
+    card_count = len(stat_cards) if isinstance(stat_cards, list) else 0
+    if card_count >= 4:
+        score += 10
+        strengths.append(f"Dashboard has {card_count} stat cards")
+    elif card_count >= 2:
+        score += 6
+        issues.append(f"Dashboard has only {card_count} stat cards — aim for 4+")
+    elif card_count >= 1:
+        score += 3
+        issues.append("Dashboard has only 1 stat card")
+    else:
+        issues.append("No dashboard stat cards defined")
+
+    # ── 7. Modules (max 10 pts) ──
+    module_count = len([m for m in modules if isinstance(m, dict)])
+    has_dashboard_module = any(
+        isinstance(m, dict) and m.get("component") == "DashboardPage"
+        for m in modules
+    )
+    if module_count >= entity_count + 1 and has_dashboard_module:
+        score += 10
+        strengths.append("Complete module list with Dashboard")
+    elif module_count >= entity_count:
+        score += 7
+        if not has_dashboard_module:
+            issues.append("Missing Dashboard module")
+    else:
+        score += 3
+        issues.append(f"Only {module_count} modules for {entity_count} entities")
+
+    # ── 8. Design system (max 5 pts) ──
+    if isinstance(design_system, dict) and design_system.get("colors"):
+        score += 5
+        strengths.append("Design system configured")
+    else:
+        issues.append("Missing or incomplete design_system")
+
+    # ── 9. Validation rules bonus (max 5 pts) ──
+    has_validation = any(
+        isinstance(f, dict) and f.get("validation")
+        for ent in entities if isinstance(ent, dict)
+        for f in ent.get("fields", [])
+    )
+    if has_validation:
+        score += 5
+        strengths.append("Has field validation rules")
+
+    # Cap at 100
+    score = min(score, 100)
+
+    return {
+        "score": score,
+        "issues": issues,
+        "strengths": strengths,
+    }

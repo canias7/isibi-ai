@@ -596,6 +596,173 @@ function BuildProgressSteps() {
   );
 }
 
+/** Toast notification system for the builder */
+interface Toast {
+  id: string;
+  message: string;
+  type: "success" | "error" | "info";
+  createdAt: number;
+}
+
+function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) {
+  return (
+    <div className="fixed top-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none">
+      {toasts.slice(0, 3).map((toast, i) => {
+        const colorMap = {
+          success: "bg-green-600 text-white",
+          error: "bg-red-600 text-white",
+          info: "bg-blue-600 text-white",
+        };
+        const iconMap = {
+          success: (
+            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          ),
+          error: (
+            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          ),
+          info: (
+            <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+          ),
+        };
+
+        return (
+          <div
+            key={toast.id}
+            className={`pointer-events-auto flex items-center gap-2.5 rounded-xl px-4 py-3 shadow-lg text-sm font-medium ${colorMap[toast.type]}`}
+            style={{
+              animation: "toastSlideIn 0.3s ease-out",
+              minWidth: "280px",
+              maxWidth: "420px",
+            }}
+          >
+            {iconMap[toast.type]}
+            <span className="flex-1">{toast.message}</span>
+            <button
+              onClick={() => onDismiss(toast.id)}
+              className="shrink-0 rounded-lg p-0.5 hover:bg-white/20 transition"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        );
+      })}
+      <style>{`
+        @keyframes toastSlideIn {
+          from { opacity: 0; transform: translateX(100px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/** Command Palette — Cmd+K search modal with all builder actions */
+interface CommandItem {
+  id: string;
+  label: string;
+  icon: typeof Plus;
+  shortcut?: string;
+  action: () => void;
+}
+
+function CommandPalette({ onClose, commands }: { onClose: () => void; commands: CommandItem[] }) {
+  const [search, setSearch] = useState("");
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const filtered = search.trim()
+    ? commands.filter((c) => c.label.toLowerCase().includes(search.toLowerCase()))
+    : commands;
+
+  useEffect(() => {
+    setSelectedIdx(0);
+  }, [search]);
+
+  const handleKeyDown = (e: { key: string; preventDefault: () => void }) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIdx((prev) => Math.min(prev + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIdx((prev) => Math.max(prev - 1, 0));
+    } else if (e.key === "Enter" && filtered[selectedIdx]) {
+      e.preventDefault();
+      filtered[selectedIdx].action();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onClose();
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-start justify-center pt-[20vh] bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="w-[520px] max-h-[400px] rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+          <Search className="h-4 w-4 shrink-0 text-gray-400" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a command..."
+            className="w-full bg-transparent text-sm text-black dark:text-white placeholder-gray-400 focus:outline-none"
+          />
+          <kbd className="shrink-0 rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">ESC</kbd>
+        </div>
+        <div className="max-h-[320px] overflow-y-auto py-2">
+          {filtered.length === 0 && (
+            <p className="px-4 py-6 text-center text-sm text-gray-400">No commands match your search</p>
+          )}
+          {filtered.map((cmd, i) => {
+            const Icon = cmd.icon;
+            return (
+              <button
+                key={cmd.id}
+                onClick={cmd.action}
+                onMouseEnter={() => setSelectedIdx(i)}
+                className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition ${
+                  i === selectedIdx
+                    ? "bg-gray-100 dark:bg-gray-800 text-black dark:text-white"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0 text-gray-400" />
+                <span className="flex-1">{cmd.label}</span>
+                {cmd.shortcut && (
+                  <kbd className="shrink-0 rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-500">
+                    {cmd.shortcut}
+                  </kbd>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /** Skeleton preview that shows a wireframe while the real spec loads */
 function SkeletonPreview({ appName, entityNames }: { appName?: string; entityNames?: string[] }) {
   const displayName = appName || "Your App";
@@ -816,8 +983,26 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const { theme, toggleTheme } = useThemeStore();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
-  // Coming soon toast
-  const [comingSoonToast, setComingSoonToast] = useState<string | null>(null);
+  // Coming soon toast (deprecated — using toast system below)
+
+  // Command palette state
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Toast notification system
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const addToast = useCallback((message: string, type: "success" | "error" | "info" = "info") => {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    setToasts((prev) => [...prev.slice(-2), { id, message, type, createdAt: Date.now() }]);
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   // Billing state
   const [billingInfo, setBillingInfo] = useState<{
@@ -856,7 +1041,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         window.location.href = res.checkout_url;
       }
     } catch {
-      setComingSoonToast("Failed to start checkout. Please try again.");
+      addToast("Failed to start checkout. Please try again.", "error");
     } finally {
       setCheckoutLoading(false);
     }
@@ -913,12 +1098,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     return () => { cancelled = true; clearInterval(interval); };
   }, [builtProjectId]);
 
-  // Auto-hide coming soon toast
-  useEffect(() => {
-    if (!comingSoonToast) return;
-    const t = setTimeout(() => setComingSoonToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [comingSoonToast]);
+  // (Old comingSoonToast effect removed — now using addToast system)
 
   // Sync theme class on mount
   useEffect(() => {
@@ -997,8 +1177,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       {
         key: "k",
         meta: true,
-        action: focusChatInput,
-        description: "Focus chat input",
+        action: () => setCommandPaletteOpen((prev) => !prev),
+        description: "Open command palette",
       },
       {
         key: "n",
@@ -1031,7 +1211,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       },
       {
         key: "Escape",
-        action: () => setShortcutsOpen(false),
+        action: () => { setShortcutsOpen(false); setCommandPaletteOpen(false); },
         description: "Close modal",
       },
     ],
@@ -1190,10 +1370,10 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           deployUrl: null,
         };
         setChatSessions((prev) => [newSession, ...prev]);
-        setComingSoonToast(`Duplicated "${originalName}"`);
+        addToast(`Duplicated "${originalName}"`, "success");
       }
     } catch {
-      setComingSoonToast("Failed to duplicate project. Please try again.");
+      addToast("Failed to duplicate project. Please try again.", "error");
     }
   };
 
@@ -1344,6 +1524,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               );
               // Spec arrived — transition from skeleton to real preview
               setIsGenerating(false);
+              addToast("Project built successfully!", "success");
             }
           } catch {
             // Preview will show placeholder if fetch fails
@@ -1489,7 +1670,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               type="button"
               className="relative group flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
               title="Attach file (Coming soon)"
-              onClick={() => setComingSoonToast("File attachments coming soon!")}
+              onClick={() => addToast("File attachments coming soon!", "info")}
             >
               <Paperclip className="h-3.5 w-3.5" />
             </button>
@@ -1497,7 +1678,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               type="button"
               className="relative group flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
               title="Voice input (Coming soon)"
-              onClick={() => setComingSoonToast("Voice input coming soon!")}
+              onClick={() => addToast("Voice input coming soon!", "info")}
             >
               <Mic className="h-3.5 w-3.5" />
             </button>
@@ -1604,12 +1785,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           );
         }
         setLivePreview(true);
+        addToast("Deployed successfully!", "success");
       } else {
         setLivePreviewError("Deploy succeeded but no URL was returned.");
+        addToast("Deploy issue: no URL returned.", "error");
       }
     } catch (err: unknown) {
       const e = err as Record<string, string>;
-      setLivePreviewError(e?.detail || e?.message || "Failed to deploy app for live preview.");
+      const msg = e?.detail || e?.message || "Failed to deploy app for live preview.";
+      setLivePreviewError(msg);
+      addToast(`Error: ${msg}`, "error");
     } finally {
       setLivePreviewLoading(false);
     }
@@ -3124,7 +3309,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                         type="button"
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
                         title="Attach file (Coming soon)"
-                        onClick={() => setComingSoonToast("File attachments coming soon!")}
+                        onClick={() => addToast("File attachments coming soon!", "info")}
                       >
                         <Paperclip className="h-3.5 w-3.5" />
                       </button>
@@ -3132,7 +3317,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                         type="button"
                         className="flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-600"
                         title="Voice input (Coming soon)"
-                        onClick={() => setComingSoonToast("Voice input coming soon!")}
+                        onClick={() => addToast("Voice input coming soon!", "info")}
                       >
                         <Mic className="h-3.5 w-3.5" />
                       </button>
@@ -3324,7 +3509,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                         key={model.id}
                         onClick={() => {
                           if (COMING_SOON_MODELS.has(model.id)) {
-                            setComingSoonToast(`${model.label.replace(" (Coming Soon)", "")} is coming soon. Using Anias 1.0 for now.`);
+                            addToast(`${model.label.replace(" (Coming Soon)", "")} is coming soon. Using Anias 1.0 for now.`, "info");
                             setSelectedModel(MODELS[0]); // Fall back to Anias
                             setModelOpen(false);
                             return;
@@ -3555,14 +3740,29 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         </div>
       )}
 
-      {/* Coming soon toast — top of page, auto-dismiss 3s */}
-      {comingSoonToast && (
-        <div className="fixed top-4 left-1/2 z-[200] -translate-x-1/2 animate-bounce-in">
-          <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 shadow-lg">
-            <span className="text-sm">&#9888;&#65039;</span>
-            <p className="text-sm font-medium text-amber-800">{comingSoonToast}</p>
-          </div>
-        </div>
+      {/* Toast notifications */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* Command Palette (Cmd+K) */}
+      {commandPaletteOpen && (
+        <CommandPalette
+          onClose={() => setCommandPaletteOpen(false)}
+          commands={[
+            { id: "new-chat", label: "New Chat", icon: Plus, shortcut: "\u2318N", action: () => { setCommandPaletteOpen(false); startNewChat(); } },
+            { id: "deploy", label: "Deploy App", icon: Rocket, action: () => { setCommandPaletteOpen(false); if (builtSpec && builtProjectId) handleToggleLivePreview(); } },
+            { id: "settings", label: "Open Settings", icon: Settings, action: () => { setCommandPaletteOpen(false); if (builtProjectId) setPreviewTab("settings"); } },
+            { id: "preview", label: "Switch to Preview", icon: Eye, action: () => { setCommandPaletteOpen(false); setPreviewTab("preview"); } },
+            { id: "code", label: "Switch to Code", icon: Code, action: () => { setCommandPaletteOpen(false); setPreviewTab("code"); } },
+            { id: "erd", label: "View ERD Diagram", icon: Network, action: () => { setCommandPaletteOpen(false); setPreviewTab("erd"); } },
+            { id: "editor", label: "Visual Editor", icon: Pencil, action: () => { setCommandPaletteOpen(false); setPreviewTab("editor"); } },
+            { id: "download", label: "Download / Share App", icon: Download, action: () => { setCommandPaletteOpen(false); handleDownloadApp(); } },
+            { id: "marketplace", label: "Open Marketplace", icon: Store, action: () => { setCommandPaletteOpen(false); setActiveView("marketplace"); } },
+            { id: "projects", label: "My Projects", icon: FolderOpen, action: () => { setCommandPaletteOpen(false); setActiveView("projects"); } },
+            { id: "toggle-dark", label: "Toggle Dark Mode", icon: theme === "dark" ? Sun : Moon, shortcut: "\u2318D", action: () => { setCommandPaletteOpen(false); toggleTheme(); } },
+            { id: "toggle-sidebar", label: "Toggle Sidebar", icon: PanelLeftOpen, shortcut: "\u2318.", action: () => { setCommandPaletteOpen(false); setSidebarOpen((prev) => !prev); } },
+            { id: "shortcuts", label: "Keyboard Shortcuts", icon: Keyboard, shortcut: "\u2318/", action: () => { setCommandPaletteOpen(false); setShortcutsOpen(true); } },
+          ]}
+        />
       )}
 
       {/* Keyboard shortcuts modal */}
@@ -3587,7 +3787,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             <div className="space-y-2">
               {[
                 { keys: ["\u2318", "Enter"], desc: "Send message" },
-                { keys: ["\u2318", "K"], desc: "Focus chat input" },
+                { keys: ["\u2318", "K"], desc: "Command palette" },
                 { keys: ["\u2318", "N"], desc: "New chat" },
                 { keys: ["\u2318", "Z"], desc: "Undo" },
                 { keys: ["\u2318", "\u21E7", "Z"], desc: "Redo" },

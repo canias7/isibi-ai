@@ -2322,6 +2322,41 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         <input type="password" id="auth-password" placeholder="Enter password">
       </div>
       <button class="auth-submit" id="auth-submit" onclick="handleAuth()">Log In</button>
+      <div id="auth-forgot-link" style="text-align:center;margin-top:12px">
+        <a href="#" onclick="showForgotPassword(event)" style="font-size:12px;color:var(--primary);text-decoration:none;cursor:pointer">Forgot password?</a>
+      </div>
+    </div>
+  </div>
+  <!-- Forgot Password screen (hidden by default) -->
+  <div class="auth-card" id="forgot-password-card" style="display:none">
+    <div class="auth-header">
+      <div class="auth-logo">{app_initial}</div>
+      <h2>Reset Password</h2>
+      <p id="forgot-step-text">Enter your email to receive a reset code</p>
+    </div>
+    <div class="auth-body">
+      <div class="auth-error" id="forgot-error"></div>
+      <div id="forgot-step-email">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="forgot-email" placeholder="you@example.com">
+        </div>
+        <button class="auth-submit" id="forgot-submit" onclick="handleForgotPassword()">Send Reset Code</button>
+      </div>
+      <div id="forgot-step-code" style="display:none">
+        <div class="form-group">
+          <label>Reset Code</label>
+          <input type="text" id="forgot-code" placeholder="Enter 6-digit code" maxlength="6">
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" id="forgot-new-password" placeholder="Enter new password">
+        </div>
+        <button class="auth-submit" onclick="handleResetPassword()">Reset Password</button>
+      </div>
+      <div style="text-align:center;margin-top:12px">
+        <a href="#" onclick="backToLogin(event)" style="font-size:12px;color:var(--text-muted);text-decoration:none;cursor:pointer">Back to login</a>
+      </div>
     </div>
   </div>
 </div>
@@ -2629,6 +2664,106 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   document.getElementById("auth-password").addEventListener("keydown", function(e) {{
     if (e.key === "Enter") handleAuth();
   }});
+
+  // ── Forgot Password flow ──
+  window.showForgotPassword = function(e) {{
+    if (e) e.preventDefault();
+    document.querySelector(".auth-card").style.display = "none";
+    document.getElementById("forgot-password-card").style.display = "block";
+    document.getElementById("forgot-step-email").style.display = "block";
+    document.getElementById("forgot-step-code").style.display = "none";
+    document.getElementById("forgot-error").style.display = "none";
+    document.getElementById("forgot-step-text").textContent = "Enter your email to receive a reset code";
+  }};
+
+  window.backToLogin = function(e) {{
+    if (e) e.preventDefault();
+    document.getElementById("forgot-password-card").style.display = "none";
+    document.querySelector(".auth-card").style.display = "block";
+  }};
+
+  window.handleForgotPassword = async function() {{
+    const email = document.getElementById("forgot-email").value.trim();
+    const errorEl = document.getElementById("forgot-error");
+    const submitBtn = document.getElementById("forgot-submit");
+
+    if (!email) {{
+      errorEl.textContent = "Please enter your email.";
+      errorEl.style.display = "block";
+      return;
+    }}
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending...";
+    errorEl.style.display = "none";
+
+    try {{
+      const res = await fetch(API_BASE + "/api/apps/" + PROJECT_ID + "/auth/forgot-password", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ email }})
+      }});
+      if (!res.ok) {{
+        const data = await res.json().catch(() => ({{}}));
+        throw new Error(data.detail || "Failed to send reset code");
+      }}
+      // Show code entry step
+      document.getElementById("forgot-step-email").style.display = "none";
+      document.getElementById("forgot-step-code").style.display = "block";
+      document.getElementById("forgot-step-text").textContent = "Enter the code and your new password";
+    }} catch (e) {{
+      errorEl.textContent = e.message;
+      errorEl.style.display = "block";
+    }} finally {{
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Send Reset Code";
+    }}
+  }};
+
+  window.handleResetPassword = async function() {{
+    const email = document.getElementById("forgot-email").value.trim();
+    const code = document.getElementById("forgot-code").value.trim();
+    const newPassword = document.getElementById("forgot-new-password").value;
+    const errorEl = document.getElementById("forgot-error");
+
+    if (!code || !newPassword) {{
+      errorEl.textContent = "Please enter the code and a new password.";
+      errorEl.style.display = "block";
+      return;
+    }}
+
+    if (newPassword.length < 6) {{
+      errorEl.textContent = "Password must be at least 6 characters.";
+      errorEl.style.display = "block";
+      return;
+    }}
+
+    errorEl.style.display = "none";
+
+    try {{
+      const res = await fetch(API_BASE + "/api/apps/" + PROJECT_ID + "/auth/reset-password", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json" }},
+        body: JSON.stringify({{ email, code, new_password: newPassword }})
+      }});
+      if (!res.ok) {{
+        const data = await res.json().catch(() => ({{}}));
+        throw new Error(data.detail || "Password reset failed");
+      }}
+      // Success — go back to login with success message
+      backToLogin();
+      const authError = document.getElementById("auth-error");
+      authError.textContent = "Password reset! You can now log in.";
+      authError.style.display = "block";
+      authError.style.color = "var(--green-600, #16a34a)";
+      authError.style.background = "var(--green-50, #f0fdf4)";
+      authError.style.borderColor = "var(--green-200, #bbf7d0)";
+      document.getElementById("auth-email").value = email;
+    }} catch (e) {{
+      errorEl.textContent = e.message;
+      errorEl.style.display = "block";
+    }}
+  }};
 
   // ── Loading bar ──
   const loadingBar = document.getElementById("loading-bar");
@@ -3427,7 +3562,13 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     ).slice(0, 2);
 
     if (rows.length === 0) {{
-      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><h3>No records found</h3><p>' + (search ? 'Try adjusting your search.' : 'Click "Add New" to create your first record.') + '</p></div>';
+      const entityLabel = entity.replace(/_/g, " ");
+      const entityTitle = entityLabel.charAt(0).toUpperCase() + entityLabel.slice(1);
+      if (search) {{
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><h3>No matching ' + escHtml(entityLabel) + 's</h3><p>Try adjusting your search to find what you\\u2019re looking for.</p></div>';
+      }} else {{
+        grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-container"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="plus-icon">+</span></div><h3>No ' + escHtml(entityLabel) + 's yet</h3><p>Create your first ' + escHtml(entityLabel) + ' to get started.</p><button class="btn btn-primary" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add ' + escHtml(entityTitle) + '</button></div></div>';
+      }}
       return;
     }}
 
@@ -3558,14 +3699,21 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     const tbody = document.getElementById("tbody-" + moduleName);
     if (!tbody) return;
 
-    // Skeleton loading
+    // Skeleton loading — matches column layout with varied widths
+    const fields = ENTITY_FIELDS[entity] || [];
+    const colCount = Math.min(fields.filter(f =>
+      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)
+    ).length, 7);
+    const widths = [65, 45, 55, 35, 50, 40, 60];
     let skeletonHtml = '';
     for (let i = 0; i < 5; i++) {{
-      skeletonHtml += '<tr><td colspan="20"><div class="skeleton-row">' +
-        '<div class="skeleton skeleton-circle"></div>' +
-        '<div class="skeleton skeleton-line" style="width:' + (30 + Math.random() * 50) + '%"></div>' +
-        '<div class="skeleton skeleton-line-sm" style="width:' + (20 + Math.random() * 30) + '%"></div>' +
-      '</div></td></tr>';
+      let cells = '<td style="width:40px;padding:14px 8px"><div class="skeleton skeleton-circle" style="width:28px;height:28px"></div></td>';
+      for (let c = 0; c < Math.max(colCount, 3); c++) {{
+        const w = widths[(i + c) % widths.length] + (i * 3) % 20;
+        cells += '<td style="padding:14px 12px"><div class="skeleton skeleton-line" style="width:' + w + '%;animation-delay:' + (c * 0.1) + 's"></div></td>';
+      }}
+      cells += '<td style="width:60px;padding:14px 8px"><div class="skeleton skeleton-line-sm" style="width:70%"></div></td>';
+      skeletonHtml += '<tr>' + cells + '</tr>';
     }}
     tbody.innerHTML = skeletonHtml;
 

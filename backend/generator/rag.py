@@ -645,6 +645,50 @@ def _extract_structural_context(spec: dict, max_entities: int = 4) -> dict:
     return result
 
 
+def get_best_few_shot_example(user_prompt: str) -> str | None:
+    """Extract the single best-matching spec as a compact few-shot example.
+
+    Returns a JSON string showing entities[0:2] with their fields from the
+    highest-scoring spec, or None if no specs are available.
+    This teaches the AI by showing a REAL domain-relevant spec structure.
+    """
+    matches = _find_composite_specs(user_prompt)
+    if not matches:
+        return None
+
+    # Take the top-scoring spec
+    _path, spec, score = matches[0]
+    if score <= 0:
+        return None
+
+    # Extract a compact version: first 2 entities with fields
+    compact = _extract_structural_context(spec, max_entities=2)
+    if not compact or not compact.get("entities"):
+        return None
+
+    # Keep only essential keys to stay compact
+    example = {
+        "app_name": compact.get("app_name", "Example App"),
+        "entities": compact.get("entities", [])[:2],
+    }
+
+    # Strip ui_config from the example to keep it small
+    for ent in example["entities"]:
+        ent.pop("ui_config", None)
+        # Keep only first 6 business fields (skip system fields)
+        fields = ent.get("fields", [])
+        business_fields = [
+            f for f in fields
+            if f.get("name") not in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version")
+        ][:6]
+        ent["fields"] = business_fields
+
+    try:
+        return json.dumps(example, indent=2)
+    except (TypeError, ValueError):
+        return None
+
+
 # ── Main public function ────────────────────────────────────────────
 
 def build_rag_context(user_prompt: str, max_specs: int = 3) -> str:

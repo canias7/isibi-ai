@@ -262,8 +262,40 @@ def _analyze_conversation_context(messages: list[dict]) -> dict:
             domain_scores[domain] = score
     detected_domain = max(domain_scores, key=domain_scores.get) if domain_scores else "general"
 
-    # Detect entities mentioned
+    # Detect entities mentioned (lowercase word matches)
     entities_mentioned = sorted(words & _ENTITY_WORDS)
+
+    # Extract specific entity names from natural language patterns
+    # e.g. "I need to track leads, deals, and contacts" -> ["Lead", "Deal", "Contact"]
+    specific_entities: list[str] = []
+    _ENTITY_PATTERNS = [
+        # "track/manage/need X, Y, and Z"
+        re.compile(r"(?:track|manage|need|want|have|include|add|create|handle)\s+(.+?)(?:\.|$)", re.IGNORECASE),
+        # "X, Y, and Z management/tracking"
+        re.compile(r"(.+?)\s+(?:management|tracking|system|tool|app|platform)", re.IGNORECASE),
+    ]
+    for m in messages:
+        if m.get("role") != "user":
+            continue
+        content = m.get("content", "")
+        for pattern in _ENTITY_PATTERNS:
+            match = pattern.search(content)
+            if match:
+                fragment = match.group(1)
+                # Split on commas, "and", "&"
+                parts = re.split(r',\s*|\s+and\s+|\s*&\s*', fragment)
+                for part in parts:
+                    # Clean and capitalize each entity name
+                    cleaned = part.strip().rstrip("s").strip()
+                    if cleaned and len(cleaned) > 2 and cleaned.lower() in _ENTITY_WORDS:
+                        # Convert to PascalCase
+                        entity_name = cleaned.capitalize()
+                        if entity_name not in specific_entities:
+                            specific_entities.append(entity_name)
+
+    # Also convert raw entity_mentioned words to PascalCase
+    if not specific_entities and entities_mentioned:
+        specific_entities = [e.capitalize() for e in entities_mentioned]
 
     # Detect preferences from conversation
     preferences: dict = {}
@@ -308,6 +340,7 @@ def _analyze_conversation_context(messages: list[dict]) -> dict:
     return {
         "domain": detected_domain,
         "entities_mentioned": entities_mentioned,
+        "specific_entities": specific_entities,
         "preferences": preferences,
         "ready_to_build": ready_to_build,
         "build_confidence": round(confidence, 2),
@@ -324,11 +357,13 @@ def _build_conversation_summary(messages: list[dict]) -> str:
         return ""
 
     ctx = _analyze_conversation_context(messages[:-1])  # Exclude the latest message
-    if ctx["domain"] == "general" and not ctx["entities_mentioned"]:
+    if ctx["domain"] == "general" and not ctx["entities_mentioned"] and not ctx.get("specific_entities"):
         return ""
 
     parts = [f"Previous context: User wants to build a {ctx['domain']} app"]
-    if ctx["entities_mentioned"]:
+    if ctx.get("specific_entities"):
+        parts[0] += f" with entities: {', '.join(ctx['specific_entities'])}"
+    elif ctx["entities_mentioned"]:
         parts[0] += f" with {', '.join(ctx['entities_mentioned'])}"
     parts[0] += "."
 
@@ -611,7 +646,13 @@ async def api_chat(
         )
 
     # Inject entities into build prompt when user mentions specific ones
-    if conv_context["entities_mentioned"]:
+    if conv_context.get("specific_entities"):
+        entity_list = ", ".join(conv_context["specific_entities"])
+        system_prompt = system_prompt + (
+            f"\n\nThe user specifically wants these entities: {entity_list}. "
+            "Include ALL of them in the generated app with proper PascalCase naming."
+        )
+    elif conv_context["entities_mentioned"]:
         system_prompt = system_prompt + (
             f"\n\nThe user has mentioned these specific entities: {', '.join(conv_context['entities_mentioned'])}. "
             "Include all of them in the generated app."

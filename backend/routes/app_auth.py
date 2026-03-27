@@ -6,13 +6,16 @@ These are separate from platform users. Each generated app (project) has
 its own user pool. JWTs use a distinct claim structure with type="app_user".
 
 Routes:
-  POST /api/apps/{project_id}/auth/signup  — register a new app user
-  POST /api/apps/{project_id}/auth/login   — login, returns JWT
-  GET  /api/apps/{project_id}/auth/me      — get current app user profile
+  POST /api/apps/{project_id}/auth/signup           — register a new app user
+  POST /api/apps/{project_id}/auth/login             — login, returns JWT
+  GET  /api/apps/{project_id}/auth/me                — get current app user profile
+  POST /api/apps/{project_id}/auth/forgot-password   — request a reset code
+  POST /api/apps/{project_id}/auth/reset-password    — verify code & set new password
 """
 
 import os
 import uuid
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -28,6 +31,10 @@ from db import get_db
 from models.app_user import AppUser
 
 router = APIRouter(prefix="/apps", tags=["App Auth"])
+
+# In-memory reset code store: key = "{project_id}:{email}" -> {"code": str, "expires": datetime}
+# In production, this would be stored in the database and emailed to the user.
+_reset_codes: dict[str, dict] = {}
 
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
@@ -46,6 +53,14 @@ class AppSignupRequest(BaseModel):
 class AppLoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+class AppForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+class AppResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
 
 class AppUserResponse(BaseModel):
     id: str
@@ -205,3 +220,96 @@ async def app_me(
         raise HTTPException(status_code=403, detail="Account is deactivated.")
 
     return _app_user_response(app_user)
+
+
+# ── Forgot Password ──────────────────────────────────────────────────
+
+@router.post("/{project_id}/auth/forgot-password")
+async def app_forgot_password(
+    project_id: uuid.UUID,
+    body: AppForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Request a password reset code for a generated app user.
+
+    Generates a 6-digit code and stores it in memory. In production this
+    would send an email. Returns success regardless of whether the email
+    exists (to prevent user enumeration).
+    """
+    # Always return success to prevent email enumeration
+    result = await db.execute(
+        select(AppUser).where(
+            AppUser.project_id == project_id,
+            AppUser.email == body.email,
+        )
+    )
+    app_user = result.scalar_one_or_none()
+
+    if app_user and app_user.is_active:
+        # Generate a 6-digit reset code
+        code = f"{secrets.randbelow(900000) + 100000}"
+        store_key = f"{project_id}:{body.email}"
+        _reset_codes[store_key] = {
+            "code": code,
+            "expires": datetime.now(timezone.utc) + timedelta(minutes=15),
+        }
+        # In production: send email with the code
+        # For now, we log it for testing purposes
+        import logging
+        logging.getLogger(__name__).info(
+            "Reset code for %s in project %s: %s", body.email, project_id, code
+        )
+
+    return {"message": "If an account with that email exists, a reset code has been sent."}
+
+
+# ── Reset Password ───────────────────────────────────────────────────
+
+@router.post("/{project_id}/auth/reset-password")
+async def app_reset_password(
+    project_id: uuid.UUID,
+    body: AppResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Reset password using the code from forgot-password.
+
+    Verifies the code, updates the password, and invalidates the code.
+    """
+    store_key = f"{project_id}:{body.email}"
+    stored = _reset_codes.get(store_key)
+
+    if not stored:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    # Check expiry
+    if datetime.now(timezone.utc) > stored["expires"]:
+        _reset_codes.pop(store_key, None)
+        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
+
+    # Check code
+    if stored["code"] != body.code:
+        raise HTTPException(status_code=400, detail="Invalid reset code.")
+
+    # Validate new password
+    if len(body.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters.")
+
+    # Find the user and update password
+    result = await db.execute(
+        select(AppUser).where(
+            AppUser.project_id == project_id,
+            AppUser.email == body.email,
+        )
+    )
+    app_user = result.scalar_one_or_none()
+
+    if not app_user:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
+
+    app_user.password_hash = _hash_password(body.new_password)
+    await db.commit()
+
+    # Invalidate the code
+    _reset_codes.pop(store_key, None)
+
+    return {"message": "Password reset successfully. You can now log in with your new password."}
