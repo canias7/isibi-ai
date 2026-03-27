@@ -218,39 +218,63 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
 *,*::before,*::after {{ margin:0;padding:0;box-sizing:border-box; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; }}
 :root {{
   --primary: {primary_color};
-  --primary-hover: {primary_color}dd;
-  --primary-light: {primary_color}12;
-  --primary-subtle: {primary_color}08;
+  --primary-hover: color-mix(in srgb, {primary_color} 85%, black);
+  --primary-light: color-mix(in srgb, {primary_color} 10%, white);
+  --primary-subtle: color-mix(in srgb, {primary_color} 5%, white);
+  --primary-dark: color-mix(in srgb, {primary_color} 70%, black);
   --secondary: {secondary_color};
-  --bg: #f8f9fb;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  --bg: #f9fafb;
   --bg-card: #ffffff;
-  --sidebar-bg: #fafafa;
+  --sidebar-bg: #fbfbfc;
   --sidebar-width: 260px;
   --sidebar-collapsed-width: 0px;
   --border: #e5e7eb;
-  --border-light: #f0f0f3;
+  --border-light: #f0f1f3;
   --text: #111827;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
   --text-placeholder: #c0c5ce;
   --success: #10b981;
   --success-light: #ecfdf5;
+  --success-text: #065f46;
   --warning: #f59e0b;
   --warning-light: #fffbeb;
+  --warning-text: #92400e;
   --danger: #ef4444;
   --danger-light: #fef2f2;
+  --danger-text: #991b1b;
   --info: #3b82f6;
   --info-light: #eff6ff;
+  --info-text: #1e40af;
+  --purple: #a855f7;
+  --purple-light: #faf5ff;
+  --purple-text: #6b21a8;
+  --pink: #ec4899;
+  --pink-light: #fdf2f8;
+  --pink-text: #9d174d;
+  --slate: #94a3b8;
+  --slate-light: #f8fafc;
+  --slate-text: #475569;
   --radius-sm: 6px;
   --radius: 8px;
   --radius-md: 10px;
   --radius-lg: 12px;
   --radius-xl: 16px;
   --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
-  --shadow-lg: 0 10px 40px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.04);
-  --shadow-xl: 0 20px 60px rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.05);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.03);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.04);
   --transition: 0.15s ease;
   --transition-slow: 0.25s ease;
 }}
@@ -367,7 +391,6 @@ body {{
   transition:width var(--transition-slow), transform var(--transition-slow);
   z-index:40;
   position:relative;
-  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
 }}
 .sidebar-header {{
   padding:20px 20px 16px;
@@ -377,20 +400,21 @@ body {{
   border-bottom:1px solid var(--border-light);
 }}
 .app-logo {{
-  width:36px;height:36px;
-  border-radius:var(--radius-md);
+  width:32px;height:32px;
+  border-radius:8px;
   background:var(--primary);
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-weight:700;font-size:16px;
+  color:#fff;font-weight:700;font-size:14px;
   flex-shrink:0;
-  box-shadow: 0 2px 8px {primary_color}40;
+  box-shadow: 0 1px 3px {primary_color}30;
 }}
 .app-logo-text {{
   flex:1;min-width:0;
 }}
 .app-logo-text h1 {{
-  font-size:15px;font-weight:700;color:var(--text);
+  font-size:14px;font-weight:600;color:var(--text);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-0.01em;
 }}
 .app-logo-text p {{
   font-size:11px;color:var(--text-muted);margin-top:1px;
@@ -408,53 +432,73 @@ body {{
   transition:all var(--transition);
   z-index:5;
   color:var(--text-muted);
+  opacity:0;
 }}
+.sidebar:hover .sidebar-collapse-btn {{ opacity:1; }}
 .sidebar-collapse-btn:hover {{ background:var(--bg);color:var(--text); }}
 .sidebar-collapse-btn svg {{ width:14px;height:14px; }}
 .sidebar-nav {{
-  flex:1;padding:12px 12px;overflow-y:auto;
+  flex:1;padding:8px 8px;overflow-y:auto;
 }}
 .sidebar-section-label {{
-  font-size:10px;font-weight:600;color:var(--text-muted);
-  text-transform:uppercase;letter-spacing:0.06em;
-  padding:12px 12px 6px;
+  font-size:10px;font-weight:600;color:var(--gray-400);
+  text-transform:uppercase;letter-spacing:0.08em;
+  padding:16px 12px 6px;
 }}
+.sidebar-section-label:first-child {{ padding-top:8px; }}
 .sidebar-item {{
   display:flex;align-items:center;gap:10px;
   width:100%;text-align:left;
-  padding:8px 12px;
+  padding:7px 12px;
   border:none;background:none;
   border-radius:var(--radius-sm);
-  font-size:14px;font-weight:500;
-  color:#4b5563;
+  font-size:13px;font-weight:500;
+  color:var(--gray-600);
   cursor:pointer;
-  margin:1px 8px;
-  transition:all 0.15s cubic-bezier(.4,0,.2,1);
+  margin:1px 0;
+  transition:all 0.12s ease;
   position:relative;
   font-family:inherit;
 }}
-.sidebar-item:hover {{ background:rgba(0,0,0,.04);color:var(--text); }}
+.sidebar-item:hover {{ background:var(--gray-100);color:var(--text); }}
 .sidebar-item.active {{
   background:var(--primary-light);
   color:var(--primary);
   font-weight:600;
 }}
 .sidebar-item.active::before {{
-  content:'';position:absolute;left:0;top:6px;bottom:6px;
+  content:'';position:absolute;left:-8px;top:6px;bottom:6px;
   width:3px;border-radius:0 3px 3px 0;
   background:var(--primary);
 }}
-.sidebar-item svg {{ width:18px;height:18px;flex-shrink:0;opacity:0.7; }}
+.sidebar-item svg {{ width:18px;height:18px;flex-shrink:0;opacity:0.5; }}
+.sidebar-item:hover svg {{ opacity:0.75; }}
 .sidebar-item.active svg {{ opacity:1; }}
 .sidebar-footer {{
-  padding:16px 20px;
+  padding:12px 16px;
   border-top:1px solid var(--border-light);
-  font-size:11px;color:var(--text-muted);
-  display:flex;align-items:center;justify-content:space-between;
+  display:flex;align-items:center;gap:10px;
+}}
+.sidebar-footer-avatar {{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--gray-200);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:600;color:var(--gray-600);
+  flex-shrink:0;
 }}
 .sidebar-footer svg {{ width:12px;height:12px;opacity:0.5; }}
 .sidebar-footer-left {{
-  display:flex;align-items:center;gap:6px;
+  display:flex;align-items:center;gap:8px;flex:1;min-width:0;
+}}
+.sidebar-footer-info {{
+  flex:1;min-width:0;
+}}
+.sidebar-footer-name {{
+  font-size:12px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}}
+.sidebar-footer-role {{
+  font-size:10px;color:var(--text-muted);
 }}
 .logout-btn {{
   background:none;border:1px solid var(--border);
@@ -482,8 +526,8 @@ body {{
 }}
 .topbar {{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 24px;height:56px;
-  border-bottom:1px solid var(--border);
+  padding:0 24px;height:52px;
+  border-bottom:1px solid var(--border-light);
   background:var(--bg-card);
   flex-shrink:0;
   gap:16px;
@@ -500,13 +544,41 @@ body {{
 }}
 .hamburger:hover {{ background:var(--bg);color:var(--text); }}
 .hamburger svg {{ width:20px;height:20px; }}
+.topbar-breadcrumb {{
+  display:flex;align-items:center;gap:6px;
+  min-width:0;
+}}
+.topbar-breadcrumb span {{
+  font-size:14px;color:var(--text-muted);
+  white-space:nowrap;
+}}
+.topbar-breadcrumb span:last-child {{
+  color:var(--text);font-weight:600;
+}}
+.topbar-breadcrumb .breadcrumb-sep {{
+  font-size:12px;color:var(--gray-300);
+  font-weight:400;
+}}
 .topbar h2 {{
-  font-size:16px;font-weight:600;
+  font-size:15px;font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }}
 .topbar-actions {{
   display:flex;align-items:center;gap:8px;
   flex-shrink:0;
+}}
+.topbar-avatar {{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--primary-light);color:var(--primary);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;
+  cursor:pointer;
+  border:2px solid var(--bg-card);
+  box-shadow:0 0 0 1px var(--border);
+  transition:box-shadow var(--transition);
+}}
+.topbar-avatar:hover {{
+  box-shadow:0 0 0 1px var(--primary);
 }}
 .content {{
   flex:1;overflow:auto;padding:24px;
@@ -539,10 +611,13 @@ body {{
   background:var(--bg-card);
   border:1px solid var(--border);
   border-radius:var(--radius-lg);
-  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
-  transition:box-shadow var(--transition), transform var(--transition);
+  box-shadow:var(--shadow-sm);
+  transition:box-shadow 0.2s ease, transform 0.2s ease;
 }}
-.card:hover {{ box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 4px 8px rgba(0,0,0,.07), 0 16px 32px rgba(0,0,0,.07); }}
+.card:hover {{
+  box-shadow:var(--shadow-md);
+  transform:translateY(-2px);
+}}
 
 /* ── Stats grid ── */
 .stats-grid {{
@@ -590,8 +665,8 @@ body {{
   display:flex;align-items:center;gap:2px;
   padding:2px 8px;border-radius:20px;
 }}
-.stat-trend.up {{ color:var(--success);background:var(--success-light); }}
-.stat-trend.down {{ color:var(--danger);background:var(--danger-light); }}
+.stat-trend.up {{ color:var(--success-text);background:var(--success-light); }}
+.stat-trend.down {{ color:var(--danger-text);background:var(--danger-light); }}
 .stat-label {{
   font-size:12px;color:var(--text-muted);
   font-weight:500;
@@ -802,27 +877,36 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Status badges ── */
 .badge {{
-  display:inline-flex;align-items:center;gap:4px;
-  padding:2px 8px;border-radius:9999px;
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 10px;border-radius:6px;
   font-size:12px;font-weight:500;
   white-space:nowrap;
+  letter-spacing:0.01em;
 }}
-.badge-dot {{
+.badge::before {{
+  content:'';
   width:6px;height:6px;border-radius:50%;
   flex-shrink:0;
 }}
-.badge-default {{ background:var(--bg);color:var(--text-secondary); }}
-.badge-default .badge-dot {{ background:var(--text-muted); }}
-.badge-primary {{ background:var(--primary-light);color:var(--primary); }}
-.badge-primary .badge-dot {{ background:var(--primary); }}
-.badge-success {{ background:var(--success-light);color:var(--success); }}
-.badge-success .badge-dot {{ background:var(--success); }}
-.badge-warning {{ background:var(--warning-light);color:var(--warning); }}
-.badge-warning .badge-dot {{ background:var(--warning); }}
-.badge-danger {{ background:var(--danger-light);color:var(--danger); }}
-.badge-danger .badge-dot {{ background:var(--danger); }}
-.badge-info {{ background:var(--info-light);color:var(--info); }}
-.badge-info .badge-dot {{ background:var(--info); }}
+.badge-dot {{ display:none; }}
+.badge-default {{ background:var(--slate-light);color:var(--slate-text); }}
+.badge-default::before {{ background:var(--slate); }}
+.badge-primary {{ background:var(--primary-light);color:var(--primary-dark); }}
+.badge-primary::before {{ background:var(--primary); }}
+.badge-success {{ background:#ecfdf5;color:#065f46; }}
+.badge-success::before {{ background:#10b981; }}
+.badge-warning {{ background:#fffbeb;color:#92400e; }}
+.badge-warning::before {{ background:#f59e0b; }}
+.badge-danger {{ background:#fef2f2;color:#991b1b; }}
+.badge-danger::before {{ background:#ef4444; }}
+.badge-info {{ background:#eff6ff;color:#1e40af; }}
+.badge-info::before {{ background:#3b82f6; }}
+.badge-purple {{ background:#faf5ff;color:#6b21a8; }}
+.badge-purple::before {{ background:#a855f7; }}
+.badge-pink {{ background:#fdf2f8;color:#9d174d; }}
+.badge-pink::before {{ background:#ec4899; }}
+.badge-slate {{ background:#f8fafc;color:#475569; }}
+.badge-slate::before {{ background:#94a3b8; }}
 
 /* ── Avatar ── */
 .avatar {{
@@ -840,38 +924,49 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 /* ── Empty state ── */
 .empty-state {{
   text-align:center;padding:80px 24px;
-  color:#9ca3af;
+  color:var(--gray-400);
+}}
+.empty-state-container {{
+  max-width:360px;margin:0 auto;
+  border:2px dashed var(--gray-200);
+  border-radius:var(--radius-xl);
+  padding:48px 32px;
+  background:var(--gray-50);
 }}
 .empty-state-icon {{
-  width:72px;height:72px;margin:0 auto 20px;
+  width:80px;height:80px;margin:0 auto 20px;
   border-radius:50%;
-  border:2px dashed var(--border);
-  background:var(--bg);
+  border:2px dashed var(--gray-300);
+  background:var(--bg-card);
   display:flex;align-items:center;justify-content:center;
   position:relative;
-  animation:emptyPulse 2s ease-in-out infinite;
+  animation:emptyPulse 3s ease-in-out infinite;
 }}
 @keyframes emptyPulse {{
-  0%,100% {{ transform:scale(1);opacity:0.8; }}
-  50% {{ transform:scale(1.05);opacity:1; }}
+  0%,100% {{ transform:scale(1);opacity:0.7; }}
+  50% {{ transform:scale(1.04);opacity:1; }}
 }}
-.empty-state-icon svg {{ width:28px;height:28px;opacity:0.5;color:var(--text-muted); }}
+.empty-state-icon svg {{ width:28px;height:28px;opacity:0.4;color:var(--gray-400); }}
 .empty-state-icon .plus-icon {{
-  position:absolute;bottom:-2px;right:-2px;
-  width:24px;height:24px;border-radius:50%;
+  position:absolute;bottom:-4px;right:-4px;
+  width:28px;height:28px;border-radius:50%;
   background:var(--primary);color:#fff;
   display:flex;align-items:center;justify-content:center;
-  font-size:16px;font-weight:700;line-height:1;
-  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  font-size:18px;font-weight:700;line-height:1;
+  box-shadow:0 2px 8px rgba(0,0,0,0.15);
+  border:2px solid var(--bg-card);
 }}
 .empty-state h3 {{
   font-size:16px;font-weight:600;color:var(--text);
   margin-bottom:6px;
 }}
 .empty-state p {{
-  font-size:13px;margin-bottom:20px;
-  max-width:320px;margin-left:auto;margin-right:auto;
-  line-height:1.5;
+  font-size:13px;margin-bottom:24px;
+  max-width:280px;margin-left:auto;margin-right:auto;
+  line-height:1.6;color:var(--gray-500);
+}}
+.empty-state .btn {{
+  display:inline-flex;
 }}
 
 /* ── Pagination ── */
@@ -1196,32 +1291,61 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Toast ── */
 .toast-container {{
-  position:fixed;top:24px;right:24px;
+  position:fixed;top:16px;right:16px;
   z-index:200;display:flex;flex-direction:column;gap:8px;
 }}
 .toast {{
-  padding:12px 20px;
-  border-radius:var(--radius-md);
+  padding:14px 16px;
+  border-radius:var(--radius-lg);
   font-size:13px;font-weight:500;
   display:flex;align-items:center;gap:10px;
   box-shadow:var(--shadow-lg);
-  transform:translateY(-120%);opacity:0;
-  transition:all 0.3s cubic-bezier(0.4,0,0.2,1);
-  max-width:380px;
-  border:1px solid transparent;
+  transform:translateX(120%);opacity:0;
+  transition:all 0.35s cubic-bezier(0.4,0,0.2,1);
+  max-width:400px;min-width:300px;
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  color:var(--text);
+  position:relative;
+  overflow:hidden;
 }}
-.toast.show {{ transform:translateY(0);opacity:1; }}
+.toast.show {{ transform:translateX(0);opacity:1; }}
 .toast-success {{
-  background:var(--bg-card);color:var(--success);
-  border-color:var(--success);
+  border-left:3px solid var(--success);
 }}
 .toast-error {{
-  background:var(--bg-card);color:var(--danger);
-  border-color:var(--danger);
+  border-left:3px solid var(--danger);
+}}
+.toast-info {{
+  border-left:3px solid var(--info);
 }}
 .toast-icon {{
-  width:18px;height:18px;flex-shrink:0;
+  width:20px;height:20px;flex-shrink:0;
 }}
+.toast-success .toast-icon {{ color:var(--success); }}
+.toast-error .toast-icon {{ color:var(--danger); }}
+.toast-info .toast-icon {{ color:var(--info); }}
+.toast-message {{ flex:1;color:var(--text);font-size:13px; }}
+.toast-close {{
+  background:none;border:none;cursor:pointer;
+  color:var(--gray-400);padding:2px;
+  border-radius:4px;display:flex;align-items:center;justify-content:center;
+  transition:color var(--transition), background var(--transition);
+  flex-shrink:0;
+}}
+.toast-close:hover {{ color:var(--text);background:var(--gray-100); }}
+.toast-close svg {{ width:14px;height:14px; }}
+.toast-progress {{
+  position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:var(--gray-200);
+}}
+.toast-progress-bar {{
+  height:100%;width:100%;
+  transition:width linear;
+}}
+.toast-success .toast-progress-bar {{ background:var(--success); }}
+.toast-error .toast-progress-bar {{ background:var(--danger); }}
+.toast-info .toast-progress-bar {{ background:var(--info); }}
 
 /* ── Loading overlay ── */
 .loading-bar {{
@@ -1696,18 +1820,20 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 tr.bulk-selected {{ background:var(--primary-light) !important; }}
 .topbar-search-trigger {{
   display:flex;align-items:center;gap:8px;
-  padding:7px 14px;border:1px solid var(--border);
-  border-radius:var(--radius);background:var(--bg);
-  color:var(--text-muted);font-size:13px;cursor:pointer;
-  transition:all var(--transition);min-width:180px;
+  padding:6px 12px;border:1px solid var(--border);
+  border-radius:var(--radius);background:var(--gray-50);
+  color:var(--gray-400);font-size:13px;cursor:pointer;
+  transition:all var(--transition);min-width:200px;
   font-family:inherit;
 }}
-.topbar-search-trigger:hover {{ border-color:var(--text-muted);color:var(--text-secondary); }}
-.topbar-search-trigger svg {{ width:16px;height:16px;flex-shrink:0; }}
+.topbar-search-trigger:hover {{ border-color:var(--gray-300);color:var(--gray-500);background:var(--bg-card); }}
+.topbar-search-trigger svg {{ width:15px;height:15px;flex-shrink:0; }}
 .topbar-search-trigger kbd {{
-  font-size:10px;padding:1px 5px;border-radius:3px;
-  background:var(--bg-card);border:1px solid var(--border);
-  color:var(--text-muted);margin-left:auto;font-family:inherit;
+  font-size:10px;padding:2px 6px;border-radius:4px;
+  background:var(--bg-card);border:1px solid var(--gray-200);
+  color:var(--gray-400);margin-left:auto;font-family:system-ui,inherit;
+  font-weight:500;line-height:1.3;
+  box-shadow:0 1px 0 var(--gray-200);
 }}
 /* ── AI Chat Widget ── */
 .chat-widget-btn {{
@@ -2076,14 +2202,19 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
   </button>
   <nav class="sidebar-nav" id="sidebar-nav">
-    <div class="sidebar-section-label">Menu</div>
+    <div class="sidebar-section-label">Navigation</div>
   </nav>
   <div class="sidebar-footer">
     <div class="sidebar-footer-left">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-      Built with isibi.ai
+      <div class="sidebar-footer-avatar" id="sidebar-user-avatar">U</div>
+      <div class="sidebar-footer-info">
+        <div class="sidebar-footer-name" id="sidebar-user-name">User</div>
+        <div class="sidebar-footer-role">Member</div>
+      </div>
     </div>
-    <button class="logout-btn" id="logout-btn" onclick="handleLogout()">Logout</button>
+    <button class="logout-btn" id="logout-btn" onclick="handleLogout()" title="Sign out">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </button>
   </div>
 </aside>
 
@@ -2094,7 +2225,9 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       <button class="hamburger" onclick="toggleSidebar()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <h2 id="page-title">Dashboard</h2>
+      <div class="topbar-breadcrumb" id="topbar-breadcrumb">
+        <span id="page-title">Dashboard</span>
+      </div>
     </div>
     <button class="topbar-search-trigger" onclick="openGlobalSearch()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -2117,6 +2250,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       </div>
     </div>
     <div class="topbar-actions" id="topbar-actions"></div>
+    <div class="topbar-avatar" id="topbar-avatar">{app_initial}</div>
   </header>
   <div class="content" id="content-area"></div>
 </div>
@@ -2457,16 +2591,34 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     const container = document.getElementById("toast-container");
     const toast = document.createElement("div");
     toast.className = "toast toast-" + type;
-    const iconSvg = type === "success"
-      ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
-      : '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-    toast.innerHTML = iconSvg + '<span>' + escHtml(msg) + '</span>';
+    const icons = {{
+      success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+      error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+      info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    }};
+    const iconSvg = icons[type] || icons.info;
+    const duration = 4000;
+    toast.innerHTML = iconSvg +
+      '<span class="toast-message">' + escHtml(msg) + '</span>' +
+      '<button class="toast-close" onclick="this.parentElement.classList.remove(\'show\');setTimeout(()=>this.parentElement.remove(),350)">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+      '</button>' +
+      '<div class="toast-progress"><div class="toast-progress-bar"></div></div>';
     container.appendChild(toast);
-    requestAnimationFrame(() => requestAnimationFrame(() => toast.classList.add("show")));
+    requestAnimationFrame(() => {{
+      requestAnimationFrame(() => {{
+        toast.classList.add("show");
+        const bar = toast.querySelector(".toast-progress-bar");
+        if (bar) {{
+          bar.style.transitionDuration = duration + "ms";
+          requestAnimationFrame(() => {{ bar.style.width = "0%"; }});
+        }}
+      }});
+    }});
     setTimeout(() => {{
       toast.classList.remove("show");
-      setTimeout(() => toast.remove(), 300);
-    }}, 4000);
+      setTimeout(() => toast.remove(), 350);
+    }}, duration);
   }}
 
   // ── Escape HTML ──
@@ -2474,6 +2626,30 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     const d = document.createElement("div");
     d.textContent = s;
     return d.innerHTML;
+  }}
+
+  // ── Breadcrumb helper ──
+  function setBreadcrumb(parts) {{
+    const bc = document.getElementById("topbar-breadcrumb");
+    if (!bc) return;
+    bc.innerHTML = parts.map((p, i) => {{
+      if (i < parts.length - 1) {{
+        return '<span>' + escHtml(p) + '</span><span class="breadcrumb-sep">/</span>';
+      }}
+      return '<span>' + escHtml(p) + '</span>';
+    }}).join('');
+  }}
+
+  // ── Update sidebar user info ──
+  function updateUserDisplay() {{
+    const email = localStorage.getItem("user_email") || "User";
+    const initial = (email[0] || "U").toUpperCase();
+    const nameEl = document.getElementById("sidebar-user-name");
+    const avatarEl = document.getElementById("sidebar-user-avatar");
+    const topAvatarEl = document.getElementById("topbar-avatar");
+    if (nameEl) nameEl.textContent = email.split("@")[0] || "User";
+    if (avatarEl) avatarEl.textContent = initial;
+    if (topAvatarEl) topAvatarEl.textContent = initial;
   }}
 
   // ── Sidebar ──
@@ -2509,8 +2685,12 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       if (nav.children.length > 1) nav.insertBefore(analyticsBtn, nav.children[1]);
       else nav.appendChild(analyticsBtn);
     }}
-    // Add Overview item if 3+ entities
+    // Add "Insights" section label and Overview item if 3+ entities
     if (Object.keys(ENTITY_FIELDS).length >= 3) {{
+      const insightsLabel = document.createElement("div");
+      insightsLabel.className = "sidebar-section-label";
+      insightsLabel.textContent = "Insights";
+      nav.appendChild(insightsLabel);
       const overviewBtn = document.createElement("button");
       overviewBtn.className = "sidebar-item";
       overviewBtn.dataset.module = "__overview__";
@@ -2550,7 +2730,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       document.querySelectorAll(".sidebar-item").forEach(b => {{
         b.classList.toggle("active", b.dataset.module === "__analytics__");
       }});
-      document.getElementById("page-title").textContent = "Analytics";
+      setBreadcrumb(["Analytics"]);
       currentModule = "__analytics__";
       currentEntity = null;
       document.getElementById("topbar-actions").innerHTML = "";
@@ -2566,7 +2746,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       document.querySelectorAll(".sidebar-item").forEach(b => {{
         b.classList.toggle("active", b.dataset.module === "__overview__");
       }});
-      document.getElementById("page-title").textContent = "Overview";
+      setBreadcrumb(["Overview"]);
       currentModule = "__overview__";
       currentEntity = null;
       document.getElementById("topbar-actions").innerHTML = "";
@@ -2590,7 +2770,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       b.classList.toggle("active", b.dataset.module === name);
     }});
 
-    document.getElementById("page-title").textContent = name;
+    setBreadcrumb([name]);
     currentModule = name;
     currentEntity = item.entity || null;
 
@@ -2706,10 +2886,17 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
       ];
       const c = colors[idx % colors.length];
       const icon = statIcons[idx % statIcons.length];
+      const trendPct = [12, 8, 23, 5, 17][idx % 5];
+      const trendDir = [true, true, false, true, true][idx % 5];
+      const trendArrow = trendDir ? '\u2191' : '\u2193';
+      const trendClass = trendDir ? 'up' : 'down';
       statsHtml += '<div class="stat-card">' +
         '<div class="stat-top"><div class="stat-icon" style="background:' + c.bg + ';color:' + c.fg + '">' + icon + '</div></div>' +
         '<div class="stat-info">' +
+        '<div style="display:flex;align-items:baseline;gap:8px;">' +
         '<div class="stat-value" id="stat-count-' + eName + '"><span class="skeleton skeleton-line" style="width:60px;display:inline-block">&nbsp;</span></div>' +
+        '<span class="stat-trend ' + trendClass + '">' + trendArrow + ' ' + trendPct + '%</span>' +
+        '</div>' +
         '<div class="stat-label">Total ' + escHtml(eName) + 's</div>' +
         '</div>' +
         '</div>';
@@ -3532,6 +3719,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
     const nameField = fields.find(f => /^(name|title|subject|label)$/i.test(f.name));
     const title = nameField ? (record[nameField.name] || entity) : entity + " #" + String(id).slice(0, 8);
+    setBreadcrumb([currentModule || entity, title]);
 
     // Find status field for header badge
     const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 && /status|state|stage|phase/i.test(f.name));
@@ -5049,6 +5237,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   // ── Init ──
   function initApp() {{
     buildSidebar();
+    updateUserDisplay();
     if (SIDEBAR_ITEMS.length > 0) {{
       showModule(SIDEBAR_ITEMS[0].name);
     }}

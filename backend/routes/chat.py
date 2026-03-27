@@ -206,6 +206,58 @@ _COLOR_MAP = {
 }
 
 _PREFERENCE_SIGNALS = {"always", "prefer", "default", "use", "make", "want", "like"}
+
+# ── Build-immediately detection ─────────────────────────────────────
+
+_CONFIRMATIONS = frozenset({
+    "yes", "ok", "sure", "build", "go", "do it", "all", "sounds good",
+    "1", "2", "3", "4", "go ahead", "yep", "yeah", "yup", "build it",
+    "everything", "all of it", "all of the above", "surprise me",
+    "let's go", "do it", "make it",
+})
+
+_ENTITY_WORDS = frozenset({
+    "lead", "contact", "customer", "order", "product", "task", "project",
+    "invoice", "appointment", "booking", "member", "patient", "client",
+    "ticket", "deal", "employee", "student", "course", "inventory",
+    "reservation", "menu", "property", "listing", "payment", "event",
+    "recipe", "workout", "class", "room", "guest", "vehicle", "case",
+})
+
+
+def _should_build_immediately(messages: list[dict]) -> bool:
+    """Determine if AI should build now or ask a question.
+
+    Returns True when the conversation has enough context to generate a spec.
+    This prevents the AI from over-asking or under-asking questions.
+    """
+    if len(messages) >= 3:  # Already had back-and-forth
+        return True
+
+    last_user = ""
+    for m in reversed(messages):
+        if m.get("role") == "user":
+            last_user = m.get("content", "")
+            break
+
+    if not last_user:
+        return False
+
+    cleaned = last_user.strip().lower()
+
+    # Short confirmations -> build
+    if cleaned in _CONFIRMATIONS:
+        return True
+
+    # Mentions specific entities -> build
+    if any(w in cleaned for w in _ENTITY_WORDS):
+        return True
+
+    # Long detailed message -> build
+    if len(cleaned.split()) > 20:
+        return True
+
+    return False
 _MINIMAL_KEYWORDS = {"minimal", "minimalist", "clean", "simple"}
 
 
@@ -377,6 +429,13 @@ async def api_chat(
     prefs_prompt = _build_preferences_prompt(stored_prefs)
     if prefs_prompt:
         system_prompt = system_prompt + "\n\n" + prefs_prompt
+
+    # Force build if conversation context is sufficient
+    if _should_build_immediately(body.messages):
+        system_prompt = (
+            "IMPORTANT: Generate [READY_TO_BUILD] NOW with a summary. "
+            "Do not ask any questions.\n\n" + system_prompt
+        )
 
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -679,6 +738,13 @@ async def api_chat_stream(
     prefs_prompt = _build_preferences_prompt(stored_prefs)
     if prefs_prompt:
         system_prompt = system_prompt + "\n\n" + prefs_prompt
+
+    # Force build if conversation context is sufficient
+    if _should_build_immediately(body.messages):
+        system_prompt = (
+            "IMPORTANT: Generate [READY_TO_BUILD] NOW with a summary. "
+            "Do not ask any questions.\n\n" + system_prompt
+        )
 
     async def event_generator():
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)

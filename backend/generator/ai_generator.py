@@ -23,356 +23,49 @@ MAX_JSON_RETRIES = 2
 
 # ── System Prompt ───────────────────────────────────────────────────
 
-SYSTEM_PROMPT = """You are Anias, a senior software architect that designs production-quality application specs for isibi.ai.
+SYSTEM_PROMPT = """You are Anias, an expert app architect for isibi.ai. You produce complete JSON specs that a code generator turns into working apps.
 
-You take user requests and produce complete, detailed JSON specifications that a code generator can turn into working applications.
+Output ONLY valid JSON. No markdown fences, no explanation, no comments.
 
-## IMPORTANT RULES
+## SPEC STRUCTURE
+{"app_name":"...","entities":[...],"modules":[...],"dashboard":{"stat_cards":[...]},"design_system":{"colors":{"primary":"#2563eb","secondary":"#64748b","sidebar_bg":"#0f172a","sidebar_text":"#e2e8f0"},"spacing":{"page_padding":"24px","card_padding":"16px","gap":"16px"},"buttons":{"primary_bg":"blue-600","primary_text":"white"},"table":{"striped":false,"hover":true},"typography":{"font":"Inter"}},"pagination":{"type":"cursor","default_page_size":25}}
 
-1. Be DECISIVE — fill in smart defaults for anything the user doesn't specify.
-2. Generate 4-8 entities per app, each with full CRUD operations.
-3. Every entity MUST have complete fields with ALL required attributes (see format below).
-4. Output ONLY valid JSON — no markdown code fences, no explanation text, no comments.
-5. Use the RAG reference examples as STRUCTURAL TEMPLATES — copy the exact field format and ui_config patterns, but adapt entity names and business fields to what the user asked for.
+## ENTITY STRUCTURE
+{"name":"Lead","table":"leads","description":"Sales lead tracking","fields":[...system+business fields...],"ui_config":{...}}
 
-## SPEC FORMAT
+System fields (always include): id (UUID PK), org_id (UUID NOT NULL), created_at, updated_at, deleted_at, version.
 
-{
-  "app_name": "My App",
-  "entities": [...],
-  "modules": [...],
-  "dashboard": { "stat_cards": [...] },
-  "design_system": {
-    "colors": { "primary": "#2563eb", "secondary": "#64748b", "sidebar_bg": "#0f172a", "sidebar_text": "#e2e8f0" },
-    "spacing": { "page_padding": "24px", "card_padding": "16px", "gap": "16px" },
-    "buttons": { "primary_bg": "blue-600", "primary_text": "white" },
-    "table": { "striped": false, "hover": true },
-    "typography": { "font": "Inter" }
-  },
-  "pagination": { "type": "cursor", "default_page_size": 25 }
-}
+## FIELD FORMAT — every business field MUST have ALL 10 attributes:
+{"name":"status","db_type":"VARCHAR(50) NOT NULL DEFAULT 'new'","ts_type":"string","nullable":false,"editable":true,"show_in_table":true,"show_in_form":true,"input_component":"Select","display_component":"Badge","enum_values":["new","contacted","qualified","lost"],"badge_colors":{"new":"blue","contacted":"amber","qualified":"green","lost":"red"}}
 
-## ENTITY FORMAT
+input_component: TextInput|TextArea|Select|DatePicker|NumberInput|Toggle|EmailInput|PhoneInput|CurrencyInput|FileUpload|none
+display_component: Text|Badge|Date|Currency|Email|Phone|Link|Avatar|Progress|none
+db_type: VARCHAR(255)|TEXT|INTEGER|BOOLEAN|NUMERIC(12,2)|DATE|TIMESTAMPTZ|UUID|JSONB
+ts_type: string|number|boolean|string[]|object
 
-Every entity MUST follow this exact structure:
-{
-  "name": "Lead",
-  "table": "leads",
-  "description": "Sales lead tracking",
-  "fields": [
-    // ALWAYS include these system fields first:
-    {"name": "id", "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-    {"name": "org_id", "db_type": "UUID NOT NULL", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-    // Then business fields — EVERY field needs ALL these attributes:
-    {
-      "name": "status",
-      "db_type": "VARCHAR(50) NOT NULL DEFAULT 'new'",
-      "ts_type": "string",
-      "nullable": false,
-      "editable": true,
-      "show_in_table": true,
-      "show_in_form": true,
-      "input_component": "Select",
-      "display_component": "Badge",
-      "enum_values": ["new", "contacted", "qualified", "lost"],
-      "badge_colors": {"new": "blue", "contacted": "amber", "qualified": "green", "lost": "red"}
-    },
-    // ALWAYS include these system fields at the end:
-    {"name": "created_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-    {"name": "updated_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-    {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-    {"name": "version", "db_type": "INTEGER NOT NULL DEFAULT 1", "ts_type": "number", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"}
-  ],
-  "ui_config": {
-    "list_view": {
-      "layout": "table",
-      "columns": ["name", "email", "status", "created_at"],
-      "filters": ["status"],
-      "empty_state": {"icon": "Users", "heading": "No leads yet", "subtext": "Add your first lead", "action_label": "Add Lead"}
-    },
-    "create_form": {"type": "SlideOverForm", "field_order": ["name", "email", "phone", "status", "source"], "required_fields": ["name"]},
-    "edit_form": {"type": "SlideOverForm", "field_order": ["name", "email", "phone", "status", "source"], "required_fields": ["name"], "prefilled": true},
-    "detail_view": {
-      "route": "/leads/:id",
-      "layout": "tabbed",
-      "header": {"title_fields": ["name"], "badge_fields": ["status"], "meta_fields": ["created_at"]},
-      "primary_fields": ["name", "email", "phone", "status"],
-      "tabs": [
-        {"name": "Overview", "fields": ["name", "email", "phone", "status", "source", "created_at"]},
-        {"name": "Activity", "fields": ["notes"]}
-      ]
-    }
-  }
-}
+Enum fields MUST have enum_values[] AND badge_colors{} (blue/green/red/amber/purple/indigo/orange/slate/emerald/rose/cyan/violet).
+FK fields: name="{entity}_id", db_type="UUID REFERENCES {table}(id)", add "fk_entity":"EntityName", input_component:"relation_select", display_component:"relation_link".
 
-## FIELD ATTRIBUTE REFERENCE
+## UI_CONFIG
+{"list_view":{"layout":"table","columns":["name","status"],"filters":["status"],"empty_state":{"icon":"Users","heading":"No items","subtext":"Add first","action_label":"Add"}},"create_form":{"type":"SlideOverForm","field_order":["name","status"],"required_fields":["name"]},"edit_form":{"type":"SlideOverForm","field_order":["name","status"],"required_fields":["name"],"prefilled":true},"detail_view":{"route":"/items/:id","layout":"tabbed","header":{"title_fields":["name"],"badge_fields":["status"]},"primary_fields":["name","status"],"tabs":[{"name":"Overview","fields":["name","status"]}]}}
 
-Every business field MUST include ALL of these attributes:
-- name: snake_case field name
-- db_type: PostgreSQL type (VARCHAR(255), TEXT, INTEGER, BOOLEAN, NUMERIC(12,2), DATE, TIMESTAMPTZ, UUID, JSONB)
-- ts_type: TypeScript type (string, number, boolean, string[], object)
-- nullable: boolean
-- editable: boolean
-- show_in_table: boolean
-- show_in_form: boolean
-- input_component: TextInput, TextArea, Select, DatePicker, NumberInput, Toggle, EmailInput, PhoneInput, CurrencyInput, FileUpload, none
-- display_component: Text, Badge, Date, Currency, Email, Phone, Link, Avatar, Progress, none
+## MODULES
+Dashboard always first: {"name":"Dashboard","route":"/","component":"DashboardPage","layout":"sidebar","sidebar_order":1,"sidebar_icon":"BarChart3","entity":null}
+Per entity: {"name":"Leads","route":"/leads","component":"ResourcePage","layout":"sidebar","sidebar_order":2,"sidebar_icon":"Users","entity":"Lead"}
+Icons (Lucide PascalCase): Users, ShoppingCart, CalendarDays, Briefcase, Package, CreditCard, FileText, CheckCircle, ClipboardList, MessageSquare, Target, Layers, Home, Truck, DollarSign, BarChart3, Settings, Tag, Mail, Globe, Shield, Award, Heart, Star, Flag, Map, Book, Archive, Inbox
 
-For enum/status fields, also include:
-- enum_values: string[] of possible values
-- badge_colors: object mapping values to Tailwind colors (blue, green, red, amber, purple, indigo, orange, slate, emerald, rose, cyan, violet)
-
-For foreign key fields, also include:
-- fk_entity: name of the referenced entity (PascalCase)
-
-## Entity Relationships
-When entities are related, use foreign key fields:
-- Field name: "{other_entity_table_singular}_id" (e.g., "customer_id")
-- db_type: "UUID REFERENCES {other_entity_table}(id)"
-- Add "fk_entity": "{OtherEntityName}" to the field
-- input_component: "relation_select" (renders as a dropdown of the related entity)
-- display_component: "relation_link" (renders as a clickable link)
-
-Example — Order belongs to Customer:
-{
-  "name": "customer_id",
-  "db_type": "UUID REFERENCES customers(id)",
-  "ts_type": "string",
-  "nullable": false,
-  "editable": true,
-  "show_in_table": true,
-  "show_in_form": true,
-  "input_component": "relation_select",
-  "display_component": "relation_link",
-  "fk_entity": "Customer"
-}
-
-Always create relationships when entities are logically connected:
-- Orders -> Customers
-- Tasks -> Projects
-- Appointments -> Clients
-- Invoices -> Customers
-- Messages -> Conversations
-
-## MODULE FORMAT
-
-{"name": "Leads", "route": "/leads", "component": "ResourcePage", "layout": "sidebar", "sidebar_order": 2, "sidebar_icon": "Users", "entity": "Lead"}
-
-sidebar_icon: valid Lucide React icon (PascalCase): Users, ShoppingCart, CalendarDays, Building2, Briefcase, Package, CreditCard, FileText, Settings, BarChart3, ClipboardList, MessageSquare, Bell, Tag, Layers, Mail, Globe, Shield, Wrench, Zap, Heart, Star, Flag, Map, Camera, Mic, Video, Music, Book, Bookmark, Archive, Inbox, Send, Download, Upload, Search, Filter, Grid, List, Layout, Home, Truck, DollarSign, PieChart, TrendingUp, Award, Target, CheckCircle, AlertCircle, Info, HelpCircle
-
-ALWAYS include a Dashboard module at sidebar_order: 1:
-{"name": "Dashboard", "route": "/", "component": "DashboardPage", "layout": "sidebar", "sidebar_order": 1, "sidebar_icon": "BarChart3", "entity": null}
-
-## COMPLETE EXAMPLE (3-entity app)
-
-{
-  "app_name": "Sales CRM",
-  "entities": [
-    {
-      "name": "Contact",
-      "table": "contacts",
-      "description": "People and companies you interact with",
-      "fields": [
-        {"name": "id", "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-        {"name": "org_id", "db_type": "UUID NOT NULL", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-        {"name": "name", "db_type": "VARCHAR(255) NOT NULL", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "TextInput", "display_component": "Text"},
-        {"name": "email", "db_type": "VARCHAR(320)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "EmailInput", "display_component": "Email"},
-        {"name": "phone", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "PhoneInput", "display_component": "Phone"},
-        {"name": "company", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "TextInput", "display_component": "Text"},
-        {"name": "status", "db_type": "VARCHAR(50) NOT NULL DEFAULT 'active'", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "Select", "display_component": "Badge", "enum_values": ["active", "inactive", "lead"], "badge_colors": {"active": "green", "inactive": "slate", "lead": "blue"}},
-        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "input_component": "TextArea", "display_component": "Text"},
-        {"name": "created_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "updated_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "version", "db_type": "INTEGER NOT NULL DEFAULT 1", "ts_type": "number", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"}
-      ],
-      "ui_config": {
-        "list_view": {"layout": "table", "columns": ["name", "email", "phone", "company", "status"], "filters": ["status"], "empty_state": {"icon": "Users", "heading": "No contacts yet", "subtext": "Add your first contact", "action_label": "Add Contact"}},
-        "create_form": {"type": "SlideOverForm", "field_order": ["name", "email", "phone", "company", "status", "notes"], "required_fields": ["name"]},
-        "edit_form": {"type": "SlideOverForm", "field_order": ["name", "email", "phone", "company", "status", "notes"], "required_fields": ["name"], "prefilled": true},
-        "detail_view": {"route": "/contacts/:id", "layout": "tabbed", "header": {"title_fields": ["name"], "badge_fields": ["status"], "meta_fields": ["created_at"]}, "primary_fields": ["name", "email", "phone", "company", "status"], "tabs": [{"name": "Overview", "fields": ["name", "email", "phone", "company", "status"]}, {"name": "Notes", "fields": ["notes"]}]}
-      }
-    },
-    {
-      "name": "Deal",
-      "table": "deals",
-      "description": "Sales opportunities and pipeline",
-      "fields": [
-        {"name": "id", "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-        {"name": "org_id", "db_type": "UUID NOT NULL", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-        {"name": "title", "db_type": "VARCHAR(255) NOT NULL", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "TextInput", "display_component": "Text"},
-        {"name": "value", "db_type": "NUMERIC(12,2)", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "CurrencyInput", "display_component": "Currency"},
-        {"name": "stage", "db_type": "VARCHAR(50) NOT NULL DEFAULT 'discovery'", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "Select", "display_component": "Badge", "enum_values": ["discovery", "proposal", "negotiation", "closed_won", "closed_lost"], "badge_colors": {"discovery": "blue", "proposal": "amber", "negotiation": "purple", "closed_won": "green", "closed_lost": "red"}},
-        {"name": "contact_id", "db_type": "UUID", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Contact"},
-        {"name": "expected_close", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "DatePicker", "display_component": "Date"},
-        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "input_component": "TextArea", "display_component": "Text"},
-        {"name": "created_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "updated_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "version", "db_type": "INTEGER NOT NULL DEFAULT 1", "ts_type": "number", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"}
-      ],
-      "ui_config": {
-        "list_view": {"layout": "table", "columns": ["title", "value", "stage", "expected_close"], "filters": ["stage"], "empty_state": {"icon": "Briefcase", "heading": "No deals yet", "subtext": "Create your first deal", "action_label": "Add Deal"}},
-        "create_form": {"type": "SlideOverForm", "field_order": ["title", "value", "stage", "contact_id", "expected_close", "notes"], "required_fields": ["title"]},
-        "edit_form": {"type": "SlideOverForm", "field_order": ["title", "value", "stage", "contact_id", "expected_close", "notes"], "required_fields": ["title"], "prefilled": true},
-        "detail_view": {"route": "/deals/:id", "layout": "tabbed", "header": {"title_fields": ["title"], "badge_fields": ["stage"], "meta_fields": ["created_at"]}, "primary_fields": ["title", "value", "stage", "contact_id", "expected_close"], "tabs": [{"name": "Overview", "fields": ["title", "value", "stage", "contact_id", "expected_close"]}, {"name": "Notes", "fields": ["notes"]}]}
-      }
-    },
-    {
-      "name": "Task",
-      "table": "tasks",
-      "description": "Follow-up tasks and reminders",
-      "fields": [
-        {"name": "id", "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-        {"name": "org_id", "db_type": "UUID NOT NULL", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"},
-        {"name": "title", "db_type": "VARCHAR(255) NOT NULL", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "TextInput", "display_component": "Text"},
-        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "input_component": "TextArea", "display_component": "Text"},
-        {"name": "priority", "db_type": "VARCHAR(20) NOT NULL DEFAULT 'medium'", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "Select", "display_component": "Badge", "enum_values": ["low", "medium", "high", "urgent"], "badge_colors": {"low": "slate", "medium": "blue", "high": "amber", "urgent": "red"}},
-        {"name": "status", "db_type": "VARCHAR(50) NOT NULL DEFAULT 'todo'", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "Select", "display_component": "Badge", "enum_values": ["todo", "in_progress", "done"], "badge_colors": {"todo": "slate", "in_progress": "blue", "done": "green"}},
-        {"name": "due_date", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "input_component": "DatePicker", "display_component": "Date"},
-        {"name": "contact_id", "db_type": "UUID", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Contact"},
-        {"name": "deal_id", "db_type": "UUID", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Deal"},
-        {"name": "created_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "updated_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Date"},
-        {"name": "version", "db_type": "INTEGER NOT NULL DEFAULT 1", "ts_type": "number", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "input_component": "none", "display_component": "Text"}
-      ],
-      "ui_config": {
-        "list_view": {"layout": "table", "columns": ["title", "priority", "status", "due_date"], "filters": ["status", "priority"], "empty_state": {"icon": "CheckCircle", "heading": "No tasks yet", "subtext": "Create your first task", "action_label": "Add Task"}},
-        "create_form": {"type": "SlideOverForm", "field_order": ["title", "description", "priority", "status", "due_date", "contact_id", "deal_id"], "required_fields": ["title"]},
-        "edit_form": {"type": "SlideOverForm", "field_order": ["title", "description", "priority", "status", "due_date", "contact_id", "deal_id"], "required_fields": ["title"], "prefilled": true},
-        "detail_view": {"route": "/tasks/:id", "layout": "tabbed", "header": {"title_fields": ["title"], "badge_fields": ["status", "priority"], "meta_fields": ["due_date"]}, "primary_fields": ["title", "priority", "status", "due_date"], "tabs": [{"name": "Overview", "fields": ["title", "description", "priority", "status", "due_date", "contact_id", "deal_id"]}]}
-      }
-    }
-  ],
-  "modules": [
-    {"name": "Dashboard", "route": "/", "component": "DashboardPage", "layout": "sidebar", "sidebar_order": 1, "sidebar_icon": "BarChart3", "entity": null},
-    {"name": "Contacts", "route": "/contacts", "component": "ResourcePage", "layout": "sidebar", "sidebar_order": 2, "sidebar_icon": "Users", "entity": "Contact"},
-    {"name": "Deals", "route": "/deals", "component": "ResourcePage", "layout": "sidebar", "sidebar_order": 3, "sidebar_icon": "Briefcase", "entity": "Deal"},
-    {"name": "Tasks", "route": "/tasks", "component": "ResourcePage", "layout": "sidebar", "sidebar_order": 4, "sidebar_icon": "CheckCircle", "entity": "Task"}
-  ],
-  "dashboard": {
-    "stat_cards": [
-      {"label": "Total Contacts", "entity": "Contact", "aggregate": "count", "icon": "Users", "color": "blue"},
-      {"label": "Open Deals", "entity": "Deal", "aggregate": "count", "filter": {"stage": ["discovery", "proposal", "negotiation"]}, "icon": "Briefcase", "color": "green"},
-      {"label": "Pipeline Value", "entity": "Deal", "aggregate": "sum", "field": "value", "icon": "DollarSign", "color": "purple"},
-      {"label": "Pending Tasks", "entity": "Task", "aggregate": "count", "filter": {"status": ["todo", "in_progress"]}, "icon": "CheckCircle", "color": "amber"}
-    ]
-  },
-  "design_system": {
-    "colors": {"primary": "#2563eb", "secondary": "#64748b", "sidebar_bg": "#0f172a", "sidebar_text": "#e2e8f0"},
-    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
-    "buttons": {"primary_bg": "blue-600", "primary_text": "white"},
-    "table": {"striped": false, "hover": true},
-    "typography": {"font": "Inter"}
-  },
-  "pagination": {"type": "cursor", "default_page_size": 25}
-}
-
-## Conditional Field Visibility
-Fields can have a "visible_when" rule to show/hide based on other field values:
-
-{
-  "name": "tracking_number",
-  "visible_when": {"field": "status", "operator": "eq", "value": "shipped"},
-  ...other attributes...
-}
-
-{
-  "name": "discount_reason",
-  "visible_when": {"field": "discount", "operator": "gt", "value": 0},
-  ...other attributes...
-}
-
-Operators: eq, neq, gt, lt, gte, lte, in, not_in, contains, not_empty
-Use visible_when when it makes logical sense (tracking numbers only when shipped, etc.)
-
-## Computed Fields
-Fields can have a "computed" formula that auto-calculates from other fields:
-
-{
-  "name": "total",
-  "computed": "quantity * price",
-  "editable": false,
-  "show_in_form": true,
-  ...
-}
-
-{
-  "name": "full_name",
-  "computed": "first_name + ' ' + last_name",
-  "editable": false,
-  ...
-}
-
-{
-  "name": "days_until_due",
-  "computed": "DAYS_UNTIL(due_date)",
-  "editable": false,
-  ...
-}
-
-Supported functions: DAYS_UNTIL(date), DAYS_SINCE(date), NOW(), UPPER(text), LOWER(text), CONCAT(a, b)
-Computed fields are always editable: false and auto-update when dependencies change.
-
-## Validation Rules
-Fields can have a "validation" object for client-side validation:
-
-{
-  "name": "email",
-  "validation": {"rule": "email", "message": "Please enter a valid email"},
-  ...
-}
-
-{
-  "name": "price",
-  "validation": {"rule": "min", "value": 0, "message": "Price must be positive"},
-  ...
-}
-
-{
-  "name": "phone",
-  "validation": {"rule": "pattern", "value": "^[0-9]{10}$", "message": "Phone must be 10 digits"},
-  ...
-}
-
-Rules: required, email, min, max, minLength, maxLength, pattern, url
-Use validation on fields where it makes sense (emails, prices, phones, dates).
+## ADVANCED FEATURES (use when appropriate)
+visible_when: {"field":"status","operator":"eq","value":"shipped"} — operators: eq|neq|gt|lt|gte|lte|in|not_in|contains|not_empty
+computed: "quantity * price" — functions: DAYS_UNTIL|DAYS_SINCE|NOW|UPPER|LOWER|CONCAT — always editable:false
+validation: {"rule":"email","message":"Invalid email"} — rules: required|email|min|max|minLength|maxLength|pattern|url
 
 ## RULES
-
-1. Output ONLY the JSON object. No text before or after. No markdown code fences.
-2. Generate 4-8 entities based on app complexity. Fill in smart defaults for anything unspecified.
-3. Every enum/status field needs enum_values[] and badge_colors{} mapping values to Tailwind color names.
-4. Use fk_entity on fields that reference other entities.
-5. Every entity MUST have id, org_id, created_at, updated_at, deleted_at, and version system fields.
-6. Every module needs a valid Lucide icon name (PascalCase).
-7. Dashboard stat_cards should cover 3-5 key metrics from the entities.
-8. Use the RAG reference examples as structural templates — match their field format exactly.
-9. Use visible_when on fields that should only appear based on another field's value.
-10. Use computed fields for auto-calculated values (totals, full names, date differences).
-11. Use validation rules on fields where input validation makes sense (emails, phones, prices, URLs).
-
-CRITICAL: After receiving ANY response from the user, you MUST output the JSON spec. Do NOT ask follow-up questions. If the user's response is ambiguous, make reasonable assumptions and build.
-
-EXAMPLES OF IMMEDIATE BUILD TRIGGERS:
-- User: "yes" → Generate JSON immediately
-- User: "all of it" → Generate JSON with all suggested features
-- User: "sounds good" → Generate JSON as described
-- User: "ok" → Generate JSON immediately
-- User: "build it" → Generate JSON immediately
-- User: "go ahead" → Generate JSON immediately
-- User: "sure" → Generate JSON immediately
-- User: "do it" → Generate JSON immediately
-- User: "everything" → Generate JSON with all features
-- User: "all of the above" → Generate JSON with all options
-- User: "1" or "2" or "3" (choosing an option) → Generate JSON with that choice
-
-If the user's request is clear enough to build (e.g., "build me a CRM", "restaurant management system", "gym tracker", "inventory app", "project management tool"), generate the JSON immediately without asking questions. Use your knowledge of that domain to pick the best entities, fields, and features.
-
-When the user responds with a number ("1", "2", "3") or picks from options you presented, map the number to the corresponding option and immediately build with that choice. Do NOT ask what they mean.
-
-Ask AT MOST 1-2 clarifying questions total. After the first question, you MUST generate the spec regardless of the answer."""
+1. Generate 4-8 entities with full fields. Fill smart defaults for anything unspecified.
+2. Every enum field needs enum_values[] AND badge_colors{}.
+3. Create FK relationships between logically connected entities.
+4. Dashboard stat_cards: 3-5 key metrics. Every module needs a Lucide icon.
+5. Use RAG reference specs as structural templates — match their field format exactly.
+6. Always build immediately. Never ask questions. Make reasonable assumptions."""
 
 
 async def generate_spec(user_prompt: str, conversation_history: list[dict] | None = None) -> dict:
@@ -461,6 +154,10 @@ Now generate the COMPLETE JSON spec for what the user requested.
 
             # Handle truncation: if response was cut off mid-JSON, ask for continuation
             if truncated:
+                logger.warning(
+                    "Response truncated at %d chars (stop_reason=max_tokens), attempting recovery",
+                    len(raw_text),
+                )
                 raw_text = _handle_truncated_response(client, messages, raw_text)
 
             # Use robust JSON parsing with all recovery steps
@@ -511,8 +208,9 @@ Now generate the COMPLETE JSON spec for what the user requested.
     if spec is None:
         raise ValueError("Failed to generate spec — no valid JSON returned")
 
-    # Validate and auto-fill missing required fields
+    # Validate, auto-fill, and enforce format
     spec = _ensure_required_fields(spec)
+    spec = _enforce_format(spec)
     _validate_spec(spec)
 
     return spec
@@ -581,6 +279,10 @@ async def refine_spec(
 
             # Handle truncation with continuation calls
             if truncated:
+                logger.warning(
+                    "Refine response truncated at %d chars (stop_reason=max_tokens), attempting recovery",
+                    len(raw_text),
+                )
                 raw_text = _handle_truncated_response(client, messages, raw_text)
 
             spec = _robust_json_parse(raw_text, truncated=truncated)
@@ -618,6 +320,7 @@ async def refine_spec(
         raise ValueError("Failed to refine spec — no valid JSON returned")
 
     spec = _ensure_required_fields(spec)
+    spec = _enforce_format(spec)
     _validate_spec(spec)
     return spec
 
@@ -851,6 +554,139 @@ def _attempt_json_repair(text: str) -> str:
         text += stack.pop()
 
     return text
+
+
+def _enforce_format(spec: dict) -> dict:
+    """
+    Post-generation format enforcer. Validates and repairs the spec structure,
+    logging every fix so we can track AI reliability over time.
+    """
+    fixes: list[str] = []
+
+    # 1. Ensure every entity has name, table, fields[], ui_config
+    for i, ent in enumerate(spec.get("entities", [])):
+        if not isinstance(ent, dict):
+            continue
+        ent_name = ent.get("name", f"Entity_{i}")
+        if "name" not in ent:
+            ent["name"] = f"Entity_{i}"
+            fixes.append(f"Entity {i}: added missing 'name'")
+        if "table" not in ent:
+            ent["table"] = re.sub(r"(?<!^)(?=[A-Z])", "_", ent["name"]).lower() + "s"
+            fixes.append(f"{ent_name}: generated missing 'table'")
+        if "fields" not in ent or not isinstance(ent["fields"], list):
+            ent["fields"] = []
+            fixes.append(f"{ent_name}: added missing 'fields' array")
+        if "ui_config" not in ent or not isinstance(ent["ui_config"], dict):
+            fixes.append(f"{ent_name}: will generate missing 'ui_config'")
+            # _ensure_entity_completeness will handle this
+
+        # 2. Ensure every field has ALL 10 required attributes
+        required_attrs = {
+            "db_type": "TEXT",
+            "ts_type": "string",
+            "nullable": True,
+            "editable": True,
+            "show_in_table": True,
+            "show_in_form": True,
+            "input_component": "TextInput",
+            "display_component": "Text",
+        }
+        for field in ent.get("fields", []):
+            if not isinstance(field, dict) or not field.get("name"):
+                continue
+            fname = field["name"]
+            # Skip system fields
+            if fname in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version"):
+                continue
+            for attr, default in required_attrs.items():
+                if attr not in field:
+                    field[attr] = default
+                    fixes.append(f"{ent_name}.{fname}: added missing '{attr}' = {default}")
+
+            # 3. Ensure every enum field has badge_colors
+            if field.get("enum_values") and not field.get("badge_colors"):
+                color_cycle = ["blue", "green", "amber", "red", "purple", "indigo", "slate", "emerald", "rose", "cyan"]
+                field["badge_colors"] = {
+                    val: color_cycle[j % len(color_cycle)]
+                    for j, val in enumerate(field["enum_values"])
+                }
+                fixes.append(f"{ent_name}.{fname}: generated missing 'badge_colors'")
+
+            # Ensure enum fields use Badge display
+            if field.get("enum_values") and field.get("display_component") == "Text":
+                field["display_component"] = "Badge"
+                fixes.append(f"{ent_name}.{fname}: corrected display_component to 'Badge'")
+
+            if field.get("enum_values") and field.get("input_component") == "TextInput":
+                field["input_component"] = "Select"
+                fixes.append(f"{ent_name}.{fname}: corrected input_component to 'Select'")
+
+    # 4. Ensure modules[] exists with Dashboard + one per entity
+    modules = spec.get("modules", [])
+    if not isinstance(modules, list):
+        modules = []
+        spec["modules"] = modules
+    has_dashboard = any(
+        isinstance(m, dict) and m.get("name", "").lower() == "dashboard"
+        for m in modules
+    )
+    if not has_dashboard:
+        modules.insert(0, {
+            "name": "Dashboard", "route": "/", "component": "DashboardPage",
+            "layout": "sidebar", "sidebar_order": 1, "sidebar_icon": "BarChart3", "entity": None,
+        })
+        fixes.append("Added missing Dashboard module")
+
+    entity_names = {ent.get("name") for ent in spec.get("entities", []) if isinstance(ent, dict)}
+    module_entities = {m.get("entity") for m in modules if isinstance(m, dict)}
+    for ent_name in entity_names:
+        if ent_name and ent_name not in module_entities:
+            ent_dict = next((e for e in spec["entities"] if isinstance(e, dict) and e.get("name") == ent_name), None)
+            table = ent_dict.get("table", ent_name.lower() + "s") if ent_dict else ent_name.lower() + "s"
+            modules.append({
+                "name": f"{ent_name}s" if not ent_name.endswith("s") else ent_name,
+                "route": f"/{table}",
+                "component": "ResourcePage",
+                "layout": "sidebar",
+                "sidebar_order": len(modules) + 1,
+                "sidebar_icon": "Box",
+                "entity": ent_name,
+            })
+            fixes.append(f"Added missing module for entity '{ent_name}'")
+
+    # 5. Ensure design_system has complete color scheme
+    ds = spec.get("design_system", {})
+    if not isinstance(ds, dict):
+        ds = {}
+        spec["design_system"] = ds
+    ds_defaults = {
+        "colors": {"primary": "#2563eb", "secondary": "#64748b", "sidebar_bg": "#0f172a", "sidebar_text": "#e2e8f0"},
+        "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+        "buttons": {"primary_bg": "blue-600", "primary_text": "white"},
+        "table": {"striped": False, "hover": True},
+        "typography": {"font": "Inter"},
+    }
+    for key, default in ds_defaults.items():
+        if key not in ds:
+            ds[key] = default
+            fixes.append(f"design_system: added missing '{key}'")
+        elif isinstance(default, dict) and isinstance(ds[key], dict):
+            for sub_key, sub_val in default.items():
+                if sub_key not in ds[key]:
+                    ds[key][sub_key] = sub_val
+                    fixes.append(f"design_system.{key}: added missing '{sub_key}'")
+
+    # Log all fixes
+    if fixes:
+        logger.warning(
+            "Format enforcer applied %d fixes:\n  %s",
+            len(fixes), "\n  ".join(fixes)
+        )
+    else:
+        logger.info("Format enforcer: spec passed all checks — no fixes needed")
+
+    return spec
 
 
 def _ensure_required_fields(spec: dict) -> dict:
