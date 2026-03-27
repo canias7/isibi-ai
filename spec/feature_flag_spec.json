@@ -51,7 +51,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "description",
@@ -62,7 +64,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "type",
@@ -182,7 +186,40 @@
             "heading": "No Flags yet",
             "subtext": "Add flag",
             "action_label": "Add Flag"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "key",
+            "name",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -317,6 +354,19 @@
           "display_component": "text"
         },
         {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -375,7 +425,41 @@
             "heading": "No Overrides yet",
             "subtext": "Add override",
             "action_label": "Add Override"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "flag_key",
+            "user_id",
+            "value",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -468,6 +552,13 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Overrides",
+        "entity": "Override",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
       }
     ]
   },

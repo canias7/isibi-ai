@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "type",
@@ -76,7 +78,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "frequency",
@@ -98,6 +102,66 @@
             "2x_week": "blue",
             "weekly": "green"
           }
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
+        },
+        {
+          "name": "phone",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "company",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Company name",
+          "help_text": "Organization or company name"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -159,7 +223,42 @@
             "heading": "No Clients yet",
             "subtext": "Add client",
             "action_label": "Add Client"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "address",
+            "email",
+            "phone",
+            "company"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -385,7 +484,67 @@
             "heading": "No Deliverys yet",
             "subtext": "Add delivery",
             "action_label": "Add Delivery"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "scheduled",
+                "picked_up",
+                "laundering",
+                "delivering",
+                "delivered"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "client_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Delivered",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "delivered"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -485,6 +644,35 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Deliverys",
+        "entity": "Delivery",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Deliverys",
+        "entity": "Delivery",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "scheduled"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Completed Deliverys",
+        "entity": "Delivery",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "delivered"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
       }
     ]
   },

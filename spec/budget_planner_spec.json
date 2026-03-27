@@ -116,7 +116,7 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "USD",
             "EUR",
@@ -124,7 +124,14 @@
             "CAD",
             "AUD"
           ],
-          "placeholder": "Select currency"
+          "placeholder": "Select currency",
+          "badge_colors": {
+            "USD": "pink",
+            "EUR": "blue",
+            "GBP": "green",
+            "CAD": "amber",
+            "AUD": "purple"
+          }
         },
         {
           "name": "total_budgeted",

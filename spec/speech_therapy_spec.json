@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "age",
@@ -73,7 +75,56 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
+        },
+        {
+          "name": "email",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
+        },
+        {
+          "name": "company",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Company name",
+          "help_text": "Organization or company name"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -135,7 +186,42 @@
             "heading": "No Clients yet",
             "subtext": "Create your first client",
             "action_label": "Add Client"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "parent_name",
+            "phone",
+            "email",
+            "company"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -219,6 +305,22 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
+        },
+        {
+          "name": "client_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "clients",
+            "column": "id",
+            "display_column": "name"
+          }
         },
         {
           "name": "client_name",
@@ -348,7 +450,8 @@
             "client_name",
             "therapist_name",
             "date",
-            "status"
+            "status",
+            "client_id"
           ],
           "filters": [],
           "empty_state": {
@@ -356,7 +459,66 @@
             "heading": "No Sessions yet",
             "subtext": "Create your first session",
             "action_label": "Add Session"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "scheduled",
+                "completed",
+                "cancelled"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "client_name",
+            "therapist_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Completed",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -366,7 +528,8 @@
             "date",
             "goals",
             "progress",
-            "status"
+            "status",
+            "client_id"
           ],
           "required_fields": [
             "client_name",
@@ -381,7 +544,8 @@
             "date",
             "goals",
             "progress",
-            "status"
+            "status",
+            "client_id"
           ],
           "required_fields": [
             "client_name",
@@ -411,7 +575,8 @@
                 "client_name",
                 "therapist_name",
                 "date",
-                "status"
+                "status",
+                "client_id"
               ]
             }
           ]
@@ -455,6 +620,35 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Sessions",
+        "entity": "Session",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Sessions",
+        "entity": "Session",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "scheduled"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Completed Sessions",
+        "entity": "Session",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "completed"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
       }
     ]
   },

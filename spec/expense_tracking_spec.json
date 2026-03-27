@@ -1161,12 +1161,17 @@
           "show_in_table": true,
           "show_in_form": false,
           "input_component": "none",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "image",
             "pdf",
             "other"
-          ]
+          ],
+          "badge_colors": {
+            "image": "pink",
+            "pdf": "blue",
+            "other": "green"
+          }
         },
         {
           "name": "file_size_kb",

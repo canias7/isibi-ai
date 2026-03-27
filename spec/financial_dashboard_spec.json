@@ -425,7 +425,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "salary",
             "rent",
@@ -439,7 +439,19 @@
             "other"
           ],
           "placeholder": "Select category",
-          "help_text": "Category classification"
+          "help_text": "Category classification",
+          "badge_colors": {
+            "salary": "pink",
+            "rent": "blue",
+            "utilities": "green",
+            "groceries": "amber",
+            "dining": "purple",
+            "transport": "red",
+            "entertainment": "slate",
+            "healthcare": "emerald",
+            "insurance": "cyan",
+            "other": "orange"
+          }
         },
         {
           "name": "transaction_date",

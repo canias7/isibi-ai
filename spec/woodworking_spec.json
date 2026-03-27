@@ -51,7 +51,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "wood_type",
@@ -118,7 +120,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Price must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Price in USD"
         },
         {
           "name": "status",
@@ -208,7 +216,64 @@
             "heading": "No Projects yet",
             "subtext": "Add project",
             "action_label": "Add Project"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "design",
+                "material_selection",
+                "cutting",
+                "assembly",
+                "finishing",
+                "delivered"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "customer_name",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Delivered",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "delivered"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -329,7 +394,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "unit",
@@ -351,7 +422,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Cost must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Cost in USD"
         },
         {
           "name": "created_at",
@@ -414,7 +491,40 @@
             "heading": "No Materials yet",
             "subtext": "Add material",
             "action_label": "Add Material"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "species",
+            "dimension",
+            "unit"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -512,6 +622,32 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Completed Projects",
+        "entity": "Project",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "delivered"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Price",
+        "entity": "Project",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total Materials",
+        "entity": "Material",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
       }
     ]
   },

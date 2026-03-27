@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "category",
@@ -74,6 +76,19 @@
             "layout": "pink",
             "icon": "blue"
           }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "version",
@@ -181,7 +196,57 @@
             "heading": "No Components yet",
             "subtext": "Add component",
             "action_label": "Add Component"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "draft",
+                "review",
+                "published",
+                "deprecated"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "description",
+            "figma_url"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -278,7 +343,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "category",
@@ -327,7 +394,22 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -388,7 +470,40 @@
             "heading": "No Tokens yet",
             "subtext": "Add token",
             "action_label": "Add Token"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "value",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -481,6 +596,13 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Tokens",
+        "entity": "Token",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
       }
     ]
   },

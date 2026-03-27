@@ -620,7 +620,11 @@
           "input_component": "number_input",
           "display_component": "currency",
           "placeholder": "0.00",
-          "help_text": "Budget amount"
+          "help_text": "Budget amount",
+          "validation": {
+            "min": 0,
+            "message": "Budget must be a positive number"
+          }
         },
         {
           "name": "total_billed",
@@ -1538,6 +1542,22 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "tt_projects",
+            "column": "id",
+            "display_column": "name"
+          }
         },
         {
           "name": "title",

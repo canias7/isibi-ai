@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "neighborhood",
@@ -220,7 +222,68 @@
             "heading": "No Tours yet",
             "subtext": "Add your first tour",
             "action_label": "Add Tour"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "scheduled",
+                "in_progress",
+                "completed",
+                "cancelled"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "neighborhood",
+            "guide_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Completed",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -362,6 +425,19 @@
           "display_component": "text"
         },
         {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -421,7 +497,41 @@
             "heading": "No Stops yet",
             "subtext": "Add your first stop",
             "action_label": "Add Stop"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "tour_name",
+            "restaurant_name",
+            "dish",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -516,6 +626,36 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Active Tours",
+        "entity": "Tour",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "scheduled"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Completed Tours",
+        "entity": "Tour",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "completed"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Price Pp",
+        "entity": "Tour",
+        "method": "sum",
+        "field": "price_pp",
+        "icon": "DollarSign",
+        "color": "amber"
       }
     ]
   },

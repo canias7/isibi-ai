@@ -390,7 +390,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "technology",
             "finance",
@@ -399,7 +399,15 @@
             "manufacturing",
             "other"
           ],
-          "placeholder": "Select industry"
+          "placeholder": "Select industry",
+          "badge_colors": {
+            "technology": "pink",
+            "finance": "blue",
+            "healthcare": "green",
+            "retail": "amber",
+            "manufacturing": "purple",
+            "other": "red"
+          }
         },
         {
           "name": "status",
@@ -629,7 +637,11 @@
           "input_component": "number_input",
           "display_component": "currency",
           "placeholder": "0.00",
-          "help_text": "Cost amount"
+          "help_text": "Cost amount",
+          "validation": {
+            "min": 0,
+            "message": "Cost must be a positive number"
+          }
         },
         {
           "name": "profit",
@@ -917,7 +929,11 @@
           "input_component": "number_input",
           "display_component": "percentage",
           "placeholder": "0.00",
-          "help_text": "Rate per unit"
+          "help_text": "Rate per unit",
+          "validation": {
+            "min": 0,
+            "message": "Rate must be a positive number"
+          }
         },
         {
           "name": "amount",
@@ -1148,6 +1164,22 @@
           "display_component": "text"
         },
         {
+          "name": "client_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "commission_clients",
+            "column": "id",
+            "display_column": "name"
+          }
+        },
+        {
           "name": "agent_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1205,7 +1237,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "bank_transfer",
             "check",
@@ -1213,7 +1245,13 @@
             "wire"
           ],
           "placeholder": "0.00",
-          "help_text": "Enter payout method"
+          "help_text": "Enter payout method",
+          "badge_colors": {
+            "bank_transfer": "pink",
+            "check": "blue",
+            "paypal": "green",
+            "wire": "amber"
+          }
         },
         {
           "name": "status",

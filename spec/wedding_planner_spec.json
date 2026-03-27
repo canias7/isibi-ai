@@ -80,7 +80,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "wedding_date",
@@ -528,7 +529,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "address",
@@ -542,7 +544,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Street address"
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
         },
         {
           "name": "wedding_id",
@@ -618,7 +621,8 @@
           "validation": {
             "min": 0
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "contact_name",
@@ -1060,7 +1064,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "vendor_type",
@@ -1526,7 +1531,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -1745,6 +1751,24 @@
             "email",
             "rsvp_status",
             "dietary_restrictions"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -1936,7 +1960,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Enter title"
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -1950,7 +1975,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "category",
@@ -2067,7 +2093,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "e.g. John Smith",
+          "help_text": "Person responsible"
         },
         {
           "name": "created_at",
@@ -2357,7 +2385,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "estimated_cost",
@@ -2727,7 +2756,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Enter title"
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "start_time",
@@ -2766,7 +2796,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "e.g. Building A, Room 101",
+          "help_text": "Physical location"
         },
         {
           "name": "responsible_person",
@@ -2824,7 +2856,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "status",

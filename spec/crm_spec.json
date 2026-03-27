@@ -401,7 +401,9 @@
             "required": false,
             "format": "email",
             "unique_warning": true
-          }
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
         },
         {
           "name": "phone",
@@ -417,7 +419,9 @@
           "show_in_form": true,
           "validation": {
             "required": false
-          }
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "status",
@@ -467,13 +471,22 @@
             "other"
           ],
           "input_component": "Select",
-          "display_component": "SourceBadge",
+          "display_component": "status_badge",
           "editable": true,
           "sortable": true,
           "filterable": true,
           "filter_type": "multi_select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "badge_colors": {
+            "website": "pink",
+            "referral": "blue",
+            "cold_call": "green",
+            "social_media": "amber",
+            "advertisement": "purple",
+            "walk_in": "red",
+            "other": "slate"
+          }
         },
         {
           "name": "priority",
@@ -515,7 +528,9 @@
           "filterable": true,
           "filter_type": "select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "e.g. John Smith",
+          "help_text": "Person responsible"
         },
         {
           "name": "tags",
@@ -550,7 +565,9 @@
           "validation": {
             "required": false,
             "positive": true
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Budget in USD"
         },
         {
           "name": "lead_score",
@@ -582,7 +599,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "last_contacted_at",
@@ -641,6 +660,24 @@
           "filterable": false,
           "show_in_table": false,
           "show_in_form": false
+        },
+        {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
         },
         {
           "name": "deleted_at",
@@ -748,7 +785,8 @@
             "tags",
             "created_at",
             "last_contacted_at",
-            "row_actions"
+            "row_actions",
+            "full_name"
           ],
           "quick_filter_tabs": [
             "All",
@@ -787,7 +825,46 @@
             "heading": "No leads yet",
             "subtext": "Import leads or create your first lead manually.",
             "action_label": "+ New Lead"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "new",
+                "contacted",
+                "qualified",
+                "negotiating",
+                "converted",
+                "lost"
+              ]
+            },
+            {
+              "field": "priority",
+              "label": "Priority",
+              "options": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            }
+          ],
+          "searchable_fields": [
+            "email",
+            "phone"
+          ]
         },
         "detail_view": {
           "layout": "tabs",
@@ -797,7 +874,10 @@
               "name": "Overview",
               "eager": true,
               "component": "LeadOverviewTab",
-              "data_query": "useLead(id)"
+              "data_query": "useLead(id)",
+              "fields": [
+                "full_name"
+              ]
             },
             {
               "name": "Tasks",
@@ -902,7 +982,8 @@
             "budget",
             "tags",
             "notes",
-            "custom_fields"
+            "custom_fields",
+            "full_name"
           ],
           "submit_action": "useCreateLead",
           "on_success": [
@@ -921,6 +1002,9 @@
             "close_slide_over",
             "toast_success",
             "invalidate_lead_detail"
+          ],
+          "field_order": [
+            "full_name"
           ]
         }
       },
@@ -1039,7 +1123,9 @@
           "validation": {
             "required": true,
             "max_length": 255
-          }
+          },
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "status",
@@ -1083,13 +1169,19 @@
             "urgent"
           ],
           "input_component": "Select",
-          "display_component": "PriorityBadge",
+          "display_component": "status_badge",
           "editable": true,
           "sortable": true,
           "filterable": true,
           "filter_type": "multi_select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "badge_colors": {
+            "low": "pink",
+            "medium": "blue",
+            "high": "green",
+            "urgent": "amber"
+          }
         },
         {
           "name": "type",
@@ -1106,13 +1198,21 @@
             "other"
           ],
           "input_component": "Select",
-          "display_component": "TaskTypeIcon",
+          "display_component": "status_badge",
           "editable": true,
           "sortable": true,
           "filterable": true,
           "filter_type": "multi_select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "badge_colors": {
+            "call": "pink",
+            "email": "blue",
+            "meeting": "green",
+            "follow_up": "amber",
+            "document": "purple",
+            "other": "red"
+          }
         },
         {
           "name": "assigned_to",
@@ -1129,7 +1229,9 @@
           "show_in_form": true,
           "validation": {
             "required": true
-          }
+          },
+          "placeholder": "e.g. John Smith",
+          "help_text": "Person responsible"
         },
         {
           "name": "lead_id",
@@ -1217,7 +1319,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "is_automated",
@@ -1354,7 +1458,50 @@
             "heading": "No tasks yet",
             "subtext": "Create a task to start tracking your follow-ups.",
             "action_label": "+ New Task"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "due_date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "pending",
+                "in_progress",
+                "completed",
+                "overdue",
+                "cancelled"
+              ]
+            },
+            {
+              "field": "priority",
+              "label": "Priority",
+              "options": [
+                "low",
+                "medium",
+                "high",
+                "urgent"
+              ]
+            }
+          ],
+          "searchable_fields": [
+            "title",
+            "description"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1476,7 +1623,9 @@
           "validation": {
             "required": true,
             "max_length": 255
-          }
+          },
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "lead_id",
@@ -1523,7 +1672,9 @@
           "filterable": true,
           "filter_type": "multi_select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "e.g. John Smith",
+          "help_text": "Person responsible"
         },
         {
           "name": "value",
@@ -1630,7 +1781,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "lost_reason",
@@ -1748,7 +1901,42 @@
             "heading": "Pipeline is empty",
             "subtext": "Convert a lead to start a deal or create one manually.",
             "action_label": "+ New Deal"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "expected_close_date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "open",
+                "won",
+                "lost",
+                "stalled"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1906,7 +2094,13 @@
           "filterable": true,
           "filter_type": "search",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
         },
         {
           "name": "role",
@@ -1946,14 +2140,19 @@
             "suspended"
           ],
           "input_component": "Toggle",
-          "display_component": "StatusBadge",
+          "display_component": "status_badge",
           "editable": false,
           "note": "Admin only",
           "sortable": true,
           "filterable": true,
           "filter_type": "select",
           "show_in_table": true,
-          "show_in_form": false
+          "show_in_form": false,
+          "badge_colors": {
+            "active": "pink",
+            "inactive": "blue",
+            "suspended": "green"
+          }
         },
         {
           "name": "avatar_url",
@@ -1978,7 +2177,9 @@
           "filterable": true,
           "filter_type": "search",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "e.g. Engineering",
+          "help_text": "Department name"
         },
         {
           "name": "timezone",
@@ -2011,6 +2212,24 @@
           "editable": false,
           "show_in_table": true,
           "show_in_form": false
+        },
+        {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
         },
         {
           "name": "created_at",
@@ -2083,7 +2302,8 @@
             "leads_count",
             "last_login_at",
             "invite_accepted_at",
-            "row_actions"
+            "row_actions",
+            "full_name"
           ],
           "filters": [
             "role",
@@ -2102,7 +2322,32 @@
             "heading": "No agents yet",
             "subtext": "Invite your first team member.",
             "action_label": "Invite Agent"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "active",
+                "inactive",
+                "suspended"
+              ]
+            }
+          ],
+          "searchable_fields": [
+            "email"
+          ]
         },
         "detail_view": {
           "layout": "tabs",
@@ -2111,7 +2356,10 @@
             {
               "name": "Overview",
               "eager": true,
-              "component": "AgentOverviewTab"
+              "component": "AgentOverviewTab",
+              "fields": [
+                "full_name"
+              ]
             },
             {
               "name": "Assigned Leads",
@@ -2249,13 +2497,19 @@
             "chat"
           ],
           "input_component": "ChannelToggle",
-          "display_component": "ChannelIcon",
+          "display_component": "status_badge",
           "editable": true,
           "sortable": false,
           "filterable": true,
           "filter_type": "multi_select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "badge_colors": {
+            "email": "pink",
+            "sms": "blue",
+            "internal": "green",
+            "chat": "amber"
+          }
         },
         {
           "name": "status",
@@ -2295,7 +2549,9 @@
           "filterable": true,
           "filter_type": "select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "e.g. John Smith",
+          "help_text": "Person responsible"
         },
         {
           "name": "last_message_at",
@@ -2388,6 +2644,52 @@
             "status",
             "assigned_to",
             "q"
+          ],
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "open",
+                "closed",
+                "pending"
+              ]
+            }
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Closed",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "closed"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "compose_form": {
@@ -2490,7 +2792,9 @@
           "validation": {
             "required": true,
             "max_length": 100
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "stage_order",
@@ -2671,7 +2975,9 @@
           "validation": {
             "required": true,
             "max_length": 200
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "slug",
@@ -2698,6 +3004,32 @@
           "filterable": false,
           "show_in_table": true,
           "show_in_form": false
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -2879,13 +3211,17 @@
             "outbound"
           ],
           "input_component": null,
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": false,
           "sortable": false,
           "filterable": true,
           "filter_type": "select",
           "show_in_table": false,
-          "show_in_form": false
+          "show_in_form": false,
+          "badge_colors": {
+            "inbound": "pink",
+            "outbound": "blue"
+          }
         },
         {
           "name": "channel",
@@ -2899,12 +3235,18 @@
             "chat"
           ],
           "input_component": null,
-          "display_component": "ChannelIcon",
+          "display_component": "status_badge",
           "editable": false,
           "sortable": false,
           "filterable": false,
           "show_in_table": false,
-          "show_in_form": false
+          "show_in_form": false,
+          "badge_colors": {
+            "email": "pink",
+            "sms": "blue",
+            "internal": "green",
+            "chat": "amber"
+          }
         },
         {
           "name": "is_read",
@@ -3086,13 +3428,22 @@
             "system"
           ],
           "input_component": null,
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": false,
           "sortable": false,
           "filterable": true,
           "filter_type": "multi_select",
           "show_in_table": true,
-          "show_in_form": false
+          "show_in_form": false,
+          "badge_colors": {
+            "task_overdue": "pink",
+            "message_received": "blue",
+            "lead_assigned": "green",
+            "deal_won": "amber",
+            "deal_lost": "purple",
+            "reminder": "red",
+            "system": "slate"
+          }
         },
         {
           "name": "title",
@@ -3105,7 +3456,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": true,
-          "show_in_form": false
+          "show_in_form": false,
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "body",
@@ -3348,13 +3701,21 @@
             "multi_select"
           ],
           "input_component": "Select",
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": false,
           "sortable": false,
           "filterable": true,
           "filter_type": "select",
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "badge_colors": {
+            "text": "pink",
+            "number": "blue",
+            "date": "green",
+            "boolean": "amber",
+            "select": "purple",
+            "multi_select": "red"
+          }
         },
         {
           "name": "options",
@@ -3512,7 +3873,9 @@
           "validation": {
             "required": true,
             "max_length": 100
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "key_prefix",
@@ -4468,7 +4831,9 @@
           "validation": {
             "required": true,
             "max_length": 200
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "trigger",
@@ -4489,7 +4854,7 @@
             "message_received"
           ],
           "input_component": "Select",
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": true,
           "sortable": true,
           "filterable": true,
@@ -4498,6 +4863,19 @@
           "show_in_form": true,
           "validation": {
             "required": true
+          },
+          "badge_colors": {
+            "lead_created": "pink",
+            "lead_status_changed": "blue",
+            "lead_assigned": "green",
+            "task_created": "amber",
+            "task_overdue": "purple",
+            "task_completed": "red",
+            "deal_created": "slate",
+            "deal_stage_changed": "emerald",
+            "deal_won": "cyan",
+            "deal_lost": "orange",
+            "message_received": "indigo"
           }
         },
         {
@@ -8290,5 +8668,42 @@
       "file_header_requirement": "Every generated .tsx and .ts file must begin with a comment: // Generated from crm_spec.json v3.0 — do not edit manually",
       "index_exports_requirement": "Every src/components/shared/, src/hooks/, src/stores/, src/api/, src/types/ directory must have an index.ts that re-exports all named exports from all files in that directory."
     }
+  },
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Leads",
+        "entity": "Lead",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Budget",
+        "entity": "Lead",
+        "method": "sum",
+        "field": "budget",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total Tasks",
+        "entity": "Task",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Active Tasks",
+        "entity": "Task",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "pending"
+        },
+        "icon": "Activity",
+        "color": "green"
+      }
+    ]
   }
 }

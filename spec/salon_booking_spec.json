@@ -96,7 +96,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "gender",
@@ -178,7 +179,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "status",
@@ -202,6 +204,24 @@
             "active": "green",
             "inactive": "gray",
             "vip": "gold"
+          }
+        },
+        {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
           }
         },
         {
@@ -258,7 +278,8 @@
             "email",
             "phone",
             "gender",
-            "loyalty_points"
+            "loyalty_points",
+            "full_name"
           ],
           "filters": [],
           "empty_state": {
@@ -335,7 +356,8 @@
             "date_of_birth",
             "preferred_stylist_id",
             "notes",
-            "status"
+            "status",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -381,7 +403,8 @@
             "date_of_birth",
             "preferred_stylist_id",
             "notes",
-            "status"
+            "status",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -439,7 +462,8 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone"
+                "phone",
+                "full_name"
               ]
             },
             {
@@ -508,7 +532,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "category",
@@ -553,7 +578,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "duration_minutes",
@@ -589,7 +615,8 @@
             "min": 0,
             "message": "Price must be positive"
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "is_active",
@@ -702,6 +729,24 @@
             "name",
             "category",
             "skill_level_required"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -820,7 +865,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -857,7 +903,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "specialization",
@@ -1379,7 +1426,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "cancellation_reason",
@@ -1691,7 +1739,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "brand",
@@ -1750,7 +1799,9 @@
           "validation": {
             "pattern": "^[A-Z0-9\\-]+$",
             "message": "SKU must be uppercase alphanumeric"
-          }
+          },
+          "placeholder": "SKU-001",
+          "help_text": "Stock keeping unit identifier"
         },
         {
           "name": "cost_price",
@@ -1893,6 +1944,24 @@
             "brand",
             "category",
             "sku"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -2060,7 +2129,8 @@
             "min": 0.01,
             "message": "Amount must be positive"
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "tip_amount",
@@ -2584,7 +2654,27 @@
             "field": "created_at",
             "direction": "desc"
           },
-          "searchable_fields": []
+          "searchable_fields": [
+            "rating"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",

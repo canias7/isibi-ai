@@ -41,7 +41,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -70,7 +71,12 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
         },
         {
           "name": "license_number",
@@ -439,7 +445,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -468,7 +475,12 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
         },
         {
           "name": "date_of_birth",
@@ -938,7 +950,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "status",
@@ -1367,7 +1380,27 @@
             "field": "follow_up_date",
             "direction": "desc"
           },
-          "searchable_fields": []
+          "searchable_fields": [
+            "diagnosis"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -2140,7 +2173,12 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text",
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Amount must be a positive number"
+          },
+          "placeholder": "0.00"
         },
         {
           "name": "insurance_covered",
@@ -2423,7 +2461,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "category",
@@ -2459,7 +2498,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "reorder_level",

@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "e.g. Building A, Room 101",
+          "help_text": "Physical location"
         },
         {
           "name": "date",
@@ -171,7 +173,65 @@
             "heading": "No Hunts yet",
             "subtext": "Add hunt",
             "action_label": "Add Hunt"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "planned",
+                "active",
+                "completed"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "location"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Completed",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "completed"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -391,7 +451,45 @@
             "heading": "No Finds yet",
             "subtext": "Add find",
             "action_label": "Add Find"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "hunter",
+            "hunt_location",
+            "item"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -489,6 +587,35 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Active Hunts",
+        "entity": "Hunt",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Completed Hunts",
+        "entity": "Hunt",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "completed"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Finds",
+        "entity": "Find",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
       }
     ]
   },

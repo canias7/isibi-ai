@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "cuisine",
@@ -82,7 +84,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "rating",
@@ -177,7 +181,61 @@
             "heading": "No Restaurants yet",
             "subtext": "Create your first restaurant",
             "action_label": "Add Restaurant"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "active",
+                "paused",
+                "closed"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "address"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Closed",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "closed"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -266,6 +324,22 @@
           "display_component": "text"
         },
         {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "customers",
+            "column": "id",
+            "display_column": "name"
+          }
+        },
+        {
           "name": "customer_name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -307,7 +381,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount in USD"
         },
         {
           "name": "delivery_address",
@@ -414,7 +494,8 @@
             "items",
             "total",
             "delivery_address",
-            "driver_name"
+            "driver_name",
+            "customer_id"
           ],
           "filters": [],
           "empty_state": {
@@ -422,7 +503,67 @@
             "heading": "No Orders yet",
             "subtext": "Create your first order",
             "action_label": "Add Order"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "placed",
+                "accepted",
+                "preparing",
+                "picked_up",
+                "delivering",
+                "delivered",
+                "cancelled"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "customer_name",
+            "restaurant_name",
+            "delivery_address",
+            "driver_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Delivered",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "delivered"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -433,7 +574,8 @@
             "total",
             "delivery_address",
             "driver_name",
-            "status"
+            "status",
+            "customer_id"
           ],
           "required_fields": [
             "customer_name",
@@ -449,7 +591,8 @@
             "total",
             "delivery_address",
             "driver_name",
-            "status"
+            "status",
+            "customer_id"
           ],
           "required_fields": [
             "customer_name",
@@ -482,7 +625,8 @@
                 "total",
                 "delivery_address",
                 "driver_name",
-                "status"
+                "status",
+                "customer_id"
               ]
             }
           ]
@@ -525,7 +669,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "phone",
@@ -536,7 +682,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "vehicle_type",
@@ -581,6 +733,19 @@
             "delivering": "amber",
             "offline": "slate"
           }
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "created_at",
@@ -642,7 +807,56 @@
             "heading": "No Drivers yet",
             "subtext": "Create your first driver",
             "action_label": "Add Driver"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "online",
+                "delivering",
+                "offline"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "phone",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -736,7 +950,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -747,7 +963,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
         },
         {
           "name": "phone",
@@ -758,7 +980,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "address",
@@ -769,7 +997,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "total_orders",
@@ -843,7 +1073,41 @@
             "heading": "No Customers yet",
             "subtext": "Create your first customer",
             "action_label": "Add Customer"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone",
+            "address"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -957,6 +1221,36 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Active Restaurants",
+        "entity": "Restaurant",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Completed Restaurants",
+        "entity": "Restaurant",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "closed"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Rating",
+        "entity": "Restaurant",
+        "method": "sum",
+        "field": "rating",
+        "icon": "DollarSign",
+        "color": "amber"
       }
     ]
   },

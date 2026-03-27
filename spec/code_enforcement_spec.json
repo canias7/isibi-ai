@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "type",
@@ -78,7 +80,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "officer_name",
@@ -178,7 +182,65 @@
             "heading": "No Violations yet",
             "subtext": "Add violation",
             "action_label": "Add Violation"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "reported",
+                "notice_sent",
+                "inspection",
+                "cited",
+                "resolved",
+                "hearing"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "address",
+            "description",
+            "officer_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Resolved",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "resolved"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -308,7 +370,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Amount must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Amount in USD"
         },
         {
           "name": "due_date",
@@ -407,7 +475,67 @@
             "heading": "No Notices yet",
             "subtext": "Add notice",
             "action_label": "Add Notice"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "due_date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "sent",
+                "received",
+                "appealed",
+                "paid",
+                "delinquent"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "violation_address"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Paid",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "paid"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -505,6 +633,35 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Completed Violations",
+        "entity": "Violation",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "resolved"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Notices",
+        "entity": "Notice",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Completed Notices",
+        "entity": "Notice",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "paid"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
       }
     ]
   },

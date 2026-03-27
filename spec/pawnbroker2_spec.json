@@ -172,7 +172,61 @@
             "heading": "No Bonds yet",
             "subtext": "Add bond",
             "action_label": "Add Bond"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "court_date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "posted",
+                "active",
+                "exonerated",
+                "forfeited",
+                "surrendered"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "defendant"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -271,7 +325,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "phone",
@@ -282,7 +338,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "relationship",
@@ -305,6 +367,19 @@
           "show_in_form": true,
           "input_component": "textarea",
           "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "created_at",
@@ -365,7 +440,41 @@
             "heading": "No Indemnitors yet",
             "subtext": "Add indemnitor",
             "action_label": "Add Indemnitor"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "phone",
+            "relationship",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -458,6 +567,32 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Active Bonds",
+        "entity": "Bond",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "active"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Total Bail Amount",
+        "entity": "Bond",
+        "method": "sum",
+        "field": "bail_amount",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total Indemnitors",
+        "entity": "Indemnitor",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
       }
     ]
   },

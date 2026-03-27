@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "url",
@@ -88,6 +90,51 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "duration_minutes",
+          "db_type": "INTEGER",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 1,
+            "message": "Duration must be at least 1 minute"
+          }
+        },
+        {
+          "name": "price",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Price must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Price in USD"
         },
         {
           "name": "created_at",
@@ -149,7 +196,58 @@
             "heading": "No Services yet",
             "subtext": "Create your first service",
             "action_label": "Add Service"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "operational",
+                "degraded",
+                "partial_outage",
+                "major_outage",
+                "maintenance"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "url",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -243,7 +341,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "service_name",
@@ -286,7 +386,9 @@
           "show_in_table": false,
           "show_in_form": true,
           "input_component": "textarea",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "status",
@@ -371,7 +473,63 @@
             "heading": "No Incidents yet",
             "subtext": "Create your first incident",
             "action_label": "Add Incident"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "investigating",
+                "identified",
+                "monitoring",
+                "resolved"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "title",
+            "service_name",
+            "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Resolved",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "resolved"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -468,6 +626,32 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Uptime Pct",
+        "entity": "Service",
+        "method": "sum",
+        "field": "uptime_pct",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total Incidents",
+        "entity": "Incident",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Completed Incidents",
+        "entity": "Incident",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "resolved"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
       }
     ]
   },

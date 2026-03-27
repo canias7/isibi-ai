@@ -140,7 +140,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "net_30",
             "net_60",
@@ -149,7 +149,14 @@
             "advance"
           ],
           "placeholder": "0.00",
-          "help_text": "Enter payment terms"
+          "help_text": "Enter payment terms",
+          "badge_colors": {
+            "net_30": "pink",
+            "net_60": "blue",
+            "net_90": "green",
+            "upon_receipt": "amber",
+            "advance": "purple"
+          }
         },
         {
           "name": "total_spent",
@@ -1047,7 +1054,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Enter sku"
+          "placeholder": "Enter sku",
+          "help_text": "Stock keeping unit identifier"
         },
         {
           "name": "quantity",
@@ -1059,7 +1067,12 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text",
-          "placeholder": "0"
+          "placeholder": "0",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "help_text": "Number of units"
         },
         {
           "name": "unit_price",
@@ -1103,7 +1116,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "each",
             "box",
@@ -1114,7 +1127,17 @@
             "liter",
             "gallon"
           ],
-          "placeholder": "Select unit"
+          "placeholder": "Select unit",
+          "badge_colors": {
+            "each": "pink",
+            "box": "blue",
+            "case": "green",
+            "pallet": "amber",
+            "kg": "purple",
+            "lb": "red",
+            "liter": "slate",
+            "gallon": "emerald"
+          }
         },
         {
           "name": "received_qty",
@@ -1544,6 +1567,22 @@
           "show_in_form": false,
           "input_component": "none",
           "display_component": "text"
+        },
+        {
+          "name": "order_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "purchase_orders",
+            "column": "id",
+            "display_column": "vendor_id"
+          }
         },
         {
           "name": "vendor_id",

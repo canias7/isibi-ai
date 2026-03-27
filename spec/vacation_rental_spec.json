@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "address",
@@ -51,7 +53,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "type",
@@ -187,7 +191,56 @@
             "heading": "No Propertys yet",
             "subtext": "Create your first property",
             "action_label": "Add Property"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "available",
+                "booked",
+                "maintenance",
+                "blocked"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "address"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -342,7 +395,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount in USD"
         },
         {
           "name": "status",
@@ -429,7 +488,67 @@
             "heading": "No Bookings yet",
             "subtext": "Create your first booking",
             "action_label": "Add Booking"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "check_in"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "confirmed",
+                "checked_in",
+                "checked_out",
+                "cancelled"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "property_name",
+            "guest_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Cancelled",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "cancelled"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -532,6 +651,32 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Active Propertys",
+        "entity": "Property",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "booked"
+        },
+        "icon": "Activity",
+        "color": "green"
+      },
+      {
+        "label": "Total Nightly Rate",
+        "entity": "Property",
+        "method": "sum",
+        "field": "nightly_rate",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total Bookings",
+        "entity": "Booking",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
       }
     ]
   },

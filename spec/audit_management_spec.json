@@ -416,14 +416,20 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "one_time",
             "monthly",
             "quarterly",
             "annual"
           ],
-          "placeholder": "Select frequency"
+          "placeholder": "Select frequency",
+          "badge_colors": {
+            "one_time": "pink",
+            "monthly": "blue",
+            "quarterly": "green",
+            "annual": "amber"
+          }
         },
         {
           "name": "is_template",

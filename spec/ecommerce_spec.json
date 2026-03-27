@@ -41,7 +41,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -70,7 +71,12 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
         },
         {
           "name": "address",
@@ -82,7 +88,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Street address"
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
         },
         {
           "name": "total_spent",
@@ -394,7 +401,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "slug",
@@ -429,6 +437,19 @@
           "show_in_form": true,
           "input_component": "checkbox",
           "display_component": "boolean_badge"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "created_at",
@@ -501,6 +522,24 @@
           "searchable_fields": [
             "name",
             "slug"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -611,7 +650,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "sku",
@@ -622,7 +662,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "SKU-001",
+          "help_text": "Stock keeping unit identifier"
         },
         {
           "name": "category_id",
@@ -651,7 +693,8 @@
             "value": 0,
             "message": "Must be positive"
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "compare_at_price",
@@ -675,7 +718,12 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text",
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Cost must be a positive number"
+          },
+          "placeholder": "0.00"
         },
         {
           "name": "stock",
@@ -698,7 +746,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "status",
@@ -1049,7 +1098,12 @@
           "input_component": "text_input",
           "display_component": "text",
           "computed": "subtotal + tax + shipping - discount",
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00"
         },
         {
           "name": "tracking_number",
@@ -1378,6 +1432,22 @@
           "display_component": "text"
         },
         {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "customers",
+            "column": "id",
+            "display_column": "name"
+          }
+        },
+        {
           "name": "order_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1410,7 +1480,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "unit_price",
@@ -1435,7 +1511,12 @@
           "input_component": "text_input",
           "display_component": "text",
           "computed": "quantity * unit_price",
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00"
         },
         {
           "name": "created_at",
@@ -1490,7 +1571,8 @@
             "product_id",
             "quantity",
             "unit_price",
-            "total"
+            "total",
+            "customer_id"
           ],
           "filters": [],
           "empty_state": {
@@ -1506,7 +1588,27 @@
             "field": "created_at",
             "direction": "desc"
           },
-          "searchable_fields": []
+          "searchable_fields": [
+            "total"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -1515,7 +1617,8 @@
             "product_id",
             "quantity",
             "unit_price",
-            "total"
+            "total",
+            "customer_id"
           ],
           "required_fields": [
             "order_id",
@@ -1530,7 +1633,8 @@
             "product_id",
             "quantity",
             "unit_price",
-            "total"
+            "total",
+            "customer_id"
           ],
           "required_fields": [
             "order_id",
@@ -1561,7 +1665,8 @@
                 "order_id",
                 "product_id",
                 "quantity",
-                "unit_price"
+                "unit_price",
+                "customer_id"
               ]
             },
             {
@@ -1652,7 +1757,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Enter title"
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "comment",
@@ -2070,6 +2176,24 @@
           "searchable_fields": [
             "code",
             "type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -2216,7 +2340,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "reason",
@@ -2229,6 +2359,43 @@
           "input_component": "text_input",
           "display_component": "text",
           "placeholder": "Add details..."
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "log_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "logged_by",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Logger name",
+          "help_text": "Person who logged this"
         },
         {
           "name": "created_at",
@@ -2299,6 +2466,24 @@
           },
           "searchable_fields": [
             "type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {

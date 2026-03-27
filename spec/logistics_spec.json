@@ -43,7 +43,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "address",
@@ -57,7 +58,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Street address"
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
         },
         {
           "name": "city",
@@ -70,7 +72,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "e.g. San Francisco",
+          "help_text": "City name"
         },
         {
           "name": "capacity_sqft",
@@ -837,7 +841,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -874,7 +879,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "license_number",
@@ -1257,7 +1263,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "origin",
@@ -2071,7 +2078,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "SKU-001",
+          "help_text": "Stock keeping unit identifier"
         },
         {
           "name": "name",
@@ -2085,7 +2094,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "quantity",
@@ -2101,7 +2111,9 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "unit",
@@ -2534,7 +2546,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "damage_description",
@@ -2626,6 +2639,24 @@
           "searchable_fields": [
             "recipient_name",
             "condition"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {

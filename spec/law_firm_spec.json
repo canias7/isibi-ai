@@ -43,7 +43,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -80,7 +81,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "company",
@@ -93,7 +95,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Company name",
+          "help_text": "Organization or company name"
         },
         {
           "name": "address",
@@ -107,7 +111,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Street address"
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
         },
         {
           "name": "client_type",
@@ -472,7 +477,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -509,7 +515,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "bar_number",
@@ -930,7 +937,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Enter title"
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "client_id",
@@ -1078,7 +1086,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "settlement_amount",
@@ -1444,7 +1453,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "billing_type",
@@ -1577,6 +1587,24 @@
           },
           "searchable_fields": [
             "billing_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -1738,7 +1766,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Enter title"
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "document_type",
@@ -2199,7 +2228,8 @@
           "validation": {
             "min": 0
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "status",

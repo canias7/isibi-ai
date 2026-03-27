@@ -366,7 +366,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "GDPR",
             "SOX",
@@ -376,7 +376,16 @@
             "SOC2",
             "CCPA"
           ],
-          "placeholder": "Select regulation"
+          "placeholder": "Select regulation",
+          "badge_colors": {
+            "GDPR": "pink",
+            "SOX": "blue",
+            "HIPAA": "green",
+            "PCI_DSS": "amber",
+            "ISO27001": "purple",
+            "SOC2": "red",
+            "CCPA": "slate"
+          }
         },
         {
           "name": "criticality",

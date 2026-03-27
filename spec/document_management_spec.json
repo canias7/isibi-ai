@@ -334,14 +334,20 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "markdown",
             "html",
             "plain_text",
             "rich_text"
           ],
-          "placeholder": "Select format"
+          "placeholder": "Select format",
+          "badge_colors": {
+            "markdown": "pink",
+            "html": "blue",
+            "plain_text": "green",
+            "rich_text": "amber"
+          }
         },
         {
           "name": "usage_count",
@@ -612,7 +618,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Enter author"
+          "placeholder": "Enter author",
+          "help_text": "Report author"
         },
         {
           "name": "version_number",
@@ -874,7 +881,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Enter author"
+          "placeholder": "Enter author",
+          "help_text": "Report author"
         },
         {
           "name": "file_url",
@@ -1321,7 +1329,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "topic",
             "project",
@@ -1329,7 +1337,13 @@
             "custom"
           ],
           "placeholder": "Select category",
-          "help_text": "Category classification"
+          "help_text": "Category classification",
+          "badge_colors": {
+            "topic": "pink",
+            "project": "blue",
+            "department": "green",
+            "custom": "amber"
+          }
         },
         {
           "name": "is_system",

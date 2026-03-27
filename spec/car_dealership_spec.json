@@ -46,7 +46,9 @@
           "validation": {
             "pattern": "^[A-HJ-NPR-Z0-9]{17}$",
             "message": "Valid 17-char VIN"
-          }
+          },
+          "placeholder": "17-character VIN",
+          "help_text": "Vehicle identification number"
         },
         {
           "name": "make",
@@ -135,7 +137,8 @@
           "validation": {
             "min": 0
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "cost",
@@ -152,7 +155,8 @@
           "validation": {
             "min": 0
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "condition",
@@ -530,7 +534,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "address",
@@ -544,7 +549,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Street address"
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
         },
         {
           "name": "drivers_license",
@@ -601,6 +607,24 @@
           }
         },
         {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -653,7 +677,8 @@
             "last_name",
             "email",
             "phone",
-            "customer_type"
+            "customer_type",
+            "full_name"
           ],
           "filters": [],
           "empty_state": {
@@ -674,6 +699,24 @@
             "last_name",
             "email",
             "phone"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -686,7 +729,8 @@
             "address",
             "drivers_license",
             "customer_type",
-            "credit_score"
+            "credit_score",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -731,7 +775,8 @@
             "address",
             "drivers_license",
             "customer_type",
-            "credit_score"
+            "credit_score",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -789,7 +834,8 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone"
+                "phone",
+                "full_name"
               ]
             },
             {
@@ -849,7 +895,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -886,7 +933,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "hire_date",
@@ -2228,7 +2276,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -2519,7 +2568,9 @@
           "validation": {
             "pattern": "^[A-HJ-NPR-Z0-9]{17}$",
             "message": "Valid 17-char VIN"
-          }
+          },
+          "placeholder": "17-character VIN",
+          "help_text": "Vehicle identification number"
         },
         {
           "name": "make",

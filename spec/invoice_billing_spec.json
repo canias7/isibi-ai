@@ -93,7 +93,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "billing_address",
@@ -649,7 +650,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -925,6 +927,22 @@
           "display_component": "text"
         },
         {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "customers",
+            "column": "id",
+            "display_column": "company_name"
+          }
+        },
+        {
           "name": "invoice_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -952,7 +970,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "quantity",
@@ -968,7 +987,9 @@
           "filterable": true,
           "validation": {
             "min": 0.01
-          }
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "unit_price",
@@ -1075,7 +1096,8 @@
             "description",
             "quantity",
             "unit_price",
-            "tax_rate_id"
+            "tax_rate_id",
+            "customer_id"
           ],
           "filters": [],
           "empty_state": {
@@ -1093,6 +1115,24 @@
           },
           "searchable_fields": [
             "description"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -1103,7 +1143,8 @@
             "quantity",
             "unit_price",
             "tax_rate_id",
-            "discount_pct"
+            "discount_pct",
+            "customer_id"
           ],
           "required_fields": [
             "invoice_id",
@@ -1121,7 +1162,8 @@
             "quantity",
             "unit_price",
             "tax_rate_id",
-            "discount_pct"
+            "discount_pct",
+            "customer_id"
           ],
           "required_fields": [
             "invoice_id",
@@ -1154,7 +1196,8 @@
                 "invoice_id",
                 "description",
                 "quantity",
-                "unit_price"
+                "unit_price",
+                "customer_id"
               ]
             },
             {
@@ -1265,7 +1308,8 @@
           "validation": {
             "min": 0.01
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "payment_date",
@@ -1631,7 +1675,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "rate",
@@ -1649,7 +1694,8 @@
             "min": 0,
             "max": 100
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "description",
@@ -1663,7 +1709,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "tax_type",
@@ -1792,6 +1839,24 @@
           "searchable_fields": [
             "name",
             "tax_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -1906,7 +1971,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "start_date",
@@ -1995,7 +2061,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -2244,7 +2311,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "account_type",
@@ -2285,7 +2353,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "parent_account_id",
@@ -2390,6 +2459,24 @@
             "account_code",
             "name",
             "account_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {

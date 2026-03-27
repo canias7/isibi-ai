@@ -157,7 +157,11 @@
             ]
           },
           "placeholder": "0.00",
-          "help_text": "Total amount in USD"
+          "help_text": "Total amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          }
         },
         {
           "name": "created_at",

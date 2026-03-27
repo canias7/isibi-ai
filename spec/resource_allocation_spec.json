@@ -1495,13 +1495,18 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "weekly",
             "monthly",
             "quarterly"
           ],
-          "placeholder": "Select period"
+          "placeholder": "Select period",
+          "badge_colors": {
+            "weekly": "pink",
+            "monthly": "blue",
+            "quarterly": "green"
+          }
         },
         {
           "name": "forecast_date",

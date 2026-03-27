@@ -192,6 +192,24 @@
           "filterable": true
         },
         {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -245,7 +263,8 @@
             "email",
             "date_of_birth",
             "grade_level",
-            "enrollment_status"
+            "enrollment_status",
+            "full_name"
           ],
           "filters": [],
           "empty_state": {
@@ -266,6 +285,24 @@
             "last_name",
             "email",
             "grade_level"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -278,7 +315,8 @@
             "grade_level",
             "enrollment_status",
             "parent_id",
-            "medical_notes"
+            "medical_notes",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -323,7 +361,8 @@
             "grade_level",
             "enrollment_status",
             "parent_id",
-            "medical_notes"
+            "medical_notes",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -381,7 +420,8 @@
                 "first_name",
                 "last_name",
                 "email",
-                "date_of_birth"
+                "date_of_birth",
+                "full_name"
               ]
             },
             {
@@ -501,7 +541,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "subject_specialty",
@@ -620,6 +661,24 @@
           }
         },
         {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -673,7 +732,8 @@
             "email",
             "phone",
             "subject_specialty",
-            "hire_date"
+            "hire_date",
+            "full_name"
           ],
           "filters": [],
           "empty_state": {
@@ -757,7 +817,8 @@
             "hire_date",
             "certification_level",
             "salary",
-            "status"
+            "status",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -808,7 +869,8 @@
             "hire_date",
             "certification_level",
             "salary",
-            "status"
+            "status",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -871,7 +933,8 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone"
+                "phone",
+                "full_name"
               ]
             },
             {
@@ -931,7 +994,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "code",
@@ -962,7 +1026,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "teacher_id",
@@ -1141,6 +1206,24 @@
             "code",
             "semester",
             "difficulty"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -1868,6 +1951,24 @@
           "searchable_fields": [
             "assignment_name",
             "assignment_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -2420,7 +2521,8 @@
             "pattern": "^\\+?[0-9\\-\\s]{7,20}$",
             "message": "Valid phone required"
           },
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "help_text": "Contact phone number"
         },
         {
           "name": "relationship",
@@ -2461,7 +2563,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Street address"
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
         },
         {
           "name": "emergency_contact",
@@ -2476,6 +2579,24 @@
           "sortable": true,
           "filterable": true,
           "default": true
+        },
+        {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
         },
         {
           "name": "created_at",
@@ -2531,7 +2652,8 @@
             "email",
             "phone",
             "relationship",
-            "emergency_contact"
+            "emergency_contact",
+            "full_name"
           ],
           "filters": [],
           "empty_state": {
@@ -2552,6 +2674,24 @@
             "last_name",
             "email",
             "phone"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -2563,7 +2703,8 @@
             "phone",
             "relationship",
             "address",
-            "emergency_contact"
+            "emergency_contact",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -2602,7 +2743,8 @@
             "phone",
             "relationship",
             "address",
-            "emergency_contact"
+            "emergency_contact",
+            "full_name"
           ],
           "required_fields": [
             "first_name",
@@ -2655,7 +2797,8 @@
                 "first_name",
                 "last_name",
                 "email",
-                "phone"
+                "phone",
+                "full_name"
               ]
             },
             {

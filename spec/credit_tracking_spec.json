@@ -383,14 +383,20 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "internal",
             "fico",
             "vantage",
             "custom"
           ],
-          "placeholder": "Select score model"
+          "placeholder": "Select score model",
+          "badge_colors": {
+            "internal": "pink",
+            "fico": "blue",
+            "vantage": "green",
+            "custom": "amber"
+          }
         },
         {
           "name": "risk_grade",
@@ -1240,6 +1246,22 @@
           "display_component": "text"
         },
         {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "credit_customers",
+            "column": "id",
+            "display_column": "name"
+          }
+        },
+        {
           "name": "credit_line_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",
@@ -1345,7 +1367,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "bank_transfer",
             "check",
@@ -1353,7 +1375,13 @@
             "online"
           ],
           "placeholder": "0.00",
-          "help_text": "Enter payment method"
+          "help_text": "Enter payment method",
+          "badge_colors": {
+            "bank_transfer": "pink",
+            "check": "blue",
+            "auto_debit": "green",
+            "online": "amber"
+          }
         },
         {
           "name": "status",

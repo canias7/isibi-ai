@@ -43,7 +43,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "address",
@@ -57,7 +58,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Street address"
+          "placeholder": "Street address",
+          "help_text": "Full mailing address"
         },
         {
           "name": "city",
@@ -70,7 +72,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "e.g. San Francisco",
+          "help_text": "City name"
         },
         {
           "name": "capacity",
@@ -249,6 +253,24 @@
             "city",
             "venue_type",
             "contact_email"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -419,7 +441,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "description",
@@ -433,7 +456,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "venue_id",
@@ -552,7 +576,9 @@
           "filterable": true,
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Budget in USD"
         },
         {
           "name": "max_attendees",
@@ -925,7 +951,8 @@
           "validation": {
             "min": 0
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "quantity_available",
@@ -1055,6 +1082,24 @@
           },
           "searchable_fields": [
             "tier"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -1208,7 +1253,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -1296,7 +1342,11 @@
           "sortable": true,
           "filterable": true,
           "default": 0,
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Fee must be a positive number"
+          }
         },
         {
           "name": "status",
@@ -1730,7 +1780,8 @@
           "validation": {
             "min": 0
           },
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "placeholder": "0.00"
         },
         {
           "name": "status",
@@ -2081,7 +2132,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Enter title"
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -2095,7 +2147,8 @@
           "display_component": "text",
           "sortable": true,
           "filterable": true,
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Brief description"
         },
         {
           "name": "start_time",
@@ -2134,7 +2187,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "e.g. Building A, Room 101",
+          "help_text": "Physical location"
         },
         {
           "name": "session_type",
@@ -2257,6 +2312,24 @@
             "title",
             "location",
             "session_type"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -2469,7 +2542,9 @@
           "input_component": "text_input",
           "display_component": "text",
           "sortable": true,
-          "filterable": true
+          "filterable": true,
+          "placeholder": "Company name",
+          "help_text": "Organization or company name"
         },
         {
           "name": "dietary_restrictions",
@@ -2527,6 +2602,24 @@
           }
         },
         {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()",
           "ts_type": "string",
@@ -2580,7 +2673,8 @@
             "first_name",
             "last_name",
             "email",
-            "company"
+            "company",
+            "full_name"
           ],
           "filters": [],
           "empty_state": {
@@ -2601,6 +2695,24 @@
             "last_name",
             "email",
             "company"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -2613,7 +2725,8 @@
             "email",
             "company",
             "dietary_restrictions",
-            "check_in_status"
+            "check_in_status",
+            "full_name"
           ],
           "required_fields": [
             "event_id",
@@ -2659,7 +2772,8 @@
             "email",
             "company",
             "dietary_restrictions",
-            "check_in_status"
+            "check_in_status",
+            "full_name"
           ],
           "required_fields": [
             "event_id",
@@ -2718,7 +2832,8 @@
                 "event_id",
                 "ticket_id",
                 "first_name",
-                "last_name"
+                "last_name",
+                "full_name"
               ]
             },
             {

@@ -468,13 +468,18 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "qualitative",
             "quantitative",
             "semi_quantitative"
           ],
-          "placeholder": "Select methodology"
+          "placeholder": "Select methodology",
+          "badge_colors": {
+            "qualitative": "pink",
+            "quantitative": "blue",
+            "semi_quantitative": "green"
+          }
         },
         {
           "name": "findings",
@@ -486,7 +491,8 @@
           "show_in_form": true,
           "input_component": "textarea",
           "display_component": "text",
-          "placeholder": "Enter findings..."
+          "placeholder": "Enter findings...",
+          "help_text": "Inspection findings and observations"
         },
         {
           "name": "recommendations",
@@ -966,7 +972,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "continuous",
             "daily",
@@ -975,7 +981,15 @@
             "quarterly",
             "annual"
           ],
-          "placeholder": "Select frequency"
+          "placeholder": "Select frequency",
+          "badge_colors": {
+            "continuous": "pink",
+            "daily": "blue",
+            "weekly": "green",
+            "monthly": "amber",
+            "quarterly": "purple",
+            "annual": "red"
+          }
         },
         {
           "name": "owner",

@@ -67,7 +67,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "engineering",
             "design",
@@ -79,7 +79,17 @@
             "finance"
           ],
           "placeholder": "Department",
-          "help_text": "Department or division"
+          "help_text": "Department or division",
+          "badge_colors": {
+            "engineering": "pink",
+            "design": "blue",
+            "marketing": "green",
+            "sales": "amber",
+            "support": "purple",
+            "operations": "red",
+            "hr": "slate",
+            "finance": "emerald"
+          }
         },
         {
           "name": "member_count",

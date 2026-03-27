@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "theme",
@@ -85,7 +87,11 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 1,
+            "message": "Capacity must be at least 1"
+          }
         },
         {
           "name": "duration_min",
@@ -194,7 +200,56 @@
             "heading": "No Rooms yet",
             "subtext": "Create your first room",
             "action_label": "Add Room"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "available",
+                "in_session",
+                "resetting",
+                "maintenance"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "name",
+            "theme"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -289,6 +344,22 @@
           "display_component": "text"
         },
         {
+          "name": "room_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "rooms",
+            "column": "id",
+            "display_column": "name"
+          }
+        },
+        {
           "name": "room_name",
           "db_type": "VARCHAR(255) NOT NULL",
           "ts_type": "string",
@@ -352,7 +423,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount in USD"
         },
         {
           "name": "result",
@@ -431,7 +508,8 @@
             "date",
             "time",
             "players",
-            "total"
+            "total",
+            "room_id"
           ],
           "filters": [],
           "empty_state": {
@@ -439,7 +517,44 @@
             "heading": "No Bookings yet",
             "subtext": "Create your first booking",
             "action_label": "Add Booking"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "room_name",
+            "customer_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -450,7 +565,8 @@
             "time",
             "players",
             "total",
-            "result"
+            "result",
+            "room_id"
           ],
           "required_fields": [
             "room_name",
@@ -466,7 +582,8 @@
             "time",
             "players",
             "total",
-            "result"
+            "result",
+            "room_id"
           ],
           "required_fields": [
             "room_name",
@@ -499,7 +616,8 @@
                 "time",
                 "players",
                 "total",
-                "result"
+                "result",
+                "room_id"
               ]
             }
           ]
@@ -649,7 +767,44 @@
             "heading": "No Leaderboards yet",
             "subtext": "Create your first leaderboard",
             "action_label": "Add Leaderboard"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "room_name",
+            "team_name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -756,6 +911,29 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Total Price Per Person",
+        "entity": "Room",
+        "method": "sum",
+        "field": "price_per_person",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total Bookings",
+        "entity": "Booking",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Total",
+        "entity": "Booking",
+        "method": "sum",
+        "field": "total",
+        "icon": "DollarSign",
+        "color": "amber"
       }
     ]
   },

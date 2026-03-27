@@ -41,7 +41,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "price",
@@ -53,7 +54,12 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text",
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Price must be a positive number"
+          },
+          "placeholder": "0.00"
         },
         {
           "name": "duration_days",
@@ -171,6 +177,24 @@
           },
           "searchable_fields": [
             "name"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -285,7 +309,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -314,7 +339,12 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
         },
         {
           "name": "membership_id",
@@ -689,7 +719,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "email",
@@ -702,7 +733,11 @@
           "input_component": "text_input",
           "display_component": "text",
           "placeholder": "john@example.com",
-          "help_text": "Used for notifications"
+          "help_text": "Used for notifications",
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          }
         },
         {
           "name": "phone",
@@ -714,7 +749,12 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "(555) 123-4567"
+          "placeholder": "(555) 123-4567",
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "help_text": "Contact phone number"
         },
         {
           "name": "specialty",
@@ -1060,7 +1100,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Full name"
+          "placeholder": "Full name",
+          "help_text": "Full name"
         },
         {
           "name": "instructor_id",
@@ -1136,7 +1177,11 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 1,
+            "message": "Capacity must be at least 1"
+          }
         },
         {
           "name": "enrolled",
@@ -1223,6 +1268,24 @@
             "name",
             "type",
             "schedule"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
           ]
         },
         "create_form": {
@@ -1383,6 +1446,104 @@
             "attended": "green",
             "no_show": "red",
             "cancelled": "slate"
+          }
+        },
+        {
+          "name": "booking_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "start_time",
+          "db_type": "TIME",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "end_time",
+          "db_type": "TIME",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "schedule",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text"
+        },
+        {
+          "name": "instructor",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "text_input",
+          "display_component": "text",
+          "placeholder": "Instructor name",
+          "help_text": "Name of instructor"
+        },
+        {
+          "name": "capacity",
+          "db_type": "INTEGER",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 1,
+            "message": "Capacity must be at least 1"
           }
         },
         {
@@ -1697,7 +1858,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Add details..."
+          "placeholder": "Add details...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "status",
@@ -1980,7 +2142,12 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text",
-          "help_text": "Enter amount in USD"
+          "help_text": "Enter amount in USD",
+          "validation": {
+            "min": 0,
+            "message": "Amount must be a positive number"
+          },
+          "placeholder": "0.00"
         },
         {
           "name": "type",

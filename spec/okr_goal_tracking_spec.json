@@ -1158,7 +1158,8 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Enter author"
+          "placeholder": "Enter author",
+          "help_text": "Report author"
         },
         {
           "name": "checkin_date",

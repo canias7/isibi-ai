@@ -897,6 +897,22 @@
           "display_component": "text"
         },
         {
+          "name": "invoice_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "subscription_invoices",
+            "column": "id",
+            "display_column": "subscription_id"
+          }
+        },
+        {
           "name": "subscription_id",
           "db_type": "UUID NOT NULL",
           "ts_type": "string",

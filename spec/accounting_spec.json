@@ -494,7 +494,9 @@
           "validation": {
             "required": true,
             "max_length": 255
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "type",
@@ -557,7 +559,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "is_active",
@@ -743,7 +747,17 @@
             "heading": "No accounts yet",
             "subtext": "Set up your chart of accounts to start recording transactions.",
             "action_label": "+ New Account"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "searchable_fields": [
+            "name",
+            "description"
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -880,7 +894,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "reference",
@@ -1125,7 +1141,37 @@
             "heading": "No journal entries",
             "subtext": "Journal entries record every financial transaction.",
             "action_label": "+ New Entry"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "draft",
+                "posted",
+                "voided"
+              ]
+            }
+          ],
+          "searchable_fields": [
+            "description"
+          ]
         },
         "detail_view": {
           "layout": "tabs",
@@ -1284,7 +1330,9 @@
           "display_component": "PlainText",
           "editable": true,
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "debit",
@@ -1489,7 +1537,9 @@
           "validation": {
             "required": true,
             "max_length": 255
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "company_name",
@@ -1518,7 +1568,9 @@
           "show_in_form": true,
           "validation": {
             "format": "email"
-          }
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
         },
         {
           "name": "phone",
@@ -1529,7 +1581,13 @@
           "display_component": "CopyableText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "billing_address_line1",
@@ -1743,7 +1801,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "deleted_at",
@@ -1843,7 +1903,18 @@
             "heading": "No customers yet",
             "subtext": "Add customers to start creating invoices.",
             "action_label": "+ New Customer"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone"
+          ]
         },
         "detail_view": {
           "layout": "tabs",
@@ -1973,7 +2044,9 @@
           "validation": {
             "required": true,
             "max_length": 255
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "company_name",
@@ -2000,7 +2073,9 @@
           "show_in_form": true,
           "validation": {
             "format": "email"
-          }
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
         },
         {
           "name": "phone",
@@ -2011,7 +2086,13 @@
           "display_component": "CopyableText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "validation": {
+            "pattern": "^\\+?[\\d\\s\\-\\(\\)]{7,20}$",
+            "message": "Enter a valid phone number"
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "address_line1",
@@ -2059,7 +2140,9 @@
           "show_in_form": true,
           "validation": {
             "max_length": 100
-          }
+          },
+          "placeholder": "e.g. San Francisco",
+          "help_text": "City name"
         },
         {
           "name": "state",
@@ -2241,7 +2324,9 @@
           "sortable": false,
           "filterable": false,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "deleted_at",
@@ -2345,7 +2430,18 @@
             "heading": "No vendors yet",
             "subtext": "Add vendors to start creating bills and expenses.",
             "action_label": "+ New Vendor"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            }
+          ],
+          "searchable_fields": [
+            "name",
+            "email",
+            "phone"
+          ]
         }
       },
       "db_constraints": [
@@ -2546,7 +2642,13 @@
           "filterable": true,
           "filter_type": "range",
           "show_in_table": true,
-          "show_in_form": false
+          "show_in_form": false,
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount in USD"
         },
         {
           "name": "balance_due",
@@ -2586,7 +2688,9 @@
           "display_component": "TruncatedText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "period_id",
@@ -2788,7 +2892,38 @@
             "heading": "No invoices yet",
             "subtext": "Create your first invoice to start billing customers.",
             "action_label": "+ New Invoice"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "invoice_date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "draft",
+                "sent",
+                "partial",
+                "paid",
+                "overdue",
+                "voided",
+                "written_off"
+              ]
+            }
+          ]
         },
         "detail_view": {
           "layout": "tabs",
@@ -2931,6 +3066,22 @@
           "references": "organizations(id)"
         },
         {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "customers",
+            "column": "id",
+            "display_column": "name"
+          }
+        },
+        {
           "name": "invoice_id",
           "db_type": "UUID REFERENCES invoices(id) ON DELETE CASCADE",
           "ts_type": "string",
@@ -2953,7 +3104,9 @@
           "show_in_form": true,
           "validation": {
             "required": true
-          }
+          },
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "quantity",
@@ -2968,7 +3121,9 @@
           "validation": {
             "required": true,
             "min": 0.0001
-          }
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "unit_price",
@@ -3306,7 +3461,13 @@
           "editable": false,
           "sortable": true,
           "show_in_table": true,
-          "show_in_form": false
+          "show_in_form": false,
+          "validation": {
+            "min": 0,
+            "message": "Total must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount in USD"
         },
         {
           "name": "balance_due",
@@ -3343,7 +3504,9 @@
           "display_component": "TruncatedText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "period_id",
@@ -3533,7 +3696,38 @@
             "heading": "No bills yet",
             "subtext": "Add bills to track what you owe vendors.",
             "action_label": "+ New Bill"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            },
+            {
+              "name": "Calendar",
+              "layout": "calendar",
+              "date_field": "bill_date"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "draft",
+                "received",
+                "approved",
+                "partial",
+                "paid",
+                "overdue",
+                "voided"
+              ]
+            }
+          ]
         }
       },
       "db_constraints": [
@@ -3627,7 +3821,9 @@
           "show_in_form": true,
           "validation": {
             "required": true
-          }
+          },
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "quantity",
@@ -3641,7 +3837,9 @@
           "show_in_form": true,
           "validation": {
             "min": 0.0001
-          }
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "unit_cost",
@@ -3901,7 +4099,7 @@
             "other"
           ],
           "input_component": "Select",
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": true,
           "sortable": true,
           "filterable": true,
@@ -3911,6 +4109,18 @@
           "options_source": "PaymentMethod",
           "validation": {
             "required": true
+          },
+          "badge_colors": {
+            "bank_transfer": "pink",
+            "credit_card": "blue",
+            "debit_card": "green",
+            "cash": "amber",
+            "check": "purple",
+            "stripe": "red",
+            "paypal": "slate",
+            "ach": "emerald",
+            "wire": "cyan",
+            "other": "orange"
           }
         },
         {
@@ -3946,7 +4156,9 @@
           "validation": {
             "required": true,
             "positive": true
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Amount in USD"
         },
         {
           "name": "currency",
@@ -4054,7 +4266,9 @@
           "display_component": "TruncatedText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_by",
@@ -4311,7 +4525,9 @@
           "display_component": "TruncatedText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "amount",
@@ -4329,7 +4545,9 @@
           "validation": {
             "required": true,
             "positive": true
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Amount in USD"
         },
         {
           "name": "currency",
@@ -4396,13 +4614,25 @@
             "other"
           ],
           "input_component": "Select",
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": true,
           "filterable": true,
           "filter_type": "multi_select",
           "show_in_table": true,
           "show_in_form": true,
-          "options_source": "PaymentMethod"
+          "options_source": "PaymentMethod",
+          "badge_colors": {
+            "bank_transfer": "pink",
+            "credit_card": "blue",
+            "debit_card": "green",
+            "cash": "amber",
+            "check": "purple",
+            "stripe": "red",
+            "paypal": "slate",
+            "ach": "emerald",
+            "wire": "cyan",
+            "other": "orange"
+          }
         },
         {
           "name": "reference",
@@ -4424,7 +4654,9 @@
           "display_component": "TruncatedText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "receipt_attachment_id",
@@ -4628,7 +4860,9 @@
           "show_in_form": true,
           "validation": {
             "required": true
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "institution_name",
@@ -4683,7 +4917,7 @@
             "other"
           ],
           "input_component": "Select",
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": true,
           "sortable": true,
           "filterable": true,
@@ -4693,6 +4927,14 @@
           "options_source": "BankAccountType",
           "validation": {
             "required": true
+          },
+          "badge_colors": {
+            "checking": "pink",
+            "savings": "blue",
+            "credit_card": "green",
+            "line_of_credit": "amber",
+            "investment": "purple",
+            "other": "red"
           }
         },
         {
@@ -4917,7 +5159,9 @@
           "filterable": true,
           "filter_type": "search",
           "show_in_table": true,
-          "show_in_form": false
+          "show_in_form": false,
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "amount",
@@ -4932,7 +5176,13 @@
           "filterable": true,
           "filter_type": "range",
           "show_in_table": true,
-          "show_in_form": false
+          "show_in_form": false,
+          "validation": {
+            "min": 0,
+            "message": "Amount must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Amount in USD"
         },
         {
           "name": "direction",
@@ -5135,6 +5385,22 @@
           "show_in_form": false,
           "notes": "Multi-tenant scoping. Injected server-side from JWT. Never accepted from client.",
           "references": "organizations(id)"
+        },
+        {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "customers",
+            "column": "id",
+            "display_column": "name"
+          }
         },
         {
           "name": "bank_account_id",
@@ -5434,7 +5700,9 @@
           "validation": {
             "required": true
           },
-          "notes": "e.g. 'January 2026', 'Q1 2026'"
+          "notes": "e.g. 'January 2026', 'Q1 2026'",
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "start_date",
@@ -5665,7 +5933,9 @@
           "show_in_form": true,
           "validation": {
             "required": true
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "code",
@@ -5714,7 +5984,7 @@
             "other"
           ],
           "input_component": "Select",
-          "display_component": "PlainText",
+          "display_component": "status_badge",
           "editable": true,
           "filterable": true,
           "filter_type": "select",
@@ -5724,6 +5994,14 @@
           "options_source": "TaxType",
           "validation": {
             "required": true
+          },
+          "badge_colors": {
+            "sales": "pink",
+            "vat": "blue",
+            "gst": "green",
+            "hst": "amber",
+            "withholding": "purple",
+            "other": "red"
           }
         },
         {
@@ -5736,7 +6014,9 @@
           "display_component": "TruncatedText",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "is_compound",
@@ -6096,7 +6376,13 @@
           "sortable": true,
           "filterable": true,
           "show_in_table": true,
-          "show_in_form": true
+          "show_in_form": true,
+          "validation": {
+            "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+            "message": "Enter a valid email address"
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
         },
         {
           "name": "role",
@@ -6187,6 +6473,24 @@
           "sortable": true,
           "show_in_table": false,
           "show_in_form": false
+        },
+        {
+          "name": "full_name",
+          "db_type": "VARCHAR(255)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "first_name || ' ' || last_name",
+            "dependencies": [
+              "first_name",
+              "last_name"
+            ]
+          }
         },
         {
           "name": "deleted_at",
@@ -6311,7 +6615,9 @@
           "display_component": "PlainText",
           "input_component": "TextInput",
           "editable": false,
-          "show_in_form": false
+          "show_in_form": false,
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "body",
@@ -6660,7 +6966,9 @@
           "validation": {
             "required": true,
             "max_length": 255
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "legal_name",
@@ -6715,7 +7023,9 @@
           "display_component": "AddressBlock",
           "editable": true,
           "show_in_table": false,
-          "show_in_form": true
+          "show_in_form": true,
+          "placeholder": "Street, City, State, ZIP",
+          "help_text": "Full mailing address"
         },
         {
           "name": "phone",
@@ -6729,7 +7039,9 @@
           "show_in_form": true,
           "validation": {
             "max_length": 50
-          }
+          },
+          "placeholder": "+1 (555) 000-0000",
+          "help_text": "Contact phone number"
         },
         {
           "name": "email",
@@ -6744,7 +7056,9 @@
           "validation": {
             "format": "email",
             "max_length": 255
-          }
+          },
+          "placeholder": "email@example.com",
+          "help_text": "Primary email address"
         },
         {
           "name": "website",
@@ -6759,7 +7073,9 @@
           "validation": {
             "format": "url",
             "max_length": 255
-          }
+          },
+          "placeholder": "https://example.com",
+          "help_text": "Website URL"
         },
         {
           "name": "currency",
@@ -6930,6 +7246,38 @@
           "references": "organizations(id)"
         },
         {
+          "name": "customer_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "customers",
+            "column": "id",
+            "display_column": "name"
+          }
+        },
+        {
+          "name": "invoice_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "invoices",
+            "column": "id",
+            "display_column": "invoice_number"
+          }
+        },
+        {
           "name": "payment_id",
           "db_type": "UUID NOT NULL REFERENCES payments(id) ON DELETE RESTRICT",
           "ts_type": "string",
@@ -7009,6 +7357,57 @@
             "min": 0.01
           },
           "notes": "Must be > 0. Sum of all applications for a payment cannot exceed payment.amount."
+        },
+        {
+          "name": "payment_date",
+          "db_type": "DATE",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "date_picker",
+          "display_component": "date"
+        },
+        {
+          "name": "amount",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "number_input",
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Amount must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Amount in USD"
+        },
+        {
+          "name": "method",
+          "db_type": "VARCHAR(50)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "select",
+          "display_component": "status_badge",
+          "enum_values": [
+            "cash",
+            "card",
+            "bank_transfer",
+            "check"
+          ],
+          "badge_colors": {
+            "cash": "green",
+            "card": "blue",
+            "bank_transfer": "purple",
+            "check": "amber"
+          }
         },
         {
           "name": "created_at",
@@ -7202,13 +7601,19 @@
             "bank_fee"
           ],
           "input_component": null,
-          "display_component": "EntityTypeLabel",
+          "display_component": "status_badge",
           "editable": false,
           "filterable": true,
           "filter_type": "select",
           "show_in_table": true,
           "show_in_form": false,
-          "notes": "Discriminator for polymorphic matched_entity_id."
+          "notes": "Discriminator for polymorphic matched_entity_id.",
+          "badge_colors": {
+            "payment": "pink",
+            "expense": "blue",
+            "journal_entry": "green",
+            "bank_fee": "amber"
+          }
         },
         {
           "name": "matched_entity_id",
@@ -25406,5 +25811,39 @@
       "label": "System",
       "order": 8
     }
-  ]
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Accounts",
+        "entity": "Account",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Current Balance",
+        "entity": "Account",
+        "method": "sum",
+        "field": "current_balance",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total JournalEntrys",
+        "entity": "JournalEntry",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Total Debit",
+        "entity": "JournalEntry",
+        "method": "sum",
+        "field": "total_debit",
+        "icon": "DollarSign",
+        "color": "amber"
+      }
+    ]
+  }
 }

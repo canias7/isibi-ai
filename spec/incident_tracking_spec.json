@@ -961,7 +961,8 @@
           "show_in_form": true,
           "input_component": "textarea",
           "display_component": "text",
-          "placeholder": "Enter findings..."
+          "placeholder": "Enter findings...",
+          "help_text": "Inspection findings and observations"
         },
         {
           "name": "root_cause",

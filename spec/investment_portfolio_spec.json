@@ -159,7 +159,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "SP500",
             "NASDAQ",
@@ -167,7 +167,14 @@
             "RUSSELL2000",
             "MSCI_WORLD"
           ],
-          "placeholder": "Select benchmark"
+          "placeholder": "Select benchmark",
+          "badge_colors": {
+            "SP500": "pink",
+            "NASDAQ": "blue",
+            "DOW": "green",
+            "RUSSELL2000": "amber",
+            "MSCI_WORLD": "purple"
+          }
         },
         {
           "name": "status",
@@ -433,7 +440,12 @@
           "show_in_form": true,
           "input_component": "number_input",
           "display_component": "text",
-          "placeholder": "0"
+          "placeholder": "0",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "help_text": "Number of units"
         },
         {
           "name": "avg_cost",
@@ -761,7 +773,12 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Enter quantity"
+          "placeholder": "Enter quantity",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "help_text": "Number of units"
         },
         {
           "name": "price_per_unit",
@@ -1304,7 +1321,12 @@
           "show_in_form": true,
           "input_component": "text_input",
           "display_component": "text",
-          "placeholder": "Enter quantity"
+          "placeholder": "Enter quantity",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "help_text": "Number of units"
         },
         {
           "name": "total_amount",

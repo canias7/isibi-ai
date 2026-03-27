@@ -620,13 +620,18 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "monthly",
             "quarterly",
             "annual"
           ],
-          "placeholder": "Select period"
+          "placeholder": "Select period",
+          "badge_colors": {
+            "monthly": "pink",
+            "quarterly": "blue",
+            "annual": "green"
+          }
         },
         {
           "name": "forecast_date",
@@ -707,7 +712,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "linear",
             "exponential",
@@ -715,7 +720,14 @@
             "ml_based",
             "manual"
           ],
-          "placeholder": "Select model"
+          "placeholder": "Select model",
+          "badge_colors": {
+            "linear": "pink",
+            "exponential": "blue",
+            "seasonal": "green",
+            "ml_based": "amber",
+            "manual": "purple"
+          }
         },
         {
           "name": "confidence",
@@ -945,14 +957,20 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "currency",
             "percentage",
             "count",
             "ratio"
           ],
-          "placeholder": "Select unit"
+          "placeholder": "Select unit",
+          "badge_colors": {
+            "currency": "pink",
+            "percentage": "blue",
+            "count": "green",
+            "ratio": "amber"
+          }
         },
         {
           "name": "measured_date",
@@ -1189,13 +1207,18 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "monthly",
             "quarterly",
             "annual"
           ],
-          "placeholder": "Select period"
+          "placeholder": "Select period",
+          "badge_colors": {
+            "monthly": "pink",
+            "quarterly": "blue",
+            "annual": "green"
+          }
         },
         {
           "name": "target_date",

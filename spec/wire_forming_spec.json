@@ -40,7 +40,9 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "text_input",
-          "display_component": "text"
+          "display_component": "text",
+          "placeholder": "Customer name",
+          "help_text": "Customer full name"
         },
         {
           "name": "material",
@@ -112,7 +114,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Quantity must be a positive number"
+          },
+          "placeholder": "1",
+          "help_text": "Number of units"
         },
         {
           "name": "price",
@@ -123,7 +131,13 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "number_input",
-          "display_component": "text"
+          "display_component": "text",
+          "validation": {
+            "min": 0,
+            "message": "Price must be a positive number"
+          },
+          "placeholder": "0.00",
+          "help_text": "Price in USD"
         },
         {
           "name": "status",
@@ -149,6 +163,26 @@
             "finishing": "amber",
             "done": "purple"
           }
+        },
+        {
+          "name": "total",
+          "db_type": "NUMERIC(10,2)",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": false,
+          "show_in_table": true,
+          "show_in_form": false,
+          "input_component": "none",
+          "display_component": "text",
+          "computed": {
+            "formula": "quantity * price",
+            "dependencies": [
+              "quantity",
+              "price"
+            ]
+          },
+          "placeholder": "0.00",
+          "help_text": "Total amount in USD"
         },
         {
           "name": "created_at",
@@ -204,7 +238,8 @@
             "wire_gauge",
             "type",
             "quantity",
-            "price"
+            "price",
+            "total"
           ],
           "filters": [],
           "empty_state": {
@@ -212,7 +247,63 @@
             "heading": "No Jobs yet",
             "subtext": "Add job",
             "action_label": "Add Job"
-          }
+          },
+          "views": [
+            {
+              "name": "Table",
+              "layout": "table"
+            },
+            {
+              "name": "Board",
+              "layout": "kanban",
+              "group_by": "status"
+            }
+          ],
+          "quick_filters": [
+            {
+              "field": "status",
+              "label": "Status",
+              "options": [
+                "engineering",
+                "tooling",
+                "forming",
+                "finishing",
+                "done"
+              ]
+            }
+          ],
+          "default_sort": {
+            "field": "created_at",
+            "direction": "desc"
+          },
+          "searchable_fields": [
+            "customer",
+            "wire_gauge"
+          ],
+          "row_actions": [
+            {
+              "name": "Edit",
+              "icon": "Pencil",
+              "action": "edit"
+            },
+            {
+              "name": "View",
+              "icon": "Eye",
+              "action": "view"
+            },
+            {
+              "name": "Mark Done",
+              "icon": "CheckCircle",
+              "action": "update_status",
+              "value": "done"
+            },
+            {
+              "name": "Delete",
+              "icon": "Trash2",
+              "action": "delete",
+              "confirm": true
+            }
+          ]
         },
         "create_form": {
           "type": "SlideOverForm",
@@ -223,7 +314,8 @@
             "type",
             "quantity",
             "price",
-            "status"
+            "status",
+            "total"
           ],
           "required_fields": [
             "customer",
@@ -239,7 +331,8 @@
             "type",
             "quantity",
             "price",
-            "status"
+            "status",
+            "total"
           ],
           "required_fields": [
             "customer",
@@ -271,7 +364,8 @@
                 "wire_gauge",
                 "type",
                 "quantity",
-                "price"
+                "price",
+                "total"
               ]
             }
           ]
@@ -306,6 +400,25 @@
         "method": "count",
         "icon": "Box",
         "color": "pink"
+      },
+      {
+        "label": "Completed Jobs",
+        "entity": "Job",
+        "method": "count",
+        "filter": {
+          "field": "status",
+          "value": "done"
+        },
+        "icon": "CheckCircle",
+        "color": "emerald"
+      },
+      {
+        "label": "Total Price",
+        "entity": "Job",
+        "method": "sum",
+        "field": "price",
+        "icon": "DollarSign",
+        "color": "amber"
       }
     ]
   },

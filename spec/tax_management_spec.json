@@ -1341,14 +1341,20 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "eft",
             "check",
             "credit_card",
             "eftps"
           ],
-          "placeholder": "Select method"
+          "placeholder": "Select method",
+          "badge_colors": {
+            "eft": "pink",
+            "check": "blue",
+            "credit_card": "green",
+            "eftps": "amber"
+          }
         },
         {
           "name": "confirmation_number",
@@ -1589,13 +1595,18 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "e_file",
             "mail",
             "in_person"
           ],
-          "placeholder": "Select filing method"
+          "placeholder": "Select filing method",
+          "badge_colors": {
+            "e_file": "pink",
+            "mail": "blue",
+            "in_person": "green"
+          }
         },
         {
           "name": "filed_date",

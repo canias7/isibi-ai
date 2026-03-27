@@ -139,7 +139,7 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "net_15",
             "net_30",
@@ -149,7 +149,15 @@
             "advance"
           ],
           "placeholder": "0.00",
-          "help_text": "Enter payment terms"
+          "help_text": "Enter payment terms",
+          "badge_colors": {
+            "net_15": "pink",
+            "net_30": "blue",
+            "net_45": "green",
+            "net_60": "amber",
+            "upon_receipt": "purple",
+            "advance": "red"
+          }
         },
         {
           "name": "total_paid",
@@ -1463,7 +1471,11 @@
           "input_component": "number_input",
           "display_component": "currency",
           "placeholder": "0.00",
-          "help_text": "Enter fee"
+          "help_text": "Enter fee",
+          "validation": {
+            "min": 0,
+            "message": "Fee must be a positive number"
+          }
         },
         {
           "name": "net_amount",

@@ -817,14 +817,19 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "direct_deposit",
             "check",
             "wire"
           ],
           "placeholder": "0.00",
-          "help_text": "Enter payment method"
+          "help_text": "Enter payment method",
+          "badge_colors": {
+            "direct_deposit": "pink",
+            "check": "blue",
+            "wire": "green"
+          }
         },
         {
           "name": "created_at",
@@ -1305,7 +1310,11 @@
           "input_component": "number_input",
           "display_component": "percentage",
           "placeholder": "0.00",
-          "help_text": "Rate per unit"
+          "help_text": "Rate per unit",
+          "validation": {
+            "min": 0,
+            "message": "Rate must be a positive number"
+          }
         },
         {
           "name": "amount",

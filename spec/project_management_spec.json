@@ -175,7 +175,9 @@
           "validation": {
             "required": true,
             "maxLength": 255
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "description",
@@ -190,7 +192,9 @@
           "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "validation": {},
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "status",
@@ -293,7 +297,9 @@
           "show_in_form": true,
           "validation": {
             "min": 0
-          }
+          },
+          "placeholder": "0.00",
+          "help_text": "Budget in USD"
         },
         {
           "name": "spent",
@@ -584,7 +590,9 @@
           "validation": {
             "required": true,
             "maxLength": 255
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "description",
@@ -599,7 +607,9 @@
           "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "validation": {},
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "phase_order",
@@ -873,7 +883,9 @@
           "validation": {
             "required": true,
             "maxLength": 255
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "description",
@@ -888,7 +900,9 @@
           "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "validation": {},
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "due_date",
@@ -1192,7 +1206,9 @@
           "validation": {
             "required": true,
             "maxLength": 500
-          }
+          },
+          "placeholder": "Enter title",
+          "help_text": "Short descriptive title"
         },
         {
           "name": "description",
@@ -1207,7 +1223,9 @@
           "filterable": false,
           "show_in_table": false,
           "show_in_form": true,
-          "validation": {}
+          "validation": {},
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
         },
         {
           "name": "status",
@@ -1543,6 +1561,22 @@
           "show_in_form": false,
           "validation": {
             "required": true
+          }
+        },
+        {
+          "name": "project_id",
+          "db_type": "UUID",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "relation_picker",
+          "display_component": "relation_link",
+          "foreign_key": {
+            "table": "projects",
+            "column": "id",
+            "display_column": "name"
           }
         },
         {
@@ -2331,6 +2365,32 @@
           }
         },
         {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
+        },
+        {
           "name": "created_at",
           "db_type": "TIMESTAMPTZ",
           "ts_type": "string",
@@ -2469,7 +2529,9 @@
           "validation": {
             "required": true,
             "maxLength": 100
-          }
+          },
+          "placeholder": "Enter name",
+          "help_text": "Full name"
         },
         {
           "name": "color",
@@ -2505,6 +2567,32 @@
           "show_in_table": false,
           "show_in_form": false,
           "validation": {}
+        },
+        {
+          "name": "description",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Enter description...",
+          "help_text": "Brief description"
+        },
+        {
+          "name": "notes",
+          "db_type": "TEXT",
+          "ts_type": "string",
+          "nullable": true,
+          "editable": true,
+          "show_in_table": true,
+          "show_in_form": true,
+          "input_component": "textarea",
+          "display_component": "text",
+          "placeholder": "Additional notes...",
+          "help_text": "Internal notes (not visible to customers)"
         },
         {
           "name": "created_at",
@@ -5693,5 +5781,38 @@
     "component_naming": "PascalCase (e.g. InvoiceLineTable)",
     "date_fields": "Always use _at suffix for TIMESTAMPTZ, _date suffix for DATE",
     "id_fields": "Primary key is always id; foreign keys are {entity}_id"
+  },
+  "dashboard": {
+    "stat_cards": [
+      {
+        "label": "Total Projects",
+        "entity": "Project",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Budget",
+        "entity": "Project",
+        "method": "sum",
+        "field": "budget",
+        "icon": "DollarSign",
+        "color": "amber"
+      },
+      {
+        "label": "Total ProjectPhases",
+        "entity": "ProjectPhase",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      },
+      {
+        "label": "Total Milestones",
+        "entity": "Milestone",
+        "method": "count",
+        "icon": "Hash",
+        "color": "blue"
+      }
+    ]
   }
 }

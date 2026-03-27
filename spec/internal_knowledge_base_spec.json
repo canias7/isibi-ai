@@ -779,13 +779,18 @@
           "show_in_table": true,
           "show_in_form": true,
           "input_component": "select",
-          "display_component": "text",
+          "display_component": "status_badge",
           "enum_values": [
             "markdown",
             "html",
             "rich_text"
           ],
-          "placeholder": "Select format"
+          "placeholder": "Select format",
+          "badge_colors": {
+            "markdown": "pink",
+            "html": "blue",
+            "rich_text": "green"
+          }
         },
         {
           "name": "view_count",
