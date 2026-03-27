@@ -10,11 +10,13 @@ Endpoint:
 import uuid
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from auth import get_current_org_id
 from db import get_db
-from routes.pricing import _get_or_create_subscription
+from models.project import Project
+from routes.pricing import _get_or_create_subscription, PLANS
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
@@ -32,6 +34,21 @@ async def can_build(org_id: uuid.UUID, db: AsyncSession) -> dict:
       }
     """
     sub = await _get_or_create_subscription(db, org_id)
+    plan_config = PLANS.get(sub.plan, PLANS["free"])
+    projects_limit = plan_config.get("projects_limit", 1)
+
+    # Count existing projects for this org
+    project_count = 0
+    try:
+        result = await db.execute(
+            select(func.count(Project.id)).where(
+                Project.org_id == org_id,
+                Project.deleted_at.is_(None),
+            )
+        )
+        project_count = result.scalar() or 0
+    except Exception:
+        pass  # If count fails, allow the build
 
     # Pro / Teams plans have unlimited builds (builds_limit == -1)
     if sub.builds_limit == -1:
@@ -40,15 +57,23 @@ async def can_build(org_id: uuid.UUID, db: AsyncSession) -> dict:
             "plan": sub.plan,
             "builds_used": sub.builds_used,
             "builds_limit": sub.builds_limit,
+            "projects_count": project_count,
+            "projects_limit": projects_limit,
         }
 
-    # Free plan — enforce the cap
-    allowed = sub.builds_used < sub.builds_limit
+    # Free plan — enforce the builds cap
+    builds_allowed = sub.builds_used < sub.builds_limit
+
+    # Also enforce projects limit (free = 1 project max)
+    projects_allowed = projects_limit == -1 or project_count < projects_limit
+
     return {
-        "can_build": allowed,
+        "can_build": builds_allowed and projects_allowed,
         "plan": sub.plan,
         "builds_used": sub.builds_used,
         "builds_limit": sub.builds_limit,
+        "projects_count": project_count,
+        "projects_limit": projects_limit,
     }
 
 

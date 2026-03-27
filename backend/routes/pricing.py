@@ -274,6 +274,30 @@ async def stripe_webhook(
             sub.builds_used = 0
             await db.commit()
 
+            # Create subscription change notification
+            try:
+                from models.notification import PlatformNotification
+                # Find user_id from org — use a simple lookup
+                from sqlalchemy import select as _sel
+                from models.user import User
+                user_result = await db.execute(
+                    _sel(User.id).where(User.org_id == org_id).limit(1)
+                )
+                notif_user_id = user_result.scalar_one_or_none()
+                if notif_user_id:
+                    notif = PlatformNotification(
+                        user_id=notif_user_id,
+                        org_id=org_id,
+                        type="subscription",
+                        title="Plan Upgraded",
+                        body=f"Your plan has been upgraded to {plan.capitalize()}!",
+                        action_url="/app/settings/billing",
+                    )
+                    db.add(notif)
+                    await db.commit()
+            except Exception:
+                pass  # Non-critical
+
     elif event_type == "customer.subscription.updated":
         stripe_sub_id = (
             data_obj.get("id") if isinstance(data_obj, dict) else data_obj.id

@@ -512,7 +512,77 @@ function GeneralSettings({
           />
         </FormField>
       </SectionCard>
+
+      {/* Deploy History */}
+      <DeployHistory projectId={projectId} projectBase={projectBase} />
     </>
+  );
+}
+
+// ─── Deploy History ───
+function DeployHistory({ projectId, projectBase }: { projectId: string; projectBase: string }) {
+  const [history, setHistory] = useState<Array<{ timestamp: string; status: string; url: string }>>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await get<any>(`${projectBase}/deploy/history`);
+        setHistory(data?.history || []);
+      } catch {
+        setHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [projectBase]);
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5">
+      <h3 className="mb-3 text-sm font-semibold text-black">Deploy History</h3>
+      {loading ? (
+        <div className="flex items-center justify-center py-6">
+          <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+        </div>
+      ) : history.length === 0 ? (
+        <p className="py-4 text-center text-xs text-gray-400">No deploys yet</p>
+      ) : (
+        <div className="space-y-2">
+          {[...history].reverse().map((entry, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2"
+            >
+              <div className="flex items-center gap-2">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    entry.status === "success" ? "bg-green-500" : "bg-red-500"
+                  }`}
+                />
+                <span className="text-xs font-medium text-gray-700">
+                  {entry.status === "success" ? "Deployed" : "Failed"}
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                {entry.url && (
+                  <a
+                    href={entry.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-pink-600 hover:underline"
+                  >
+                    View
+                  </a>
+                )}
+                <span className="text-[10px] text-gray-400">
+                  {new Date(entry.timestamp).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

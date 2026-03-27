@@ -99,7 +99,7 @@ async def list_notifications(
     }
 
 
-@router.post("/{notification_id}/read")
+@router.api_route("/{notification_id}/read", methods=["PUT", "POST"])
 async def mark_as_read(
     notification_id: uuid.UUID,
     user_id: uuid.UUID = Depends(get_current_user_id),

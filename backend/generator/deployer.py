@@ -130,6 +130,21 @@ self.addEventListener('fetch', (e) => {{
     else:
         deploy_url = f"https://api.isibi.ai/live/{project_id}"
 
+    # Look up subdomain for this project
+    subdomain_url = None
+    try:
+        result = await db.execute(
+            select(Project.subdomain).where(Project.id == uuid.UUID(str(project_id)))
+        )
+        subdomain = result.scalar_one_or_none()
+        if subdomain:
+            if app_host:
+                subdomain_url = f"{app_host}/live/s/{subdomain}"
+            else:
+                subdomain_url = f"https://api.isibi.ai/live/s/{subdomain}"
+    except Exception:
+        pass
+
     # Store build artifacts in the spec metadata so they survive Render restarts
     import json as _json
     build_data = {
@@ -151,11 +166,14 @@ self.addEventListener('fetch', (e) => {{
     )
     await db.commit()
 
-    return {
+    result_info = {
         "project_id": str(project_id),
         "status": "deployed",
         "url": deploy_url,
     }
+    if subdomain_url:
+        result_info["subdomain_url"] = subdomain_url
+    return result_info
 
 
 def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") -> str:

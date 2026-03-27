@@ -901,6 +901,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           return updated.length > MAX_HISTORY ? updated.slice(updated.length - MAX_HISTORY) : updated;
         });
         setSpecFuture([]); // Clear redo stack on new change
+        // Mark that spec has changed since last deploy
+        setSpecChangedSinceDeploy(true);
       }
       return newSpec;
     });
@@ -956,6 +958,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   // Deploy state
   const [deploying, setDeploying] = useState(false);
   const [deployUrl, setDeployUrl] = useState<string | null>(null);
+  const [subdomainUrl, setSubdomainUrl] = useState<string | null>(null);
+  const [lastDeployedAt, setLastDeployedAt] = useState<string | null>(null);
+  const [specChangedSinceDeploy, setSpecChangedSinceDeploy] = useState(false);
 
   // Live preview state (iframe showing actual deployed app)
   const [livePreview, setLivePreview] = useState(false);
@@ -1264,6 +1269,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setBuiltSpec(null);
     setBuiltProjectId(null);
     setDeployUrl(null);
+    setSubdomainUrl(null);
+    setLastDeployedAt(null);
+    setSpecChangedSinceDeploy(false);
     setDeploying(false);
     setLivePreview(false);
     setLivePreviewLoading(false);
@@ -1771,13 +1779,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     setLivePreviewLoading(true);
     setLivePreviewError(null);
     try {
-      const res = await post<{ url: string; status: string }>(
+      const res = await post<{ url: string; status: string; subdomain_url?: string }>(
         `/projects/${builtProjectId}/deploy`,
         {}
       );
       if (res?.url) {
         const fullUrl = resolveAppUrl(res.url);
         setDeployUrl(fullUrl);
+        setLastDeployedAt(new Date().toISOString());
+        setSpecChangedSinceDeploy(false);
+        if (res.subdomain_url) setSubdomainUrl(res.subdomain_url);
         const cid = activeChatId;
         if (cid) {
           setChatSessions((prev) =>
@@ -1785,7 +1796,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           );
         }
         setLivePreview(true);
-        addToast("Deployed successfully!", "success");
+        addToast(res.subdomain_url ? `Deployed! Live at: ${res.subdomain_url}` : "Deployed successfully!", "success");
       } else {
         setLivePreviewError("Deploy succeeded but no URL was returned.");
         addToast("Deploy issue: no URL returned.", "error");
@@ -1797,6 +1808,38 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       addToast(`Error: ${msg}`, "error");
     } finally {
       setLivePreviewLoading(false);
+    }
+  };
+
+  // Re-deploy handler — force re-deploy when spec has changed since last deploy
+  const handleRedeploy = async () => {
+    if (!builtProjectId || deploying) return;
+    setDeploying(true);
+    try {
+      // Force re-deploy by calling deploy with force flag
+      const res = await post<{ url: string; status: string; subdomain_url?: string }>(
+        `/projects/${builtProjectId}/deploy`,
+        { force: true }
+      );
+      if (res?.url) {
+        const fullUrl = resolveAppUrl(res.url);
+        setDeployUrl(fullUrl);
+        setLastDeployedAt(new Date().toISOString());
+        setSpecChangedSinceDeploy(false);
+        if (res.subdomain_url) setSubdomainUrl(res.subdomain_url);
+        const cid = activeChatId;
+        if (cid) {
+          setChatSessions((prev) =>
+            prev.map((s) => (s.id === cid ? { ...s, deployUrl: fullUrl } : s))
+          );
+        }
+        addToast("Re-deployed successfully!", "success");
+      }
+    } catch (err: unknown) {
+      const e = err as Record<string, string>;
+      addToast(`Re-deploy failed: ${e?.detail || e?.message || "Unknown error"}`, "error");
+    } finally {
+      setDeploying(false);
     }
   };
 
@@ -1829,13 +1872,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     // Not deployed yet — deploy first, then show QR
     setDeploying(true);
     try {
-      const res = await post<{ url: string; status: string }>(
+      const res = await post<{ url: string; status: string; subdomain_url?: string }>(
         `/projects/${builtProjectId}/deploy`,
         {}
       );
       if (res?.url) {
         const fullUrl = resolveAppUrl(res.url);
         setDeployUrl(fullUrl);
+        setLastDeployedAt(new Date().toISOString());
+        setSpecChangedSinceDeploy(false);
+        if (res.subdomain_url) setSubdomainUrl(res.subdomain_url);
         // Update the chat session
         const cid = activeChatId;
         if (cid) {
@@ -1864,13 +1910,16 @@ export function OnboardingPage({ onSpecCreated }: Props) {
     if (!deployUrl) {
       setDeploying(true);
       try {
-        const res = await post<{ url: string; status: string }>(
+        const res = await post<{ url: string; status: string; subdomain_url?: string }>(
           `/projects/${builtProjectId}/deploy`,
           {}
         );
         if (res?.url) {
           const fullUrl = resolveAppUrl(res.url);
           setDeployUrl(fullUrl);
+          setLastDeployedAt(new Date().toISOString());
+          setSpecChangedSinceDeploy(false);
+          if (res.subdomain_url) setSubdomainUrl(res.subdomain_url);
           const cid = activeChatId;
           if (cid) {
             setChatSessions((prev) =>
@@ -2179,15 +2228,26 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </button>
               {deployUrl && (
                 <a
-                  href={deployUrl}
+                  href={subdomainUrl || deployUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-1 rounded-lg bg-green-50 border border-green-200 px-2.5 py-1.5 text-[11px] font-medium text-green-700 transition hover:bg-green-100"
-                  title="View deployed app"
+                  title={subdomainUrl ? `Live at ${subdomainUrl}` : "View deployed app"}
                 >
                   <ExternalLink className="h-3 w-3" />
-                  Live
+                  {subdomainUrl ? subdomainUrl.replace(/^https?:\/\//, '').replace(/\/live\/s\//, '/') : "Live"}
                 </a>
+              )}
+              {specChangedSinceDeploy && deployUrl && (
+                <button
+                  onClick={handleRedeploy}
+                  disabled={deploying}
+                  className="flex items-center gap-1 rounded-lg bg-amber-50 border border-amber-300 px-2.5 py-1.5 text-[11px] font-medium text-amber-700 transition hover:bg-amber-100 disabled:opacity-50"
+                  title="Changes not deployed"
+                >
+                  <RefreshCw className={`h-3 w-3 ${deploying ? "animate-spin" : ""}`} />
+                  Re-deploy
+                </button>
               )}
             </>
           )}
@@ -2791,7 +2851,22 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </div>
 
             {/* App URL */}
-            <div className="mb-4">
+            <div className="mb-4 space-y-2">
+              {subdomainUrl && (
+                <div className="rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                  <p className="mb-1 text-[10px] font-medium text-green-700">Your app is live at:</p>
+                  <div className="flex items-center gap-2">
+                    <LinkIcon className="h-3.5 w-3.5 shrink-0 text-green-500" />
+                    <span className="flex-1 truncate text-xs font-medium text-green-800">{subdomainUrl}</span>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(subdomainUrl)}
+                      className="shrink-0 rounded-md border border-green-200 bg-white px-2 py-1 text-[10px] font-medium text-green-600 hover:bg-green-50"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
                 <LinkIcon className="h-3.5 w-3.5 shrink-0 text-gray-400" />
                 <span className="flex-1 truncate text-xs text-gray-600">{deployUrl}</span>

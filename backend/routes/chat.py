@@ -771,6 +771,32 @@ async def _handle_build(
                 ready_to_build=False,
             )
 
+        # Increment builds_used for billing tracking
+        try:
+            from routes.pricing import _get_or_create_subscription
+            sub = await _get_or_create_subscription(db, org_id)
+            sub.builds_used = (sub.builds_used or 0) + 1
+            await db.commit()
+        except Exception as billing_err:
+            logger.warning("Failed to increment builds_used: %s", billing_err)
+
+        # Create build notification
+        try:
+            from models.notification import PlatformNotification
+            app_name = project.name or (project.spec or {}).get("app_name", "your app")
+            notif = PlatformNotification(
+                user_id=user_id,
+                org_id=org_id,
+                type="build",
+                title="App Built",
+                body=f"Your app '{app_name}' has been built!",
+                action_url=f"/app?project={project.id}",
+            )
+            db.add(notif)
+            await db.commit()
+        except Exception as notif_err:
+            logger.warning("Failed to create build notification: %s", notif_err)
+
         entity_count = len(project.spec.get("entities", [])) if project.spec else 0
         build_reply = clean_reply
         if clean_reply:
@@ -805,6 +831,16 @@ async def _handle_build(
                     prompt=simplified_prompt,
                     name=None,
                 )
+
+                # Increment builds_used for retry too
+                try:
+                    from routes.pricing import _get_or_create_subscription
+                    sub = await _get_or_create_subscription(db, org_id)
+                    sub.builds_used = (sub.builds_used or 0) + 1
+                    await db.commit()
+                except Exception:
+                    pass
+
                 entity_count = len(project.spec.get("entities", [])) if project.spec else 0
                 retry_reply = clean_reply
                 if retry_reply:
@@ -1102,6 +1138,32 @@ async def api_chat_stream(
                     prompt=full_prompt,
                     name=None,
                 )
+                # Increment builds_used
+                try:
+                    from routes.pricing import _get_or_create_subscription
+                    sub = await _get_or_create_subscription(db, org_id)
+                    sub.builds_used = (sub.builds_used or 0) + 1
+                    await db.commit()
+                except Exception:
+                    pass
+
+                # Create build notification
+                try:
+                    from models.notification import PlatformNotification
+                    app_name = project.name or (project.spec or {}).get("app_name", "your app")
+                    notif = PlatformNotification(
+                        user_id=user_id,
+                        org_id=org_id,
+                        type="build",
+                        title="App Built",
+                        body=f"Your app '{app_name}' has been built!",
+                        action_url=f"/app?project={project.id}",
+                    )
+                    db.add(notif)
+                    await db.commit()
+                except Exception:
+                    pass
+
                 entity_count = len(project.spec.get("entities", [])) if project.spec else 0
                 yield _sse_event({
                     "type": "building",
@@ -1130,6 +1192,16 @@ async def api_chat_stream(
                             prompt=simplified_prompt,
                             name=None,
                         )
+
+                        # Increment builds_used for retry
+                        try:
+                            from routes.pricing import _get_or_create_subscription
+                            sub = await _get_or_create_subscription(db, org_id)
+                            sub.builds_used = (sub.builds_used or 0) + 1
+                            await db.commit()
+                        except Exception:
+                            pass
+
                         entity_count = len(project.spec.get("entities", [])) if project.spec else 0
                         yield _sse_event({
                             "type": "building",

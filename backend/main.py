@@ -17,7 +17,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
-from starlette.responses import Response
+from starlette.responses import Response, RedirectResponse
 from starlette.requests import Request as StarletteRequest
 from fastapi.responses import HTMLResponse
 from db import engine, Base, async_session
@@ -73,6 +73,10 @@ from models.app_dashboard_widget import AppDashboardWidget  # noqa: F401
 from models.app_session import AppSession  # noqa: F401
 
 logger = logging.getLogger(__name__)
+
+# Track app start time for uptime calculation
+import time as _time
+_APP_START_TIME = _time.time()
 
 
 @asynccontextmanager
@@ -197,9 +201,51 @@ _uploads_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
 
 
+# ── API v1 versioning redirect ──
+
+
+@app.api_route("/api/v1/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
+async def v1_redirect(path: str, request: StarletteRequest):
+    """Redirect /api/v1/* to /api/* for forward-compatible API versioning."""
+    query = str(request.query_params)
+    target = f"/api/{path}"
+    if query:
+        target += f"?{query}"
+    return RedirectResponse(url=target, status_code=307)
+
+
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    import time as _t
+    from middleware.cache import _cache as _cache_store
+    from generator.app_db import _schema_pools
+
+    # Check DB connectivity
+    db_status = "connected"
+    try:
+        async with async_session() as session:
+            await session.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "disconnected"
+
+    # Count registered routes
+    routes_count = len(app.routes)
+
+    # Cache entries
+    cache_entries = len(_cache_store)
+
+    # Active DB pools
+    active_pools = len(_schema_pools)
+
+    return {
+        "status": "ok",
+        "version": app.version,
+        "uptime_seconds": int(_t.time() - _APP_START_TIME),
+        "database": db_status,
+        "routes_count": routes_count,
+        "cache_entries": cache_entries,
+        "active_pools": active_pools,
+    }
 
 
 # ── Serve deployed apps ──
