@@ -30,32 +30,82 @@ def _snake(name: str) -> str:
 
 def _field_input_type(field: dict) -> str:
     """Map a spec field to an HTML input type."""
+    # Check input_component hint first
+    ic = field.get("input_component", "")
+    if ic == "checkbox":
+        return "checkbox"
+    if ic == "textarea":
+        return "textarea"
+    if ic in ("select", "relation_select"):
+        return "select"
+    if ic == "number_input":
+        return "number"
+    if ic == "date_input":
+        return "date"
+
     db = field.get("db_type", "TEXT")
-    if db in ("INTEGER", "SMALLINT", "NUMERIC(12,2)", "NUMERIC(5,2)"):
+    if db in ("INTEGER", "SMALLINT") or db.startswith("NUMERIC"):
         return "number"
     if db == "DATE":
         return "date"
     if db == "TIMESTAMPTZ":
         return "datetime-local"
-    if db == "BOOLEAN":
+    if db.startswith("BOOLEAN"):
         return "checkbox"
     if db == "TEXT":
         return "textarea"
     if db.startswith("ENUM"):
         return "select"
+    if field.get("enum_values"):
+        return "select"
     return "text"
+
+
+def _is_boolean_field(field: dict) -> bool:
+    """Check if a field is boolean regardless of DEFAULT clause."""
+    return field.get("db_type", "").startswith("BOOLEAN") or field.get("input_component") == "checkbox"
+
+
+def _is_numeric_field(field: dict) -> bool:
+    """Check if a field is numeric regardless of precision."""
+    db = field.get("db_type", "")
+    return db.startswith("NUMERIC") or db in ("INTEGER", "SMALLINT") or field.get("input_component") == "number_input"
+
+
+def _is_enum_field(field: dict) -> bool:
+    """Check if a field should render as an enum badge."""
+    return bool(field.get("enum_values")) or field.get("db_type", "").startswith("ENUM")
+
+
+def _is_date_field(field: dict) -> bool:
+    """Check if a field is a date type."""
+    return field.get("db_type", "") in ("DATE",) or field.get("input_component") == "date_input"
+
+
+def _is_fk_field(field: dict) -> bool:
+    """Check if a field is a foreign key relation."""
+    return field.get("input_component") == "relation_select" or bool(field.get("fk_entity"))
 
 
 def _visible_fields(entity: dict, context: str = "table") -> list[dict]:
     """Return fields that should appear in a given context."""
     fields = entity.get("fields", [])
+    # System fields that are hidden unless explicitly shown
+    auto_hidden = {"id", "org_id", "updated_at", "deleted_at"}
     out = []
     for f in fields:
-        # Skip system fields
-        if f.get("name") in ("id", "org_id", "created_at", "updated_at", "deleted_at"):
-            continue
+        fname = f.get("name", "")
         if f.get("primary_key"):
             continue
+        # Skip auto-hidden fields unless explicitly shown
+        if fname in auto_hidden:
+            continue
+        # created_at is hidden by default but can be explicitly shown
+        if fname == "created_at":
+            if context == "table" and f.get("show_in_table") is not True:
+                continue
+            if context == "form" and f.get("show_in_form") is not True:
+                continue
         if context == "table" and f.get("show_in_table") is False:
             continue
         if context == "form" and f.get("show_in_form") is False:
@@ -326,24 +376,33 @@ export const api = {
 def _gen_layout(app_name: str, modules: list, primary: str) -> str:
     # Build nav items from modules
     nav_items = []
+    breadcrumb_entries = [{"path": "/", "label": "Dashboard"}]
     for mod in modules:
         label = mod.get("label", mod.get("name", "Module"))
         entity = mod.get("entity", label)
         slug = _snake(entity).replace("_", "-")
         icon = mod.get("icon", "")
         nav_items.append({"label": label, "href": f"/{slug}", "icon": icon})
+        breadcrumb_entries.append({"path": f"/{slug}", "label": label})
 
     nav_json = json.dumps(nav_items)
+    breadcrumb_json = json.dumps({e["path"]: e["label"] for e in breadcrumb_entries})
 
     return f"""\
-import {{ useState }} from 'react';
+import {{ useState, useMemo }} from 'react';
 import {{ Link, useLocation }} from 'react-router-dom';
 
 const NAV_ITEMS: {{ label: string; href: string; icon: string }}[] = {nav_json};
 
+const PAGE_NAMES: Record<string, string> = {breadcrumb_json};
+
 export function Layout({{ children }}: {{ children: React.ReactNode }}) {{
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const currentPageName = useMemo(() => {{
+    return PAGE_NAMES[location.pathname] || location.pathname.replace('/', '').replace(/-/g, ' ').replace(/\\b\\w/g, (c: string) => c.toUpperCase()) || 'Dashboard';
+  }}, [location.pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
@@ -420,7 +479,7 @@ export function Layout({{ children }}: {{ children: React.ReactNode }}) {{
 
       {{/* Main content */}}
       <div className="flex flex-1 flex-col overflow-hidden">
-        {{/* Top bar */}}
+        {{/* Top bar with breadcrumb */}}
         <header className="flex h-16 items-center gap-4 border-b bg-white px-6">
           <button
             className="lg:hidden"
@@ -430,6 +489,20 @@ export function Layout({{ children }}: {{ children: React.ReactNode }}) {{
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
             </svg>
           </button>
+          <nav className="flex items-center gap-2 text-sm">
+            <Link to="/" className="text-gray-400 hover:text-gray-600 transition">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round"
+                      d="M2.25 12l8.954-8.955a1.126 1.126 0 011.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+              </svg>
+            </Link>
+            {{location.pathname !== '/' && (
+              <>
+                <span className="text-gray-300">/</span>
+                <span className="font-medium text-gray-700">{{currentPageName}}</span>
+              </>
+            )}}
+          </nav>
           <div className="flex-1" />
         </header>
 
@@ -453,11 +526,17 @@ def _gen_dashboard(entities: list) -> str:
         name = entity.get("name", "Entity")
         table = entity.get("table", _snake(name) + "s")
         label = name.replace("_", " ")
+        slug = _snake(name).replace("_", "-")
         cards.append(f"""\
-      <div className="rounded-xl border bg-white p-6">
-        <p className="text-sm text-gray-500">{label}s</p>
-        <p className="mt-1 text-2xl font-semibold">{{counts['{table}'] ?? '...'}}</p>
-      </div>""")
+      <Link to="/{slug}" className="rounded-xl border bg-white p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-200 cursor-pointer group">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500 group-hover:text-primary transition">{label}s</p>
+          <svg className="h-5 w-5 text-gray-300 group-hover:text-primary transition" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+          </svg>
+        </div>
+        <p className="mt-2 text-3xl font-semibold">{{counts['{table}'] ?? '...'}}</p>
+      </Link>""")
 
     if entities:
         first = entities[0]
@@ -522,6 +601,7 @@ def _gen_dashboard(entities: list) -> str:
 
     return f"""\
 import {{ useState, useEffect }} from 'react';
+import {{ Link }} from 'react-router-dom';
 import {{ api }} from '../api';
 
 export function Dashboard() {{
@@ -670,14 +750,15 @@ def _gen_entity_table(entity: dict) -> str:
     name = entity.get("name", "Entity")
     fields = _visible_fields(entity, "table")
 
-    # Build header cells
+    # Build header cells — right-align numeric columns
     headers = []
     for f in fields:
         label = f.get("label", f["name"].replace("_", " ").title())
         fname = f["name"]
+        align = "text-right" if _is_numeric_field(f) else "text-left"
         headers.append(
             f'        <th\n'
-            f'          className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700"\n'
+            f'          className="px-4 py-3 {align} text-xs font-medium text-gray-500 uppercase cursor-pointer select-none hover:text-gray-700"\n'
             f'          onClick={{() => handleSort(\'{fname}\')}}\n'
             f'        >\n'
             f'          <span className="flex items-center gap-1">\n'
@@ -687,15 +768,14 @@ def _gen_entity_table(entity: dict) -> str:
             f'        </th>'
         )
 
-    # Build body cells
+    # Build body cells using helper predicates
     cells = []
     for f in fields:
         fname = f["name"]
-        db_type = f.get("db_type", "TEXT")
-        if db_type.startswith("ENUM") and f.get("enum_values"):
-            # Render as badge
+
+        if _is_enum_field(f):
+            # Render as coloured badge
             badge_colors = f.get("badge_colors", {})
-            # Generate color map
             color_entries = []
             for val in f.get("enum_values", []):
                 color = badge_colors.get(val, "gray")
@@ -705,10 +785,12 @@ def _gen_entity_table(entity: dict) -> str:
                 f'          <td className="px-4 py-3 text-sm">\n'
                 f'            {{row[\'{fname}\'] && (\n'
                 f'              <span className={{`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium\n'
-                f'                ${{{{ {color_map} }}[String(row[\'{fname}\'])] === \'green\' ? \'bg-green-100 text-green-700\'\n'
-                f'                : ({{ {color_map} }})[String(row[\'{fname}\'])] === \'red\' ? \'bg-red-100 text-red-700\'\n'
-                f'                : ({{ {color_map} }})[String(row[\'{fname}\'])] === \'yellow\' ? \'bg-yellow-100 text-yellow-700\'\n'
-                f'                : ({{ {color_map} }})[String(row[\'{fname}\'])] === \'blue\' ? \'bg-blue-100 text-blue-700\'\n'
+                f'                ${{({{ {color_map} }} as Record<string, string>)[String(row[\'{fname}\'])] === \'green\' ? \'bg-green-100 text-green-700\'\n'
+                f'                : ({{ {color_map} }} as Record<string, string>)[String(row[\'{fname}\'])] === \'red\' ? \'bg-red-100 text-red-700\'\n'
+                f'                : ({{ {color_map} }} as Record<string, string>)[String(row[\'{fname}\'])] === \'amber\' ? \'bg-amber-100 text-amber-700\'\n'
+                f'                : ({{ {color_map} }} as Record<string, string>)[String(row[\'{fname}\'])] === \'blue\' ? \'bg-blue-100 text-blue-700\'\n'
+                f'                : ({{ {color_map} }} as Record<string, string>)[String(row[\'{fname}\'])] === \'purple\' ? \'bg-purple-100 text-purple-700\'\n'
+                f'                : ({{ {color_map} }} as Record<string, string>)[String(row[\'{fname}\'])] === \'slate\' ? \'bg-slate-100 text-slate-700\'\n'
                 f'                : \'bg-gray-100 text-gray-700\'}}`}}\n'
                 f'              >\n'
                 f'                {{String(row[\'{fname}\'])}}\n'
@@ -716,26 +798,40 @@ def _gen_entity_table(entity: dict) -> str:
                 f'            )}}\n'
                 f'          </td>'
             )
-        elif db_type == "BOOLEAN":
+        elif _is_boolean_field(f):
             cells.append(
                 f'          <td className="px-4 py-3 text-sm">\n'
                 f'            {{row[\'{fname}\'] ? (\n'
-                f'              <span className="text-green-600">\\u2713</span>\n'
+                f'              <span className="inline-flex items-center text-green-600" title="Yes">\n'
+                f'                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">\n'
+                f'                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />\n'
+                f'                </svg>\n'
+                f'              </span>\n'
                 f'            ) : (\n'
-                f'              <span className="text-gray-300">\\u2715</span>\n'
+                f'              <span className="inline-flex items-center text-gray-300" title="No">\n'
+                f'                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">\n'
+                f'                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />\n'
+                f'                </svg>\n'
+                f'              </span>\n'
                 f'            )}}\n'
                 f'          </td>'
             )
-        elif db_type in ("NUMERIC(12,2)", "NUMERIC(5,2)"):
+        elif _is_numeric_field(f):
             cells.append(
                 f'          <td className="px-4 py-3 text-sm text-right tabular-nums">\n'
                 f'            {{row[\'{fname}\'] != null ? Number(row[\'{fname}\']).toLocaleString(undefined, {{ minimumFractionDigits: 2 }}) : \'\'}}\n'
                 f'          </td>'
             )
-        elif db_type == "DATE":
+        elif _is_date_field(f):
             cells.append(
                 f'          <td className="px-4 py-3 text-sm text-gray-600">\n'
-                f'            {{row[\'{fname}\'] ? new Date(row[\'{fname}\']).toLocaleDateString() : \'\'}}\n'
+                f'            {{row[\'{fname}\'] ? new Date(row[\'{fname}\']).toLocaleDateString(undefined, {{ year: \'numeric\', month: \'short\', day: \'numeric\' }}) : \'\'}}\n'
+                f'          </td>'
+            )
+        elif f.get("db_type", "") == "TIMESTAMPTZ":
+            cells.append(
+                f'          <td className="px-4 py-3 text-sm text-gray-600">\n'
+                f'            {{row[\'{fname}\'] ? new Date(row[\'{fname}\']).toLocaleDateString(undefined, {{ year: \'numeric\', month: \'short\', day: \'numeric\', hour: \'2-digit\', minute: \'2-digit\' }}) : \'\'}}\n'
                 f'          </td>'
             )
         else:
@@ -802,6 +898,7 @@ export function {name}Table({{ data, loading, onEdit, onDelete }}: Props) {{
                 d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
         </svg>
         <p className="mt-4 text-sm text-gray-500">No records yet</p>
+        <p className="mt-1 text-xs text-gray-400">Create your first record to get started</p>
       </div>
     );
   }}
@@ -818,7 +915,7 @@ export function {name}Table({{ data, loading, onEdit, onDelete }}: Props) {{
           </thead>
           <tbody className="divide-y">
             {{sortedData.map((row: any, i: number) => (
-              <tr key={{row.id ?? i}} className="hover:bg-gray-50 transition">
+              <tr key={{row.id ?? i}} className={{`hover:bg-primary-50 transition ${{i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}}`}}>
 {cells_str}
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
@@ -862,19 +959,66 @@ def _gen_entity_form(entity: dict) -> str:
     label = name.replace("_", " ")
     fields = _visible_fields(entity, "form")
 
+    # Collect FK entities that need option loading
+    fk_entities: list[dict] = []
+    for f in fields:
+        if _is_fk_field(f):
+            fk_name = f.get("fk_entity", f["name"].replace("_id", "").title())
+            fk_table = _snake(fk_name) + "s"
+            fk_entities.append({"field": f["name"], "entity": fk_name, "table": fk_table})
+
+    # Build FK state declarations and fetch calls
+    fk_state_lines = []
+    fk_fetch_lines = []
+    for fk in fk_entities:
+        safe = fk["entity"].lower() + "Options"
+        fk_state_lines.append(f"  const [{safe}, set{fk['entity']}Options] = useState<any[]>([]);")
+        fk_fetch_lines.append(
+            f"    api.get('/{fk['table']}').then((d: any) => set{fk['entity']}Options(Array.isArray(d) ? d : d?.items ?? [])).catch(() => {{}});"
+        )
+
+    fk_state_str = "\n".join(fk_state_lines)
+    fk_fetch_str = "\n".join(fk_fetch_lines)
+
+    # Need api import if we have FK fields
+    api_import = "\nimport { api } from '../api';" if fk_entities else ""
+
     # Build form field components
     field_components = []
     for f in fields:
         fname = f["name"]
         flabel = f.get("label", fname.replace("_", " ").title())
-        required = not f.get("nullable", False)
+        required = "NOT NULL" in f.get("db_type", "") or not f.get("nullable", True)
         input_type = _field_input_type(f)
         required_attr = ' required' if required else ''
         required_star = ' <span className="text-red-500">*</span>' if required else ''
 
-        if input_type == "select" and f.get("enum_values"):
+        if _is_fk_field(f):
+            # FK relation select — renders a dropdown of related entity records
+            fk_name = f.get("fk_entity", fname.replace("_id", "").title())
+            safe = fk_name.lower() + "Options"
+            field_components.append(f"""\
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {flabel.replace(' Id', '')}{required_star}
+            </label>
+            <select
+              name="{fname}"
+              value={{values['{fname}'] ?? ''}}
+              onChange={{handleChange}}{required_attr}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+            >
+              <option value="">Select {fk_name}...</option>
+              {{{safe}.map((opt: any) => (
+                <option key={{opt.id}} value={{opt.id}}>
+                  {{opt.name || opt.title || opt.label || opt.id}}
+                </option>
+              ))}}
+            </select>
+          </div>""")
+        elif input_type == "select" and f.get("enum_values"):
             options = "\n".join(
-                f'              <option value="{v}">{v}</option>'
+                f'              <option value="{v}">{v.replace("_", " ").title()}</option>'
                 for v in f["enum_values"]
             )
             field_components.append(f"""\
@@ -904,22 +1048,25 @@ def _gen_entity_form(entity: dict) -> str:
               onChange={{handleChange}}{required_attr}
               rows={{3}}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              placeholder="Enter {flabel.lower()}..."
             />
           </div>""")
         elif input_type == "checkbox":
             field_components.append(f"""\
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 py-1">
             <input
               type="checkbox"
+              id="{fname}"
               name="{fname}"
               checked={{!!values['{fname}']}}
               onChange={{(e) => setValues({{ ...values, '{fname}': e.target.checked }})}}
               className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
-            <label className="text-sm font-medium text-gray-700">{flabel}</label>
+            <label htmlFor="{fname}" className="text-sm font-medium text-gray-700 cursor-pointer">{flabel}</label>
           </div>""")
         else:
             step_attr = ' step="0.01"' if input_type == "number" and f.get("db_type", "").startswith("NUMERIC") else ''
+            placeholder = f' placeholder="Enter {flabel.lower()}..."' if input_type == "text" else ''
             field_components.append(f"""\
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -929,7 +1076,7 @@ def _gen_entity_form(entity: dict) -> str:
               type="{input_type}"
               name="{fname}"
               value={{values['{fname}'] ?? ''}}
-              onChange={{handleChange}}{required_attr}{step_attr}
+              onChange={{handleChange}}{required_attr}{step_attr}{placeholder}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary focus:ring-1 focus:ring-primary outline-none"
             />
           </div>""")
@@ -937,7 +1084,7 @@ def _gen_entity_form(entity: dict) -> str:
     fields_str = "\n\n".join(field_components)
 
     return f"""\
-import {{ useState, useEffect }} from 'react';
+import {{ useState, useEffect, useCallback }} from 'react';{api_import}
 
 interface Props {{
   initialValues?: any;
@@ -948,10 +1095,22 @@ interface Props {{
 export function {name}Form({{ initialValues, onSubmit, onClose }}: Props) {{
   const [values, setValues] = useState<Record<string, any>>(initialValues ?? {{}});
   const [submitting, setSubmitting] = useState(false);
+{fk_state_str}
 
   useEffect(() => {{
     setValues(initialValues ?? {{}});
   }}, [initialValues]);
+
+  // Close on Escape key
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {{
+    if (e.key === 'Escape') onClose();
+  }}, [onClose]);
+
+  useEffect(() => {{
+    document.addEventListener('keydown', handleKeyDown);
+{fk_fetch_str}
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }}, [handleKeyDown]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {{
     const {{ name, value }} = e.target;
@@ -972,7 +1131,7 @@ export function {name}Form({{ initialValues, onSubmit, onClose }}: Props) {{
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {{/* Backdrop */}}
-      <div className="absolute inset-0 bg-black/40" onClick={{onClose}} />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={{onClose}} />
 
       {{/* Slide-over panel */}}
       <div className="relative w-full max-w-lg bg-white shadow-xl animate-[slideIn_0.2s_ease-out]">
@@ -982,7 +1141,7 @@ export function {name}Form({{ initialValues, onSubmit, onClose }}: Props) {{
             <h2 className="text-lg font-semibold">
               {{initialValues ? 'Edit' : 'New'}} {label}
             </h2>
-            <button onClick={{onClose}} className="text-gray-400 hover:text-gray-600">
+            <button onClick={{onClose}} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition">
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -991,7 +1150,7 @@ export function {name}Form({{ initialValues, onSubmit, onClose }}: Props) {{
 
           {{/* Form body */}}
           <form onSubmit={{handleSubmit}} className="flex-1 overflow-auto p-6">
-            <div className="space-y-4">
+            <div className="space-y-5">
 {fields_str}
             </div>
 
@@ -1000,14 +1159,14 @@ export function {name}Form({{ initialValues, onSubmit, onClose }}: Props) {{
               <button
                 type="submit"
                 disabled={{submitting}}
-                className="bg-primary text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition disabled:opacity-50"
+                className="bg-primary text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-primary-600 transition disabled:opacity-50"
               >
                 {{submitting ? 'Saving...' : initialValues ? 'Update' : 'Create'}}
               </button>
               <button
                 type="button"
                 onClick={{onClose}}
-                className="px-6 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+                className="px-6 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
