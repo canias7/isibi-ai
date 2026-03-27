@@ -2310,6 +2310,112 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
 /* Selection color */
 ::selection {{ background:var(--primary-light);color:var(--primary); }}
+
+/* ── Dark mode ── */
+html.dark {{
+  --bg: #0f172a;
+  --bg-card: #1e293b;
+  --sidebar-bg: #0f172a;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-placeholder: #475569;
+  --border: #334155;
+  --border-light: #1e293b;
+  --gray-50: #1e293b;
+  --gray-100: #1e293b;
+  --gray-200: #334155;
+  --gray-300: #475569;
+  --gray-400: #64748b;
+  --gray-500: #94a3b8;
+  --gray-600: #cbd5e1;
+  --gray-700: #e2e8f0;
+  --gray-800: #f1f5f9;
+  --gray-900: #f8fafc;
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3), 0 1px 3px rgba(0,0,0,0.15);
+  --shadow-lg: 0 10px 40px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.15);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.2);
+  --success-light: #064e3b;
+  --success-text: #6ee7b7;
+  --warning-light: #78350f;
+  --warning-text: #fcd34d;
+  --danger-light: #7f1d1d;
+  --danger-text: #fca5a5;
+  --info-light: #1e3a5f;
+  --info-text: #93c5fd;
+  --purple-light: #3b0764;
+  --purple-text: #d8b4fe;
+  --pink-light: #500724;
+  --pink-text: #f9a8d4;
+  --slate-light: #1e293b;
+  --slate-text: #cbd5e1;
+  --primary-light: color-mix(in srgb, var(--primary) 20%, #0f172a);
+  --primary-subtle: color-mix(in srgb, var(--primary) 10%, #0f172a);
+}}
+html.dark ::-webkit-scrollbar-thumb {{ background:#475569; }}
+html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
+
+/* ── Dark mode toggle ── */
+.theme-toggle {{
+  display:flex;align-items:center;gap:6px;
+  background:none;border:none;cursor:pointer;
+  padding:4px 8px;border-radius:var(--radius-sm);
+  color:var(--text-muted);font-size:11px;font-weight:500;
+  transition:all var(--transition);font-family:inherit;
+}}
+.theme-toggle:hover {{ color:var(--text);background:var(--gray-100); }}
+.theme-toggle svg {{ width:14px;height:14px; }}
+
+/* ── Tablet: icon-only sidebar ── */
+@media (min-width:769px) and (max-width:1024px) {{
+  .sidebar {{ width:60px; }}
+  .sidebar .app-logo-text,
+  .sidebar .sidebar-section-label,
+  .sidebar-footer-info,
+  .sidebar-footer .logout-btn,
+  .sidebar-footer .theme-toggle {{ display:none; }}
+  .sidebar-header {{ padding:16px 14px;justify-content:center; }}
+  .sidebar-item {{ justify-content:center;padding:10px 0; }}
+  .sidebar-item .item-text {{ display:none; }}
+  .sidebar-item svg {{ margin:0; }}
+  .sidebar-item.active::before {{ left:0px; }}
+  .sidebar-collapse-btn {{ display:none; }}
+  .sidebar-footer {{ padding:8px;justify-content:center; }}
+  .sidebar-nav {{ padding:8px 6px; }}
+}}
+
+/* ── Mobile: bottom tab bar ── */
+.mobile-nav {{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--bg-card);
+  border-top:1px solid var(--border);
+  z-index:50;
+  padding:4px 0 env(safe-area-inset-bottom, 4px);
+  box-shadow:0 -2px 10px rgba(0,0,0,0.05);
+}}
+.mobile-nav-inner {{
+  display:flex;justify-content:space-around;align-items:center;
+  max-width:500px;margin:0 auto;
+}}
+.mobile-nav-item {{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:6px 8px;
+  background:none;border:none;cursor:pointer;
+  color:var(--text-muted);font-size:10px;font-weight:500;
+  font-family:inherit;transition:color var(--transition);
+  min-width:0;flex:1;
+}}
+.mobile-nav-item svg {{ width:20px;height:20px; }}
+.mobile-nav-item.active {{ color:var(--primary); }}
+.mobile-nav-item:hover {{ color:var(--text); }}
+
+@media (max-width:768px) {{
+  .mobile-nav {{ display:flex; }}
+  body {{ padding-bottom:60px; }}
+}}
 </style>
 </head>
 <body>
@@ -2405,11 +2511,20 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
         <div class="sidebar-footer-role">Member</div>
       </div>
     </div>
+    <button class="theme-toggle" id="theme-toggle" onclick="toggleDarkMode()" title="Toggle dark mode">
+      <svg id="theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <svg id="theme-icon-dark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
     <button class="logout-btn" id="logout-btn" onclick="handleLogout()" title="Sign out">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     </button>
   </div>
 </aside>
+
+<!-- Mobile bottom navigation -->
+<nav class="mobile-nav" id="mobile-nav">
+  <div class="mobile-nav-inner" id="mobile-nav-inner"></div>
+</nav>
 
 <!-- Main -->
 <div class="main">
@@ -2580,6 +2695,50 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   // ── Global search state ──
   let gsearchTimer = null;
   let searchDebounceTimer = null;
+
+  // ── Dark mode ──
+  window.toggleDarkMode = function() {{
+    const isDark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("app_theme", isDark ? "dark" : "light");
+    document.getElementById("theme-icon-light").style.display = isDark ? "none" : "block";
+    document.getElementById("theme-icon-dark").style.display = isDark ? "block" : "none";
+  }};
+  // Restore saved theme preference on load
+  (function() {{
+    const saved = localStorage.getItem("app_theme");
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    if (saved === "dark" || (!saved && prefersDark)) {{
+      document.documentElement.classList.add("dark");
+      const iconLight = document.getElementById("theme-icon-light");
+      const iconDark = document.getElementById("theme-icon-dark");
+      if (iconLight) iconLight.style.display = "none";
+      if (iconDark) iconDark.style.display = "block";
+    }}
+  }})();
+
+  // ── Mobile bottom nav builder ──
+  function buildMobileNav() {{
+    const container = document.getElementById("mobile-nav-inner");
+    if (!container) return;
+    // Show up to 5 items in the bottom nav
+    const items = SIDEBAR_ITEMS.slice(0, 5);
+    container.innerHTML = items.map(function(item) {{
+      return '<button class="mobile-nav-item" data-module="' + item.name + '" onclick="showModule(\'' + item.name.replace(/'/g, "\\\\'") + '\')">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + getMobileNavIconPath(item.icon) + '</svg>' +
+        '<span>' + item.name + '</span></button>';
+    }}).join("");
+  }}
+  function getMobileNavIconPath(iconId) {{
+    const paths = {{
+      dashboard: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+      people: '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      money: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>',
+      tasks: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>',
+      product: '<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>',
+      settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4"/>',
+    }};
+    return paths[iconId] || paths.dashboard;
+  }}
 
   // ── Auth ──
   function getToken() {{
@@ -3044,7 +3203,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     return LAYOUT_HINTS[entity] || "table";
   }}
 
-  // ── Module navigation ──
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Router
+  // Navigates between modules, dispatches to components.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   window.showModule = function(name) {{
     // Handle built-in Analytics page
     if (name === "__analytics__") {{
@@ -3090,6 +3252,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
 
     // Update sidebar active state
     document.querySelectorAll(".sidebar-item").forEach(b => {{
+      b.classList.toggle("active", b.dataset.module === name);
+    }});
+    // Update mobile nav active state
+    document.querySelectorAll(".mobile-nav-item").forEach(b => {{
       b.classList.toggle("active", b.dataset.module === name);
     }});
 
@@ -3176,7 +3342,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     }}
   }}
 
-  // ── Dashboard ──
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: Dashboard
+  // Renders stat cards, charts, and recent activity.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function renderDashboard(container) {{
     const entityNames = Object.keys(ENTITY_FIELDS);
 
@@ -3339,9 +3508,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     }}
   }}
 
-  // ══════════════════════════════════════════
-  // ── KANBAN VIEW ──
-  // ══════════════════════════════════════════
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: KanbanView
+  // Renders draggable columns grouped by status field.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   async function renderKanbanView(container, moduleName, entity) {{
     const fields = ENTITY_FIELDS[entity] || [];
     const statusField = fields.find(f => f.enum_values && f.enum_values.length > 0 &&
@@ -3431,9 +3601,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     }}, 300);
   }};
 
-  // ══════════════════════════════════════════
-  // ── CALENDAR VIEW ──
-  // ══════════════════════════════════════════
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: CalendarView
+  // Renders monthly calendar with date-based records.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   async function renderCalendarView(container, moduleName, entity) {{
     const fields = ENTITY_FIELDS[entity] || [];
     const dateField = fields.find(f => /date|_at$/i.test(f.name) && !/deleted|created|updated/i.test(f.name));
@@ -3540,9 +3711,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     if (dateField) renderCalendarMonth(document.getElementById("content-area"), moduleName, entity, dateField);
   }};
 
-  // ══════════════════════════════════════════
-  // ── CARD GRID VIEW ──
-  // ══════════════════════════════════════════
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: CardGridView
+  // Renders records as visual cards in a responsive grid.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   async function renderCardGridView(container, moduleName, entity) {{
     container.innerHTML = '<div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">' +
       '<div class="search-input">' +
@@ -3641,9 +3813,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     searchDebounceTimer = setTimeout(() => renderCardGridCards(moduleName, entity), 300);
   }};
 
-  // ══════════════════════════════════════════
-  // ── TABLE VIEW ──
-  // ══════════════════════════════════════════
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: TableView
+  // Renders sortable, searchable data table with pagination.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   function renderTablePage(container, moduleName, entity) {{
     const fields = ENTITY_FIELDS[entity] || [];
     const visibleFields = fields.filter(f =>
@@ -4053,7 +4226,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     renderTableRows(entity, moduleName);
   }};
 
-  // ── Detail view ──
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: DetailView
+  // Renders single-record detail with tabs, comments, files.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // Helper: relative time for detail view
   function formatRelativeTime(dateStr) {{
     if (!dateStr) return "";
@@ -4748,6 +4924,10 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     }});
   }}
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: FormView
+  // Renders create/edit slide-over form with validation.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   async function renderForm(entity, record) {{
     const fields = (ENTITY_FIELDS[entity] || []).filter(f =>
       !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)
@@ -4988,29 +5168,69 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     saveBtn.disabled = true;
     saveBtn.innerHTML = '<span class="save-spinner"></span>Saving...';
 
-    let result;
+    const entityKey = currentEntity;
+    const savedModule = currentModule;
+    const nameField = (ENTITY_FIELDS[entityKey] || []).find(f => /^(name|title|subject|label)$/i.test(f.name));
+
+    // ── Optimistic UI: update local data immediately ──
+    let optimisticSnapshot = dataCache[entityKey] ? [...dataCache[entityKey]] : [];
+    let optimisticId = editingId;
+
     if (editingId) {{
-      result = await apiUpdate(currentEntity.toLowerCase(), editingId, record);
+      // Optimistic update: patch local cache
+      const rows = dataCache[entityKey] || [];
+      const idx = rows.findIndex(r => String(r.id || r.ID) === String(editingId));
+      if (idx !== -1) {{
+        dataCache[entityKey][idx] = {{ ...dataCache[entityKey][idx], ...record }};
+      }}
+      closeModal();
+      if (savedModule) showModule(savedModule);
+
+      // Fire API in background
+      const result = await apiUpdate(entityKey.toLowerCase(), editingId, record);
       if (result) {{
-        showToast(currentEntity + " updated successfully", "success");
-        const nameField = (ENTITY_FIELDS[currentEntity] || []).find(f => /^(name|title|subject|label)$/i.test(f.name));
+        // Replace optimistic data with server response
+        const rows2 = dataCache[entityKey] || [];
+        const idx2 = rows2.findIndex(r => String(r.id || r.ID) === String(editingId));
+        if (idx2 !== -1) dataCache[entityKey][idx2] = result;
         const label = nameField && record[nameField.name] ? record[nameField.name] : ("#" + String(editingId).slice(0, 6));
-        pushNotification(currentEntity + " \\u201c" + label + "\\u201d updated");
+        pushNotification(entityKey + " \\u201c" + label + "\\u201d updated");
+        showToast(entityKey + " updated", "success");
+      }} else {{
+        // Revert on failure
+        dataCache[entityKey] = optimisticSnapshot;
+        showToast("Failed to update — reverted changes", "error");
       }}
+      if (savedModule) showModule(savedModule);
     }} else {{
-      result = await apiCreate(currentEntity.toLowerCase(), record);
+      // Optimistic create: add temporary record with a placeholder id
+      const tempId = "_tmp_" + Date.now();
+      const tempRecord = {{ ...record, id: tempId, _optimistic: true }};
+      if (!dataCache[entityKey]) dataCache[entityKey] = [];
+      dataCache[entityKey].unshift(tempRecord);
+      closeModal();
+      if (savedModule) showModule(savedModule);
+
+      // Fire API in background
+      const result = await apiCreate(entityKey.toLowerCase(), record);
       if (result) {{
-        showToast(currentEntity + " created successfully", "success");
-        const nameField = (ENTITY_FIELDS[currentEntity] || []).find(f => /^(name|title|subject|label)$/i.test(f.name));
+        // Replace temp record with real server record
+        const rows2 = dataCache[entityKey] || [];
+        const tmpIdx = rows2.findIndex(r => r.id === tempId);
+        if (tmpIdx !== -1) dataCache[entityKey][tmpIdx] = result;
         const label = nameField && record[nameField.name] ? record[nameField.name] : "new record";
-        pushNotification("New " + currentEntity + " \\u201c" + label + "\\u201d created");
+        pushNotification("New " + entityKey + " \\u201c" + label + "\\u201d created");
+        showToast(entityKey + " created", "success");
+      }} else {{
+        // Revert on failure
+        dataCache[entityKey] = optimisticSnapshot;
+        showToast("Failed to create — reverted changes", "error");
       }}
+      if (savedModule) showModule(savedModule);
     }}
 
     saveBtn.disabled = false;
     saveBtn.textContent = originalText;
-    closeModal();
-    if (currentModule) showModule(currentModule);
   }};
 
   // ── Delete record (with confirmation) ──
@@ -5033,6 +5253,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     if (!pendingDeleteEntity || !pendingDeleteId) return;
     const delEntity = pendingDeleteEntity;
     const delId = pendingDeleteId;
+    const savedModule = currentModule;
     // Find record name for notification before deleting
     const delRows = dataCache[delEntity] || [];
     const delRecord = delRows.find(r => String(r.id || r.ID) === String(delId));
@@ -5040,14 +5261,24 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
     const delNameField = delFields.find(f => /^(name|title|subject|label)$/i.test(f.name));
     const delLabel = delRecord && delNameField ? delRecord[delNameField.name] : ("#" + String(delId).slice(0, 6));
 
+    // ── Optimistic delete: remove from local cache immediately ──
+    const snapshot = dataCache[delEntity] ? [...dataCache[delEntity]] : [];
+    if (dataCache[delEntity]) {{
+      dataCache[delEntity] = dataCache[delEntity].filter(r => String(r.id || r.ID) !== String(delId));
+    }}
+    closeConfirm();
+    if (savedModule) showModule(savedModule);
+
+    // Fire API in background
     const ok = await apiDelete(delEntity.toLowerCase(), delId);
     if (ok) {{
-      showToast(delEntity + " deleted successfully", "success");
+      showToast(delEntity + " deleted", "success");
       pushNotification(delEntity + " \\u201c" + delLabel + "\\u201d deleted");
-      closeConfirm();
-      if (currentModule) showModule(currentModule);
     }} else {{
-      closeConfirm();
+      // Revert on failure
+      dataCache[delEntity] = snapshot;
+      showToast("Failed to delete — reverted", "error");
+      if (savedModule) showModule(savedModule);
     }}
     pendingDeleteEntity = null;
     pendingDeleteId = null;
@@ -6000,6 +6231,7 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   // ── Init ──
   function initApp() {{
     buildSidebar();
+    buildMobileNav();
     updateUserDisplay();
     if (SIDEBAR_ITEMS.length > 0) {{
       showModule(SIDEBAR_ITEMS[0].name);
