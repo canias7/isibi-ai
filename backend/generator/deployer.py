@@ -283,7 +283,7 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
   --bg: #f9fafb;
   --bg-card: #ffffff;
   --sidebar-bg: #fbfbfc;
-  --sidebar-width: 260px;
+  --sidebar-width: 208px;
   --sidebar-collapsed-width: 0px;
   --border: #e5e7eb;
   --border-light: #f0f1f3;
@@ -330,9 +330,9 @@ body {{
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   display:flex;
   height:100vh;
-  background:var(--bg);
+  background:var(--bg-card);
   color:var(--text);
-  font-size:14px;
+  font-size:12px;
   line-height:1.5;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
@@ -411,14 +411,16 @@ body {{
 }}
 .auth-submit {{
   width:100%;padding:11px 0;
-  background:var(--primary);color:#fff;
+  background:linear-gradient(135deg, {primary_color}, {primary_color}cc);
+  color:#fff;
   border:none;border-radius:var(--radius);
   font-size:14px;font-weight:600;
   cursor:pointer;font-family:inherit;
-  transition:background var(--transition);
+  transition:all 0.15s ease;
   margin-top:8px;
+  box-shadow:0 1px 2px rgba(0,0,0,0.08);
 }}
-.auth-submit:hover {{ background:var(--primary-hover); }}
+.auth-submit:hover {{ box-shadow:0 4px 12px rgba(0,0,0,0.12);transform:translateY(-1px); }}
 .auth-submit:disabled {{ opacity:0.6;cursor:not-allowed; }}
 .auth-error {{
   background:var(--danger-light);color:var(--danger);
@@ -430,8 +432,8 @@ body {{
 /* ── Sidebar ── */
 .sidebar {{
   width:var(--sidebar-width);
-  background:var(--sidebar-bg);
-  border-right:1px solid var(--border);
+  background:linear-gradient(to bottom, rgba(249,250,251,0.8), #ffffff);
+  border-right:1px solid rgba(243,244,246,0.8);
   display:flex;
   flex-direction:column;
   flex-shrink:0;
@@ -440,100 +442,86 @@ body {{
   position:relative;
 }}
 .sidebar-header {{
-  padding:20px 20px 16px;
+  padding:12px 16px;
   display:flex;
   align-items:center;
-  gap:12px;
-  border-bottom:1px solid var(--border-light);
+  gap:8px;
+  border-bottom:1px solid rgba(243,244,246,0.8);
 }}
 .app-logo {{
-  width:32px;height:32px;
+  width:24px;height:24px;
   border-radius:8px;
-  background:var(--primary);
+  background:linear-gradient(135deg, {primary_color}, {primary_color}b3);
   display:flex;align-items:center;justify-content:center;
-  color:#fff;font-weight:700;font-size:14px;
+  color:#fff;font-weight:700;font-size:10px;
   flex-shrink:0;
-  box-shadow: 0 1px 3px {primary_color}30;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }}
 .app-logo-text {{
   flex:1;min-width:0;
 }}
 .app-logo-text h1 {{
-  font-size:14px;font-weight:600;color:var(--text);
+  font-size:12px;font-weight:600;color:var(--gray-900);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  letter-spacing:-0.01em;
+  letter-spacing:-0.02em;
 }}
 .app-logo-text p {{
-  font-size:11px;color:var(--text-muted);margin-top:1px;
+  font-size:9px;color:var(--text-muted);margin-top:1px;
+  display:none;
 }}
 .sidebar-collapse-btn {{
-  position:absolute;
-  top:24px;right:-12px;
-  width:24px;height:24px;
-  border-radius:50%;
-  background:var(--bg-card);
-  border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:center;
-  cursor:pointer;
-  box-shadow:var(--shadow-xs);
-  transition:all var(--transition);
-  z-index:5;
-  color:var(--text-muted);
-  opacity:0;
+  display:none;
 }}
-.sidebar:hover .sidebar-collapse-btn {{ opacity:1; }}
-.sidebar-collapse-btn:hover {{ background:var(--bg);color:var(--text); }}
-.sidebar-collapse-btn svg {{ width:14px;height:14px; }}
 .sidebar-nav {{
-  flex:1;padding:8px 8px;overflow-y:auto;
+  flex:1;padding:12px 8px;overflow-y:auto;
+  display:flex;flex-direction:column;gap:2px;
 }}
 .sidebar-section-label {{
-  font-size:10px;font-weight:600;color:var(--gray-400);
+  font-size:9px;font-weight:600;color:var(--gray-400);
   text-transform:uppercase;letter-spacing:0.08em;
-  padding:16px 12px 6px;
+  padding:12px 10px 4px;
 }}
-.sidebar-section-label:first-child {{ padding-top:8px; }}
+.sidebar-section-label:first-child {{ padding-top:4px; }}
 .sidebar-item {{
   display:flex;align-items:center;gap:10px;
   width:100%;text-align:left;
-  padding:7px 12px;
+  padding:8px 10px;
   border:none;background:none;
-  border-radius:var(--radius-sm);
-  font-size:13px;font-weight:500;
-  color:var(--gray-600);
+  border-radius:8px;
+  font-size:11px;font-weight:500;
+  color:var(--gray-500);
   cursor:pointer;
-  margin:1px 0;
-  transition:all 0.12s ease;
+  margin:0;
+  transition:all 0.15s ease;
   position:relative;
   font-family:inherit;
 }}
-.sidebar-item:hover {{ background:var(--gray-100);color:var(--text); }}
+.sidebar-item:hover {{ background:rgba(243,244,246,0.8);color:var(--gray-800); }}
 .sidebar-item.active {{
-  background:var(--primary-light);
-  color:var(--primary);
-  font-weight:600;
+  background:linear-gradient(135deg, {primary_color}, {primary_color}cc);
+  color:#ffffff;
+  font-weight:500;
+  box-shadow:0 1px 2px rgba(0,0,0,0.08);
 }}
 .sidebar-item.active::before {{
-  content:'';position:absolute;left:-8px;top:6px;bottom:6px;
-  width:3px;border-radius:0 3px 3px 0;
-  background:var(--primary);
+  display:none;
 }}
-.sidebar-item svg {{ width:18px;height:18px;flex-shrink:0;opacity:0.5; }}
-.sidebar-item:hover svg {{ opacity:0.75; }}
-.sidebar-item.active svg {{ opacity:1; }}
+.sidebar-item svg {{ width:14px;height:14px;flex-shrink:0;opacity:0.7; }}
+.sidebar-item:hover svg {{ opacity:1;transform:scale(1.1); }}
+.sidebar-item.active svg {{ opacity:1;transform:none; }}
 .sidebar-footer {{
-  padding:12px 16px;
-  border-top:1px solid var(--border-light);
-  display:flex;align-items:center;gap:10px;
+  padding:12px;
+  border-top:1px solid rgba(243,244,246,0.8);
+  display:flex;align-items:center;gap:8px;
 }}
 .sidebar-footer-avatar {{
-  width:30px;height:30px;border-radius:50%;
-  background:var(--gray-200);
+  width:24px;height:24px;border-radius:50%;
+  background:linear-gradient(to bottom right, var(--gray-200), var(--gray-300));
   display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:600;color:var(--gray-600);
+  font-size:9px;font-weight:700;color:var(--gray-600);
   flex-shrink:0;
 }}
-.sidebar-footer svg {{ width:12px;height:12px;opacity:0.5; }}
+.sidebar-footer svg {{ width:10px;height:10px;opacity:0.5; }}
 .sidebar-footer-left {{
   display:flex;align-items:center;gap:8px;flex:1;min-width:0;
 }}
@@ -541,11 +529,11 @@ body {{
   flex:1;min-width:0;
 }}
 .sidebar-footer-name {{
-  font-size:12px;font-weight:600;color:var(--text);
+  font-size:10px;font-weight:500;color:var(--gray-700);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }}
 .sidebar-footer-role {{
-  font-size:10px;color:var(--text-muted);
+  font-size:9px;color:var(--gray-400);
 }}
 .logout-btn {{
   background:none;border:1px solid var(--border);
@@ -573,11 +561,12 @@ body {{
 }}
 .topbar {{
   display:flex;align-items:center;justify-content:space-between;
-  padding:0 24px;height:52px;
-  border-bottom:1px solid var(--border-light);
-  background:var(--bg-card);
+  padding:0 16px;height:42px;
+  border-bottom:1px solid rgba(243,244,246,0.8);
+  background:rgba(255,255,255,0.8);
+  backdrop-filter:blur(8px);
   flex-shrink:0;
-  gap:16px;
+  gap:12px;
 }}
 .topbar-left {{
   display:flex;align-items:center;gap:12px;
@@ -596,281 +585,301 @@ body {{
   min-width:0;
 }}
 .topbar-breadcrumb span {{
-  font-size:14px;color:var(--text-muted);
+  font-size:13px;color:var(--gray-400);
   white-space:nowrap;
 }}
 .topbar-breadcrumb span:last-child {{
-  color:var(--text);font-weight:600;
+  color:var(--gray-900);font-weight:600;
+  letter-spacing:-0.02em;
 }}
 .topbar-breadcrumb .breadcrumb-sep {{
-  font-size:12px;color:var(--gray-300);
+  font-size:10px;color:var(--gray-300);
   font-weight:400;
 }}
 .topbar h2 {{
-  font-size:15px;font-weight:600;
+  font-size:13px;font-weight:600;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  letter-spacing:-0.02em;
+  color:var(--gray-900);
 }}
 .topbar-actions {{
   display:flex;align-items:center;gap:8px;
   flex-shrink:0;
 }}
 .topbar-avatar {{
-  width:28px;height:28px;border-radius:50%;
-  background:var(--primary-light);color:var(--primary);
+  width:28px;height:28px;border-radius:8px;
+  background:var(--gray-50);
   display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:600;
   cursor:pointer;
-  border:2px solid var(--bg-card);
-  box-shadow:0 0 0 1px var(--border);
-  transition:box-shadow var(--transition);
+  transition:all 0.15s ease;
+  position:relative;
 }}
 .topbar-avatar:hover {{
   box-shadow:0 0 0 1px var(--primary);
 }}
 .content {{
-  flex:1;overflow:auto;padding:24px;
+  flex:1;overflow:auto;padding:16px;
 }}
 
 /* ── View toggle ── */
 .view-toggle {{
-  display:inline-flex;align-items:center;gap:2px;
-  background:var(--bg);border-radius:var(--radius);
-  padding:3px;margin-right:8px;
+  display:inline-flex;align-items:center;gap:4px;
+  margin-right:8px;margin-bottom:12px;
 }}
 .view-toggle-btn {{
-  padding:5px 12px;border-radius:var(--radius-sm);
-  font-size:12px;font-weight:500;
-  cursor:pointer;border:none;background:none;
-  color:var(--text-secondary);
-  transition:all var(--transition);
-  display:flex;align-items:center;gap:4px;
+  padding:6px 10px;border-radius:8px;
+  font-size:10px;font-weight:500;
+  cursor:pointer;border:none;
+  background:var(--gray-50);
+  color:var(--gray-500);
+  transition:all 0.15s ease;
+  display:flex;align-items:center;gap:6px;
   font-family:inherit;
 }}
-.view-toggle-btn:hover {{ color:var(--text); }}
+.view-toggle-btn:hover {{ background:var(--gray-100);color:var(--gray-700); }}
 .view-toggle-btn.active {{
-  background:var(--bg-card);color:var(--text);
-  box-shadow:var(--shadow-xs);
+  background:linear-gradient(135deg, {primary_color}, {primary_color}cc);
+  color:#ffffff;
+  box-shadow:0 1px 2px rgba(0,0,0,0.08);
 }}
-.view-toggle-btn svg {{ width:14px;height:14px; }}
+.view-toggle-btn svg {{ width:12px;height:12px; }}
 
 /* ── Cards ── */
 .card {{
   background:var(--bg-card);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-sm);
+  border:1px solid rgba(243,244,246,0.8);
+  border-radius:12px;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
   transition:box-shadow 0.2s ease, transform 0.2s ease;
 }}
 .card:hover {{
-  box-shadow:var(--shadow-md);
-  transform:translateY(-2px);
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  transform:translateY(-1px);
 }}
 
 /* ── Stats grid ── */
 .stats-grid {{
   display:grid;
-  grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));
-  gap:16px;
-  margin-bottom:24px;
+  grid-template-columns:repeat(2, 1fr);
+  gap:12px;
+  margin-bottom:16px;
+}}
+@media (min-width:1024px) {{
+  .stats-grid {{ grid-template-columns:repeat(4, 1fr); }}
 }}
 .stat-card {{
-  background:linear-gradient(135deg, var(--bg-card) 0%, color-mix(in srgb, {primary_color} 5%, white) 100%);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:20px 24px;
-  box-shadow:var(--shadow-xs);
+  border:none;
+  border-radius:12px;
+  padding:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
   transition:all 0.2s cubic-bezier(.4,0,.2,1);
-  cursor:default;
+  cursor:pointer;
   display:flex;
-  align-items:center;
-  gap:16px;
+  flex-direction:column;
   position:relative;
   overflow:hidden;
+  color:#ffffff;
 }}
 .stat-card::after {{
-  content:'';position:absolute;top:0;right:0;width:100px;height:100px;
-  background:radial-gradient(circle at top right, color-mix(in srgb, {primary_color} 8%, transparent), transparent 70%);
-  pointer-events:none;
+  display:none;
 }}
-.stat-card:hover {{ box-shadow:var(--shadow-md);transform:translateY(-2px); }}
+.stat-card:hover {{ box-shadow:0 8px 24px rgba(0,0,0,0.12);transform:translateY(-2px); }}
 .stat-top {{
-  display:flex;align-items:center;justify-content:center;
+  display:flex;align-items:center;justify-content:space-between;
   flex-shrink:0;
 }}
 .stat-icon {{
-  width:48px;height:48px;border-radius:50%;
+  width:28px;height:28px;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
-  background:var(--primary-light);color:var(--primary);
-  box-shadow:0 2px 8px rgba(0,0,0,0.06);
+  background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);
+  transition:transform 0.2s ease;
 }}
-.stat-icon svg {{ width:22px;height:22px; }}
+.stat-card:hover .stat-icon {{ transform:scale(1.1); }}
+.stat-icon svg {{ width:12px;height:12px; }}
 .stat-info {{
   flex:1;min-width:0;
 }}
 .stat-trend {{
-  font-size:12px;font-weight:600;
+  font-size:10px;font-weight:600;
   display:flex;align-items:center;gap:2px;
-  padding:2px 8px;border-radius:20px;
+  padding:2px 6px;border-radius:20px;
+  background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.8);
 }}
-.stat-trend.up {{ color:var(--success-text);background:var(--success-light); }}
-.stat-trend.down {{ color:var(--danger-text);background:var(--danger-light); }}
+.stat-trend.up {{ color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.2); }}
+.stat-trend.down {{ color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.2); }}
 .stat-label {{
-  font-size:12px;color:var(--text-muted);
+  font-size:10px;color:rgba(255,255,255,0.8);
   font-weight:500;
-  margin-top:2px;
+  margin-top:0;
 }}
 .stat-value {{
-  font-size:28px;font-weight:700;color:var(--text);
+  font-size:24px;font-weight:700;color:#ffffff;
   letter-spacing:-0.02em;
   line-height:1.2;
+  margin-top:8px;
+}}
+.stat-subtitle {{
+  font-size:9px;color:rgba(255,255,255,0.6);
+  margin-top:4px;
 }}
 
 /* ── Chart (CSS-only bar chart) ── */
 .chart-container {{
   background:var(--bg-card);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  padding:24px;
-  box-shadow:var(--shadow-xs);
-  margin-bottom:24px;
+  border:1px solid rgba(243,244,246,0.8);
+  border-radius:12px;
+  padding:16px;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
+  margin-bottom:12px;
 }}
 .chart-header {{
   display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:20px;
+  margin-bottom:12px;
 }}
-.chart-header h3 {{ font-size:14px;font-weight:600; }}
+.chart-header h3 {{ font-size:11px;font-weight:600;color:var(--gray-900); }}
 .chart-bars {{
   display:flex;align-items:flex-end;gap:8px;
-  height:180px;padding-top:8px;
+  height:96px;padding-top:4px;
   position:relative;
-  border-left:1px solid var(--border-light);
-  border-bottom:1px solid var(--border-light);
-  background:repeating-linear-gradient(
-    to top,
-    transparent,
-    transparent 24%,
-    var(--border-light) 24%,
-    var(--border-light) 24.5%
-  );
 }}
 .chart-bar-col {{
   flex:1;display:flex;flex-direction:column;align-items:center;
-  height:100%;justify-content:flex-end;gap:6px;
+  height:100%;justify-content:flex-end;gap:4px;
   position:relative;
 }}
 .chart-bar {{
-  width:100%;max-width:44px;
-  border-radius:6px 6px 2px 2px;
-  background:linear-gradient(180deg, var(--primary), var(--secondary));
-  opacity:0.85;
-  transition:opacity var(--transition), height 0.5s ease, transform var(--transition);
+  width:100%;
+  border-radius:4px 4px 0 0;
   min-height:4px;
   position:relative;
+  transition:all 0.3s ease;
 }}
-.chart-bar:hover {{ opacity:1;transform:scaleY(1.02);transform-origin:bottom; }}
+.chart-bar:hover {{ opacity:0.9; }}
 .chart-bar-val {{
-  position:absolute;top:-20px;left:50%;transform:translateX(-50%);
-  font-size:10px;font-weight:700;color:var(--text);
+  position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  font-size:9px;font-weight:600;color:var(--text);
   white-space:nowrap;opacity:0;transition:opacity var(--transition);
 }}
 .chart-bar-col:hover .chart-bar-val {{ opacity:1; }}
 .chart-bar-label {{
-  font-size:10px;color:var(--text-muted);font-weight:500;
-  white-space:nowrap;
+  font-size:8px;color:var(--gray-400);font-weight:500;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:100%;text-align:center;
 }}
 
 /* ── Recent activity ── */
 .activity-list {{
   background:var(--bg-card);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-xs);
+  border:1px solid rgba(243,244,246,0.8);
+  border-radius:12px;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
   overflow:hidden;
 }}
 .activity-header {{
-  padding:16px 20px;border-bottom:1px solid var(--border-light);
+  padding:12px 16px;border-bottom:none;
   display:flex;align-items:center;justify-content:space-between;
 }}
-.activity-header h3 {{ font-size:14px;font-weight:600; }}
+.activity-header h3 {{ font-size:11px;font-weight:600;color:var(--gray-900); }}
+.activity-header span {{ font-size:9px;color:var(--gray-400); }}
 .activity-item {{
-  display:flex;align-items:center;gap:12px;
-  padding:12px 20px;
-  border-bottom:1px solid var(--border-light);
-  transition:background 100ms ease;
+  display:flex;align-items:center;gap:10px;
+  padding:8px 16px;
+  border-bottom:none;
+  border-radius:8px;
+  margin:0 8px;
+  transition:background 150ms ease;
+  cursor:pointer;
 }}
 .activity-item:last-child {{ border-bottom:none; }}
-.activity-item:hover {{ background:var(--bg); }}
+.activity-item:hover {{ background:var(--gray-50); }}
 .activity-dot {{
-  width:8px;height:8px;border-radius:50%;
-  background:var(--primary);flex-shrink:0;
+  width:28px;height:28px;border-radius:50%;
+  flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:#ffffff;
 }}
 .activity-text {{
-  flex:1;font-size:13px;color:var(--text-secondary);min-width:0;
-  display:flex;align-items:center;flex-wrap:wrap;gap:4px;
+  flex:1;font-size:10px;color:var(--gray-800);min-width:0;
+  display:flex;flex-direction:column;gap:1px;
+  font-weight:500;
 }}
-.activity-text strong {{ color:var(--text);font-weight:600; }}
+.activity-text strong {{ color:var(--text);font-weight:500; }}
+.activity-text .activity-sub {{ font-size:9px;color:var(--gray-400);font-weight:400; }}
 .activity-time {{
-  font-size:11px;color:var(--text-muted);flex-shrink:0;
+  font-size:9px;color:var(--gray-300);flex-shrink:0;
+}}
+.activity-chevron {{
+  color:var(--gray-300);
 }}
 
 /* ── Dashboard grid ── */
 .dashboard-grid {{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:24px;
+  gap:12px;
 }}
 
 /* ── Table ── */
 .table-toolbar {{
   display:flex;align-items:center;justify-content:space-between;
-  padding:16px 20px;
-  gap:12px;
+  padding:0;
+  gap:8px;
   flex-wrap:wrap;
+  margin-bottom:12px;
 }}
 .search-input {{
-  display:flex;align-items:center;gap:8px;
-  padding:7px 12px;
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  background:var(--bg);
-  transition:border-color var(--transition), box-shadow var(--transition);
-  min-width:220px;
+  display:flex;align-items:center;gap:6px;
+  padding:5px 10px;
+  border:1px solid rgba(229,231,235,0.8);
+  border-radius:8px;
+  background:var(--bg-card);
+  transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  min-width:160px;
+  height:28px;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
 }}
 .search-input:focus-within {{
-  border-color:var(--primary);
-  box-shadow:0 0 0 3px var(--primary-light);
+  border-color:var(--gray-300);
+  box-shadow:0 1px 3px rgba(0,0,0,0.08);
   background:#fff;
 }}
-.search-input svg {{ width:16px;height:16px;color:var(--text-muted);flex-shrink:0; }}
+.search-input svg {{ width:12px;height:12px;color:var(--gray-400);flex-shrink:0; }}
 .search-input input {{
   border:none;outline:none;background:transparent;
-  font-size:13px;color:var(--text);width:100%;
+  font-size:11px;color:var(--gray-800);width:100%;
   font-family:inherit;
 }}
-.search-input input::placeholder {{ color:var(--text-placeholder); }}
+.search-input input::placeholder {{ color:var(--gray-400); }}
 .status-tabs {{
-  display:flex;align-items:center;gap:2px;
-  background:var(--bg);border-radius:var(--radius);
-  padding:3px;
+  display:flex;align-items:center;gap:6px;
+  flex-wrap:wrap;
+  margin-bottom:12px;
 }}
 .status-tab {{
-  padding:5px 14px;border-radius:var(--radius-sm);
-  font-size:12px;font-weight:500;
-  cursor:pointer;border:none;background:none;
-  color:var(--text-secondary);
-  transition:all var(--transition);
+  padding:6px 10px;border-radius:8px;
+  font-size:10px;font-weight:500;
+  cursor:pointer;border:none;
+  background:var(--gray-50);
+  color:var(--gray-500);
+  transition:all 0.15s ease;
   font-family:inherit;
+  display:flex;align-items:center;gap:6px;
 }}
-.status-tab:hover {{ color:var(--text); }}
+.status-tab:hover {{ background:var(--gray-100);color:var(--gray-700); }}
 .status-tab.active {{
-  background:var(--bg-card);color:var(--text);
-  box-shadow:var(--shadow-xs);
+  background:linear-gradient(135deg, {primary_color}, {primary_color}cc);
+  color:#ffffff;
+  box-shadow:0 1px 2px rgba(0,0,0,0.08);
+}}
+.status-tab .dot {{
+  width:6px;height:6px;border-radius:50%;
+  display:inline-block;
 }}
 .table-container {{
   background:var(--bg-card);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-xs);
+  border:1px solid rgba(243,244,246,0.8);
+  border-radius:12px;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
   overflow:hidden;
 }}
 .table-scroll-wrapper {{
@@ -878,46 +887,47 @@ body {{
   position:relative;
 }}
 table {{
-  width:100%;border-collapse:separate;border-spacing:0;font-size:13px;
+  width:100%;border-collapse:separate;border-spacing:0;font-size:11px;
+  min-width:400px;
 }}
 th {{
-  text-align:left;padding:10px 16px;
-  background:transparent;
-  border-bottom:2px solid var(--border);
-  font-weight:600;font-size:11px;
-  color:#6b7280;
+  text-align:left;padding:8px 12px;
+  background:rgba(249,250,251,0.8);
+  border-bottom:1px solid rgba(243,244,246,1);
+  font-weight:600;font-size:10px;
+  color:var(--gray-400);
   text-transform:uppercase;
   letter-spacing:0.05em;
   cursor:pointer;
   user-select:none;
-  transition:color var(--transition);
+  transition:color 0.15s ease;
   white-space:nowrap;
 }}
-th:hover {{ color:var(--text-secondary); }}
+th:hover {{ color:var(--gray-700); }}
 th .sort-icon {{
   display:inline-block;margin-left:4px;
-  font-size:10px;opacity:0.4;
+  font-size:9px;opacity:0.4;
   transition:opacity var(--transition);
 }}
 th:hover .sort-icon {{ opacity:0.7; }}
-th.sorted .sort-icon {{ opacity:1;color:var(--primary); }}
+th.sorted .sort-icon {{ opacity:1;color:var(--gray-500); }}
 td {{
-  padding:12px 16px;
-  border-bottom:1px solid #f3f4f6;
+  padding:10px 12px;
+  border-bottom:1px solid rgba(249,250,251,1);
   max-width:200px;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  font-size:14px;color:#111827;
+  font-size:10px;color:var(--gray-600);
 }}
+td:first-child {{ font-weight:500;color:var(--gray-800); }}
 tr:last-child td {{ border-bottom:none; }}
 tbody tr {{
   cursor:pointer;
   transition:all 100ms ease;
-  border-left:3px solid transparent;
+  border-left:none;
 }}
-tbody tr:nth-child(even) {{ background:#fafafa; }}
+tbody tr:nth-child(even) {{ background:transparent; }}
 tbody tr:hover {{
-  background:var(--primary-subtle);
-  border-left-color:var(--primary);
+  background:rgba(249,250,251,0.8);
 }}
 tbody tr:hover .row-actions {{ opacity:1;pointer-events:auto; }}
 .row-actions {{
@@ -929,9 +939,9 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Status badges ── */
 .badge {{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:3px 10px;border-radius:6px;
-  font-size:12px;font-weight:500;
+  display:inline-flex;align-items:center;gap:4px;
+  padding:2px 8px;border-radius:9999px;
+  font-size:9px;font-weight:500;
   white-space:nowrap;
   letter-spacing:0.01em;
 }}
@@ -964,60 +974,53 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Avatar ── */
 .avatar {{
-  width:32px;height:32px;border-radius:50%;
+  width:24px;height:24px;border-radius:50%;
   display:inline-flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:600;color:#fff;
+  font-size:8px;font-weight:700;color:#fff;
   flex-shrink:0;
   text-transform:uppercase;
 }}
-.avatar-sm {{ width:28px;height:28px;font-size:11px; }}
+.avatar-sm {{ width:20px;height:20px;font-size:7px; }}
 .cell-with-avatar {{
-  display:flex;align-items:center;gap:10px;
+  display:flex;align-items:center;gap:8px;
 }}
 
 /* ── Empty state ── */
 .empty-state {{
-  text-align:center;padding:80px 24px;
+  text-align:center;padding:48px 16px;
   color:var(--gray-400);
 }}
 .empty-state-container {{
-  max-width:360px;margin:0 auto;
-  border:2px dashed var(--gray-200);
-  border-radius:var(--radius-xl);
-  padding:48px 32px;
-  background:var(--gray-50);
+  max-width:280px;margin:0 auto;
+  border:none;
+  border-radius:12px;
+  padding:24px;
+  background:transparent;
 }}
 .empty-state-icon {{
-  width:80px;height:80px;margin:0 auto 20px;
-  border-radius:50%;
-  border:2px dashed var(--gray-300);
-  background:var(--bg-card);
+  width:40px;height:40px;margin:0 auto 12px;
+  border-radius:12px;
+  border:none;
+  background:var(--gray-50);
   display:flex;align-items:center;justify-content:center;
   position:relative;
-  animation:emptyPulse 3s ease-in-out infinite;
 }}
 @keyframes emptyPulse {{
   0%,100% {{ transform:scale(1);opacity:0.7; }}
   50% {{ transform:scale(1.04);opacity:1; }}
 }}
-.empty-state-icon svg {{ width:28px;height:28px;opacity:0.4;color:var(--gray-400); }}
+.empty-state-icon svg {{ width:20px;height:20px;opacity:0.4;color:var(--gray-300); }}
 .empty-state-icon .plus-icon {{
-  position:absolute;bottom:-4px;right:-4px;
-  width:28px;height:28px;border-radius:50%;
-  background:var(--primary);color:#fff;
-  display:flex;align-items:center;justify-content:center;
-  font-size:18px;font-weight:700;line-height:1;
-  box-shadow:0 2px 8px rgba(0,0,0,0.15);
-  border:2px solid var(--bg-card);
+  display:none;
 }}
 .empty-state h3 {{
-  font-size:16px;font-weight:600;color:var(--text);
-  margin-bottom:6px;
+  font-size:11px;font-weight:500;color:var(--gray-500);
+  margin-bottom:4px;
 }}
 .empty-state p {{
-  font-size:13px;margin-bottom:24px;
-  max-width:280px;margin-left:auto;margin-right:auto;
-  line-height:1.6;color:var(--gray-500);
+  font-size:10px;margin-bottom:16px;
+  max-width:240px;margin-left:auto;margin-right:auto;
+  line-height:1.5;color:var(--gray-400);
 }}
 .empty-state .btn {{
   display:inline-flex;
@@ -1026,41 +1029,42 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 /* ── Pagination ── */
 .table-footer {{
   display:flex;align-items:center;justify-content:space-between;
-  padding:12px 20px;
-  border-top:1px solid var(--border-light);
-  font-size:12px;color:var(--text-muted);
+  padding:8px 0;
+  margin-top:8px;
+  font-size:10px;color:var(--gray-400);
 }}
 .pagination {{
   display:flex;align-items:center;gap:4px;
 }}
 .page-btn {{
-  width:32px;height:32px;
-  border-radius:var(--radius);
-  border:1px solid var(--border);
+  padding:4px 10px;
+  border-radius:8px;
+  border:1px solid var(--gray-200);
   background:var(--bg-card);
   display:flex;align-items:center;justify-content:center;
-  cursor:pointer;font-size:12px;font-weight:500;
-  color:var(--text-secondary);
-  transition:all var(--transition);
+  cursor:pointer;font-size:10px;font-weight:500;
+  color:var(--gray-400);
+  transition:all 0.15s ease;
   font-family:inherit;
 }}
-.page-btn:hover {{ background:var(--bg);color:var(--text); }}
+.page-btn:hover {{ background:var(--gray-50); }}
 .page-btn.active {{
-  background:var(--primary);color:#fff;
-  border-color:var(--primary);
+  background:{primary_color};color:#fff;
+  border-color:{primary_color};
+  box-shadow:0 1px 2px rgba(0,0,0,0.08);
 }}
 .page-btn:disabled {{
   opacity:0.4;cursor:not-allowed;
 }}
-.page-btn svg {{ width:14px;height:14px; }}
+.page-btn svg {{ width:12px;height:12px; }}
 
 /* ── Buttons ── */
 .btn {{
   display:inline-flex;align-items:center;gap:6px;
-  padding:8px 16px;
-  border:1px solid var(--border);
+  padding:6px 12px;
+  border:1px solid var(--gray-200);
   border-radius:8px;
-  font-size:14px;font-weight:500;
+  font-size:10px;font-weight:500;
   cursor:pointer;background:var(--bg-card);
   color:var(--text);
   transition:all 0.15s cubic-bezier(.4,0,.2,1);
@@ -1070,16 +1074,17 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 .btn:hover {{ background:#f9fafb;border-color:#d1d5db; }}
 .btn:active {{ transform:scale(0.97); }}
 .btn-primary {{
-  background:var(--primary);color:#fff;
-  border:none;border-color:var(--primary);
+  background:linear-gradient(135deg, {primary_color}, {primary_color}cc);
+  color:#fff;
+  border:none;
   border-radius:8px;
-  box-shadow:0 1px 2px rgba(0,0,0,.05);
+  box-shadow:0 1px 2px rgba(0,0,0,.08);
 }}
-.btn-primary:hover {{ filter:brightness(1.1);box-shadow:0 2px 8px {primary_color}4d; }}
+.btn-primary:hover {{ box-shadow:0 4px 12px rgba(0,0,0,0.12);transform:translateY(-1px); }}
 .btn-secondary {{
-  background:white;color:#374151;
-  border:1px solid #e5e7eb;border-radius:8px;
-  padding:8px 16px;font-weight:500;font-size:14px;cursor:pointer;
+  background:white;color:var(--gray-500);
+  border:1px solid var(--gray-200);border-radius:8px;
+  padding:6px 12px;font-weight:500;font-size:10px;cursor:pointer;
 }}
 .btn-secondary:hover {{ background:#f9fafb;border-color:#d1d5db; }}
 .btn-danger {{
@@ -1091,8 +1096,8 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
   color:var(--text-secondary);
 }}
 .btn-ghost:hover {{ background:var(--bg);color:var(--text); }}
-.btn-sm {{ padding:6px 12px;font-size:12px; }}
-.btn svg {{ width:16px;height:16px; }}
+.btn-sm {{ padding:4px 10px;font-size:10px; }}
+.btn svg {{ width:12px;height:12px; }}
 
 /* ── Slide-over modal ── */
 .modal-overlay {{
@@ -1120,7 +1125,7 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
   border-bottom:1px solid var(--border);
   flex-shrink:0;
 }}
-.slide-over-header h3 {{ font-size:16px;font-weight:600; }}
+.slide-over-header h3 {{ font-size:13px;font-weight:600;color:var(--gray-900); }}
 .modal-close {{
   background:none;border:none;cursor:pointer;
   color:var(--text-muted);padding:6px;
@@ -1177,19 +1182,21 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
   max-width:800px;
 }}
 .detail-header {{
-  display:flex;align-items:center;gap:12px;
-  margin-bottom:24px;
+  display:flex;align-items:start;justify-content:space-between;gap:12px;
+  margin-bottom:16px;
   flex-wrap:wrap;
+  border:1px solid rgba(243,244,246,0.8);
+  border-radius:12px;
+  padding:16px;
+  background:linear-gradient(to right, var(--gray-50), white);
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
 }}
 .detail-header .back-btn {{
-  background:none;border:none;cursor:pointer;
-  color:var(--text-muted);padding:6px;
-  border-radius:var(--radius);
-  transition:all var(--transition);
+  display:none;
 }}
 .detail-header .back-btn:hover {{ background:var(--bg);color:var(--text); }}
-.detail-header .back-btn svg {{ width:20px;height:20px; }}
-.detail-header h2 {{ font-size:20px;font-weight:700;flex:1;min-width:0; }}
+.detail-header .back-btn svg {{ width:16px;height:16px; }}
+.detail-header h2 {{ font-size:14px;font-weight:600;flex:1;min-width:0;color:var(--gray-900); }}
 .detail-header-actions {{
   display:flex;gap:8px;flex-shrink:0;
 }}
@@ -1198,30 +1205,33 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
   margin-left:8px;vertical-align:middle;
 }}
 .detail-body {{
-  background:var(--bg-card);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-xs);
+  background:transparent;
+  border:none;
+  box-shadow:none;
   overflow:hidden;
-  padding:8px 0;
+  padding:0;
 }}
 .detail-fields-grid {{
   display:grid;
   grid-template-columns:1fr 1fr;
-  gap:0;
+  gap:12px;
 }}
 .detail-field {{
-  display:flex;flex-direction:column;gap:4px;
-  padding:14px 24px;
-  border-bottom:1px solid var(--border-light);
+  display:flex;flex-direction:column;gap:6px;
+  padding:12px;
+  border:1px solid rgba(243,244,246,0.6);
+  border-radius:12px;
+  background:rgba(249,250,251,0.5);
+  transition:background 0.15s ease;
 }}
+.detail-field:hover {{ background:var(--gray-50); }}
 .detail-field:last-child {{ border-bottom:none; }}
 .detail-field-label {{
-  font-size:11px;font-weight:600;color:var(--text-muted);
+  font-size:9px;font-weight:600;color:var(--gray-400);
   text-transform:uppercase;letter-spacing:0.05em;
 }}
 .detail-field-value {{
-  font-size:14px;color:var(--text);
+  font-size:11px;color:var(--gray-800);
   word-break:break-word;
 }}
 .detail-field-value.empty {{
@@ -1245,15 +1255,15 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 }}
 .detail-tabs::-webkit-scrollbar {{ display:none; }}
 .detail-tab {{
-  padding:10px 18px;font-size:13px;font-weight:500;
-  color:var(--text-muted);cursor:pointer;
+  padding:8px 12px;font-size:10px;font-weight:500;
+  color:var(--gray-400);cursor:pointer;
   border-bottom:2px solid transparent;
-  white-space:nowrap;transition:all var(--transition);
+  white-space:nowrap;transition:all 0.15s ease;
   background:none;border-top:none;border-left:none;border-right:none;
 }}
-.detail-tab:hover {{ color:var(--text);background:var(--bg); }}
+.detail-tab:hover {{ color:var(--gray-600); }}
 .detail-tab.active {{
-  color:var(--primary);border-bottom-color:var(--primary);font-weight:600;
+  color:{primary_color};border-bottom-color:{primary_color};font-weight:500;
 }}
 .detail-tab-count {{
   display:inline-flex;align-items:center;justify-content:center;
@@ -1361,24 +1371,24 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Form ── */
 .form-group {{
-  margin-bottom:20px;
+  margin-bottom:12px;
 }}
 .form-group label {{
-  display:block;font-size:11px;font-weight:600;
-  color:var(--text-muted);margin-bottom:6px;
+  display:block;font-size:10px;font-weight:600;
+  color:var(--gray-500);margin-bottom:4px;
   text-transform:uppercase;
   letter-spacing:0.05em;
 }}
 .form-group label .required {{
-  color:var(--primary);margin-left:2px;font-size:14px;line-height:1;
+  color:#f87171;margin-left:2px;font-size:12px;line-height:1;
 }}
 .form-group input,
 .form-group select,
 .form-group textarea {{
-  width:100%;padding:10px 14px;
-  border:1px solid #e5e7eb;
+  width:100%;padding:8px 12px;
+  border:1px solid var(--gray-200);
   border-radius:8px;
-  font-size:14px;color:var(--text);
+  font-size:11px;color:var(--gray-800);
   background:var(--bg-card);
   outline:none;font-family:inherit;
   box-sizing:border-box;
@@ -1387,12 +1397,12 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {{
-  border-color:var(--primary);
-  box-shadow:0 0 0 3px var(--primary-light);
+  border-color:var(--gray-300);
+  box-shadow:0 0 0 2px rgba(229,231,235,0.5);
 }}
 .form-group input::placeholder,
 .form-group textarea::placeholder {{
-  color:var(--text-placeholder);
+  color:var(--gray-400);
 }}
 .form-group select {{
   appearance:none;-webkit-appearance:none;
@@ -1536,61 +1546,84 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Kanban Board ── */
 .kanban-board {{
-  display:flex;gap:16px;
+  display:flex;gap:12px;
   overflow-x:auto;padding-bottom:8px;
-  min-height:400px;
+  min-height:200px;
 }}
 .kanban-column {{
-  min-width:260px;width:260px;flex-shrink:0;
-  background:var(--bg);
-  border-radius:var(--radius-lg);
-  border:1px solid var(--border-light);
+  min-width:180px;flex:1;flex-shrink:0;
+  background:transparent;
+  border-radius:12px;
+  border:none;
   display:flex;flex-direction:column;
   max-height:calc(100vh - 200px);
 }}
 .kanban-column-header {{
-  padding:14px 16px;
-  font-size:13px;font-weight:600;
-  display:flex;align-items:center;justify-content:space-between;
-  border-bottom:1px solid var(--border-light);
+  padding:0 4px;margin-bottom:8px;
+  font-size:10px;font-weight:600;color:var(--gray-700);
+  display:flex;align-items:center;gap:8px;
+  border-bottom:none;
   flex-shrink:0;
 }}
+.kanban-column-header .col-dot {{
+  width:8px;height:8px;border-radius:50%;
+  display:inline-block;
+}}
 .kanban-column-count {{
-  font-size:11px;font-weight:500;
-  background:var(--bg-card);
-  border:1px solid var(--border);
-  padding:1px 8px;border-radius:20px;
-  color:var(--text-muted);
+  font-size:9px;font-weight:500;
+  background:var(--gray-100);
+  border:none;
+  padding:1px 6px;border-radius:9999px;
+  color:var(--gray-500);
+  margin-left:auto;
+  min-width:16px;height:16px;
+  display:flex;align-items:center;justify-content:center;
 }}
 .kanban-column-body {{
-  flex:1;overflow-y:auto;padding:10px;
+  flex:1;overflow-y:auto;padding:8px;
   display:flex;flex-direction:column;gap:8px;
+  border-radius:12px;
+  background:rgba(249,250,251,0.8);
+  min-height:120px;
 }}
 .kanban-card {{
   background:var(--bg-card);
-  border:1px solid var(--border);
-  border-radius:var(--radius);
-  padding:12px 14px;
+  border:1px solid rgba(243,244,246,0.8);
+  border-radius:8px;
+  padding:10px;
   cursor:pointer;
-  transition:all var(--transition);
-  box-shadow:var(--shadow-xs);
+  transition:all 0.15s ease;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
 }}
 .kanban-card:hover {{
-  box-shadow:var(--shadow-sm);
-  border-color:var(--primary);
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
   transform:translateY(-1px);
 }}
 .kanban-card-title {{
-  font-size:13px;font-weight:600;color:var(--text);
-  margin-bottom:6px;
+  font-size:10px;font-weight:500;color:var(--gray-800);
+  margin-bottom:4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }}
 .kanban-card-field {{
-  font-size:12px;color:var(--text-muted);
-  margin-top:3px;
+  font-size:9px;color:var(--gray-400);
+  margin-top:2px;
   display:flex;align-items:center;gap:4px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }}
 .kanban-card-field strong {{
-  color:var(--text-secondary);font-weight:500;
+  color:var(--gray-500);font-weight:500;
+}}
+.kanban-card-footer {{
+  display:flex;align-items:center;gap:6px;margin-top:8px;
+}}
+.kanban-card-footer .mini-avatar {{
+  width:16px;height:16px;border-radius:50%;
+  background:linear-gradient(to bottom right, var(--gray-200), var(--gray-300));
+  display:flex;align-items:center;justify-content:center;
+  font-size:7px;font-weight:700;color:var(--gray-500);
+}}
+.kanban-card-footer .card-time {{
+  font-size:8px;color:var(--gray-400);
 }}
 
 /* ── Calendar View ── */
@@ -1845,20 +1878,24 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 
 /* ── Notification Bell ── */
 .notif-bell {{
-  position:relative;background:none;border:none;cursor:pointer;
-  padding:6px;border-radius:var(--radius);color:var(--text-secondary);
-  transition:all var(--transition);
-}}
-.notif-bell:hover {{ background:var(--bg);color:var(--text); }}
-.notif-bell svg {{ width:20px;height:20px; }}
-.notif-badge {{
-  position:absolute;top:2px;right:2px;
-  min-width:16px;height:16px;
-  background:var(--danger);color:#fff;
-  border-radius:20px;font-size:10px;font-weight:700;
+  position:relative;background:var(--gray-50);border:none;cursor:pointer;
+  padding:5px;border-radius:8px;color:var(--gray-500);
+  transition:all 0.15s ease;
+  width:28px;height:28px;
   display:flex;align-items:center;justify-content:center;
-  padding:0 4px;line-height:1;
+  box-shadow:0 1px 2px rgba(0,0,0,0.04);
+}}
+.notif-bell:hover {{ background:var(--gray-100); }}
+.notif-bell svg {{ width:14px;height:14px; }}
+.notif-badge {{
+  position:absolute;top:-2px;right:-2px;
+  width:8px;height:8px;
+  background:{primary_color};
+  border-radius:50%;
+  border:2px solid #fff;
   pointer-events:none;
+  padding:0;min-width:0;
+  font-size:0;
 }}
 .notif-badge.hidden {{ display:none; }}
 .notif-dropdown {{
@@ -1991,21 +2028,7 @@ td[data-type="number"] {{ text-align:right;font-variant-numeric:tabular-nums; }}
 .bulk-action-bar select option {{ color:var(--text);background:var(--bg-card); }}
 tr.bulk-selected {{ background:var(--primary-light) !important; }}
 .topbar-search-trigger {{
-  display:flex;align-items:center;gap:8px;
-  padding:6px 12px;border:1px solid var(--border);
-  border-radius:var(--radius);background:var(--gray-50);
-  color:var(--gray-400);font-size:13px;cursor:pointer;
-  transition:all var(--transition);min-width:200px;
-  font-family:inherit;
-}}
-.topbar-search-trigger:hover {{ border-color:var(--gray-300);color:var(--gray-500);background:var(--bg-card); }}
-.topbar-search-trigger svg {{ width:15px;height:15px;flex-shrink:0; }}
-.topbar-search-trigger kbd {{
-  font-size:10px;padding:2px 6px;border-radius:4px;
-  background:var(--bg-card);border:1px solid var(--gray-200);
-  color:var(--gray-400);margin-left:auto;font-family:system-ui,inherit;
-  font-weight:500;line-height:1.3;
-  box-shadow:0 1px 0 var(--gray-200);
+  display:none;
 }}
 /* ── AI Chat Widget ── */
 .chat-widget-btn {{
@@ -2270,12 +2293,13 @@ button:active:not(:disabled) {{ transform:scale(0.97); }}
 
 /* Global form input polish */
 input, select, textarea {{
-  border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;
-  font-size:14px;transition:border-color 0.15s, box-shadow 0.15s;
+  border:1px solid var(--gray-200);border-radius:8px;padding:8px 12px;
+  font-size:11px;transition:border-color 0.15s, box-shadow 0.15s;
   outline:none;width:100%;box-sizing:border-box;
+  font-family:inherit;
 }}
 input:focus, select:focus, textarea:focus {{
-  border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-light);
+  border-color:var(--gray-300);box-shadow:0 0 0 2px rgba(229,231,235,0.5);
 }}
 
 /* Override for checkboxes */
@@ -2290,17 +2314,12 @@ input[type="checkbox"], input[type="radio"] {{ width:auto; }}
   box-shadow:0 0 0 3px rgba(59,130,246,0.15);
 }}
 
-/* Enhanced stat cards - use gradient variants per card */
-.stat-card:nth-child(1) {{ background:linear-gradient(135deg, #fff 0%, #eef2ff 100%); }}
-.stat-card:nth-child(2) {{ background:linear-gradient(135deg, #fff 0%, #ecfdf5 100%); }}
-.stat-card:nth-child(3) {{ background:linear-gradient(135deg, #fff 0%, #fffbeb 100%); }}
-.stat-card:nth-child(4) {{ background:linear-gradient(135deg, #fff 0%, #eff6ff 100%); }}
-.stat-card:nth-child(5) {{ background:linear-gradient(135deg, #fff 0%, #fef2f2 100%); }}
-
-/* Enhanced table container */
-.table-container {{
-  box-shadow:0 0 0 1px rgba(0,0,0,.03), 0 2px 4px rgba(0,0,0,.05), 0 12px 24px rgba(0,0,0,.05);
-}}
+/* Enhanced stat cards - use gradient variants per card (SpecPreview style) */
+.stat-card:nth-child(1) {{ background:linear-gradient(135deg, {primary_color}, {primary_color}b3); }}
+.stat-card:nth-child(2) {{ background:linear-gradient(135deg, #10b981, #34d399); }}
+.stat-card:nth-child(3) {{ background:linear-gradient(135deg, #f59e0b, #fbbf24); }}
+.stat-card:nth-child(4) {{ background:linear-gradient(135deg, #8b5cf6, #a78bfa); }}
+.stat-card:nth-child(5) {{ background:linear-gradient(135deg, #3b82f6, #60a5fa); }}
 
 /* Enhanced kanban cards */
 .kanban-card {{
@@ -2787,6 +2806,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   // ── Config ──
   const PROJECT_ID = "{project_id}";
   const API_BASE = "{api_base_url}";
+  const PRIMARY_COLOR = "{primary_color}";
   const ENTITY_FIELDS = {entity_fields_js};
   const SIDEBAR_ITEMS = {sidebar_items_js};
   const LAYOUT_HINTS = {layout_hints_js};
@@ -3434,11 +3454,10 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
           '</div>';
       }}
       actions.innerHTML = toggleHtml +
-        '<div class="export-btn-group">' +
-          '<button class="btn btn-secondary btn-sm" onclick="exportCSV()" title="Export CSV"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>CSV</button>' +
-          '<button class="btn btn-secondary btn-sm" onclick="exportPDF()" title="Export PDF"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>PDF</button>' +
-        '</div>' +
-        '<button class="btn btn-primary btn-sm" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add New</button>';
+        '<div class="search-input" style="margin:0">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
+          '<input type="text" placeholder="Search..." id="topbar-search" oninput="searchTable(\\x27' + escHtml(name) + '\\x27,\\x27' + escHtml(currentEntity) + '\\x27,this.value)" style="width:96px">' +
+        '</div>';
     }} else {{
       actions.innerHTML = "";
     }}
@@ -3491,81 +3510,59 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   function renderDashboard(container) {{
     const entityNames = Object.keys(ENTITY_FIELDS);
 
-    // Welcome greeting
-    const userEmail = localStorage.getItem("user_email") || "";
-    const userName = userEmail ? userEmail.split("@")[0].replace(/[._]/g, " ").replace(/\\b\\w/g, l => l.toUpperCase()) : "there";
-    const hour = new Date().getHours();
-    const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-    const today = new Date();
-    const dateStr = today.toLocaleDateString('en-US', {{ weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }});
-    let welcomeHtml = '<div class="dashboard-welcome" style="margin-bottom:24px">' +
-      '<p style="font-size:12px;color:var(--text-muted);margin:0 0 4px;font-weight:500;text-transform:uppercase;letter-spacing:0.05em">' + escHtml(dateStr) + '</p>' +
-      '<h2 style="font-size:22px;font-weight:700;color:var(--text);margin-bottom:4px">' + greeting + ', ' + escHtml(userName) + '!</h2>' +
-      '<p style="font-size:14px;color:var(--text-muted);margin:0">Here\\u2019s what\\u2019s happening with your data today.</p>' +
-    '</div>';
-
-    // Stat cards
+    // Stat cards — SpecPreview gradient style with white text
     let statsHtml = '<div class="stats-grid">';
-    const statIcons = [
-      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>',
-      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>',
-      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
-      '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
-    ];
-    entityNames.forEach((eName, idx) => {{
-      const colors = [
-        {{ bg: 'var(--primary-light)', fg: 'var(--primary)' }},
-        {{ bg: 'var(--success-light)', fg: 'var(--success)' }},
-        {{ bg: 'var(--warning-light)', fg: 'var(--warning)' }},
-        {{ bg: 'var(--info-light)', fg: 'var(--info)' }},
-        {{ bg: 'var(--danger-light)', fg: 'var(--danger)' }},
-      ];
-      const c = colors[idx % colors.length];
-      const icon = statIcons[idx % statIcons.length];
-      const trendPct = [12, 8, 23, 5, 17][idx % 5];
-      const trendDir = [true, true, false, true, true][idx % 5];
-      const trendArrow = trendDir ? '\u2191' : '\u2193';
-      const trendClass = trendDir ? 'up' : 'down';
+    const trendIcon = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>';
+    entityNames.slice(0, 4).forEach((eName, idx) => {{
       statsHtml += '<div class="stat-card">' +
-        '<div class="stat-top"><div class="stat-icon" style="background:' + c.bg + ';color:' + c.fg + '">' + icon + '</div></div>' +
-        '<div class="stat-info">' +
-        '<div style="display:flex;align-items:baseline;gap:8px;">' +
-        '<div class="stat-value" id="stat-count-' + eName + '"><span class="skeleton skeleton-line" style="width:60px;display:inline-block">&nbsp;</span></div>' +
-        '<span class="stat-trend ' + trendClass + '">' + trendArrow + ' ' + trendPct + '%</span>' +
+        '<div class="stat-top">' +
+          '<div class="stat-label">Total ' + escHtml(eName) + 's</div>' +
+          '<div class="stat-icon">' + trendIcon + '</div>' +
         '</div>' +
-        '<div class="stat-label">Total ' + escHtml(eName) + 's</div>' +
-        '</div>' +
+        '<div class="stat-value" id="stat-count-' + eName + '">0</div>' +
+        '<div class="stat-subtitle" id="stat-sub-' + eName + '">No data yet</div>' +
         '</div>';
     }});
     statsHtml += '</div>';
 
-    // Quick Actions row
-    let quickActionsHtml = '<div class="quick-actions-row">';
-    entityNames.forEach(eName => {{
+    // Chart + recent items in grid — SpecPreview style
+    const barEntities = entityNames.slice(0, 5);
+    let chartBars = barEntities.map(e => '<div class="chart-bar-col"><div class="chart-bar" id="chart-bar-' + e + '" style="height:4px;background:var(--gray-200)"><span class="chart-bar-val" id="chart-val-' + e + '">0</span></div><div class="chart-bar-label">' + escHtml(e) + '</div></div>').join('');
+    const chartIcon = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--gray-300)"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+
+    // Quick actions — SpecPreview style
+    let quickActionsHtml = '<div style="border:1px solid rgba(243,244,246,0.8);border-radius:12px;background:#fff;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,0.04)">' +
+      '<p style="font-size:11px;font-weight:600;color:var(--gray-900);margin-bottom:12px">Quick Actions</p>' +
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
+    entityNames.slice(0, 4).forEach(eName => {{
       const modName = (SIDEBAR_ITEMS.find(si => si.entity === eName) || {{}}).name || eName;
-      quickActionsHtml += '<button class="quick-action-btn" onclick="showModule(\\x27' + escHtml(modName) + '\\x27);setTimeout(()=>openCreate(),100)">' +
-        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
-        'New ' + escHtml(eName) +
+      quickActionsHtml += '<button style="display:flex;align-items:center;gap:8px;border:1px solid rgba(243,244,246,1);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;font-family:inherit;font-size:10px;font-weight:500;color:var(--gray-600);transition:all 0.15s ease" ' +
+        'onmouseover="this.style.borderColor=\'rgba(229,231,235,1)\';this.style.background=\'var(--gray-50)\'" ' +
+        'onmouseout="this.style.borderColor=\'rgba(243,244,246,1)\';this.style.background=\'#fff\'" ' +
+        'onclick="showModule(\\x27' + escHtml(modName) + '\\x27);setTimeout(()=>openCreate(),100)">' +
+        '<span style="display:flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:6px;background:' + PRIMARY_COLOR + '1a">' +
+          '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="' + PRIMARY_COLOR + '" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+        '</span>' +
+        'Add ' + escHtml(eName) +
         '</button>';
     }});
-    quickActionsHtml += '</div>';
+    quickActionsHtml += '</div></div>';
 
-    // Chart + activity in grid
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    let chartBars = days.map(d => '<div class="chart-bar-col"><div class="chart-bar" id="chart-bar-' + d + '" style="height:20%"><span class="chart-bar-val" id="chart-val-' + d + '">0</span></div><div class="chart-bar-label">' + d + '</div></div>').join('');
-
-    const html = welcomeHtml + statsHtml + quickActionsHtml +
+    const html = statsHtml +
       '<div class="dashboard-grid">' +
         '<div class="chart-container">' +
-          '<div class="chart-header"><h3>Weekly Overview</h3></div>' +
+          '<div class="chart-header"><h3>Overview</h3>' + chartIcon + '</div>' +
           '<div class="chart-bars">' + chartBars + '</div>' +
         '</div>' +
         '<div class="activity-list">' +
-          '<div class="activity-header"><h3>Recent Activity</h3></div>' +
-          '<div id="activity-items"><div class="activity-item"><div class="activity-text" style="color:var(--text-muted);font-size:12px">Loading activity...</div></div></div>' +
+          '<div class="activity-header"><h3>Recent ' + escHtml(entityNames[0] || 'Items') + '</h3><span id="activity-count">0 items</span></div>' +
+          '<div id="activity-items" style="padding:4px 0"><div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;text-align:center">' +
+            '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--gray-200)" stroke-width="2" style="margin-bottom:8px"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>' +
+            '<p style="font-size:10px;color:var(--gray-400);margin:0">No items yet</p>' +
+            '<p style="font-size:9px;color:var(--gray-300);margin:2px 0 0">Add data to see recent items</p>' +
+          '</div></div>' +
         '</div>' +
-      '</div>';
+      '</div>' + quickActionsHtml;
 
     container.innerHTML = html;
     loadDashboardStats();
@@ -3573,34 +3570,37 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
   async function loadDashboardStats() {{
     const entityNames = Object.keys(ENTITY_FIELDS);
+    const statusColors = ["#3b82f6","#10b981","#f59e0b","#ef4444","#8b5cf6","#ec4899","#06b6d4","#f97316"];
     let totalAll = 0;
     const counts = {{}};
     const allRows = [];
 
     for (const entity of entityNames) {{
       const countEl = document.getElementById("stat-count-" + entity);
+      const subEl = document.getElementById("stat-sub-" + entity);
       try {{
         const rows = await apiGet(entity.toLowerCase());
         dataCache[entity] = rows;
         counts[entity] = rows.length;
         totalAll += rows.length;
         if (countEl) countEl.textContent = rows.length;
+        if (subEl) subEl.textContent = rows.length === 0 ? "No data yet" : rows.length + " total item" + (rows.length !== 1 ? "s" : "");
         rows.forEach(r => allRows.push({{ ...r, _entity: entity }}));
       }} catch {{
         if (countEl) countEl.textContent = "0";
       }}
     }}
 
-    // Update chart bars with pseudo-random data based on counts and show value labels
-    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-    const maxCount = Math.max(totalAll, 1);
-    days.forEach((d, i) => {{
-      const bar = document.getElementById("chart-bar-" + d);
-      const valEl = document.getElementById("chart-val-" + d);
+    // Update chart bars — entity-based (SpecPreview style)
+    const maxCount = Math.max(...entityNames.map(e => counts[e] || 0), 1);
+    entityNames.slice(0, 5).forEach((e) => {{
+      const bar = document.getElementById("chart-bar-" + e);
+      const valEl = document.getElementById("chart-val-" + e);
       if (bar) {{
-        const pct = Math.max(10, Math.min(95, (((i * 17 + totalAll * 3) % 80) + 15)));
-        const val = Math.round(totalAll * pct / 100);
-        bar.style.height = pct + "%";
+        const val = counts[e] || 0;
+        const pct = Math.max(5, (val / maxCount) * 100);
+        bar.style.height = Math.max((val / maxCount) * 80, 4) + "px";
+        bar.style.background = val > 0 ? ("linear-gradient(to top, " + PRIMARY_COLOR + ", " + PRIMARY_COLOR + "99)") : "#e5e7eb";
         if (valEl) valEl.textContent = val;
       }}
     }});
@@ -3622,28 +3622,37 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       return d.toLocaleDateString();
     }}
 
-    // Recent activity — show last 5 across all entities
+    // Recent activity — SpecPreview style with avatar circles and chevron
     const activityContainer = document.getElementById("activity-items");
+    const countSpan = document.getElementById("activity-count");
     if (activityContainer) {{
-      const recent = allRows
+      const firstEntity = entityNames[0] || "";
+      const firstRows = dataCache[firstEntity] || [];
+      const recent = firstRows
         .sort((a, b) => (b.created_at || "").localeCompare(a.created_at || ""))
         .slice(0, 5);
 
+      if (countSpan) countSpan.textContent = recent.length + " item" + (recent.length !== 1 ? "s" : "");
+
       if (recent.length === 0) {{
-        activityContainer.innerHTML = '<div class="activity-item"><div class="activity-text" style="color:var(--text-muted);font-size:12px">No activity yet. Create your first record to see it here.</div></div>';
+        activityContainer.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 0;text-align:center">' +
+          '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="var(--gray-200)" stroke-width="2" style="margin-bottom:8px"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>' +
+          '<p style="font-size:10px;color:var(--gray-400);margin:0">No items yet</p>' +
+          '<p style="font-size:9px;color:var(--gray-300);margin:2px 0 0">Add data to see recent items</p>' +
+        '</div>';
       }} else {{
-        activityContainer.innerHTML = recent.map(r => {{
-          const fields = ENTITY_FIELDS[r._entity] || [];
-          const nameField = fields.find(f => /^(name|title|subject|label)$/i.test(f.name));
-          const label = nameField ? (r[nameField.name] || "Untitled") : ("Record #" + (r.id || "").toString().slice(0, 6));
-          const time = relativeTime(r.created_at);
-          const initials = String(label).split(/\\s+/).map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
-          const avatarColor = stringToColor(String(label));
-          const badgeClass = "badge-" + ["primary","info","success","warning","purple"][Math.abs(r._entity.length) % 5];
-          return '<div class="activity-item">' +
-            '<div class="avatar avatar-sm" style="background:' + avatarColor + ';font-size:10px">' + escHtml(initials) + '</div>' +
-            '<div class="activity-text"><strong>' + escHtml(label) + '</strong> added to <span class="badge badge-sm ' + badgeClass + '" style="font-size:10px;padding:1px 7px;vertical-align:middle;margin-left:2px">' + escHtml(r._entity) + '</span></div>' +
-            '<div class="activity-time">' + escHtml(time) + '</div>' +
+        const fields = ENTITY_FIELDS[firstEntity] || [];
+        const nameField = fields.find(f => /^(name|title|subject|label|full_name)$/i.test(f.name));
+        activityContainer.innerHTML = recent.map((r, i) => {{
+          const label = nameField ? (r[nameField.name] || "Item " + (i + 1)) : ("Item " + (i + 1));
+          const time = relativeTime(r.created_at) || "Just now";
+          const initial = (String(label)[0] || "?").toUpperCase();
+          const color = statusColors[i % statusColors.length];
+          const colorFade = color + "b3";
+          return '<div class="activity-item" onclick="showDetail(\\x27' + firstEntity + '\\x27,\\x27' + (r.id || "") + '\\x27)">' +
+            '<div class="activity-dot" style="background:linear-gradient(135deg,' + color + ',' + colorFade + ')">' + escHtml(initial) + '</div>' +
+            '<div class="activity-text">' + escHtml(label) + '<span class="activity-sub">' + escHtml(time) + '</span></div>' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--gray-300)" stroke-width="2" class="activity-chevron"><polyline points="9 18 15 12 9 6"/></svg>' +
           '</div>';
         }}).join("");
       }}
@@ -4003,24 +4012,25 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     }}
 
     const html =
-      '<div class="table-container">' +
-        '<div class="table-toolbar">' +
-          '<div class="search-input">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
-            '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchTable(\\x27' + moduleName + '\\x27,\\x27' + entity + '\\x27,this.value)">' +
-          '</div>' +
-          '<button class="btn btn-ghost btn-sm refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="Refresh data">' +
-            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>' +
-          '</button>' +
-          tabsHtml +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">' +
+        '<div>' +
+          '<p style="font-size:13px;font-weight:600;letter-spacing:-0.02em;color:var(--gray-900)">' + escHtml(entity) + 's</p>' +
+          '<p style="font-size:10px;color:var(--gray-400);margin-top:2px" id="result-count-' + moduleName + '">Loading...</p>' +
         '</div>' +
-        groupByHtml +
+        '<button class="btn btn-primary" onclick="openCreate()">' +
+          '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
+          'Add ' + escHtml(entity) +
+        '</button>' +
+      '</div>' +
+      tabsHtml +
+      groupByHtml +
+      '<div class="table-container">' +
         '<div class="table-scroll-wrapper" style="max-height:600px;overflow-y:auto"><table id="table-' + moduleName + '">' +
           '<thead><tr>' + headers + '</tr></thead>' +
           '<tbody id="tbody-' + moduleName + '"></tbody>' +
         '</table></div>' +
-        '<div class="table-footer" id="footer-' + moduleName + '"></div>' +
-      '</div>';
+      '</div>' +
+      '<div class="table-footer" id="footer-' + moduleName + '"></div>';
 
     container.innerHTML = html;
     pageState[moduleName] = 1;
@@ -4111,8 +4121,14 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
         tbody.innerHTML = '<tr><td colspan="20"><div class="empty-state"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span class="plus-icon">+</span></div><h3>No ' + escHtml(entityLabel) + 's yet</h3><p>Create your first ' + escHtml(entityLabel) + ' to get started.</p><button class="btn btn-primary" onclick="openCreate()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add ' + escHtml(entityTitle) + '</button></div></td></tr>';
       }}
       if (footer) footer.innerHTML = '';
+      const resultCountEl2 = document.getElementById("result-count-" + moduleName);
+      if (resultCountEl2) resultCountEl2.textContent = "0 results";
       return;
     }}
+
+    // Update result count label
+    const resultCountEl = document.getElementById("result-count-" + moduleName);
+    if (resultCountEl) resultCountEl.textContent = rows.length + " total result" + (rows.length !== 1 ? "s" : "");
 
     // Virtual scrolling: limit total visible rows
     const maxRows = loadMoreState[moduleName] || MAX_INITIAL_ROWS;
