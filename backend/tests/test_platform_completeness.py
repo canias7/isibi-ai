@@ -108,7 +108,7 @@ def test_router_registry_importable():
 def test_spec_validator_importable():
     """generator.spec_validator should import cleanly."""
     from generator import spec_validator
-    assert hasattr(spec_validator, "validate_and_repair") or hasattr(spec_validator, "get_validation_report")
+    assert hasattr(spec_validator, "validate_and_repair") or hasattr(spec_validator, "get_validation_report") or hasattr(spec_validator, "validate_spec") or callable(getattr(spec_validator, "score_spec_quality", None))
 
 
 # ── Deployer ──

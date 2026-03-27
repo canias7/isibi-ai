@@ -2813,6 +2813,10 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   let gsearchTimer = null;
   let searchDebounceTimer = null;
 
+  // ── Auto-refresh state ──
+  let autoRefreshTimer = null;
+  const AUTO_REFRESH_INTERVAL = 30000; // 30 seconds
+
   // ── Dark mode ──
   window.toggleDarkMode = function() {{
     const isDark = document.documentElement.classList.toggle("dark");
@@ -3984,6 +3988,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>' +
             '<input type="text" placeholder="Search ' + escHtml(entity) + '..." id="search-' + moduleName + '" oninput="searchTable(\'' + moduleName + '\',\'' + entity + '\',this.value)">' +
           '</div>' +
+          '<button class="btn btn-ghost btn-sm refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="Refresh data">' +
+            '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>' +
+          '</button>' +
           tabsHtml +
         '</div>' +
         groupByHtml +
@@ -6351,11 +6358,140 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     return /description|notes|body|comment|content|message|details|summary|bio|about/i.test(fieldName);
   }}
 
+  // ── Auto-refresh: silently re-fetch current module data every 30s ──
+  function startAutoRefresh() {{
+    stopAutoRefresh();
+    autoRefreshTimer = setInterval(async () => {{
+      if (!currentEntity || !currentModule) return;
+      try {{
+        const freshRows = await apiGet(currentEntity.toLowerCase());
+        const oldRows = dataCache[currentEntity] || [];
+        const oldJson = JSON.stringify(oldRows);
+        const newJson = JSON.stringify(freshRows);
+        if (oldJson !== newJson) {{
+          dataCache[currentEntity] = freshRows;
+          // Re-render current view smoothly
+          const content = document.getElementById("content-area");
+          if (content) {{
+            const activeView = viewMode[currentModule] || "table";
+            if (activeView === "table") {{
+              renderTableRows(currentEntity, currentModule);
+            }} else {{
+              renderEntityView(content, currentModule, currentEntity, activeView);
+            }}
+          }}
+          showToast("Data updated", "info");
+        }}
+      }} catch (e) {{
+        // Silent fail on auto-refresh
+      }}
+    }}, AUTO_REFRESH_INTERVAL);
+  }}
+
+  function stopAutoRefresh() {{
+    if (autoRefreshTimer) {{
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }}
+  }}
+
+  window.manualRefresh = function() {{
+    if (!currentEntity || !currentModule) return;
+    const btn = document.getElementById("refresh-btn");
+    if (btn) {{
+      btn.classList.add("spinning");
+      setTimeout(() => btn.classList.remove("spinning"), 600);
+    }}
+    // Clear cache so we get fresh data
+    delete apiCache[currentEntity.toLowerCase()];
+    const content = document.getElementById("content-area");
+    if (content) {{
+      const activeView = viewMode[currentModule] || "table";
+      renderEntityView(content, currentModule, currentEntity, activeView);
+    }}
+  }};
+
+  // ── Keyboard shortcuts ──
+  const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
+  const modKey = isMac ? "metaKey" : "ctrlKey";
+
+  document.addEventListener("keydown", function(e) {{
+    // Cmd/Ctrl+N — open create form
+    if (e[modKey] && e.key === "n") {{
+      e.preventDefault();
+      if (currentEntity) openCreate();
+    }}
+    // Cmd/Ctrl+K — focus search
+    if (e[modKey] && e.key === "k") {{
+      e.preventDefault();
+      const searchEl = document.getElementById("search-" + currentModule) || document.getElementById("global-search-input");
+      if (searchEl) {{ searchEl.focus(); searchEl.select(); }}
+    }}
+    // Escape — close modal/form
+    if (e.key === "Escape") {{
+      const modal = document.getElementById("modal-overlay");
+      if (modal && modal.style.display !== "none") {{
+        closeModal();
+      }}
+      const detail = document.querySelector(".detail-view");
+      if (detail && currentModule) {{
+        showModule(currentModule);
+      }}
+    }}
+    // Cmd/Ctrl+E — toggle edit mode in detail view
+    if (e[modKey] && e.key === "e") {{
+      const detail = document.querySelector(".detail-view");
+      if (detail && _inlineEditingEntity && _inlineEditingId) {{
+        e.preventDefault();
+        openEdit(_inlineEditingEntity, _inlineEditingId);
+      }}
+    }}
+  }});
+
+  // ── Keyboard shortcuts help button ──
+  function buildShortcutsHelp() {{
+    const helpBtn = document.createElement("button");
+    helpBtn.id = "shortcuts-help-btn";
+    helpBtn.innerHTML = "?";
+    helpBtn.title = "Keyboard shortcuts";
+    helpBtn.style.cssText = "position:fixed;bottom:20px;right:20px;width:36px;height:36px;border-radius:50%;background:var(--bg-card);border:1px solid var(--border);box-shadow:var(--shadow-md);cursor:pointer;font-size:16px;font-weight:600;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;z-index:100;transition:all var(--transition);font-family:inherit";
+    helpBtn.onmouseenter = function() {{ this.style.background = "var(--primary)"; this.style.color = "#fff"; this.style.borderColor = "var(--primary)"; }};
+    helpBtn.onmouseleave = function() {{ this.style.background = "var(--bg-card)"; this.style.color = "var(--text-secondary)"; this.style.borderColor = "var(--border)"; }};
+    helpBtn.onclick = function() {{
+      const existing = document.getElementById("shortcuts-modal");
+      if (existing) {{ existing.remove(); return; }}
+      const mod = isMac ? "\\u2318" : "Ctrl+";
+      const modal = document.createElement("div");
+      modal.id = "shortcuts-modal";
+      modal.style.cssText = "position:fixed;bottom:68px;right:20px;width:280px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-xl);z-index:101;padding:16px;font-size:13px;animation:fadeIn 0.15s ease";
+      modal.innerHTML = '<div style="font-weight:600;font-size:14px;margin-bottom:12px;color:var(--text)">Keyboard Shortcuts</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--text-secondary)">New record</span><kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:var(--text)">' + mod + 'N</kbd></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--text-secondary)">Search</span><kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:var(--text)">' + mod + 'K</kbd></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--text-secondary)">Close modal</span><kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:var(--text)">Esc</kbd></div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:center"><span style="color:var(--text-secondary)">Edit record</span><kbd style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;color:var(--text)">' + mod + 'E</kbd></div>' +
+        '</div>';
+      document.body.appendChild(modal);
+      // Close on click outside
+      setTimeout(() => {{
+        document.addEventListener("click", function _close(ev) {{
+          if (!modal.contains(ev.target) && ev.target !== helpBtn) {{
+            modal.remove();
+            document.removeEventListener("click", _close);
+          }}
+        }});
+      }}, 10);
+    }};
+    document.body.appendChild(helpBtn);
+  }}
+
   // ── Init ──
   function initApp() {{
     buildSidebar();
     buildMobileNav();
     updateUserDisplay();
+    buildShortcutsHelp();
+    startAutoRefresh();
     if (SIDEBAR_ITEMS.length > 0) {{
       showModule(SIDEBAR_ITEMS[0].name);
     }}
