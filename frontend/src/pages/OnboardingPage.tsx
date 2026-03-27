@@ -1879,13 +1879,18 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // ─── Preview panel (right side when chat is active) ───
   // Resolve live URL to the correct backend domain
-  const resolveAppUrl = (url: string) => {
-    if (url.startsWith("http")) return url;
-    // Build from VITE_API_URL (e.g. "https://api.isibi.ai/api") or fall back
-    const apiUrl = import.meta.env.VITE_API_URL || "https://api.isibi.ai/api";
-    // Strip trailing /api to get the host root (e.g. "https://api.isibi.ai")
-    const base = apiUrl.replace(/\/api\/?$/, "");
-    return `${base}${url}`;
+  const resolveAppUrl = (url: string, skipAuth = true) => {
+    let resolved = url;
+    if (!url.startsWith("http")) {
+      const apiUrl = import.meta.env.VITE_API_URL || "https://api.isibi.ai/api";
+      const base = apiUrl.replace(/\/api\/?$/, "");
+      resolved = `${base}${url}`;
+    }
+    // Add preview=1 so generated app skips auth for the owner
+    if (skipAuth && !resolved.includes("preview=")) {
+      resolved += (resolved.includes("?") ? "&" : "?") + "preview=1";
+    }
+    return resolved;
   };
 
   // Toggle live preview — deploy if needed, then show iframe
@@ -2476,7 +2481,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   )}
                   {/* Iframe with actual deployed app */}
                   <iframe
-                    src={deployUrl}
+                    src={deployUrl ? (deployUrl.includes("preview=") ? deployUrl : deployUrl + (deployUrl.includes("?") ? "&" : "?") + "preview=1") : ""}
                     className="w-full flex-1 border-0 rounded-b-lg"
                     sandbox="allow-scripts allow-forms allow-same-origin"
                   />

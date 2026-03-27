@@ -2882,6 +2882,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   function checkAuth() {{
     const token = getToken();
     const authScreen = document.getElementById("auth-screen");
+    const params = new URLSearchParams(window.location.search);
+    // Skip auth for app owner previewing from builder
+    if (params.get("preview") === "1" || params.get("skip_auth") === "1") {{
+      authScreen.style.display = "none";
+      return true;
+    }}
     if (!token) {{
       authScreen.style.display = "flex";
       return false;
