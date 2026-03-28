@@ -1069,6 +1069,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const [shareInviting, setShareInviting] = useState(false);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [desktopDownloading, setDesktopDownloading] = useState(false);
+  const [downloadAppName, setDownloadAppName] = useState("");
   const [shareInviteSuccess, setShareInviteSuccess] = useState(false);
   const [wsReconnecting, setWsReconnecting] = useState(false);
   const [specVersion, setSpecVersion] = useState(0);
@@ -1994,6 +1995,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
     // If already deployed, show QR modal
     if (deployUrl) {
+      setDownloadAppName(builtSpec?.app_name || builtSpec?.name || "My App");
       setQrModalOpen(true);
       return;
     }
@@ -2019,7 +2021,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           );
         }
         // Show QR modal after deploy
-        setQrModalOpen(true);
+        setDownloadAppName(builtSpec?.app_name || builtSpec?.name || "My App");
+      setQrModalOpen(true);
       } else {
         alert("Deploy succeeded but no URL was returned. Check the backend logs.");
       }
@@ -2050,7 +2053,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         throw new Error(body.detail || `Download failed (${res.status})`);
       }
       const blob = await res.blob();
-      const appName = (builtSpec?.app_name || builtSpec?.name || "my-app")
+      const appName = (downloadAppName || builtSpec?.app_name || builtSpec?.name || "my-app")
         .toLowerCase()
         .replace(/\s+/g, "-")
         .replace(/[^a-z0-9-]/g, "");
@@ -2066,7 +2069,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       // Add to My Apps after successful download
       const addApp = useAppStore.getState().addApp;
       addApp({
-        name: builtSpec?.app_name || builtSpec?.name || "My App",
+        name: downloadAppName || builtSpec?.app_name || builtSpec?.name || "My App",
         type: "software",
         status: "online",
         color: builtSpec?.design_system?.colors?.primary || "#ec4899",
@@ -3104,11 +3107,23 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               </button>
             </div>
 
+            {/* App Name */}
+            <div className="mb-3">
+              <label className="mb-1 block text-[11px] font-medium text-gray-500">App Name</label>
+              <input
+                type="text"
+                value={downloadAppName}
+                onChange={(e) => setDownloadAppName(e.target.value)}
+                placeholder="My App"
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-black placeholder-gray-400 outline-none focus:border-pink-300 focus:ring-1 focus:ring-pink-200"
+              />
+            </div>
+
             {/* Desktop App Download */}
             <div className="mb-4">
               <button
                 onClick={handleDesktopDownload}
-                disabled={desktopDownloading}
+                disabled={desktopDownloading || !downloadAppName.trim()}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-4 py-3 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
               >
                 {desktopDownloading ? (
