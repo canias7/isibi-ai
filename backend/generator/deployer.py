@@ -2919,7 +2919,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     return localStorage.getItem(TOKEN_KEY) || "";
   }}
 
-  const IS_PREVIEW = new URLSearchParams(window.location.search).has("preview");
+  const _qp = new URLSearchParams(window.location.search);
+  const IS_PREVIEW = _qp.has("preview") || _qp.has("skip_auth");
 
   function apiHeaders() {{
     const h = {{ "Content-Type": "application/json" }};
