@@ -61,7 +61,6 @@ import { useThemeStore } from "@/stores/themeStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { MarketplacePage } from "./MarketplacePage";
 import { MyAppsPage } from "./MyAppsPage";
-import { MarketplacePage } from "./MarketplacePage";
 import { SpecPreview } from "@/components/SpecPreview";
 import { VisualEditor } from "@/components/VisualEditor";
 import { CloudIDE } from "@/components/CloudIDE";
