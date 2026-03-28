@@ -24,12 +24,113 @@ import {
   Play,
 } from "lucide-react";
 import { get, post, put, patch, del } from "@/api/client";
+import type { AppSpec, EntitySpec } from "@/types/spec";
 
 // ─── Types ───
 interface Props {
   projectId: string;
-  spec: any;
-  onSpecUpdate: (spec: any) => void;
+  spec: AppSpec;
+  onSpecUpdate: (spec: AppSpec) => void;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  label: string;
+  scope: string;
+  permissions: Record<string, string[]>;
+}
+
+interface Integration {
+  id: string;
+  provider: string;
+  enabled: boolean;
+  config: Record<string, string>;
+}
+
+interface Session {
+  id: string;
+  user_agent: string;
+  ip_address: string;
+  created_at: string;
+}
+
+interface EncryptionField {
+  entity: string;
+  field: string;
+}
+
+interface Embed {
+  id: string;
+  name: string;
+  entity: string;
+}
+
+interface VersionEntry {
+  id: string;
+  version_number: number;
+  change_description: string;
+  created_at: string;
+}
+
+interface Snapshot {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+interface ViewConfig {
+  id: string;
+  entity: string;
+  view_type: string;
+  config: Record<string, string>;
+}
+
+interface ImportPreview {
+  id?: string;
+  preview_id?: string;
+  row_count: number;
+  column_count: number;
+  columns?: string[];
+}
+
+interface EmailTrigger {
+  id: string;
+  event: string;
+  entity: string;
+  to_field: string;
+}
+
+interface WebhookTrigger {
+  id: string;
+  event: string;
+  entity: string;
+  url: string;
+}
+
+interface AutoAssignRule {
+  id: string;
+  entity: string;
+  field: string;
+  strategy: string;
+  members: string[];
+}
+
+interface StatusRule {
+  id: string;
+  entity: string;
+  field: string;
+  from_status: string;
+  to_status: string;
+  after_days: number;
+}
+
+interface DeadlineReminder {
+  id: string;
+  entity: string;
+  date_field: string;
+  days_before: number;
+  notify_field: string;
 }
 
 type Category =
@@ -70,8 +171,9 @@ async function safeFetch<T>(fn: () => Promise<T>, fallback: T): Promise<{ data: 
   try {
     const data = await fn();
     return { data, unavailable: false };
-  } catch (err: any) {
-    if (err?.status === 403 || err?.status === 404) {
+  } catch (err: unknown) {
+    const status = err instanceof Object && "status" in err ? (err as { status: number }).status : undefined;
+    if (status === 403 || status === 404) {
       return { data: fallback, unavailable: true };
     }
     return { data: fallback, unavailable: false };
@@ -153,7 +255,7 @@ function TextInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
+      className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
     />
   );
 }
@@ -441,8 +543,8 @@ function GeneralSettings({
   projectBase,
 }: {
   projectId: string;
-  spec: any;
-  onSpecUpdate: (s: any) => void;
+  spec: AppSpec;
+  onSpecUpdate: (s: AppSpec) => void;
   showToast: (type: "success" | "error", msg: string) => void;
   projectBase: string;
 }) {
@@ -455,15 +557,15 @@ function GeneralSettings({
   useEffect(() => {
     (async () => {
       try {
-        const data = await get<any>(`${projectBase}`);
+        const data = await get<Record<string, unknown>>(`${projectBase}`);
         if (data) {
-          setAppName(data.name || data.app_name || spec?.app_name || "");
-          setDescription(data.description || spec?.description || "");
+          setAppName((data.name as string) || (data.app_name as string) || "");
+          setDescription((data.description as string) || "");
         }
       } catch {
         // Fallback to spec
-        setAppName(spec?.app_name || "");
-        setDescription(spec?.description || "");
+        setAppName((spec?.app_name as string) || "");
+        setDescription((spec?.description as string) || "");
       } finally {
         setLoading(false);
       }
@@ -508,7 +610,7 @@ function GeneralSettings({
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe your application..."
             rows={3}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
           />
         </FormField>
       </SectionCard>
@@ -527,7 +629,7 @@ function DeployHistory({ projectId, projectBase }: { projectId: string; projectB
   useEffect(() => {
     (async () => {
       try {
-        const data = await get<any>(`${projectBase}/deploy/history`);
+        const data = await get<{ history?: Array<{ timestamp: string; status: string; url: string }> }>(`${projectBase}/deploy/history`);
         setHistory(data?.history || []);
       } catch {
         setHistory([]);
@@ -597,13 +699,13 @@ function BrandingSettings({
   projectBase,
 }: {
   projectId: string;
-  spec: any;
-  onSpecUpdate: (s: any) => void;
+  spec: AppSpec;
+  onSpecUpdate: (s: AppSpec) => void;
   showToast: (type: "success" | "error", msg: string) => void;
   projectBase: string;
 }) {
   const [logoUrl, setLogoUrl] = useState("");
-  const [primaryColor, setPrimaryColor] = useState(spec?.primary_color || "#ec4899");
+  const [primaryColor, setPrimaryColor] = useState((spec?.primary_color as string) || "#ec4899");
   const [secondaryColor, setSecondaryColor] = useState("#1f2937");
   const [hidePoweredBy, setHidePoweredBy] = useState(false);
   const [customCss, setCustomCss] = useState("");
@@ -614,16 +716,16 @@ function BrandingSettings({
   useEffect(() => {
     (async () => {
       const { data, unavailable: notAvail } = await safeFetch(
-        () => get<any>(`${projectBase}/branding`),
+        () => get<Record<string, unknown>>(`${projectBase}/branding`),
         null
       );
       setUnavailable(notAvail);
       if (data) {
-        setLogoUrl(data.logo_url || "");
-        setPrimaryColor(data.primary_color || spec?.primary_color || "#ec4899");
-        setSecondaryColor(data.secondary_color || "#1f2937");
-        setHidePoweredBy(data.hide_powered_by || false);
-        setCustomCss(data.custom_css || "");
+        setLogoUrl((data.logo_url as string) || "");
+        setPrimaryColor((data.primary_color as string) || "#ec4899");
+        setSecondaryColor((data.secondary_color as string) || "#1f2937");
+        setHidePoweredBy((data.hide_powered_by as boolean) || false);
+        setCustomCss((data.custom_css as string) || "");
       }
       setLoaded(true);
     })();
@@ -685,7 +787,7 @@ function BrandingSettings({
             onChange={(e) => setCustomCss(e.target.value)}
             placeholder=".my-class { color: red; }"
             rows={5}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs text-black placeholder-gray-400 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs text-black placeholder-gray-500 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
           />
         </FormField>
       </SectionCard>
@@ -703,11 +805,11 @@ function RolesSettings({
   appBase,
 }: {
   projectId: string;
-  spec: any;
+  spec: AppSpec;
   showToast: (type: "success" | "error", msg: string) => void;
   appBase: string;
 }) {
-  const [roles, setRoles] = useState<any[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [newRoleName, setNewRoleName] = useState("");
   const [newRoleLabel, setNewRoleLabel] = useState("");
@@ -715,12 +817,12 @@ function RolesSettings({
   const [addingRole, setAddingRole] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
 
-  const entities = spec?.entities?.map((e: any) => e.name) || [];
+  const entities = spec?.entities?.map((e: EntitySpec) => e.name) || [];
   const actions = ["create", "read", "update", "delete"];
 
   const loadRoles = async () => {
     try {
-      const data = await get<any[]>(`${appBase}/roles`);
+      const data = await get<Role[]>(`${appBase}/roles`);
       setRoles(data || []);
     } catch {
       setRoles([]);
@@ -770,7 +872,7 @@ function RolesSettings({
     );
   };
 
-  const saveRole = async (role: any) => {
+  const saveRole = async (role: Role) => {
     setSavingId(role.id);
     try {
       await put(`${appBase}/roles/${role.id}`, { name: role.name, label: role.label, scope: role.scope, permissions: role.permissions });
@@ -782,7 +884,7 @@ function RolesSettings({
     }
   };
 
-  const deleteRole = async (role: any) => {
+  const deleteRole = async (role: Role) => {
     if (!confirm(`Delete role "${role.name}"?`)) return;
     try {
       await del(`${appBase}/roles/${role.id}`);
@@ -938,46 +1040,46 @@ function AutomationsSettings({
   appBase,
 }: {
   projectId: string;
-  spec: any;
+  spec: AppSpec;
   showToast: (type: "success" | "error", msg: string) => void;
   projectBase: string;
   appBase: string;
 }) {
-  const entities = spec?.entities?.map((e: any) => e.name) || [];
+  const entities = spec?.entities?.map((e: EntitySpec) => e.name) || [];
   const [loading, setLoading] = useState(true);
 
   // ── Email Triggers ──
-  const [emailTriggers, setEmailTriggers] = useState<any[]>([]);
+  const [emailTriggers, setEmailTriggers] = useState<EmailTrigger[]>([]);
   const [emailForm, setEmailForm] = useState({ event: "created", entity: entities[0] || "", to_field: "", subject: "", body_template: "" });
   const [emailSaving, setEmailSaving] = useState(false);
 
   // ── Webhooks ──
-  const [webhooks, setWebhooks] = useState<any[]>([]);
+  const [webhooks, setWebhooks] = useState<WebhookTrigger[]>([]);
   const [webhookForm, setWebhookForm] = useState({ event: "created", entity: entities[0] || "", url: "" });
   const [webhookSaving, setWebhookSaving] = useState(false);
 
   // ── Auto-assign ──
-  const [autoAssigns, setAutoAssigns] = useState<any[]>([]);
+  const [autoAssigns, setAutoAssigns] = useState<AutoAssignRule[]>([]);
   const [autoForm, setAutoForm] = useState({ entity: entities[0] || "", field: "", members: "", strategy: "round_robin" });
   const [autoSaving, setAutoSaving] = useState(false);
 
   // ── Status Rules ──
-  const [statusRules, setStatusRules] = useState<any[]>([]);
+  const [statusRules, setStatusRules] = useState<StatusRule[]>([]);
   const [statusForm, setStatusForm] = useState({ entity: entities[0] || "", field: "", from_status: "", to_status: "", after_days: "7" });
   const [statusSaving, setStatusSaving] = useState(false);
 
   // ── Deadline Reminders ──
-  const [reminders, setReminders] = useState<any[]>([]);
+  const [reminders, setReminders] = useState<DeadlineReminder[]>([]);
   const [reminderForm, setReminderForm] = useState({ entity: entities[0] || "", date_field: "", days_before: "1", notify_field: "" });
   const [reminderSaving, setReminderSaving] = useState(false);
 
   useEffect(() => {
     const load = async () => {
-      try { const d = await get<any[]>(`${projectBase}/email-triggers`); setEmailTriggers(d || []); } catch {}
-      try { const d = await get<any[]>(`${projectBase}/webhook-triggers`); setWebhooks(d || []); } catch {}
-      try { const d = await get<any[]>(`${appBase}/auto-assign/rules`); setAutoAssigns(d || []); } catch {}
-      try { const d = await get<any[]>(`${appBase}/status-rules`); setStatusRules(d || []); } catch {}
-      try { const d = await get<any[]>(`${appBase}/deadline-reminders`); setReminders(d || []); } catch {}
+      try { const d = await get<EmailTrigger[]>(`${projectBase}/email-triggers`); setEmailTriggers(d || []); } catch {}
+      try { const d = await get<WebhookTrigger[]>(`${projectBase}/webhook-triggers`); setWebhooks(d || []); } catch {}
+      try { const d = await get<AutoAssignRule[]>(`${appBase}/auto-assign/rules`); setAutoAssigns(d || []); } catch {}
+      try { const d = await get<StatusRule[]>(`${appBase}/status-rules`); setStatusRules(d || []); } catch {}
+      try { const d = await get<DeadlineReminder[]>(`${appBase}/deadline-reminders`); setReminders(d || []); } catch {}
       setLoading(false);
     };
     load();
@@ -985,11 +1087,11 @@ function AutomationsSettings({
 
   const events = ["created", "updated", "deleted", "status_changed"];
 
-  const reloadEmailTriggers = async () => { const d = await get<any[]>(`${projectBase}/email-triggers`); setEmailTriggers(d || []); };
-  const reloadWebhooks = async () => { const d = await get<any[]>(`${projectBase}/webhook-triggers`); setWebhooks(d || []); };
-  const reloadAutoAssigns = async () => { const d = await get<any[]>(`${appBase}/auto-assign/rules`); setAutoAssigns(d || []); };
-  const reloadStatusRules = async () => { const d = await get<any[]>(`${appBase}/status-rules`); setStatusRules(d || []); };
-  const reloadReminders = async () => { const d = await get<any[]>(`${appBase}/deadline-reminders`); setReminders(d || []); };
+  const reloadEmailTriggers = async () => { const d = await get<EmailTrigger[]>(`${projectBase}/email-triggers`); setEmailTriggers(d || []); };
+  const reloadWebhooks = async () => { const d = await get<WebhookTrigger[]>(`${projectBase}/webhook-triggers`); setWebhooks(d || []); };
+  const reloadAutoAssigns = async () => { const d = await get<AutoAssignRule[]>(`${appBase}/auto-assign/rules`); setAutoAssigns(d || []); };
+  const reloadStatusRules = async () => { const d = await get<StatusRule[]>(`${appBase}/status-rules`); setStatusRules(d || []); };
+  const reloadReminders = async () => { const d = await get<DeadlineReminder[]>(`${appBase}/deadline-reminders`); setReminders(d || []); };
 
   const addEmailTrigger = async () => {
     setEmailSaving(true);
@@ -1104,7 +1206,7 @@ function AutomationsSettings({
             </div>
             <TextInput value={emailForm.to_field} onChange={(v) => setEmailForm({ ...emailForm, to_field: v })} placeholder="to_field (e.g. email)" />
             <TextInput value={emailForm.subject} onChange={(v) => setEmailForm({ ...emailForm, subject: v })} placeholder="Email subject" />
-            <textarea value={emailForm.body_template} onChange={(e) => setEmailForm({ ...emailForm, body_template: e.target.value })} placeholder="Email body template (use {{field_name}})" rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-400 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400" />
+            <textarea value={emailForm.body_template} onChange={(e) => setEmailForm({ ...emailForm, body_template: e.target.value })} placeholder="Email body template (use {{field_name}})" rows={3} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black placeholder-gray-500 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400" />
             <button onClick={addEmailTrigger} disabled={emailSaving} className="flex items-center gap-1.5 rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800 disabled:opacity-50">
               {emailSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />} Add Trigger
             </button>
@@ -1238,7 +1340,7 @@ function IntegrationsSettings({
   showToast: (type: "success" | "error", msg: string) => void;
   projectBase: string;
 }) {
-  const [integrations, setIntegrations] = useState<any[]>([]);
+  const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [loading, setLoading] = useState(true);
   const [configuring, setConfiguring] = useState<string | null>(null);
   const [configForm, setConfigForm] = useState<Record<string, string>>({});
@@ -1247,7 +1349,7 @@ function IntegrationsSettings({
 
   const loadIntegrations = async () => {
     try {
-      const data = await get<any[]>(`${projectBase}/integrations`);
+      const data = await get<Integration[]>(`${projectBase}/integrations`);
       setIntegrations(data || []);
     } catch {}
     finally { setLoading(false); }
@@ -1425,17 +1527,17 @@ function DataSettings({
   appBase,
 }: {
   projectId: string;
-  spec: any;
+  spec: AppSpec;
   showToast: (type: "success" | "error", msg: string) => void;
   appBase: string;
 }) {
-  const entities = spec?.entities?.map((e: any) => e.name) || [];
+  const entities = spec?.entities?.map((e: EntitySpec) => e.name) || [];
   const [importEntity, setImportEntity] = useState(entities[0] || "");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
-  const [importPreview, setImportPreview] = useState<any>(null);
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [exporting, setExporting] = useState<string | null>(null);
-  const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [snapshotsLoading, setSnapshotsLoading] = useState(true);
   const [creatingSnapshot, setCreatingSnapshot] = useState(false);
   const [restoringSnapshotId, setRestoringSnapshotId] = useState<string | null>(null);
@@ -1446,7 +1548,7 @@ function DataSettings({
   useEffect(() => {
     (async () => {
       try {
-        const data = await get<any[]>(`${appBase}/snapshots`);
+        const data = await get<Snapshot[]>(`${appBase}/snapshots`);
         setSnapshots(data || []);
       } catch {}
       finally { setSnapshotsLoading(false); }
@@ -1529,7 +1631,7 @@ function DataSettings({
     setCreatingSnapshot(true);
     try {
       await post(`${appBase}/snapshots`, {});
-      const data = await get<any[]>(`${appBase}/snapshots`);
+      const data = await get<Snapshot[]>(`${appBase}/snapshots`);
       setSnapshots(data || []);
       showToast("success", "Snapshot created");
     } catch {
@@ -1738,10 +1840,10 @@ function SecuritySettings({
   const [ipUnavailable, setIpUnavailable] = useState(false);
   const [twoFaEnabled, setTwoFaEnabled] = useState(false);
   const [twoFaSaving, setTwoFaSaving] = useState(false);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [encryptionEnabled, setEncryptionEnabled] = useState(false);
-  const [encryptionFields, setEncryptionFields] = useState<any[]>([]);
+  const [encryptionFields, setEncryptionFields] = useState<EncryptionField[]>([]);
   const [encryptionEntity, setEncryptionEntity] = useState("");
   const [encryptionField, setEncryptionField] = useState("");
   const [encryptionSaving, setEncryptionSaving] = useState(false);
@@ -1753,35 +1855,35 @@ function SecuritySettings({
       // IP Whitelist: GET /projects/{projectId}/ip-whitelist
       {
         const { data, unavailable } = await safeFetch(
-          () => get<any>(`${projectBase}/ip-whitelist`),
+          () => get<Record<string, unknown>>(`${projectBase}/ip-whitelist`),
           null
         );
         setIpUnavailable(unavailable);
         if (data) {
-          setIpWhitelistEnabled(data.enabled || false);
-          setIpList((data.ips || []).join("\n"));
+          setIpWhitelistEnabled((data.enabled as boolean) || false);
+          setIpList(((data.ips as string[]) || []).join("\n"));
         }
       }
       // Encryption: GET /projects/{projectId}/encryption
       {
         const { data, unavailable } = await safeFetch(
-          () => get<any>(`${projectBase}/encryption`),
+          () => get<Record<string, unknown>>(`${projectBase}/encryption`),
           null
         );
         setEncryptionUnavailable(unavailable);
         if (data) {
-          setEncryptionEnabled(data.enabled || false);
-          setEncryptionFields(data.fields || []);
+          setEncryptionEnabled((data.enabled as boolean) || false);
+          setEncryptionFields((data.fields as EncryptionField[]) || []);
         }
       }
       // 2FA
       try {
-        const tfa = await get<any>(`${appBase}/2fa/status`);
+        const tfa = await get<{ enabled?: boolean }>(`${appBase}/2fa/status`);
         setTwoFaEnabled(tfa?.enabled || false);
       } catch {}
       // Sessions: GET /apps/{projectId}/sessions
       try {
-        const sess = await get<any[]>(`${appBase}/sessions`);
+        const sess = await get<Session[]>(`${appBase}/sessions`);
         setSessions(sess || []);
       } catch {}
       setSessionsLoading(false);
@@ -1868,7 +1970,7 @@ function SecuritySettings({
               onChange={(e) => setIpList(e.target.value)}
               placeholder="192.168.1.1&#10;10.0.0.0/24"
               rows={4}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs text-black placeholder-gray-400 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
+              className="w-full rounded-lg border border-gray-200 px-3 py-2 font-mono text-xs text-black placeholder-gray-500 focus:border-pink-400 focus:outline-none focus:ring-1 focus:ring-pink-400"
             />
           </FormField>
         )}
@@ -1974,24 +2076,24 @@ function ViewsSettings({
   projectBase,
 }: {
   projectId: string;
-  spec: any;
+  spec: AppSpec;
   showToast: (type: "success" | "error", msg: string) => void;
   projectBase: string;
 }) {
   const entities = spec?.entities || [];
   const [selectedEntity, setSelectedEntity] = useState(entities[0]?.name || "");
-  const [viewConfigs, setViewConfigs] = useState<any[]>([]);
+  const [viewConfigs, setViewConfigs] = useState<ViewConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editingView, setEditingView] = useState<string | null>(null);
   const [viewConfig, setViewConfig] = useState<Record<string, string>>({});
 
-  const selectedEntityObj = entities.find((e: any) => e.name === selectedEntity);
-  const fields = selectedEntityObj?.fields?.map((f: any) => f.name) || [];
+  const selectedEntityObj = entities.find((e: EntitySpec) => e.name === selectedEntity);
+  const fields = selectedEntityObj?.fields?.map((f) => f.name) || [];
 
   const loadViews = async () => {
     try {
-      const data = await get<any[]>(`${projectBase}/views`);
+      const data = await get<ViewConfig[]>(`${projectBase}/views`);
       setViewConfigs(data || []);
     } catch {}
     finally { setLoading(false); }
@@ -2054,7 +2156,7 @@ function ViewsSettings({
       {/* Entity selector */}
       <SectionCard title="Select Entity">
         <select value={selectedEntity} onChange={(e) => setSelectedEntity(e.target.value)} className={selectClass}>
-          {entities.map((e: any) => <option key={e.name} value={e.name}>{e.name}</option>)}
+          {entities.map((e: EntitySpec) => <option key={e.name} value={e.name}>{e.name}</option>)}
         </select>
       </SectionCard>
 
@@ -2210,7 +2312,7 @@ function AdvancedSettings({
   appBase,
 }: {
   projectId: string;
-  spec: any;
+  spec: AppSpec;
   showToast: (type: "success" | "error", msg: string) => void;
   projectBase: string;
   appBase: string;
@@ -2221,39 +2323,39 @@ function AdvancedSettings({
   const [whiteLabelDomain, setWhiteLabelDomain] = useState("");
   const [whiteLabelSaving, setWhiteLabelSaving] = useState(false);
   const [whiteLabelUnavailable, setWhiteLabelUnavailable] = useState(false);
-  const [embeds, setEmbeds] = useState<any[]>([]);
+  const [embeds, setEmbeds] = useState<Embed[]>([]);
   const [embedName, setEmbedName] = useState("");
   const [embedEntity, setEmbedEntity] = useState("");
   const [embedSaving, setEmbedSaving] = useState(false);
-  const [versions, setVersions] = useState<any[]>([]);
+  const [versions, setVersions] = useState<VersionEntry[]>([]);
   const [versionsLoading, setVersionsLoading] = useState(true);
   const [restoringId, setRestoringId] = useState<string | null>(null);
   const [rollingBack, setRollingBack] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const entities = spec?.entities?.map((e: any) => e.name) || [];
+  const entities = spec?.entities?.map((e: EntitySpec) => e.name) || [];
 
   useEffect(() => {
     (async () => {
       // Subdomain: GET /projects/{projectId}/subdomain
-      try { const d = await get<any>(`${projectBase}/subdomain`); setSubdomain(d?.subdomain || ""); } catch {}
+      try { const d = await get<{ subdomain?: string }>(`${projectBase}/subdomain`); setSubdomain(d?.subdomain || ""); } catch {}
       // White-label: GET /projects/{projectId}/white-label
       {
         const { data, unavailable } = await safeFetch(
-          () => get<any>(`${projectBase}/white-label`),
+          () => get<Record<string, unknown>>(`${projectBase}/white-label`),
           null
         );
         setWhiteLabelUnavailable(unavailable);
         if (data) {
-          setWhiteLabelName(data.brand_name || data.name || "");
-          setWhiteLabelDomain(data.custom_domain || "");
+          setWhiteLabelName((data.brand_name as string) || (data.name as string) || "");
+          setWhiteLabelDomain((data.custom_domain as string) || "");
         }
       }
       // Embeds: GET /projects/{projectId}/embeds
-      try { const d = await get<any[]>(`${projectBase}/embeds`); setEmbeds(d || []); } catch {}
+      try { const d = await get<Embed[]>(`${projectBase}/embeds`); setEmbeds(d || []); } catch {}
       // Versions: GET /projects/{projectId}/versions
       try {
-        const d = await get<any[]>(`${projectBase}/versions`);
+        const d = await get<VersionEntry[]>(`${projectBase}/versions`);
         setVersions(d || []);
       } catch {}
       setVersionsLoading(false);
@@ -2294,7 +2396,7 @@ function AdvancedSettings({
     setEmbedSaving(true);
     try {
       await post(`${projectBase}/embeds`, { name: embedName.trim(), entity: embedEntity });
-      const d = await get<any[]>(`${projectBase}/embeds`);
+      const d = await get<Embed[]>(`${projectBase}/embeds`);
       setEmbeds(d || []);
       setEmbedName("");
       setEmbedEntity("");
@@ -2309,7 +2411,7 @@ function AdvancedSettings({
   const deleteEmbed = async (embedId: string) => {
     try {
       await del(`${projectBase}/embeds/${embedId}`);
-      const d = await get<any[]>(`${projectBase}/embeds`);
+      const d = await get<Embed[]>(`${projectBase}/embeds`);
       setEmbeds(d || []);
       showToast("success", "Widget deleted");
     } catch {
@@ -2322,7 +2424,7 @@ function AdvancedSettings({
     try {
       await post(`${projectBase}/versions/${versionId}/restore`, {});
       showToast("success", "Version restored");
-      const d = await get<any[]>(`${projectBase}/versions`);
+      const d = await get<VersionEntry[]>(`${projectBase}/versions`);
       setVersions(d || []);
     } catch {
       showToast("error", "Failed to restore version");
@@ -2338,7 +2440,7 @@ function AdvancedSettings({
       await post(`${projectBase}/rollback`, {});
       showToast("success", "Rollback successful");
       // Reload versions
-      const d = await get<any[]>(`${projectBase}/versions`);
+      const d = await get<VersionEntry[]>(`${projectBase}/versions`);
       setVersions(d || []);
     } catch {
       showToast("error", "Rollback failed");

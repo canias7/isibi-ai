@@ -3,7 +3,19 @@ import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Turnstile } from "react-turnstile";
 import { post } from "@/api/client";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuthStore, type AuthUser } from "@/stores/authStore";
+
+interface ApiError {
+  status: number;
+  detail: string;
+}
+
+interface SignupForm {
+  first_name: string;
+  last_name: string;
+  email: string;
+  password: string;
+}
 
 const TURNSTILE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA";
 
@@ -24,15 +36,23 @@ export function SignupPage({ onSignup }: Props) {
   const [turnstileKey, setTurnstileKey] = useState(0);
   const { setAuth } = useAuthStore();
 
-  const set = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
+  const set = (key: keyof SignupForm, val: string) => setForm((f) => ({ ...f, [key]: val }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Frontend password validation
+    const pw = form.password;
+    if (pw.length < 8) { setError("Password must be at least 8 characters."); return; }
+    if (!/[A-Z]/.test(pw)) { setError("Password must contain at least one uppercase letter."); return; }
+    if (!/[0-9]/.test(pw)) { setError("Password must contain at least one digit."); return; }
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:'",.<>?/~`]/.test(pw)) { setError("Password must contain at least one special character."); return; }
+
     setLoading(true);
 
     try {
-      const res = await post<{ access_token: string; user: any }>("/auth/signup", {
+      const res = await post<{ access_token: string; user: AuthUser }>("/auth/signup", {
         email: form.email,
         password: form.password,
         first_name: form.first_name,
@@ -42,8 +62,8 @@ export function SignupPage({ onSignup }: Props) {
       });
       setAuth(res.access_token, res.user);
       onSignup(form.email);
-    } catch (err: any) {
-      setError(err?.detail || "Signup failed.");
+    } catch (err: unknown) {
+      setError((err as ApiError)?.detail || "Signup failed.");
       setTurnstileKey((k) => k + 1);
       setTurnstileToken("");
     } finally {
@@ -141,49 +161,57 @@ export function SignupPage({ onSignup }: Props) {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">First name</label>
+                <label htmlFor="signup-first-name" className="mb-1.5 block text-sm font-medium text-gray-700">First name</label>
                 <input
+                  id="signup-first-name"
                   value={form.first_name}
                   onChange={(e) => set("first_name", e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-500 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
                   placeholder="John"
                   required
+                  aria-required="true"
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-gray-700">Last name</label>
+                <label htmlFor="signup-last-name" className="mb-1.5 block text-sm font-medium text-gray-700">Last name</label>
                 <input
+                  id="signup-last-name"
                   value={form.last_name}
                   onChange={(e) => set("last_name", e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-500 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
                   placeholder="Doe"
                   required
+                  aria-required="true"
                 />
               </div>
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Email address</label>
+              <label htmlFor="signup-email" className="mb-1.5 block text-sm font-medium text-gray-700">Email address</label>
               <input
+                id="signup-email"
                 type="email"
                 value={form.email}
                 onChange={(e) => set("email", e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-500 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
                 placeholder="you@example.com"
                 required
+                aria-required="true"
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+              <label htmlFor="signup-password" className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
               <input
+                id="signup-password"
                 type="password"
                 value={form.password}
                 onChange={(e) => set("password", e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
-                placeholder="Minimum 8 characters"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-500 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                placeholder="8+ chars, uppercase, number, special"
                 minLength={8}
                 required
+                aria-required="true"
               />
             </div>
 
@@ -199,7 +227,7 @@ export function SignupPage({ onSignup }: Props) {
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}

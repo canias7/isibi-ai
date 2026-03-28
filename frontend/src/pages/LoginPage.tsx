@@ -3,7 +3,12 @@ import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Turnstile } from "react-turnstile";
 import { post } from "@/api/client";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuthStore, type AuthUser } from "@/stores/authStore";
+
+interface ApiError {
+  status: number;
+  detail: string;
+}
 
 const TURNSTILE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "1x00000000000000000000AA"; // test key fallback
 
@@ -28,15 +33,15 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
     setLoading(true);
 
     try {
-      const res = await post<{ access_token: string; user: any }>("/auth/login", {
+      const res = await post<{ access_token: string; user: AuthUser }>("/auth/login", {
         email,
         password,
         turnstile_token: turnstileToken || "dev",
       });
       setAuth(res.access_token, res.user);
       onLogin();
-    } catch (err: any) {
-      const detail = err?.detail || "Login failed.";
+    } catch (err: unknown) {
+      const detail = (err as ApiError)?.detail || "Login failed.";
       if (detail.includes("not verified")) {
         onNeedVerify(email);
         return;
@@ -136,26 +141,49 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Email address</label>
+              <label htmlFor="login-email" className="mb-1.5 block text-sm font-medium text-gray-700">Email address</label>
               <input
+                id="login-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-500 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
                 placeholder="you@example.com"
                 required
+                aria-required="true"
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="login-password" className="block text-sm font-medium text-gray-700">Password</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const forgotEmail = email || prompt("Enter your email address:");
+                    if (forgotEmail) {
+                      setLoading(true);
+                      post("/auth/forgot-password", { email: forgotEmail })
+                        .then(() => setError("If an account exists, a reset code has been sent to your email."))
+                        .catch(() => setError("Failed to send reset email. Please try again."))
+                        .finally(() => setLoading(false));
+                    }
+                  }}
+                  className="text-xs font-medium hover:underline"
+                  style={{ color: "#ec4899" }}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <input
+                id="login-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-400 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-black placeholder-gray-500 transition focus:border-pink-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-500/20"
                 placeholder="Enter your password"
                 required
+                aria-required="true"
               />
             </div>
 
@@ -171,7 +199,7 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
+              <div role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">
                 {error}
               </div>
             )}

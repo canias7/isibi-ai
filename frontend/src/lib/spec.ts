@@ -24,8 +24,8 @@ export async function loadSpec(): Promise<AppSpec | null> {
       _spec = (await res.json()) as AppSpec;
       return _spec;
     }
-  } catch {
-    // backend not available
+  } catch (err) {
+    console.warn("Failed to load spec from backend:", err);
   }
   return null;
 }

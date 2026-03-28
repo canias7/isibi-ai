@@ -5,14 +5,39 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { X, ChevronRight } from "lucide-react";
 
+interface ERDField {
+  name: string;
+  type?: string;
+  required?: boolean;
+  fk_entity?: string;
+  fk_relationship?: string;
+  [key: string]: unknown;
+}
+
+interface ERDEntity {
+  name: string;
+  table_name?: string;
+  fields?: ERDField[];
+}
+
+interface ERDModule {
+  entities?: ERDEntity[];
+  [key: string]: unknown;
+}
+
+interface ERDSpec {
+  modules?: ERDModule[];
+  [key: string]: unknown;
+}
+
 interface ERDViewerProps {
-  spec: any;
+  spec: ERDSpec;
 }
 
 interface EntityCard {
   name: string;
   tableName: string;
-  fields: any[];
+  fields: ERDField[];
   x: number;
   y: number;
   width: number;
@@ -42,7 +67,7 @@ export function ERDViewer({ spec }: ERDViewerProps) {
     if (!spec?.modules) return [];
     const allEntities: EntityCard[] = [];
     const cols = Math.max(3, Math.ceil(Math.sqrt(spec.modules.reduce(
-      (sum: number, m: any) => sum + (m.entities?.length || 0), 0
+      (sum: number, m: ERDModule) => sum + (m.entities?.length || 0), 0
     ))));
 
     let idx = 0;
@@ -58,7 +83,7 @@ export function ERDViewer({ spec }: ERDViewerProps) {
           y: 40 + row * (CARD_HEIGHT + CARD_GAP_Y),
           width: CARD_WIDTH,
           height: CARD_HEIGHT,
-          isMain: entity.fields?.length > 4,
+          isMain: (entity.fields?.length ?? 0) > 4,
         });
         idx++;
       }
@@ -76,7 +101,7 @@ export function ERDViewer({ spec }: ERDViewerProps) {
         // Check for fk_entity reference
         if (field.fk_entity) {
           const targetName = entities.find(
-            (e) => e.name.toLowerCase() === field.fk_entity.toLowerCase()
+            (e) => e.name.toLowerCase() === field.fk_entity!.toLowerCase()
           )?.name;
           if (targetName) {
             rels.push({
@@ -395,7 +420,7 @@ export function ERDViewer({ spec }: ERDViewerProps) {
             </button>
           </div>
           <div className="p-3 space-y-1.5">
-            {selectedEntityData.fields.map((field: any, i: number) => (
+            {selectedEntityData.fields.map((field: ERDField, i: number) => (
               <div
                 key={field.name || i}
                 className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 hover:bg-gray-50 transition"

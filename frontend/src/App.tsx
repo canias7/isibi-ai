@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useAuthStore } from "@/stores/authStore";
 import { useThemeStore } from "@/stores/themeStore";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Lazy-loaded page components
 const LandingPage = lazy(() => import("@/pages/LandingPage").then(m => ({ default: m.LandingPage })));
@@ -18,7 +19,12 @@ const BuildEcommercePage = lazy(() => import("@/pages/seo/BuildEcommercePage").t
 const BuildRestaurantPage = lazy(() => import("@/pages/seo/BuildRestaurantPage").then(m => ({ default: m.BuildRestaurantPage })));
 const BuildGymPage = lazy(() => import("@/pages/seo/BuildGymPage").then(m => ({ default: m.BuildGymPage })));
 const MarketplacePage = lazy(() => import("@/pages/MarketplacePage").then(m => ({ default: m.MarketplacePage })));
-const ComingSoonPage = lazy(() => import("@/pages/ComingSoonPage").then(m => ({ default: m.ComingSoonPage })));
+const SecurityPage = lazy(() => import("@/pages/SecurityPage").then(m => ({ default: m.SecurityPage })));
+const TemplatesPage = lazy(() => import("@/pages/TemplatesPage").then(m => ({ default: m.TemplatesPage })));
+const AboutPage = lazy(() => import("@/pages/AboutPage").then(m => ({ default: m.AboutPage })));
+const BlogPage = lazy(() => import("@/pages/BlogPage").then(m => ({ default: m.BlogPage })));
+const CareersPage = lazy(() => import("@/pages/CareersPage").then(m => ({ default: m.CareersPage })));
+const ContactPage = lazy(() => import("@/pages/ContactPage").then(m => ({ default: m.ContactPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -98,15 +104,15 @@ function AppRoutes() {
       {/* Legal */}
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
-      <Route path="/security" element={<ComingSoonPage title="Security" />} />
+      <Route path="/security" element={<SecurityPage />} />
 
       {/* Marketplace & public pages */}
       <Route path="/marketplace" element={<MarketplacePage />} />
-      <Route path="/templates" element={<ComingSoonPage title="Templates" />} />
-      <Route path="/about" element={<ComingSoonPage title="About" />} />
-      <Route path="/blog" element={<ComingSoonPage title="Blog" />} />
-      <Route path="/careers" element={<ComingSoonPage title="Careers" />} />
-      <Route path="/contact" element={<ComingSoonPage title="Contact" />} />
+      <Route path="/templates" element={<TemplatesPage />} />
+      <Route path="/about" element={<AboutPage />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/careers" element={<CareersPage />} />
+      <Route path="/contact" element={<ContactPage />} />
 
       {/* SEO landing pages */}
       <Route path="/build-crm" element={<BuildCrmPage />} />
@@ -122,12 +128,17 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-pink-500 border-t-transparent" /></div>}>
-          <AppRoutes />
-        </Suspense>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:top-4 focus:left-4 focus:bg-white focus:text-black focus:px-4 focus:py-2 focus:rounded-lg focus:shadow-lg">
+            Skip to content
+          </a>
+          <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-2 border-pink-500 border-t-transparent" /></div>}>
+            <AppRoutes />
+          </Suspense>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

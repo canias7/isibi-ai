@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
 import {
   ChevronRight,
   ChevronDown,
@@ -57,11 +57,14 @@ const KW_TS = new Set([
 ]);
 
 function highlightLine(text: string, language: string): string {
-  // Escape HTML
+  // SECURITY: Escape all HTML entities FIRST, before adding syntax highlight spans.
+  // This prevents XSS even though input is generated code (defense-in-depth).
+  // The only HTML injected after escaping are our own <span> tags for colors.
   let line = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 
   if (language === "json") {
     // JSON keys
@@ -655,7 +658,7 @@ function getFileColor(language?: string): string {
 
 // ── Components ──────────────────────────────────────────────────────
 
-function FileTreeItem({
+const FileTreeItem = memo(function FileTreeItem({
   node,
   depth,
   activeFile,
@@ -790,7 +793,7 @@ function FileTreeItem({
       )}
     </>
   );
-}
+});
 
 // ── Main component ──────────────────────────────────────────────────
 

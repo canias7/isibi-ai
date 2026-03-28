@@ -87,6 +87,8 @@ async def gdpr_export(
 
             tables_scanned += 1
             for col in user_cols:
+                _safe_ident(table)
+                _safe_ident(col)
                 rows = await conn.fetch(
                     f'SELECT * FROM "{table}" WHERE "{col}" = $1 LIMIT 5000',
                     user_id,
@@ -133,6 +135,8 @@ async def gdpr_delete(
 
             tables_scanned += 1
             for col in user_cols:
+                _safe_ident(table)
+                _safe_ident(col)
                 # Soft-delete if deleted_at column exists, hard-delete otherwise
                 cols_rows = await conn.fetch(
                     "SELECT column_name FROM information_schema.columns "

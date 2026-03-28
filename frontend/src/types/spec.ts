@@ -1,6 +1,7 @@
 // ── Field-level spec ────────────────────────────────────────────────
 
 export interface FieldSpec {
+  [key: string]: unknown;
   name: string;
   db_type: string;
   ts_type: string;
@@ -147,8 +148,12 @@ export interface ModuleSpec {
 // ── Dashboard stat config (spec-driven) ─────────────────────────────
 
 export interface DashboardStatSpec {
+  [key: string]: unknown;
   label: string;
-  key: string;
+  key?: string;
+  entity?: string;
+  name?: string;
+  title?: string;
   icon: string;
   color: string;
   link_to?: string;
@@ -163,15 +168,22 @@ export interface DashboardConfig {
 // Renamed from CRMSpec → AppSpec since this drives ANY app, not just CRM
 
 export interface AppSpec {
-  _meta: Record<string, unknown>;
+  _meta?: Record<string, unknown>;
+  app_name?: string;
+  name?: string;
+  app_type?: string;
   entities: EntitySpec[];
   modules: ModuleSpec[];
   dashboard?: DashboardConfig;
-  design_system?: Record<string, unknown>;
+  design_system?: {
+    colors?: { primary?: string; secondary?: string; [key: string]: unknown };
+    [key: string]: unknown;
+  };
   pagination?: {
     default_page_size: number;
     max_page_size: number;
   };
+  [key: string]: unknown;
 }
 
 // Keep backward compat alias

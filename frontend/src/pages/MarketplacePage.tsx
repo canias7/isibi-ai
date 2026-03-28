@@ -463,7 +463,7 @@ export function MarketplacePage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search apps, tools, templates..."
-                className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 pl-12 pr-4 text-sm text-black placeholder-gray-400 transition focus:border-pink-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-100"
+                className="w-full rounded-2xl border border-gray-200 bg-gray-50 py-3.5 pl-12 pr-4 text-sm text-black placeholder-gray-500 transition focus:border-pink-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-pink-100"
               />
             </div>
           </div>

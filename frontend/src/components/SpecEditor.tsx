@@ -15,10 +15,11 @@ import {
   ToggleRight,
   X,
 } from "lucide-react";
+import type { AppSpec, FieldSpec, UIConfig } from "@/types/spec";
 
 interface SpecEditorProps {
-  spec: any;
-  onSpecUpdate: (spec: any) => void;
+  spec: AppSpec;
+  onSpecUpdate: (spec: AppSpec) => void;
 }
 
 /* ── Field type options ── */
@@ -146,7 +147,7 @@ interface EditableEntity {
 
 /* ── Convert spec to editable state ── */
 
-function specToEntities(spec: any): EditableEntity[] {
+function specToEntities(spec: AppSpec): EditableEntity[] {
   const entities: EditableEntity[] = [];
   const rawEntities = spec?.entities || [];
 
@@ -158,7 +159,7 @@ function specToEntities(spec: any): EditableEntity[] {
       if (!f || typeof f !== "object") continue;
       if (SYSTEM_FIELD_NAMES.has(f.name)) continue;
 
-      const ft = dbTypeToFieldType(f.db_type, f.input_component);
+      const ft = dbTypeToFieldType(f.db_type, f.input_component ?? undefined);
 
       const enumValues: { value: string; color: string }[] = [];
       if (ft === "Select" && f.enum_values) {
@@ -175,7 +176,7 @@ function specToEntities(spec: any): EditableEntity[] {
         required: f.nullable === false,
         showInTable: f.show_in_table !== false,
         showInForm: f.show_in_form !== false,
-        label: f.label || f.name,
+        label: (f.label as string) || f.name,
         enumValues: ft === "Select" ? enumValues : undefined,
         relationEntity: ft === "Relation" ? f.fk_entity || "" : undefined,
         isSystem: false,
@@ -196,13 +197,13 @@ function specToEntities(spec: any): EditableEntity[] {
 
 /* ── Convert editable state back to spec ── */
 
-function entitiesToSpec(entities: EditableEntity[], originalSpec: any): any {
-  const spec = JSON.parse(JSON.stringify(originalSpec));
+function entitiesToSpec(entities: EditableEntity[], originalSpec: AppSpec): AppSpec {
+  const spec = JSON.parse(JSON.stringify(originalSpec)) as AppSpec;
 
   spec.entities = entities.map((ent) => {
     const fields = ent.fields.map((f) => {
       const dbType = FIELD_TYPE_TO_DB[f.fieldType];
-      const base: any = {
+      const base: Record<string, unknown> = {
         name: f.name,
         label: f.label || f.name.charAt(0).toUpperCase() + f.name.slice(1).replace(/_/g, " "),
         db_type: f.fieldType === "Select"
@@ -233,7 +234,8 @@ function entitiesToSpec(entities: EditableEntity[], originalSpec: any): any {
       name: ent.name,
       table: ent.table,
       description: ent.description,
-      fields,
+      fields: fields as unknown as FieldSpec[],
+      ui_config: {} as UIConfig,
     };
   });
 
@@ -246,7 +248,7 @@ function entitiesToSpec(entities: EditableEntity[], originalSpec: any): any {
       layout: "sidebar",
       sidebar_order: 1,
       sidebar_icon: "BarChart3",
-      entity: null,
+      entity: undefined,
     },
     ...entities.map((ent, i) => ({
       name: ent.name + "s",

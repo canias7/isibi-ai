@@ -248,7 +248,7 @@ export function MyAppsPage({
                 placeholder="Search apps..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 w-56 rounded-xl bg-gray-100 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-400 outline-none transition focus:bg-white focus:ring-2 focus:ring-pink-500/20 focus:shadow-sm"
+                className="h-9 w-56 rounded-xl bg-gray-100 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 outline-none transition focus:bg-white focus:ring-2 focus:ring-pink-500/20 focus:shadow-sm"
               />
             </div>
             <select

@@ -63,7 +63,7 @@ export default function SettingsScreen({ onLogout }: Props) {
       {/* Features */}
       <Text style={s.section}>Features</Text>
       <View style={s.card}>
-        <SettingsRow icon={"\uD83C\uDFA4"} label="Voice Commands"  value="Coming soon" />
+        <SettingsRow icon={"\uD83C\uDFA4"} label="Voice Commands"  value="Active" />
         <View style={s.sep} />
         <SettingsRow icon={"\uD83D\uDCBB"} label="Web Dashboard"  value="isibi.ai" />
         <View style={s.sep} />

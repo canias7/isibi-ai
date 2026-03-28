@@ -3,7 +3,7 @@
  * Sidebar navigation, CRUD table with add/edit/delete, detail view, dashboard,
  * Kanban board view, Calendar view, and mobile-responsive layout.
  */
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, memo } from "react";
 import {
   LayoutDashboard, Users, ShoppingCart, Building2, Briefcase,
   CalendarDays, FileText, Package, Truck, Heart, Star, Box,
@@ -14,6 +14,14 @@ import {
   BarChart3,
 } from "lucide-react";
 import { get, post, patch, del } from "@/api/client";
+import type { AppSpec, EntitySpec, FieldSpec, ModuleSpec } from "@/types/spec";
+
+/** A single data row — keys are field names, values are whatever the DB returns. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DataRow = Record<string, any>;
+
+/** Shape returned by the bar-chart helper in the dashboard. */
+interface BarDatum { label: string; value: number; }
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, Users, ShoppingCart, Building2, Briefcase,
@@ -26,7 +34,7 @@ function resolveIcon(name?: string) {
 }
 
 interface SpecPreviewProps {
-  spec: any;
+  spec: AppSpec;
   device: "desktop" | "tablet" | "mobile";
   projectId?: string | null;
 }
@@ -83,10 +91,10 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
   const [activeModule, setActiveModule] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [listStyle, setListStyle] = useState<ListStyle>("table");
-  const [selectedRow, setSelectedRow] = useState<any>(null);
+  const [selectedRow, setSelectedRow] = useState<DataRow | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState(0);
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, string | number | boolean>>({});
   const [menuOpenRow, setMenuOpenRow] = useState<number | null>(null);
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -96,12 +104,12 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
 
   // Live mode — toggle between mock data and real API
   const [liveMode, setLiveMode] = useState(false);
-  const [liveDataMap, setLiveDataMap] = useState<Record<string, any[]>>({});
+  const [liveDataMap, setLiveDataMap] = useState<Record<string, DataRow[]>>({});
   const [liveLoading, setLiveLoading] = useState(false);
   const [liveCounts, setLiveCounts] = useState<Record<string, number>>({});
 
   // Track mock data so we can add/edit/delete
-  const [mockDataMap, setMockDataMap] = useState<Record<string, any[]>>({});
+  const [mockDataMap, setMockDataMap] = useState<Record<string, DataRow[]>>({});
 
   if (!spec || !spec.modules) return null;
 
@@ -109,7 +117,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
   const entities = spec.entities || [];
   const currentModule = modules[activeModule];
   const currentEntity = currentModule?.entity
-    ? entities.find((e: any) => e.name === currentModule.entity)
+    ? entities.find((e: EntitySpec) => e.name === currentModule.entity) ?? null
     : null;
 
   const isMobile = device === "mobile";
@@ -120,7 +128,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
     if (!projectId || !tableName) return;
     setLiveLoading(true);
     try {
-      const res = await get<{ data: any[]; total?: number }>(
+      const res = await get<{ data: DataRow[]; total?: number }>(
         `/apps/${projectId}/data/${tableName}?page_size=100`
       );
       const rows = Array.isArray(res) ? res : (res?.data || []);
@@ -143,7 +151,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
   }, [liveMode, currentEntity?.table, projectId]);
 
   // Live CRUD operations
-  const liveCreate = async (tableName: string, data: Record<string, any>) => {
+  const liveCreate = async (tableName: string, data: Record<string, string | number | boolean>) => {
     if (!projectId) return;
     try {
       await post(`/apps/${projectId}/data/${tableName}`, data);
@@ -154,7 +162,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
     }
   };
 
-  const liveUpdate = async (tableName: string, rowId: string, data: Record<string, any>) => {
+  const liveUpdate = async (tableName: string, rowId: string, data: Record<string, string | number | boolean>) => {
     if (!projectId) return;
     try {
       await patch(`/apps/${projectId}/data/${tableName}/${rowId}`, data);
@@ -191,17 +199,17 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
 
   const tableColumns = currentEntity
     ? (currentEntity.ui_config?.list_view?.columns || currentEntity.fields
-        .filter((f: any) => f.show_in_table !== false)
+        .filter((f: FieldSpec) => f.show_in_table !== false)
         .slice(0, 6)
-        .map((f: any) => f.name))
+        .map((f: FieldSpec) => f.name))
     : [];
 
   const design = spec.design_system || {};
   const primaryColor = design.colors?.primary || "#000000";
 
   // Detect features
-  const statusField = currentEntity?.fields?.find((f: any) => f.name === "status" && f.enum_values?.length > 0);
-  const dateField = currentEntity?.fields?.find((f: any) =>
+  const statusField = currentEntity?.fields?.find((f: FieldSpec) => f.name === "status" && (f.enum_values?.length ?? 0) > 0);
+  const dateField = currentEntity?.fields?.find((f: FieldSpec) =>
     f.name.includes("date") || f.db_type?.includes("DATE") || f.db_type?.includes("TIMESTAMP")
   );
   const hasBoard = !!statusField;
@@ -217,7 +225,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
       );
     }
     if (activeFilter > 0 && currentEntity) {
-      const sf = currentEntity.fields.find((f: any) => f.name === "status" || f.enum_values?.length > 0);
+      const sf = currentEntity.fields.find((f: FieldSpec) => f.name === "status" || (f.enum_values?.length ?? 0) > 0);
       if (sf?.enum_values) {
         const filterValue = sf.enum_values[activeFilter - 1];
         rows = rows.filter((row) => row[sf.name] === filterValue);
@@ -249,7 +257,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
     setCalendarSelectedDate(null);
   };
 
-  const handleRowClick = (row: any) => {
+  const handleRowClick = (row: DataRow) => {
     setSelectedRow(row);
     setViewMode("detail");
     setMenuOpenRow(null);
@@ -260,7 +268,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
     setViewMode("create");
   };
 
-  const handleEditClick = (row: any) => {
+  const handleEditClick = (row: DataRow) => {
     setFormData({ ...row });
     setSelectedRow(row);
     setViewMode("edit");
@@ -285,7 +293,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
   const handleFormSubmit = async () => {
     if (liveMode && entityTable) {
       // Live mode — real API calls
-      const cleanData: Record<string, any> = {};
+      const cleanData: Record<string, string | number | boolean> = {};
       for (const f of currentEntity?.fields || []) {
         if (["id", "org_id", "created_at", "updated_at", "deleted_at", "version"].includes(f.name)) continue;
         if (formData[f.name] !== undefined && formData[f.name] !== "") {
@@ -300,7 +308,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
     } else {
       // Mock mode
       if (viewMode === "create") {
-        const newRow: any = {};
+        const newRow: DataRow = {};
         for (const f of currentEntity?.fields || []) {
           if (["id", "org_id", "deleted_at", "version"].includes(f.name)) continue;
           if (f.name === "created_at") { newRow[f.name] = new Date().toLocaleDateString(); continue; }
@@ -329,11 +337,11 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
   };
 
   const handleDashboardCardClick = (entityName: string) => {
-    const idx = modules.findIndex((m: any) => m.entity === entityName);
+    const idx = modules.findIndex((m: ModuleSpec) => m.entity === entityName);
     if (idx >= 0) handleModuleClick(idx);
   };
 
-  const formFields = currentEntity?.fields?.filter((f: any) =>
+  const formFields = currentEntity?.fields?.filter((f: FieldSpec) =>
     f.show_in_form !== false &&
     !["id", "org_id", "created_at", "updated_at", "deleted_at", "version"].includes(f.name)
   ) || [];
@@ -411,7 +419,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
               textTransform: 'uppercase', letterSpacing: '0.08em',
               padding: '4px 10px 4px',
             }}>Navigation</div>
-            {modules.map((mod: any, i: number) => {
+            {modules.map((mod: ModuleSpec, i: number) => {
               const Icon = resolveIcon(mod.sidebar_icon);
               const isActive = i === activeModule;
               return (
@@ -621,7 +629,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
         {/* Page content — matches deployer .content */}
         <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '12px 12px 64px' : 16 }}>
           <div className="sp-fade-in" key={`${activeModule}-${viewMode}-${listStyle}`}>
-            {viewMode === "create" || viewMode === "edit" ? (
+            {(viewMode === "create" || viewMode === "edit") && currentEntity ? (
               <FormPreview
                 entity={currentEntity}
                 formData={formData}
@@ -632,7 +640,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
                 mode={viewMode}
                 isMobile={isMobile}
               />
-            ) : viewMode === "detail" && selectedRow ? (
+            ) : viewMode === "detail" && selectedRow && currentEntity ? (
               <DetailPreview
                 entity={currentEntity}
                 row={selectedRow}
@@ -716,7 +724,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
         {/* Mobile bottom tab bar */}
         {isMobile && (
           <div className="absolute bottom-0 left-0 right-0 flex items-center justify-around border-t border-gray-100 bg-white/95 backdrop-blur-sm px-1 py-1.5 shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
-            {modules.slice(0, 5).map((mod: any, i: number) => {
+            {modules.slice(0, 5).map((mod: ModuleSpec, i: number) => {
               const Icon = resolveIcon(mod.sidebar_icon);
               const isActive = i === activeModule;
               return (
@@ -776,16 +784,16 @@ function ViewToggleButton({ icon: Icon, label, active, onClick, primaryColor }: 
 /* ═══════════════════════════════════════════════════════════════════
    Dashboard Preview
    ═══════════════════════════════════════════════════════════════════ */
-function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobile }: {
-  spec: any;
+const DashboardPreview = memo(function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobile }: {
+  spec: AppSpec;
   primaryColor: string;
   onCardClick: (entity: string) => void;
-  mockDataMap: Record<string, any[]>;
+  mockDataMap: Record<string, DataRow[]>;
   isMobile: boolean;
 }) {
   const stats = spec.dashboard?.stat_cards || [];
   const entities = spec.entities || [];
-  const cards = stats.length > 0 ? stats : entities.slice(0, 4).map((e: any) => ({ label: `Total ${e.name}s`, entity: e.name }));
+  const cards = stats.length > 0 ? stats : entities.slice(0, 4).map((e: EntitySpec) => ({ label: `Total ${e.name}s`, entity: e.name }));
 
   // Deployer stat-card gradient colors: primary, green, amber, purple
   const statGradients = [
@@ -799,16 +807,16 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
   const firstEntity = entities[0];
   const firstEntityRows = firstEntity ? (mockDataMap[firstEntity.name] || []) : [];
   const recentItems = firstEntityRows.slice(-5).reverse();
-  const nameField = firstEntity?.fields?.find((f: any) =>
+  const nameField = firstEntity?.fields?.find((f: FieldSpec) =>
     f.name === "name" || f.name.includes("_name") || f.name.includes("title")
   );
 
   // Simple bar chart data
-  const barData = entities.slice(0, 5).map((e: any) => ({
+  const barData: BarDatum[] = entities.slice(0, 5).map((e: EntitySpec) => ({
     label: e.name,
     value: (mockDataMap[e.name] || []).length,
   }));
-  const maxBar = Math.max(...barData.map((d: any) => d.value), 1);
+  const maxBar = Math.max(...barData.map((d: BarDatum) => d.value), 1);
 
   return (
     <div>
@@ -818,12 +826,13 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
         gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
         gap: 12, marginBottom: 16,
       }}>
-        {cards.map((item: any, i: number) => {
-          const count = (mockDataMap[item.entity || item.name] || []).length;
+        {cards.map((item, i: number) => {
+          const entityKey = ('entity' in item ? item.entity : undefined) || ('name' in item ? item.name : undefined) || '';
+          const count = (mockDataMap[entityKey] || []).length;
           return (
             <div
               key={i}
-              onClick={() => onCardClick(item.entity || item.name)}
+              onClick={() => onCardClick(entityKey)}
               className={`sp-fade-in sp-stagger-${i + 1}`}
               style={{
                 borderRadius: 12, padding: 14, color: '#ffffff',
@@ -836,7 +845,7 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
-                  {item.label || `Total ${item.name}s`}
+                  {item.label || `Total ${'name' in item ? item.name : ''}s`}
                 </span>
                 <div style={{
                   width: 28, height: 28, borderRadius: 8,
@@ -867,7 +876,7 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
             <Activity style={{ width: 14, height: 14, color: '#d1d5db' }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 96, paddingTop: 4, position: 'relative' }}>
-            {barData.map((d: any, i: number) => (
+            {barData.map((d: BarDatum, i: number) => (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: 4, position: 'relative' }}>
                 <div
                   style={{
@@ -943,7 +952,7 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
       }}>
         <p style={{ fontSize: 11, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Quick Actions</p>
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-          {entities.slice(0, 4).map((e: any, i: number) => (
+          {entities.slice(0, 4).map((e: EntitySpec, i: number) => (
             <button
               key={i}
               onClick={() => onCardClick(e.name)}
@@ -971,12 +980,12 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
       </div>
     </div>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    Table Preview
    ═══════════════════════════════════════════════════════════════════ */
-function TablePreview({
+const TablePreview = memo(function TablePreview({
   entity, columns, rows, primaryColor,
   onRowClick, onAddClick, onEditClick, onDeleteClick,
   menuOpenRow, setMenuOpenRow,
@@ -984,13 +993,13 @@ function TablePreview({
   onSort, sortCol, sortDir, isMobile,
   searchQuery, setSearchQuery,
 }: {
-  entity: any;
+  entity: EntitySpec;
   columns: string[];
-  rows: any[];
+  rows: DataRow[];
   primaryColor: string;
-  onRowClick: (row: any) => void;
+  onRowClick: (row: DataRow) => void;
   onAddClick: () => void;
-  onEditClick: (row: any) => void;
+  onEditClick: (row: DataRow) => void;
   onDeleteClick: (i: number) => void;
   menuOpenRow: number | null;
   setMenuOpenRow: (i: number | null) => void;
@@ -1004,8 +1013,8 @@ function TablePreview({
   setSearchQuery?: (q: string) => void;
 }) {
   const visibleCols = isMobile ? columns.slice(0, 3) : columns.slice(0, 6);
-  const statusField = entity.fields?.find((f: any) => f.name === "status" && f.enum_values?.length > 0);
-  const enumField = entity.fields?.find((f: any) => f.enum_values?.length > 0 && !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name));
+  const statusField = entity.fields?.find((f: FieldSpec) => f.name === "status" && (f.enum_values?.length ?? 0) > 0);
+  const enumField = entity.fields?.find((f: FieldSpec) => (f.enum_values?.length ?? 0) > 0 && !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name));
 
   return (
     <div>
@@ -1163,7 +1172,7 @@ function TablePreview({
                     <input type="checkbox" style={{ width: 16, height: 16, accentColor: primaryColor, cursor: 'pointer', margin: 0 }} />
                   </td>
                   {visibleCols.map((col: string, ci: number) => {
-                    const field = entity.fields.find((f: any) => f.name === col);
+                    const field = entity.fields.find((f: FieldSpec) => f.name === col);
                     const val = row[col];
                     const isNameField = col === "name" || col.includes("_name") || col.includes("contact") || col.includes("customer");
                     return (
@@ -1280,24 +1289,25 @@ function TablePreview({
       )}
     </div>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    Board / Kanban Preview
    ═══════════════════════════════════════════════════════════════════ */
-function BoardPreview({ entity, rows, statusField, primaryColor, onRowClick, onAddClick }: {
-  entity: any;
-  rows: any[];
-  statusField: any;
+const BoardPreview = memo(function BoardPreview({ entity, rows, statusField, primaryColor, onRowClick, onAddClick }: {
+  entity: EntitySpec;
+  rows: DataRow[];
+  statusField: FieldSpec | undefined;
   primaryColor: string;
-  onRowClick: (row: any) => void;
+  onRowClick: (row: DataRow) => void;
   onAddClick: () => void;
 }) {
-  const statuses: string[] = statusField?.enum_values || [];
-  const nameField = entity.fields?.find((f: any) =>
+  if (!statusField) return null;
+  const statuses: string[] = statusField.enum_values || [];
+  const nameField = entity.fields?.find((f: FieldSpec) =>
     f.name === "name" || f.name.includes("_name") || f.name.includes("title") || f.name.includes("subject")
   );
-  const secondaryField = entity.fields?.find((f: any) =>
+  const secondaryField = entity.fields?.find((f: FieldSpec) =>
     f.name !== nameField?.name && f.name !== "status" &&
     !["id","org_id","created_at","updated_at","deleted_at","version"].includes(f.name)
   );
@@ -1363,17 +1373,17 @@ function BoardPreview({ entity, rows, statusField, primaryColor, onRowClick, onA
       </div>
     </div>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    Calendar Preview
    ═══════════════════════════════════════════════════════════════════ */
-function CalendarPreview({ entity, rows, dateField, primaryColor, onRowClick, onAddClick, calendarMonth, setCalendarMonth, calendarSelectedDate, setCalendarSelectedDate }: {
-  entity: any;
-  rows: any[];
-  dateField: any;
+const CalendarPreview = memo(function CalendarPreview({ entity, rows, dateField, primaryColor, onRowClick, onAddClick, calendarMonth, setCalendarMonth, calendarSelectedDate, setCalendarSelectedDate }: {
+  entity: EntitySpec;
+  rows: DataRow[];
+  dateField: FieldSpec;
   primaryColor: string;
-  onRowClick: (row: any) => void;
+  onRowClick: (row: DataRow) => void;
   onAddClick: () => void;
   calendarMonth: Date;
   setCalendarMonth: (d: Date) => void;
@@ -1387,7 +1397,7 @@ function CalendarPreview({ entity, rows, dateField, primaryColor, onRowClick, on
 
   // Map date strings to rows
   const dateMap = useMemo(() => {
-    const map: Record<string, any[]> = {};
+    const map: Record<string, DataRow[]> = {};
     for (const row of rows) {
       const val = row[dateField.name];
       if (!val) continue;
@@ -1405,7 +1415,7 @@ function CalendarPreview({ entity, rows, dateField, primaryColor, onRowClick, on
   for (let i = 0; i < firstDay; i++) days.push(null);
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
 
-  const nameField = entity.fields?.find((f: any) =>
+  const nameField = entity.fields?.find((f: FieldSpec) =>
     f.name === "name" || f.name.includes("_name") || f.name.includes("title")
   );
 
@@ -1511,23 +1521,23 @@ function CalendarPreview({ entity, rows, dateField, primaryColor, onRowClick, on
       )}
     </div>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    Detail Preview
    ═══════════════════════════════════════════════════════════════════ */
-function DetailPreview({
+const DetailPreview = memo(function DetailPreview({
   entity, row, primaryColor, onEdit, onBack, isMobile,
 }: {
-  entity: any;
-  row: any;
+  entity: EntitySpec;
+  row: DataRow;
   primaryColor: string;
   onEdit: () => void;
   onBack: () => void;
   isMobile: boolean;
 }) {
   const [activeTab, setActiveTab] = useState(0);
-  const fields = entity?.fields?.filter((f: any) =>
+  const fields = entity?.fields?.filter((f: FieldSpec) =>
     !["id", "org_id", "deleted_at", "version"].includes(f.name)
   ) || [];
 
@@ -1542,7 +1552,7 @@ function DetailPreview({
   ];
   const tabs = entity?.ui_config?.detail_view?.tabs || defaultTabs;
   const nameField = fields[0];
-  const statusFieldDef = entity?.fields?.find((f: any) => f.name === "status");
+  const statusFieldDef = entity?.fields?.find((f: FieldSpec) => f.name === "status");
 
   return (
     <div style={{ maxWidth: 800 }}>
@@ -1597,7 +1607,7 @@ function DetailPreview({
         display: 'flex', gap: 0, borderBottom: '1px solid #e5e7eb',
         marginBottom: 0, overflowX: 'auto',
       }}>
-        {tabs.map((tab: any, i: number) => (
+        {tabs.map((tab: { name: string }, i: number) => (
           <button
             key={i}
             onClick={() => setActiveTab(i)}
@@ -1624,7 +1634,7 @@ function DetailPreview({
         gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
         gap: 12, marginTop: 16,
       }}>
-        {fields.map((f: any, i: number) => {
+        {fields.map((f: FieldSpec, i: number) => {
           const isNameLike = f.name === "name" || f.name.includes("_name") || f.name.includes("contact");
           return (
             <div key={i} style={{
@@ -1668,24 +1678,24 @@ function DetailPreview({
       </div>
     </div>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    Form Preview
    ═══════════════════════════════════════════════════════════════════ */
-function FormPreview({
+const FormPreview = memo(function FormPreview({
   entity, formData, setFormData, onSubmit, onCancel, primaryColor, mode, isMobile,
 }: {
-  entity: any;
-  formData: Record<string, any>;
-  setFormData: (d: Record<string, any>) => void;
+  entity: EntitySpec;
+  formData: Record<string, string | number | boolean>;
+  setFormData: (d: Record<string, string | number | boolean>) => void;
   onSubmit: () => void;
   onCancel: () => void;
   primaryColor: string;
   mode: "create" | "edit";
   isMobile: boolean;
 }) {
-  const fields = entity?.fields?.filter((f: any) =>
+  const fields = entity?.fields?.filter((f: FieldSpec) =>
     f.show_in_form !== false &&
     !["id", "org_id", "created_at", "updated_at", "deleted_at", "version"].includes(f.name)
   ) || [];
@@ -1724,7 +1734,7 @@ function FormPreview({
 
       {/* Slide-over body — matches deployer .slide-over-body */}
       <div style={{ padding: '24px 0' }}>
-        {fields.map((f: any, i: number) => (
+        {fields.map((f: FieldSpec, i: number) => (
           <div key={i} style={{ marginBottom: 12 }}>
             {/* Label — matches deployer .form-group label */}
             <label style={{
@@ -1739,7 +1749,7 @@ function FormPreview({
             </label>
             {f.enum_values ? (
               <select
-                value={formData[f.name] || ""}
+                value={String(formData[f.name] ?? "")}
                 onChange={(e) => setFormData({ ...formData, [f.name]: e.target.value })}
                 style={{ ...inputStyle, cursor: 'pointer' }}
               >
@@ -1760,7 +1770,7 @@ function FormPreview({
               </label>
             ) : f.db_type?.includes("TEXT") && !f.db_type?.includes("VARCHAR") ? (
               <textarea
-                value={formData[f.name] || ""}
+                value={String(formData[f.name] ?? "")}
                 onChange={(e) => setFormData({ ...formData, [f.name]: e.target.value })}
                 rows={3}
                 style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
@@ -1769,7 +1779,7 @@ function FormPreview({
             ) : (
               <input
                 type={f.db_type?.includes("INT") || f.db_type?.includes("NUMERIC") ? "number" : f.db_type?.includes("DATE") ? "date" : "text"}
-                value={formData[f.name] || ""}
+                value={String(formData[f.name] ?? "")}
                 onChange={(e) => setFormData({ ...formData, [f.name]: e.target.value })}
                 style={inputStyle}
                 placeholder={`Enter ${formatColumnName(f.name).toLowerCase()}...`}
@@ -1810,7 +1820,7 @@ function FormPreview({
       </div>
     </div>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════════════
    Shared Components
@@ -1908,23 +1918,23 @@ function getBadgeClass(color?: string): string {
   return map[color || "gray"] || "bg-gray-100 text-gray-700";
 }
 
-function generateMockRows(entity: any, count: number): any[] {
-  const fields = entity.fields || [];
-  const rows: any[] = [];
+function generateMockRows(entity: EntitySpec, count: number): DataRow[] {
+  const fields: FieldSpec[] = entity.fields || [];
+  const rows: DataRow[] = [];
   const firstNames = ["James", "Sofia", "Liam", "Emma", "Noah", "Olivia", "Ethan", "Ava", "Mason", "Isabella"];
   const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"];
   const companies = ["Alpha Corp", "Beta LLC", "Gamma Inc", "Delta Co", "Epsilon Ltd", "Zeta Group", "Eta Solutions", "Theta Partners"];
 
   for (let r = 0; r < count; r++) {
-    const row: any = {};
+    const row: DataRow = {};
     for (const f of fields) {
       if (["id", "org_id", "deleted_at", "version"].includes(f.name)) continue;
       if (f.name === "created_at" || f.name === "updated_at") {
         row[f.name] = new Date(Date.now() - Math.random() * 30 * 86400000).toLocaleDateString();
         continue;
       }
-      if (f.enum_values?.length > 0) {
-        row[f.name] = f.enum_values[Math.floor(Math.random() * f.enum_values.length)];
+      if ((f.enum_values?.length ?? 0) > 0) {
+        row[f.name] = f.enum_values![Math.floor(Math.random() * f.enum_values!.length)];
         continue;
       }
       if (f.db_type?.includes("BOOLEAN") || f.ts_type === "boolean") {

@@ -17,11 +17,15 @@ import {
   Circle,
 } from "lucide-react";
 import { SpecPreview } from "@/components/SpecPreview";
+import type { AppSpec, EntitySpec } from "@/types/spec";
+
+/** Extended spec type for visual editor -- includes runtime-only fields */
+type VisualSpec = AppSpec;
 
 interface VisualEditorProps {
-  spec: any;
+  spec: VisualSpec;
   device: "desktop" | "tablet" | "mobile";
-  onSpecUpdate: (spec: any) => void;
+  onSpecUpdate: (spec: VisualSpec) => void;
 }
 
 interface SelectedElement {
@@ -88,7 +92,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
     padding: "",
     borderRadius: "",
   });
-  const [history, setHistory] = useState<any[]>([spec]);
+  const [history, setHistory] = useState<VisualSpec[]>([spec]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -96,7 +100,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
 
   // Push a new spec snapshot into history
   const pushHistory = useCallback(
-    (newSpec: any) => {
+    (newSpec: VisualSpec) => {
       const newHistory = history.slice(0, historyIndex + 1);
       newHistory.push(newSpec);
       setHistory(newHistory);
@@ -223,7 +227,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
 
       case "entity_title": {
         const entityName = selected.path;
-        const entity = newSpec.entities?.find((e: any) => e.name === entityName);
+        const entity = newSpec.entities?.find((e: EntitySpec) => e.name === entityName);
         if (entity) {
           entity.name = editValues.text.replace(/s$/, "");
         }
@@ -611,7 +615,7 @@ export function VisualEditor({ spec, device, onSpecUpdate }: VisualEditorProps) 
 function identifyElement(
   el: HTMLElement | null,
   text: string,
-  spec: any
+  spec: VisualSpec
 ): Omit<SelectedElement, "rect"> | null {
   if (!el || !spec) return null;
 
@@ -676,7 +680,7 @@ function identifyElement(
   // Check stat cards
   const stats = spec.dashboard?.stat_cards || [];
   for (let i = 0; i < stats.length; i++) {
-    const label = stats[i].label || stats[i].title || stats[i].name;
+    const label = stats[i].label || stats[i].title || stats[i].name || "";
     if (text === label || text.includes(label)) {
       return {
         type: "stat_card",

@@ -10,7 +10,7 @@ The generated HTML app includes working CRUD that calls the backend API.
 import logging
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import select, update
@@ -177,7 +177,7 @@ self.addEventListener('fetch', (e) => {{
         .values(
             status="deployed",
             build_path=_json.dumps(build_data),
-            updated_at=datetime.utcnow(),
+            updated_at=datetime.now(timezone.utc),
         )
     )
     await db.commit()
@@ -246,6 +246,7 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
     import json
 
     app_name = spec.get("app_name") or spec.get("name") or "My App"
+    app_type = spec.get("app_type") or ""
     entities = spec.get("entities") or []
     modules = spec.get("modules") or []
     design = spec.get("design_system") or {}
@@ -2667,6 +2668,54 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 }}
 .quick-action-btn {{ display:flex;align-items:center;gap:8px;border:1px solid rgba(243,244,246,1);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;font-family:inherit;font-size:10px;font-weight:500;color:var(--gray-600);transition:all 0.15s ease; }}
 .quick-action-btn:hover {{ border-color:rgba(229,231,235,1);background:var(--gray-50); }}
+
+/* ── Spreadsheet View ── */
+.spreadsheet-container {{ display:flex;flex-direction:column;height:calc(100vh - 140px);background:var(--bg-card);border:1px solid rgba(243,244,246,0.8);border-radius:12px;box-shadow:0 1px 2px rgba(0,0,0,0.04);overflow:hidden; }}
+.spreadsheet-toolbar {{ display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--gray-100);background:rgba(249,250,251,0.6);flex-shrink:0; }}
+.spreadsheet-toolbar button {{ display:flex;align-items:center;gap:4px;padding:5px 10px;border:1px solid var(--gray-200);border-radius:6px;background:#fff;font-size:10px;font-weight:500;color:var(--gray-600);cursor:pointer;font-family:inherit;transition:all 0.15s ease; }}
+.spreadsheet-toolbar button:hover {{ background:var(--gray-50);border-color:var(--gray-300); }}
+.spreadsheet-toolbar button.ss-primary {{ background:linear-gradient(135deg,{primary_color},{primary_hover});color:#fff;border-color:transparent; }}
+.spreadsheet-toolbar button.ss-primary:hover {{ opacity:0.9; }}
+.spreadsheet-toolbar .ss-separator {{ width:1px;height:20px;background:var(--gray-200);margin:0 4px; }}
+.spreadsheet-formula-bar {{ display:flex;align-items:center;gap:8px;padding:4px 12px;border-bottom:1px solid var(--gray-100);background:#fff;font-size:11px;flex-shrink:0; }}
+.spreadsheet-formula-bar .ss-cell-ref {{ font-weight:600;color:var(--gray-500);min-width:80px;padding:3px 8px;background:var(--gray-50);border-radius:4px;border:1px solid var(--gray-200);text-align:center; }}
+.spreadsheet-formula-bar .ss-cell-value {{ flex:1;padding:3px 8px;color:var(--gray-700);border:1px solid transparent;border-radius:4px;font-family:'Inter',sans-serif; }}
+.ss-grid-wrap {{ flex:1;overflow:auto;position:relative; }}
+.ss-table {{ border-collapse:collapse;width:max-content;min-width:100%;font-size:11px; }}
+.ss-table th,.ss-table td {{ border:1px solid var(--gray-200);padding:0;height:28px;white-space:nowrap; }}
+.ss-table th {{ background:var(--gray-50);font-weight:600;font-size:10px;color:var(--gray-500);text-transform:none;letter-spacing:0;padding:0 10px;text-align:center;user-select:none;position:sticky;top:0;z-index:2; }}
+.ss-corner {{ position:sticky;left:0;top:0;z-index:3 !important;background:var(--gray-100) !important;width:40px;min-width:40px; }}
+.ss-row-num {{ position:sticky;left:0;z-index:1;background:var(--gray-50);width:40px;min-width:40px;text-align:center;color:var(--gray-400);font-size:10px;font-weight:500;cursor:default; }}
+.ss-cell {{ padding:0 8px;cursor:cell;min-width:100px;max-width:300px;overflow:hidden;text-overflow:ellipsis;color:var(--gray-700);transition:background 0.1s ease; }}
+.ss-cell:hover {{ background:rgba(59,130,246,0.04); }}
+.ss-cell.ss-selected {{ outline:2px solid {primary_color};outline-offset:-2px;background:rgba(59,130,246,0.06); }}
+.ss-cell.ss-editing {{ padding:0;overflow:visible; }}
+.ss-cell.ss-editing input,.ss-cell.ss-editing select {{ width:100%;height:100%;border:none;outline:none;padding:0 8px;font-size:11px;font-family:'Inter',sans-serif;background:rgba(59,130,246,0.08);box-sizing:border-box; }}
+.ss-cell .ss-badge {{ display:inline-block;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:600;text-transform:uppercase; }}
+.ss-add-row {{ cursor:pointer; }}
+.ss-add-row td {{ color:var(--gray-400);font-size:10px;text-align:center;border-style:dashed; }}
+.ss-add-row:hover td {{ background:rgba(59,130,246,0.04);color:{primary_color}; }}
+.ss-checkbox {{ width:14px;height:14px;cursor:pointer;accent-color:{primary_color}; }}
+.ss-footer {{ display:flex;align-items:center;justify-content:space-between;padding:6px 12px;border-top:1px solid var(--gray-100);background:rgba(249,250,251,0.6);font-size:10px;color:var(--gray-500);flex-shrink:0; }}
+.ss-footer .ss-stats {{ display:flex;gap:16px; }}
+.ss-footer .ss-stat {{ font-weight:500; }}
+.ss-footer .ss-stat span {{ color:var(--gray-700);font-weight:600; }}
+.sheet-tabs {{ display:flex;align-items:center;gap:0;border-top:1px solid var(--gray-200);background:var(--gray-50);padding:0 8px;flex-shrink:0; }}
+.sheet-tab {{ padding:6px 14px;font-size:10px;font-weight:500;color:var(--gray-500);cursor:pointer;border:none;background:none;border-top:2px solid transparent;font-family:inherit;transition:all 0.15s ease; }}
+.sheet-tab:hover {{ color:var(--gray-700);background:rgba(255,255,255,0.6); }}
+.sheet-tab.active {{ color:{primary_color};border-top-color:{primary_color};background:#fff;font-weight:600; }}
+
+/* ── Agent Cursor / Live Animation ── */
+.agent-cursor {{ position:fixed;z-index:99999;pointer-events:none;transition:left 0.4s cubic-bezier(0.4,0,0.2,1),top 0.4s cubic-bezier(0.4,0,0.2,1); }}
+.agent-cursor-dot {{ width:18px;height:18px;border-radius:50%;background:{primary_color};box-shadow:0 0 12px {primary_color}80,0 0 24px {primary_color}40;animation:agent-pulse 1.2s ease-in-out infinite; }}
+.agent-cursor-label {{ position:absolute;top:-22px;left:12px;background:{primary_color};color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px;white-space:nowrap;letter-spacing:0.3px;box-shadow:0 2px 8px rgba(0,0,0,0.15); }}
+.agent-cursor-trail {{ position:absolute;width:6px;height:6px;border-radius:50%;background:{primary_color}40;top:6px;left:6px;animation:agent-trail 0.6s ease-out forwards; }}
+@keyframes agent-pulse {{ 0%,100%{{ transform:scale(1);opacity:0.9; }} 50%{{ transform:scale(1.3);opacity:1; }} }}
+@keyframes agent-trail {{ 0%{{ opacity:0.6;transform:scale(1); }} 100%{{ opacity:0;transform:scale(2.5); }} }}
+.agent-highlight {{ position:relative; }}
+.agent-highlight::after {{ content:'';position:absolute;inset:-3px;border:2px solid {primary_color};border-radius:8px;animation:agent-glow 0.6s ease-in-out;pointer-events:none; }}
+@keyframes agent-glow {{ 0%{{ opacity:0;transform:scale(0.95); }} 50%{{ opacity:1;transform:scale(1.02); }} 100%{{ opacity:0;transform:scale(1); }} }}
+.agent-typing {{ border-color:{primary_color} !important;box-shadow:0 0 0 2px {primary_color}30 !important; }}
 </style>
 </head>
 <body>
@@ -2913,7 +2962,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 <div class="ai-sidebar" id="ai-sidebar">
   <div class="ai-sidebar-header">
     <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><line x1="12" y1="19" x2="20" y2="19"/></svg> AI Assistant</h3>
-    <button class="ai-sidebar-close" onclick="toggleAiSidebar()">&times;</button>
+    <div style="display:flex;align-items:center;gap:8px">
+      <label style="display:flex;align-items:center;gap:4px;font-size:9px;color:var(--gray-400);cursor:pointer;white-space:nowrap" title="Toggle live agent animation">
+        <input type="checkbox" id="agent-anim-toggle" checked onchange="localStorage.setItem('agentAnimationEnabled',this.checked)" style="width:14px;height:14px;accent-color:{primary_color}">
+        Agent
+      </label>
+      <button class="ai-sidebar-close" onclick="toggleAiSidebar()">&times;</button>
+    </div>
   </div>
   <div class="ai-sidebar-messages" id="ai-sidebar-messages"></div>
   <div class="ai-sidebar-input-wrap">
@@ -2934,6 +2989,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   const ENTITY_FIELDS = {entity_fields_js};
   const SIDEBAR_ITEMS = {sidebar_items_js};
   const LAYOUT_HINTS = {layout_hints_js};
+  const APP_TYPE = "{app_type}";
   const APP_NAME = "{app_name}";
   const ROWS_PER_PAGE = 10;
   const MAX_INITIAL_ROWS = 50;  // virtual scrolling: limit initial render
@@ -3501,6 +3557,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
   // ── Detect smart layout for an entity ──
   function getSmartLayout(entity) {{
+    // Spreadsheet-first apps default all entities to spreadsheet view
+    if (APP_TYPE === "spreadsheet") return "spreadsheet";
     return LAYOUT_HINTS[entity] || "table";
   }}
 
@@ -3577,11 +3635,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     if (item.layout !== "dashboard" && currentEntity && ENTITY_FIELDS[currentEntity]) {{
       let toggleHtml = "";
       if (smartLayout !== "table") {{
-        const altLabel = smartLayout === "kanban" ? "Kanban" : smartLayout === "calendar" ? "Calendar" : "Cards";
+        const altLabel = smartLayout === "kanban" ? "Kanban" : smartLayout === "calendar" ? "Calendar" : smartLayout === "spreadsheet" ? "Spreadsheet" : "Cards";
         const altIcon = smartLayout === "kanban"
           ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>'
           : smartLayout === "calendar"
           ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>'
+          : smartLayout === "spreadsheet"
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>'
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>';
         const currentView = viewMode[name] || "table";
         toggleHtml = '<div class="view-toggle">' +
@@ -3637,6 +3697,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       renderCalendarView(container, moduleName, entity);
     }} else if (view === "cards") {{
       renderCardGridView(container, moduleName, entity);
+    }} else if (view === "spreadsheet") {{
+      renderSpreadsheetView(container, moduleName, entity);
     }} else {{
       renderTablePage(container, moduleName, entity);
     }}
@@ -6479,6 +6541,358 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     }});
   }};
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Component: SpreadsheetView
+  // Excel-like grid with inline editing, keyboard nav,
+  // CSV import/export, and formula bar.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  let ssSelectedCell = null;  // {{ row, col, entity, rowId, fieldName }}
+  let ssData = [];
+  let ssFields = [];
+
+  function renderSpreadsheetView(container, moduleName, entity) {{
+    const fields = ENTITY_FIELDS[entity] || [];
+    ssFields = fields.filter(f =>
+      !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name)
+    );
+    ssSelectedCell = null;
+
+    const html =
+      '<div class="spreadsheet-container" id="ss-container-' + moduleName + '">' +
+        '<div class="spreadsheet-toolbar">' +
+          '<button class="ss-primary" onclick="ssAddRow(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27)">' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add Row</button>' +
+          '<button onclick="ssDeleteSelected(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27)">' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>Delete</button>' +
+          '<div class="ss-separator"></div>' +
+          '<button onclick="ssImportCSV(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27)">' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Import CSV</button>' +
+          '<button onclick="exportCSV(false)">' +
+            '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export CSV</button>' +
+          '<input type="file" id="ss-csv-input-' + moduleName + '" accept=".csv,.tsv" style="display:none" onchange="ssHandleCSVFile(this,\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27)">' +
+        '</div>' +
+        '<div class="spreadsheet-formula-bar">' +
+          '<div class="ss-cell-ref" id="ss-cellref-' + moduleName + '">—</div>' +
+          '<div class="ss-cell-value" id="ss-cellval-' + moduleName + '">Select a cell</div>' +
+        '</div>' +
+        '<div class="ss-grid-wrap">' +
+          '<table class="ss-table" id="ss-table-' + moduleName + '"></table>' +
+        '</div>' +
+        '<div class="ss-footer">' +
+          '<div class="ss-stats">' +
+            '<div class="ss-stat">Rows: <span id="ss-rowcount-' + moduleName + '">0</span></div>' +
+            '<div class="ss-stat">Columns: <span>' + ssFields.length + '</span></div>' +
+          '</div>' +
+          '<div style="font-size:9px;color:var(--gray-400)">Click cell to edit &middot; Tab/Enter to navigate</div>' +
+        '</div>';
+
+    // Sheet tabs for spreadsheet-first apps with multiple entities
+    if (APP_TYPE === "spreadsheet") {{
+      const entityNames = Object.keys(ENTITY_FIELDS);
+      if (entityNames.length > 1) {{
+        html += '<div class="sheet-tabs">';
+        entityNames.forEach(function(eName) {{
+          const isActive = eName === entity;
+          // Find the module for this entity
+          const mod = SIDEBAR_ITEMS.find(function(s) {{ return s.entity === eName; }});
+          const modName = mod ? mod.name : eName;
+          html += '<button class="sheet-tab' + (isActive ? ' active' : '') + '" onclick="ssSheetSwitch(\\x27' + escHtml(modName) + '\\x27)">' + escHtml(eName) + '</button>';
+        }});
+        html += '</div>';
+      }}
+    }}
+
+    html += '</div>';
+
+    container.innerHTML = html;
+    ssLoadData(entity, moduleName);
+  }}
+
+  window.ssSheetSwitch = function(moduleName) {{
+    showModule(moduleName);
+  }};
+
+  async function ssLoadData(entity, moduleName) {{
+    try {{
+      const rows = await apiGet(entity.toLowerCase());
+      dataCache[entity] = rows;
+      ssData = rows;
+      ssRenderGrid(entity, moduleName);
+    }} catch(e) {{
+      const tbl = document.getElementById("ss-table-" + moduleName);
+      if (tbl) tbl.innerHTML = '<tr><td colspan="20" style="padding:40px;text-align:center;color:var(--gray-400)">Could not load data</td></tr>';
+    }}
+  }}
+
+  function ssRenderGrid(entity, moduleName) {{
+    const tbl = document.getElementById("ss-table-" + moduleName);
+    if (!tbl) return;
+    const rows = dataCache[entity] || [];
+    const rowCount = document.getElementById("ss-rowcount-" + moduleName);
+    if (rowCount) rowCount.textContent = rows.length;
+
+    // Build header
+    let headerHtml = '<thead><tr><th class="ss-corner"></th><th style="width:36px;min-width:36px;padding:0"><input type="checkbox" class="ss-checkbox" onchange="ssBulkToggle(\\x27' + escHtml(entity) + '\\x27,this.checked)"></th>';
+    ssFields.forEach(function(f, ci) {{
+      headerHtml += '<th style="min-width:' + (f.enum_values && f.enum_values.length ? '110' : '100') + 'px">' + escHtml(f.name.replace(/_/g, " ")) + '</th>';
+    }});
+    headerHtml += '</tr></thead>';
+
+    // Build rows
+    let bodyHtml = '<tbody>';
+    rows.forEach(function(row, ri) {{
+      const rowId = String(row.id || row.ID);
+      bodyHtml += '<tr>';
+      bodyHtml += '<td class="ss-row-num">' + (ri + 1) + '</td>';
+      bodyHtml += '<td style="text-align:center;padding:0"><input type="checkbox" class="ss-checkbox ss-row-cb" data-id="' + escHtml(rowId) + '" onchange="ssRowCheck(\\x27' + escHtml(entity) + '\\x27)"></td>';
+      ssFields.forEach(function(f, ci) {{
+        const val = row[f.name];
+        const isSelected = ssSelectedCell && ssSelectedCell.row === ri && ssSelectedCell.col === ci;
+        let displayVal = '';
+        if (f.enum_values && f.enum_values.length && val) {{
+          const colors = {{ pink:"#ec4899",blue:"#3b82f6",green:"#22c55e",amber:"#f59e0b",red:"#ef4444",purple:"#a855f7",cyan:"#06b6d4",indigo:"#6366f1",teal:"#14b8a6",emerald:"#10b981",rose:"#f43f5e",gray:"#6b7280" }};
+          const badgeColors = f.badge_colors || {{}};
+          const bc = colors[badgeColors[val]] || "#6b7280";
+          displayVal = '<span class="ss-badge" style="background:' + bc + '15;color:' + bc + '">' + escHtml(String(val)) + '</span>';
+        }} else if (f.type === "boolean" || f.name === "recurring") {{
+          displayVal = val ? 'Yes' : 'No';
+        }} else if (val !== null && val !== undefined && val !== '') {{
+          displayVal = escHtml(String(val));
+        }}
+        bodyHtml += '<td class="ss-cell' + (isSelected ? ' ss-selected' : '') + '" ' +
+          'data-row="' + ri + '" data-col="' + ci + '" data-field="' + f.name + '" data-id="' + escHtml(rowId) + '" ' +
+          'onclick="ssSelectCell(this,\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27,' + ri + ',' + ci + ')" ' +
+          'ondblclick="ssEditCell(this,\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27,' + ri + ',' + ci + ')">' +
+          displayVal + '</td>';
+      }});
+      bodyHtml += '</tr>';
+    }});
+
+    // Add row placeholder
+    bodyHtml += '<tr class="ss-add-row" onclick="ssAddRow(\\x27' + escHtml(entity) + '\\x27,\\x27' + escHtml(moduleName) + '\\x27)">' +
+      '<td class="ss-row-num" style="border-style:dashed">+</td>' +
+      '<td style="border-style:dashed"></td>';
+    ssFields.forEach(function() {{ bodyHtml += '<td style="border-style:dashed"></td>'; }});
+    bodyHtml += '</tr></tbody>';
+
+    tbl.innerHTML = headerHtml + bodyHtml;
+  }}
+
+  // ── Spreadsheet cell selection ──
+  window.ssSelectCell = function(cell, entity, moduleName, row, col) {{
+    // Clear previous selection
+    document.querySelectorAll('.ss-selected').forEach(function(el) {{ el.classList.remove('ss-selected'); }});
+    cell.classList.add('ss-selected');
+    const field = ssFields[col];
+    ssSelectedCell = {{ row: row, col: col, entity: entity, rowId: cell.dataset.id, fieldName: field.name }};
+    // Update formula bar
+    const cellRef = document.getElementById("ss-cellref-" + moduleName);
+    const cellVal = document.getElementById("ss-cellval-" + moduleName);
+    if (cellRef) cellRef.textContent = field.name.replace(/_/g, " ");
+    const rows = dataCache[entity] || [];
+    const record = rows[row];
+    if (cellVal && record) cellVal.textContent = record[field.name] !== null && record[field.name] !== undefined ? String(record[field.name]) : '';
+  }};
+
+  // ── Spreadsheet cell editing ──
+  window.ssEditCell = function(cell, entity, moduleName, row, col) {{
+    const field = ssFields[col];
+    if (!field || field.computed) return;
+    if (NON_EDITABLE_FIELDS.includes(field.name)) return;
+    if (cell.querySelector("input, select")) return;
+
+    const rows = dataCache[entity] || [];
+    const record = rows[row];
+    if (!record) return;
+    const rowId = String(record.id || record.ID);
+    const currentVal = record[field.name] ?? "";
+    const originalHtml = cell.innerHTML;
+    cell.classList.add("ss-editing");
+
+    let inputHtml;
+    if (field.enum_values && field.enum_values.length) {{
+      const opts = field.enum_values.map(function(v) {{
+        return '<option value="' + escHtml(v) + '"' + (v === String(currentVal) ? ' selected' : '') + '>' + escHtml(v) + '</option>';
+      }}).join("");
+      inputHtml = '<select>' + opts + '</select>';
+    }} else if (field.type === "boolean" || field.name === "recurring") {{
+      inputHtml = '<select><option value="true"' + (currentVal ? ' selected' : '') + '>Yes</option><option value="false"' + (!currentVal ? ' selected' : '') + '>No</option></select>';
+    }} else {{
+      let inputType = "text";
+      if (/amount|value|price|cost|revenue|total|salary|fee|budget|quantity|count|number|age|score|rating|level|year/i.test(field.name) || field.type === "number" || field.type === "integer" || field.type === "float") inputType = "number";
+      else if (/date|_at$/i.test(field.name)) inputType = "date";
+      inputHtml = '<input type="' + inputType + '" value="' + escHtml(String(currentVal)) + '">';
+    }}
+    cell.innerHTML = inputHtml;
+    const inp = cell.querySelector("input, select");
+    inp.focus();
+    if (inp.tagName === "INPUT") inp.select();
+
+    function cancelEdit() {{
+      cell.innerHTML = originalHtml;
+      cell.classList.remove("ss-editing");
+    }}
+
+    async function saveEdit() {{
+      let newVal = inp.value;
+      if (field.type === "boolean" || field.name === "recurring") newVal = newVal === "true";
+      else if (inp.type === "number" && newVal !== "") newVal = Number(newVal);
+      if (newVal === currentVal || (newVal === "" && currentVal === "")) {{ cancelEdit(); return; }}
+      const patch = {{}};
+      patch[field.name] = newVal;
+      const result = await apiUpdate(entity.toLowerCase(), rowId, patch);
+      if (result) {{
+        const cached = (dataCache[entity] || []).find(function(r) {{ return String(r.id || r.ID) === rowId; }});
+        if (cached) cached[field.name] = newVal;
+        ssRenderGrid(entity, moduleName);
+        // Re-select same cell
+        setTimeout(function() {{
+          const newCell = document.querySelector('.ss-cell[data-row="' + row + '"][data-col="' + col + '"]');
+          if (newCell) ssSelectCell(newCell, entity, moduleName, row, col);
+        }}, 50);
+      }} else {{ cancelEdit(); }}
+    }}
+
+    inp.addEventListener("keydown", function(e) {{
+      if (e.key === "Enter") {{
+        e.preventDefault();
+        saveEdit().then(function() {{
+          // Move down
+          const nextCell = document.querySelector('.ss-cell[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
+          if (nextCell) {{ ssSelectCell(nextCell, entity, moduleName, row + 1, col); ssEditCell(nextCell, entity, moduleName, row + 1, col); }}
+        }});
+      }}
+      if (e.key === "Tab") {{
+        e.preventDefault();
+        saveEdit().then(function() {{
+          const nextCol = e.shiftKey ? col - 1 : col + 1;
+          const nextRow = nextCol >= ssFields.length ? row + 1 : (nextCol < 0 ? row - 1 : row);
+          const realCol = nextCol >= ssFields.length ? 0 : (nextCol < 0 ? ssFields.length - 1 : nextCol);
+          const nextCell = document.querySelector('.ss-cell[data-row="' + nextRow + '"][data-col="' + realCol + '"]');
+          if (nextCell) {{ ssSelectCell(nextCell, entity, moduleName, nextRow, realCol); ssEditCell(nextCell, entity, moduleName, nextRow, realCol); }}
+        }});
+      }}
+      if (e.key === "Escape") {{ e.preventDefault(); cancelEdit(); }}
+    }});
+    inp.addEventListener("blur", function() {{
+      setTimeout(function() {{ if (cell.querySelector("input, select")) saveEdit(); }}, 150);
+    }});
+  }};
+
+  // ── Spreadsheet keyboard navigation ──
+  document.addEventListener("keydown", function(e) {{
+    if (!ssSelectedCell) return;
+    const tag = document.activeElement ? document.activeElement.tagName : "";
+    if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
+    const {{ row, col, entity }} = ssSelectedCell;
+    const moduleName = currentModule;
+    let nextRow = row, nextCol = col;
+
+    if (e.key === "ArrowDown") {{ nextRow = row + 1; e.preventDefault(); }}
+    else if (e.key === "ArrowUp") {{ nextRow = Math.max(0, row - 1); e.preventDefault(); }}
+    else if (e.key === "ArrowRight" || e.key === "Tab") {{ nextCol = Math.min(ssFields.length - 1, col + 1); e.preventDefault(); }}
+    else if (e.key === "ArrowLeft") {{ nextCol = Math.max(0, col - 1); e.preventDefault(); }}
+    else if (e.key === "Enter" || e.key === "F2") {{
+      e.preventDefault();
+      const cell = document.querySelector('.ss-cell[data-row="' + row + '"][data-col="' + col + '"]');
+      if (cell) ssEditCell(cell, entity, moduleName, row, col);
+      return;
+    }} else if (e.key === "Delete" || e.key === "Backspace") {{
+      return; // let default behavior work
+    }} else {{ return; }}
+
+    const nextCell = document.querySelector('.ss-cell[data-row="' + nextRow + '"][data-col="' + nextCol + '"]');
+    if (nextCell) ssSelectCell(nextCell, entity, moduleName, nextRow, nextCol);
+  }});
+
+  // ── Spreadsheet add row ──
+  window.ssAddRow = async function(entity, moduleName) {{
+    const fields = ENTITY_FIELDS[entity] || [];
+    const payload = {{}};
+    fields.forEach(function(f) {{
+      if (f.editable && !NON_EDITABLE_FIELDS.includes(f.name)) {{
+        if (f.enum_values && f.enum_values.length) payload[f.name] = f.enum_values[0];
+        else if (f.type === "boolean") payload[f.name] = false;
+        else if (f.type === "number" || f.type === "integer" || f.type === "float") payload[f.name] = 0;
+        else if (/date/i.test(f.name)) payload[f.name] = new Date().toISOString().split("T")[0];
+        else if (f.nullable === false && f.db_type && f.db_type.includes("NOT NULL") && !f.db_type.includes("DEFAULT")) payload[f.name] = "New";
+      }}
+    }});
+    const result = await apiCreate(entity.toLowerCase(), payload);
+    if (result) {{
+      showToast("Row added", "success");
+      ssLoadData(entity, moduleName);
+    }}
+  }};
+
+  // ── Spreadsheet delete selected ──
+  window.ssDeleteSelected = async function(entity, moduleName) {{
+    const cbs = document.querySelectorAll(".ss-row-cb:checked");
+    if (cbs.length === 0) {{ showToast("Select rows to delete", "warning"); return; }}
+    if (!confirm("Delete " + cbs.length + " row(s)?")) return;
+    for (const cb of cbs) {{
+      await apiDelete(entity.toLowerCase(), cb.dataset.id);
+    }}
+    showToast(cbs.length + " row(s) deleted", "success");
+    ssLoadData(entity, moduleName);
+  }};
+
+  // ── Spreadsheet bulk toggle ──
+  window.ssBulkToggle = function(entity, checked) {{
+    document.querySelectorAll(".ss-row-cb").forEach(function(cb) {{ cb.checked = checked; }});
+  }};
+  window.ssRowCheck = function(entity) {{
+    // Update header checkbox state
+    const all = document.querySelectorAll(".ss-row-cb");
+    const checked = document.querySelectorAll(".ss-row-cb:checked");
+    const headerCb = document.querySelector('.ss-corner').parentElement.querySelector('.ss-checkbox');
+    if (headerCb) headerCb.checked = all.length > 0 && all.length === checked.length;
+  }};
+
+  // ── CSV Import ──
+  window.ssImportCSV = function(entity, moduleName) {{
+    document.getElementById("ss-csv-input-" + moduleName).click();
+  }};
+
+  window.ssHandleCSVFile = async function(input, entity, moduleName) {{
+    const file = input.files[0];
+    if (!file) return;
+    const text = await file.text();
+    const sep = file.name.endsWith(".tsv") ? "\\t" : ",";
+    const lines = text.split("\\n").filter(function(l) {{ return l.trim(); }});
+    if (lines.length < 2) {{ showToast("CSV must have header + data rows", "warning"); return; }}
+
+    // Parse header
+    const headers = lines[0].split(sep).map(function(h) {{ return h.replace(/^"|"$/g, "").trim().toLowerCase().replace(/\\s+/g, "_"); }});
+    const fields = ENTITY_FIELDS[entity] || [];
+    const fieldMap = {{}};
+    headers.forEach(function(h, i) {{
+      const match = fields.find(function(f) {{ return f.name.toLowerCase() === h || f.name.toLowerCase().replace(/_/g, "") === h.replace(/_/g, ""); }});
+      if (match && match.editable) fieldMap[i] = match.name;
+    }});
+
+    if (Object.keys(fieldMap).length === 0) {{ showToast("No matching columns found", "error"); return; }}
+
+    showToast("Importing " + (lines.length - 1) + " rows...", "info");
+    let created = 0;
+    for (let i = 1; i < lines.length; i++) {{
+      const vals = lines[i].split(sep).map(function(v) {{ return v.replace(/^"|"$/g, "").trim(); }});
+      const payload = {{}};
+      Object.keys(fieldMap).forEach(function(idx) {{
+        const fieldName = fieldMap[idx];
+        let val = vals[idx] || "";
+        if (val) payload[fieldName] = val;
+      }});
+      if (Object.keys(payload).length > 0) {{
+        const r = await apiCreate(entity.toLowerCase(), payload);
+        if (r) created++;
+      }}
+    }}
+    showToast(created + " rows imported", "success");
+    input.value = "";
+    ssLoadData(entity, moduleName);
+  }};
+
   // ── Feature: Pivot Table / Group-By View ──
   const groupByState = {{}};  // moduleName -> fieldName or ""
   let groupCollapsed = {{}};  // "moduleName:groupValue" -> boolean
@@ -6677,6 +7091,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
   // ── AI Command Sidebar ──
   var aiSidebarOpen = false;
+
+  // Init agent animation toggle from localStorage
+  (function() {{
+    var toggle = document.getElementById("agent-anim-toggle");
+    if (toggle) toggle.checked = localStorage.getItem("agentAnimationEnabled") !== "false";
+  }})();
   var aiSidebarInited = false;
   var aiPendingConfirm = null;
 
@@ -6860,6 +7280,162 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     }}
   }}
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // Agent Animation Engine
+  // Shows a visual cursor that moves, clicks, and types
+  // to make AI commands feel like a real assistant.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  var agentCursorEl = null;
+  var agentAnimating = false;
+
+  function isAgentEnabled() {{
+    return localStorage.getItem("agentAnimationEnabled") !== "false";
+  }}
+
+  function showAgentCursor() {{
+    if (agentCursorEl) return;
+    agentCursorEl = document.createElement("div");
+    agentCursorEl.className = "agent-cursor";
+    agentCursorEl.innerHTML = '<div class="agent-cursor-dot"></div><div class="agent-cursor-label">AI Agent</div>';
+    agentCursorEl.style.left = (window.innerWidth / 2) + "px";
+    agentCursorEl.style.top = (window.innerHeight / 2) + "px";
+    document.body.appendChild(agentCursorEl);
+    agentAnimating = true;
+  }}
+
+  function hideAgentCursor() {{
+    if (agentCursorEl) {{
+      agentCursorEl.style.opacity = "0";
+      agentCursorEl.style.transition = "opacity 0.3s ease";
+      setTimeout(function() {{
+        if (agentCursorEl && agentCursorEl.parentNode) agentCursorEl.parentNode.removeChild(agentCursorEl);
+        agentCursorEl = null;
+      }}, 300);
+    }}
+    agentAnimating = false;
+  }}
+
+  function agentMoveTo(selector) {{
+    return new Promise(function(resolve) {{
+      var el = typeof selector === "string" ? document.querySelector(selector) : selector;
+      if (!el || !agentCursorEl) {{ resolve(); return; }}
+      var rect = el.getBoundingClientRect();
+      agentCursorEl.style.left = (rect.left + rect.width / 2) + "px";
+      agentCursorEl.style.top = (rect.top + rect.height / 2) + "px";
+      // Drop a trail
+      var trail = document.createElement("div");
+      trail.className = "agent-cursor-trail";
+      agentCursorEl.appendChild(trail);
+      setTimeout(function() {{ if (trail.parentNode) trail.parentNode.removeChild(trail); }}, 600);
+      setTimeout(resolve, 450);
+    }});
+  }}
+
+  function agentHighlight(el) {{
+    if (!el) return;
+    el.classList.add("agent-highlight");
+    setTimeout(function() {{ el.classList.remove("agent-highlight"); }}, 700);
+  }}
+
+  function agentClick(selector) {{
+    return new Promise(function(resolve) {{
+      var el = typeof selector === "string" ? document.querySelector(selector) : selector;
+      if (!el) {{ resolve(); return; }}
+      agentMoveTo(el).then(function() {{
+        agentHighlight(el);
+        setTimeout(function() {{
+          el.click();
+          resolve();
+        }}, 300);
+      }});
+    }});
+  }}
+
+  function agentNavigate(moduleName) {{
+    return new Promise(function(resolve) {{
+      // Find sidebar item
+      var items = document.querySelectorAll(".sidebar-item, .sidebar-link, [onclick*='showModule']");
+      var target = null;
+      items.forEach(function(item) {{
+        if (item.textContent && item.textContent.trim().toLowerCase().includes(moduleName.toLowerCase())) {{
+          target = item;
+        }}
+      }});
+      if (target) {{
+        agentMoveTo(target).then(function() {{
+          agentHighlight(target);
+          setTimeout(function() {{
+            showModule(moduleName);
+            setTimeout(resolve, 400);
+          }}, 300);
+        }});
+      }} else {{
+        showModule(moduleName);
+        setTimeout(resolve, 300);
+      }}
+    }});
+  }}
+
+  function agentType(selector, text) {{
+    return new Promise(function(resolve) {{
+      var el = typeof selector === "string" ? document.querySelector(selector) : selector;
+      if (!el) {{ resolve(); return; }}
+      agentMoveTo(el).then(function() {{
+        el.focus();
+        el.classList.add("agent-typing");
+        el.value = "";
+        var i = 0;
+        function typeChar() {{
+          if (i < text.length) {{
+            el.value += text[i];
+            el.dispatchEvent(new Event("input", {{ bubbles: true }}));
+            i++;
+            setTimeout(typeChar, 30 + Math.random() * 20);
+          }} else {{
+            el.classList.remove("agent-typing");
+            resolve();
+          }}
+        }}
+        typeChar();
+      }});
+    }});
+  }}
+
+  function agentWait(ms) {{
+    return new Promise(function(resolve) {{ setTimeout(resolve, ms || 300); }});
+  }}
+
+  function agentMessage(text) {{
+    return new Promise(function(resolve) {{
+      aiAddMsg(text, "bot");
+      setTimeout(resolve, 200);
+    }});
+  }}
+
+  async function agentAnimate(steps) {{
+    if (!isAgentEnabled()) {{
+      // Execute messages only, skip visual animation
+      for (var s = 0; s < steps.length; s++) {{
+        if (steps[s].action === "message") aiAddMsg(steps[s].text, "bot");
+      }}
+      return;
+    }}
+    showAgentCursor();
+    for (var s = 0; s < steps.length; s++) {{
+      var step = steps[s];
+      switch (step.action) {{
+        case "move":     await agentMoveTo(step.target);            break;
+        case "click":    await agentClick(step.target);             break;
+        case "navigate": await agentNavigate(step.module);          break;
+        case "type":     await agentType(step.target, step.text);   break;
+        case "wait":     await agentWait(step.ms);                  break;
+        case "message":  await agentMessage(step.text);             break;
+        case "exec":     if (step.fn) await step.fn();              break;
+      }}
+    }}
+    hideAgentCursor();
+  }}
+
   async function aiProcessCommand(text) {{
     var q = text.trim();
     var kb = aiBuildKnowledge();
@@ -6915,12 +7491,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     // Show dashboard / Go home
     if (/show\s+dashboard|go\s+home|open\s+dashboard/i.test(q)) {{
       var dashMod = SIDEBAR_ITEMS.find(function(s) {{ return /dashboard/i.test(s.name); }});
-      if (dashMod && typeof showModule === "function") {{
-        showModule(dashMod.name);
-        aiAddMsg("Here's your dashboard", "bot");
-      }} else if (SIDEBAR_ITEMS.length > 0 && typeof showModule === "function") {{
-        showModule(SIDEBAR_ITEMS[0].name);
-        aiAddMsg("Here's your dashboard", "bot");
+      var dashName = dashMod ? dashMod.name : (SIDEBAR_ITEMS.length > 0 ? SIDEBAR_ITEMS[0].name : null);
+      if (dashName) {{
+        await agentAnimate([
+          {{ action: "message", text: "Opening your dashboard..." }},
+          {{ action: "navigate", module: dashName }},
+          {{ action: "message", text: "Here's your dashboard" }},
+        ]);
       }} else {{
         aiAddMsg("Could not find a dashboard module.", "bot");
       }}
@@ -6931,9 +7508,12 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     var goMatch = q.match(/(?:go\s+to|open|switch\s+to|navigate\s+to)\s+(.+)/i);
     if (goMatch) {{
       var modName = aiFindModule(goMatch[1]);
-      if (modName && typeof showModule === "function") {{
-        showModule(modName);
-        aiAddMsg("Switched to " + escHtml(modName), "bot");
+      if (modName) {{
+        await agentAnimate([
+          {{ action: "message", text: "Navigating to " + escHtml(modName) + "..." }},
+          {{ action: "navigate", module: modName }},
+          {{ action: "message", text: "Switched to " + escHtml(modName) }},
+        ]);
       }} else {{
         aiAddMsg("Module not found. Available modules: " + kb.modules.join(", "), "bot");
       }}
@@ -6947,24 +7527,49 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       if (entity) {{
         var parsed = aiParseFields(q, entity);
         if (Object.keys(parsed).length > 0) {{
-          try {{
-            var res = await fetch(API_BASE + "/" + entity, {{
-              method: "POST",
-              headers: {{ "Content-Type": "application/json" }},
-              body: JSON.stringify(parsed)
-            }});
-            if (res.ok) {{
-              var data = await res.json();
-              var displayName = parsed.name || parsed.title || parsed.label || Object.values(parsed)[0] || entity;
-              aiAddMsg("Created a new " + escHtml(entity) + ": <strong>" + escHtml(displayName) + "</strong>", "bot");
-              if (typeof showModule === "function" && currentModule) showModule(currentModule);
-            }} else {{
-              var errData = await res.json().catch(function() {{ return {{}}; }});
-              aiAddMsg("Could not create: " + (errData.detail || "server error"), "bot");
-            }}
-          }} catch(err) {{
-            aiAddMsg("Error creating record: " + err.message, "bot");
+          var mod = SIDEBAR_ITEMS.find(function(s) {{ return s.entity === entity; }});
+          var displayName = parsed.name || parsed.title || parsed.label || Object.values(parsed)[0] || entity;
+
+          // Build animation steps: navigate → open form → type fields → submit
+          var animSteps = [
+            {{ action: "message", text: "Creating a new " + escHtml(entity) + "..." }},
+          ];
+          if (mod) animSteps.push({{ action: "navigate", module: mod.name }});
+          animSteps.push({{ action: "wait", ms: 300 }});
+          animSteps.push({{ action: "click", target: ".btn-primary" }});
+          animSteps.push({{ action: "wait", ms: 500 }});
+
+          // Type each field value into the form
+          var fieldKeys = Object.keys(parsed);
+          for (var fi = 0; fi < fieldKeys.length; fi++) {{
+            var fk = fieldKeys[fi];
+            var fv = String(parsed[fk]);
+            animSteps.push({{ action: "type", target: 'input[name="' + fk + '"], textarea[name="' + fk + '"], .modal input, .slide-over input', text: fv }});
+            animSteps.push({{ action: "wait", ms: 200 }});
           }}
+
+          // Submit via API (the animation typed into the form visually, but we create via API for reliability)
+          animSteps.push({{ action: "exec", fn: async function() {{
+            try {{
+              var res = await fetch(API_BASE + "/" + entity, {{
+                method: "POST",
+                headers: {{ "Content-Type": "application/json" }},
+                body: JSON.stringify(parsed)
+              }});
+              if (res.ok) {{
+                aiAddMsg("Created a new " + escHtml(entity) + ": <strong>" + escHtml(displayName) + "</strong>", "bot");
+                if (typeof closeModal === "function") closeModal();
+                if (typeof showModule === "function" && currentModule) showModule(currentModule);
+              }} else {{
+                var errData = await res.json().catch(function() {{ return {{}}; }});
+                aiAddMsg("Could not create: " + (errData.detail || "server error"), "bot");
+              }}
+            }} catch(err) {{
+              aiAddMsg("Error creating record: " + err.message, "bot");
+            }}
+          }} }});
+
+          await agentAnimate(animSteps);
           return;
         }}
       }}
@@ -6976,12 +7581,14 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       var entity = aiFindEntity(addMatch[1]);
       if (entity) {{
         var mod = SIDEBAR_ITEMS.find(function(s) {{ return s.entity === entity; }});
-        if (mod && typeof showModule === "function") {{
-          showModule(mod.name);
-          setTimeout(function() {{
-            if (typeof openCreate === "function") openCreate();
-          }}, 150);
-          aiAddMsg("Opening the form to add a new " + escHtml(entity) + ". Fill in the details!", "bot");
+        if (mod) {{
+          await agentAnimate([
+            {{ action: "message", text: "Opening form to add a new " + escHtml(entity) + "..." }},
+            {{ action: "navigate", module: mod.name }},
+            {{ action: "wait", ms: 300 }},
+            {{ action: "click", target: ".btn-primary" }},
+            {{ action: "message", text: "Fill in the details!" }},
+          ]);
         }} else {{
           aiAddMsg("Entity '" + escHtml(entity) + "' found but no module linked.", "bot");
         }}
@@ -6998,9 +7605,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       var entity = aiFindEntity(listMatch[1]);
       if (entity) {{
         var mod = SIDEBAR_ITEMS.find(function(s) {{ return s.entity === entity; }});
-        if (mod && typeof showModule === "function") {{
-          showModule(mod.name);
-          aiAddMsg("Here are your " + escHtml(entity) + "s", "bot");
+        if (mod) {{
+          await agentAnimate([
+            {{ action: "message", text: "Showing your " + escHtml(entity) + "s..." }},
+            {{ action: "navigate", module: mod.name }},
+            {{ action: "wait", ms: 300 }},
+            {{ action: "message", text: "Here are your " + escHtml(entity) + "s" }},
+          ]);
         }} else {{
           aiAddMsg("No module found for " + escHtml(entity), "bot");
         }}
@@ -7013,15 +7624,19 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       var countMatch = q.match(/(?:how\s+many|count|total)\s+(\w+)/i);
       var entity = aiFindEntity(countMatch[1]);
       if (entity) {{
+        var countMod = SIDEBAR_ITEMS.find(function(s) {{ return s.entity === entity; }});
         try {{
+          var countSteps = [{{ action: "message", text: "Counting " + escHtml(entity) + "s..." }}];
+          if (countMod) countSteps.push({{ action: "navigate", module: countMod.name }});
           var res = await fetch(API_BASE + "/" + entity);
           if (res.ok) {{
             var data = await res.json();
             var count = Array.isArray(data) ? data.length : (data.items ? data.items.length : 0);
-            aiAddMsg("You have <strong>" + count + "</strong> " + escHtml(entity) + "(s)", "bot");
+            countSteps.push({{ action: "message", text: "You have <strong>" + count + "</strong> " + escHtml(entity) + "(s)" }});
           }} else {{
-            aiAddMsg("Could not fetch count. Server returned an error.", "bot");
+            countSteps.push({{ action: "message", text: "Could not fetch count. Server returned an error." }});
           }}
+          await agentAnimate(countSteps);
         }} catch(err) {{
           aiAddMsg("Error fetching data: " + err.message, "bot");
         }}
@@ -7065,15 +7680,21 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     var searchMatch = q.match(/(?:search|find|look\s+(?:for|up))\s+(?:for\s+)?[\"']?(.+?)[\"']?\s*$/i);
     if (searchMatch) {{
       var term = searchMatch[1].trim();
-      aiAddMsg("Searching for '" + escHtml(term) + "'...", "bot");
-      var searchInput = document.querySelector(".topbar-search input, #global-search, .search-input");
-      if (searchInput) {{
-        searchInput.value = term;
-        searchInput.dispatchEvent(new Event("input", {{ bubbles: true }}));
-        searchInput.focus();
-      }} else if (typeof window.globalSearch === "function") {{
-        window.globalSearch(term);
-      }}
+      var searchInput = document.querySelector("#topbar-search, .topbar-search input, #global-search, .search-input input, .search-input");
+      await agentAnimate([
+        {{ action: "message", text: "Searching for '" + escHtml(term) + "'..." }},
+        {{ action: "move", target: searchInput || "body" }},
+        {{ action: "wait", ms: 200 }},
+        {{ action: "exec", fn: function() {{
+          if (searchInput) {{
+            searchInput.value = term;
+            searchInput.dispatchEvent(new Event("input", {{ bubbles: true }}));
+            searchInput.focus();
+          }} else if (typeof window.globalSearch === "function") {{
+            window.globalSearch(term);
+          }}
+        }} }},
+      ]);
       return;
     }}
 
@@ -7565,8 +8186,9 @@ def _detect_smart_layouts(entities: list, modules: list) -> dict:
     Analyze entities and determine the best alternate layout for each.
 
     Returns a dict mapping entity name -> layout type:
-    - "kanban" if entity has a status field with enum_values
     - "calendar" if entity has a date field AND name suggests appointments/events
+    - "kanban" if entity has a status field with enum_values
+    - "spreadsheet" if entity name suggests data-entry/tracking use case
     - "cards" if entity has image/photo fields OR is a product/listing type
     - "table" for everything else
     """
@@ -7574,6 +8196,10 @@ def _detect_smart_layouts(entities: list, modules: list) -> dict:
 
     calendar_keywords = re.compile(
         r"(appointment|booking|event|schedule|meeting|session|reservation|class|lesson|shift|calendar)",
+        re.IGNORECASE,
+    )
+    spreadsheet_keywords = re.compile(
+        r"(spreadsheet|tracker|ledger|register|worksheet|inventory|budget|expense|timesheet|log|roster|invoice|transaction|entry|record|payment|receipt)",
         re.IGNORECASE,
     )
     product_keywords = re.compile(
@@ -7596,10 +8222,12 @@ def _detect_smart_layouts(entities: list, modules: list) -> dict:
         has_status_enum = False
         has_date_field = False
         has_image_field = False
+        numeric_field_count = 0
 
         for f in fields:
             fname = f.get("name", "")
             ftype = f.get("type", "")
+            db_type = f.get("db_type", "")
             enum_vals = f.get("enum_values", [])
 
             # Check for status-like enum field
@@ -7616,11 +8244,22 @@ def _detect_smart_layouts(entities: list, modules: list) -> dict:
             if image_field_pattern.search(fname):
                 has_image_field = True
 
-        # Priority: Calendar > Kanban > Cards > Table
+            # Count numeric fields for spreadsheet detection
+            if fname not in ("id", "org_id", "version") and (
+                ftype in ("number", "integer", "float")
+                or "NUMERIC" in db_type.upper()
+                or "INTEGER" in db_type.upper()
+                or "DECIMAL" in db_type.upper()
+            ):
+                numeric_field_count += 1
+
+        # Priority: Calendar > Kanban > Spreadsheet > Cards > Table
         if has_date_field and calendar_keywords.search(name):
             layout_map[name] = "calendar"
         elif has_status_enum:
             layout_map[name] = "kanban"
+        elif spreadsheet_keywords.search(name) or numeric_field_count >= 4:
+            layout_map[name] = "spreadsheet"
         elif has_image_field or product_keywords.search(name):
             layout_map[name] = "cards"
         else:

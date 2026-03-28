@@ -34,7 +34,7 @@ export function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
             {statCards.map((card) => {
               const Icon = resolveIcon(card.icon);
-              const value = stats?.[card.key] ?? "—";
+              const value = card.key ? stats?.[card.key] ?? "—" : "—";
               return (
                 <div
                   key={card.key}

@@ -1,7 +1,12 @@
 import { useState, useRef, useEffect } from "react";
 import { Loader2, Mail } from "lucide-react";
 import { post } from "@/api/client";
-import { useAuthStore } from "@/stores/authStore";
+import { useAuthStore, type AuthUser } from "@/stores/authStore";
+
+interface ApiError {
+  status: number;
+  detail: string;
+}
 
 interface Props {
   email: string;
@@ -61,13 +66,13 @@ export function VerifyEmailPage({ email, onVerified }: Props) {
     setError(null);
     setLoading(true);
     try {
-      const res = await post<{ access_token?: string; user?: any }>("/auth/verify-email", { email, code });
+      const res = await post<{ access_token?: string; user?: AuthUser }>("/auth/verify-email", { email, code });
       if (res.access_token && res.user) {
         setAuth(res.access_token, res.user);
       }
       onVerified();
-    } catch (err: any) {
-      setError(err?.detail || "Verification failed.");
+    } catch (err: unknown) {
+      setError((err as ApiError)?.detail || "Verification failed.");
       setDigits(["", "", "", "", "", ""]);
       inputRefs.current[0]?.focus();
     } finally {

@@ -12,6 +12,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 import asyncio
 import logging
 from pathlib import Path
+from datetime import datetime
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -81,28 +82,22 @@ _APP_START_TIME = _time.time()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Create tables from SQLAlchemy models
     async with engine.begin() as conn:
-        try:
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255) NOT NULL DEFAULT ''"))
-            await conn.execute(text("DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'account_type') THEN CREATE TYPE account_type AS ENUM ('user', 'developer'); END IF; END $$"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS account_type account_type NOT NULL DEFAULT 'user'"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT false"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_code VARCHAR(6)"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_expires_at TIMESTAMPTZ"))
-            await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS github_repo VARCHAR(500)"))
-            await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS description TEXT"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(255)"))
-            await conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_2fa_enabled BOOLEAN NOT NULL DEFAULT false"))
-            await conn.execute(text("ALTER TABLE projects ADD COLUMN IF NOT EXISTS subdomain VARCHAR(63) UNIQUE"))
-            await conn.execute(text("ALTER TABLE file_uploads ADD COLUMN IF NOT EXISTS file_data TEXT"))
-            await conn.execute(text("ALTER TABLE app_field_files ADD COLUMN IF NOT EXISTS file_data TEXT"))
-            await conn.execute(text("ALTER TABLE app_record_files ADD COLUMN IF NOT EXISTS file_data TEXT"))
-            await conn.execute(text("ALTER TABLE projects ALTER COLUMN build_path TYPE TEXT"))
-            print("ALL COLUMNS MIGRATED")
-        except Exception as e:
-            print(f"MIGRATION NOTE: {e}")
         await conn.run_sync(Base.metadata.create_all)
     print("ALL TABLES CREATED")
+
+    # Run Alembic migrations (idempotent — safe to run on every startup)
+    try:
+        from alembic.config import Config
+        from alembic import command
+        import os
+        alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "alembic.ini"))
+        alembic_cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "alembic"))
+        command.upgrade(alembic_cfg, "head")
+        print("ALEMBIC MIGRATIONS APPLIED")
+    except Exception as e:
+        print(f"MIGRATION NOTE: {e}")
 
     # Load verified custom domains into in-memory index
     from routes.custom_domain_ssl import load_verified_domains
@@ -112,6 +107,9 @@ async def lifespan(app: FastAPI):
     # Start background scheduler
     from worker.scheduler import run_scheduler
     scheduler_task = asyncio.create_task(run_scheduler())
+    scheduler_task.add_done_callback(
+        lambda t: logger.error("Scheduler crashed: %s", t.exception()) if not t.cancelled() and t.exception() else None
+    )
 
     yield
 
@@ -137,21 +135,56 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="CRM API",
+    title="isibi.ai API",
     version="1.0.0",
-    description="Multi-tenant CRM backend API",
+    description="API for the isibi.ai no-code app builder",
     lifespan=lifespan,
 )
 
-# CORS
-_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+# CORS — default to known origins; never fall back to "*" with credentials
+_DEFAULT_ORIGINS = "http://localhost:5173,http://localhost:3000,https://isibi.ai,https://www.isibi.ai,https://isibi-frontend.onrender.com"
+_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", _DEFAULT_ORIGINS).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in _ALLOWED_ORIGINS],
+    allow_origins=[o.strip() for o in _ALLOWED_ORIGINS if o.strip() != "*"],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-Preview", "X-Requested-With"],
 )
+
+# Security headers middleware
+class SecurityHeadersMiddleware:
+    """Add standard security headers to all responses."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                headers.extend([
+                    (b"x-content-type-options", b"nosniff"),
+                    (b"x-frame-options", b"SAMEORIGIN"),
+                    (b"referrer-policy", b"strict-origin-when-cross-origin"),
+                    (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+                ])
+                # Only add HSTS in production
+                if os.getenv("RENDER"):
+                    headers.append(
+                        (b"strict-transport-security", b"max-age=31536000; includeSubDomains")
+                    )
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Response caching (must be before rate limiter so cached responses skip it)
 app.add_middleware(ResponseCacheMiddleware)
@@ -292,6 +325,11 @@ async def health():
     }
 
 
+@app.get("/api/health")
+async def health_check():
+    return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
+
+
 # ── Serve deployed apps ──
 from generator.deployer import BUILDS_DIR
 import json as _json
@@ -319,7 +357,8 @@ async def _get_build_data(project_id: str) -> dict | None:
             if not row:
                 return None
             return _json.loads(row)
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to load build data for project %s: %s", project_id, exc)
         return None
 
 
@@ -396,7 +435,22 @@ async def serve_icon(project_id: str):
 
 @app.get("/embed/{project_id}", response_class=HTMLResponse)
 async def serve_embed_app(project_id: str):
+    # Validate project_id is a valid UUID to prevent path traversal
+    import uuid as _uuid_mod
+    try:
+        _uuid_mod.UUID(project_id)
+    except (ValueError, AttributeError):
+        return HTMLResponse(
+            content="<html><body><h1>Invalid project ID</h1></body></html>",
+            status_code=400,
+        )
     build_path = BUILDS_DIR / project_id / "index.html"
+    # Ensure resolved path is within BUILDS_DIR
+    if not build_path.resolve().is_relative_to(BUILDS_DIR.resolve()):
+        return HTMLResponse(
+            content="<html><body><h1>Invalid project ID</h1></body></html>",
+            status_code=400,
+        )
     if not build_path.exists():
         return HTMLResponse(
             content="<html><body><h1>App not found</h1>"

@@ -13,7 +13,6 @@ Routes:
   DELETE /api/apps/{project_id}/data/{table_name}/{row_id}  — soft delete
 """
 
-import os
 import re
 import random
 import logging
@@ -25,7 +24,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import DATABASE_URL, get_db
-from auth import get_current_org_id
+from auth import get_current_org_id, JWT_SECRET as _JWT_SECRET, JWT_ALGORITHM as _JWT_ALGORITHM
 from fastapi import Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt, JWTError
@@ -44,14 +43,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/apps", tags=["App Data"])
 
 _bearer = HTTPBearer(auto_error=False)
-_JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
-_JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 
 # ── Flexible Auth ────────────────────────────────────────────────────
 # Accepts EITHER a platform JWT (org_id) OR an app-user JWT (project_id)
-
-import os
 
 async def _get_app_auth(
     project_id: UUID,
@@ -65,16 +60,19 @@ async def _get_app_auth(
     - App-user JWT (type=app_user): verifies project_id matches
     - No token: returns 401
     """
-    # Allow preview mode (read-only, no auth required)
+    # Allow preview mode (read-only GET requests only, no auth required)
     preview = request.query_params.get("preview") or request.headers.get("x-preview")
-    if preview:
-        return  # Skip auth for preview mode
+    if preview and request.method == "GET":
+        return  # Skip auth for read-only preview mode
 
     auth_header = request.headers.get("authorization", "")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication required")
 
-    token = auth_header.split(" ", 1)[1]
+    parts = auth_header.split(" ", 1)
+    if len(parts) != 2 or not parts[1]:
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    token = parts[1]
     try:
         payload = jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALGORITHM])
     except JWTError:
@@ -136,8 +134,7 @@ async def _ensure_table_exists(
     if table_name not in tables:
         raise HTTPException(
             status_code=404,
-            detail=f"Table '{table_name}' not found in project schema. "
-                   f"Available tables: {', '.join(tables) or '(none)'}",
+            detail=f"Table '{table_name}' not found in project schema.",
         )
 
 
@@ -349,28 +346,28 @@ async def _apply_auto_assign(
         # Determine assignee based on strategy
         if rule.strategy == "round_robin":
             assignee = members[rule.counter % len(members)]
-            rule.counter = rule.counter + 1
+            rule.counter = (rule.counter + 1) % len(members)
         elif rule.strategy == "random":
             assignee = random.choice(members)
         elif rule.strategy == "least_loaded":
             try:
                 conn = await _get_raw_connection(DATABASE_URL)
                 try:
-                    counts = {}
-                    for member in members:
-                        row = await conn.fetchrow(
-                            f'SELECT COUNT(*) as cnt FROM "{schema}"."{table_name}" '
-                            f'WHERE "{rule.assign_field}" = $1 AND "deleted_at" IS NULL',
-                            member,
-                        )
-                        counts[member] = row["cnt"] if row else 0
-                    assignee = min(counts, key=counts.get)
+                    safe_field = _validate_identifier(rule.assign_field, "assign field")
+                    # Single query instead of N+1
+                    rows = await conn.fetch(
+                        f'SELECT "{safe_field}", COUNT(*) as cnt FROM "{schema}"."{table_name}" '
+                        f'WHERE "deleted_at" IS NULL GROUP BY "{safe_field}"',
+                    )
+                    counts = {row[safe_field]: row["cnt"] for row in rows}
+                    # Members with no assignments get count 0
+                    assignee = min(members, key=lambda m: counts.get(m, 0))
                 finally:
                     await conn.close()
             except Exception as e:
                 logger.warning("least_loaded fallback to round_robin: %s", e)
                 assignee = members[rule.counter % len(members)]
-                rule.counter = rule.counter + 1
+                rule.counter = (rule.counter + 1) % len(members)
         else:
             assignee = members[0]
 
@@ -378,8 +375,9 @@ async def _apply_auto_assign(
         try:
             conn = await _get_raw_connection(DATABASE_URL)
             try:
+                safe_assign_field = _validate_identifier(rule.assign_field, "assign field")
                 await conn.execute(
-                    f'UPDATE "{schema}"."{table_name}" SET "{rule.assign_field}" = $1 WHERE "id" = $2',
+                    f'UPDATE "{schema}"."{table_name}" SET "{safe_assign_field}" = $1, "updated_at" = NOW() WHERE "id" = $2',
                     assignee,
                     record_id,
                 )
@@ -639,7 +637,7 @@ async def create_row(
         raise
     except Exception as e:
         logger.error("Insert failed for %s.%s: %s", schema, table, e)
-        raise HTTPException(status_code=400, detail=f"Insert failed: {str(e)}")
+        raise HTTPException(status_code=400, detail="Insert failed. Check that all required fields are provided.")
     finally:
         await conn.close()
 
@@ -751,7 +749,7 @@ async def update_row(
         raise
     except Exception as e:
         logger.error("Update failed for %s.%s: %s", schema, table, e)
-        raise HTTPException(status_code=400, detail=f"Update failed: {str(e)}")
+        raise HTTPException(status_code=400, detail="Update failed. Check that all fields are valid.")
     finally:
         await conn.close()
 
@@ -786,7 +784,7 @@ async def delete_row(
         )
 
         # asyncpg returns "UPDATE N" — check if any rows were affected
-        if result == "UPDATE 0":
+        if not result or result.endswith(" 0"):
             raise HTTPException(status_code=404, detail="Row not found")
 
         # Fire email triggers for record deletion
@@ -810,6 +808,87 @@ async def delete_row(
         except Exception as e:
             logger.warning("Activity log error on delete: %s", e)
 
+    finally:
+        await conn.close()
+
+
+# ── BATCH UPDATE rows ────────────────────────────────────────────────
+
+@router.patch("/{project_id}/data/{table_name}/batch")
+async def batch_update_rows(
+    project_id: UUID,
+    table_name: str,
+    body: dict[str, Any],
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Batch update multiple rows in a single transaction.
+
+    Body: {"updates": [{"id": "uuid", "changes": {"col": "val"}}, ...]}
+    """
+    await _get_app_auth(project_id, request, db)
+
+    table = _validate_identifier(table_name, "table name")
+    schema = get_schema_name(str(project_id))
+
+    await _ensure_schema_or_create(str(project_id), db)
+    await _ensure_table_exists(str(project_id), table)
+
+    updates = body.get("updates", [])
+    if not updates or not isinstance(updates, list):
+        raise HTTPException(status_code=400, detail="'updates' must be a non-empty list")
+    if len(updates) > 500:
+        raise HTTPException(status_code=400, detail="Maximum 500 updates per batch")
+
+    conn = await _get_raw_connection(DATABASE_URL)
+    try:
+        await conn.execute(f'SET search_path TO "{schema}"')
+        updated = 0
+
+        async with conn.transaction():
+            for item in updates:
+                row_id = item.get("id")
+                changes = item.get("changes", {})
+                if not row_id or not changes:
+                    continue
+
+                # Sanitize
+                changes = sanitize_dict(changes)
+                safe_data = {}
+                for k, v in changes.items():
+                    try:
+                        safe_key = _validate_identifier(k, "column name")
+                        if safe_key not in ("id", "deleted_at"):
+                            safe_data[safe_key] = v
+                    except HTTPException:
+                        continue
+
+                if not safe_data:
+                    continue
+
+                set_parts = []
+                values = []
+                for i, (col, val) in enumerate(safe_data.items()):
+                    set_parts.append(f'"{col}" = ${i + 1}')
+                    values.append(val)
+
+                set_clause = ", ".join(set_parts)
+                id_param = f"${len(values) + 1}"
+                values.append(str(row_id))
+
+                result = await conn.execute(
+                    f'UPDATE "{table}" SET {set_clause} '
+                    f'WHERE "id" = {id_param} AND "deleted_at" IS NULL',
+                    *values,
+                )
+                if result:
+                    try:
+                        count = int(result.split()[-1])
+                        updated += count
+                    except (ValueError, IndexError):
+                        pass
+
+        return {"updated": updated}
     finally:
         await conn.close()
 

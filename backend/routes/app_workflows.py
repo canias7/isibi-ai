@@ -21,6 +21,16 @@ from generator.app_db import get_schema_name, _get_raw_connection
 
 logger = logging.getLogger(__name__)
 
+_IDENT_RE = __import__("re").compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+
+def _safe_ident(name: str) -> str:
+    """Validate SQL identifier to prevent injection."""
+    if not name or not _IDENT_RE.match(name) or len(name) > 128:
+        raise HTTPException(status_code=400, detail=f"Invalid identifier: {name}")
+    return name
+
+
 router = APIRouter(tags=["app-workflows"])
 
 VALID_TYPES = {
@@ -215,8 +225,8 @@ async def execute_workflow(
     if wf.type == "approval":
         if not body.record_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="record_id required for approval workflow")
-        entity = (wf.entity or config.get("entity", "")).lower()
-        field = config.get("field", "status")
+        entity = _safe_ident((wf.entity or config.get("entity", "")).lower())
+        field = _safe_ident(config.get("field", "status"))
         trigger_value = config.get("trigger_value", "submitted")
         approved_value = config.get("approved_value", "approved")
         rejected_value = config.get("rejected_value", "rejected")
@@ -255,8 +265,8 @@ async def execute_workflow(
     elif wf.type == "sequential":
         if not body.record_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="record_id required for sequential workflow")
-        entity = (wf.entity or "").lower()
-        field = config.get("field", "status")
+        entity = _safe_ident((wf.entity or "").lower())
+        field = _safe_ident(config.get("field", "status"))
         steps = config.get("steps", [])
 
         try:
@@ -297,9 +307,9 @@ async def execute_workflow(
     elif wf.type == "conditional_notification":
         if not body.record_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="record_id required")
-        entity = (config.get("entity", wf.entity) or "").lower()
+        entity = _safe_ident((config.get("entity", wf.entity) or "").lower())
         condition = config.get("condition", {})
-        cond_field = condition.get("field", "")
+        cond_field = _safe_ident(condition.get("field", "") or "status")
         operator = condition.get("operator", "eq")
         cond_value = condition.get("value")
         message_template = config.get("message", "Notification triggered")
@@ -350,13 +360,13 @@ async def execute_workflow(
 
     # ── recurring_record workflow ────────────────────────────────────────
     elif wf.type == "recurring_record":
-        entity = (config.get("entity", wf.entity) or "").lower()
+        entity = _safe_ident((config.get("entity", wf.entity) or "").lower())
         template = config.get("template", {})
 
         try:
             conn = await _get_raw_connection(DATABASE_URL)
             try:
-                columns = list(template.keys())
+                columns = [_safe_ident(k) for k in template.keys()]
                 values = list(template.values())
                 col_str = ", ".join(f'"{c}"' for c in columns)
                 val_placeholders = ", ".join(f"${i+1}" for i in range(len(values)))
@@ -374,13 +384,13 @@ async def execute_workflow(
 
     # ── record_template workflow ─────────────────────────────────────────
     elif wf.type == "record_template":
-        entity = (config.get("entity", wf.entity) or "").lower()
+        entity = _safe_ident((config.get("entity", wf.entity) or "").lower())
         defaults = config.get("defaults", {})
 
         try:
             conn = await _get_raw_connection(DATABASE_URL)
             try:
-                columns = list(defaults.keys())
+                columns = [_safe_ident(k) for k in defaults.keys()]
                 values = list(defaults.values())
                 col_str = ", ".join(f'"{c}"' for c in columns)
                 val_placeholders = ", ".join(f"${i+1}" for i in range(len(values)))
@@ -399,9 +409,9 @@ async def execute_workflow(
 
     # ── data_archiving workflow ──────────────────────────────────────────
     elif wf.type == "data_archiving":
-        entity = (config.get("entity", wf.entity) or "").lower()
+        entity = _safe_ident((config.get("entity", wf.entity) or "").lower())
         condition = config.get("condition", {})
-        cond_field = condition.get("field", "updated_at")
+        cond_field = _safe_ident(condition.get("field", "updated_at"))
         older_than_days = condition.get("older_than_days", 365)
         action = config.get("action", "soft_delete")
 

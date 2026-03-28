@@ -59,6 +59,9 @@ visible_when: {"field":"status","operator":"eq","value":"shipped"} — operators
 computed: "quantity * price" — functions: DAYS_UNTIL|DAYS_SINCE|NOW|UPPER|LOWER|CONCAT — always editable:false
 validation: {"rule":"email","message":"Invalid email"} — rules: required|email|min|max|minLength|maxLength|pattern|url
 
+## SPREADSHEET APPS
+When the user mentions spreadsheet, excel, sheet, grid, workbook, tracker, ledger, or data table, add "app_type":"spreadsheet" to the root of the spec. For spreadsheet apps: prefer more columns per entity (8-15 fields), include several numeric fields, and use data-entry-friendly field types.
+
 ## RULES
 1. Generate 4-8 entities with full fields. Fill smart defaults for anything unspecified.
 2. Every enum field needs enum_values[] AND badge_colors{}.

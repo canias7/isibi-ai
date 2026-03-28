@@ -49,6 +49,7 @@ CATEGORIES = {
     "recreation": ["bowling", "golf", "arcade", "escape room", "trampoline", "laser tag", "mini golf", "skating"],
     "wellness": ["meditation", "wellness", "retreat", "holistic", "acupuncture", "chiropractic", "therapy"],
     "manufacturing": ["machine shop", "welding", "cnc", "3d printing", "laser cutting", "fabrication"],
+    "spreadsheet": ["spreadsheet", "sheet", "excel", "csv", "workbook", "grid", "tracker", "ledger", "register", "worksheet", "data entry", "oracle", "data table"],
 }
 
 # Build a reverse lookup: synonym -> set of category names

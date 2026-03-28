@@ -1,10 +1,20 @@
 import asyncio
 import logging
+import re
 from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, text, update, delete
 from db import async_session
 
 logger = logging.getLogger(__name__)
+
+_IDENT_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+
+def _safe_ident(name: str) -> str:
+    """Validate SQL identifier to prevent injection."""
+    if not name or not _IDENT_RE.match(name) or len(name) > 128:
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
 
 
 async def run_scheduler():
@@ -39,12 +49,17 @@ async def _check_deadline_reminders():
                 from generator.app_db import get_schema_name
                 schema = get_schema_name(str(reminder.project_id))
 
+                # Validate identifiers before using in SQL
+                date_field = _safe_ident(reminder.date_field)
+                entity_table = _safe_ident(reminder.entity.lower() + "s")
+                days = int(reminder.remind_days_before)  # ensure integer
+
                 # Query for records approaching deadline
                 query = text(f"""
-                    SELECT id, {reminder.date_field} as due_date
-                    FROM {schema}.{reminder.entity.lower()}s
-                    WHERE {reminder.date_field} IS NOT NULL
-                    AND {reminder.date_field} BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '{reminder.remind_days_before} days'
+                    SELECT id, {date_field} as due_date
+                    FROM {schema}.{entity_table}
+                    WHERE {date_field} IS NOT NULL
+                    AND {date_field} BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '{days} days'
                     AND deleted_at IS NULL
                 """)
 
@@ -70,12 +85,17 @@ async def _check_status_rules():
                 from generator.app_db import get_schema_name
                 schema = get_schema_name(str(rule.project_id))
 
+                # Validate identifiers before using in SQL
+                entity_table = _safe_ident(rule.entity.lower() + "s")
+                field = _safe_ident(rule.field)
+                days = int(rule.after_days)
+
                 # Update records that have been in from_value for longer than after_days
                 update_query = text(f"""
-                    UPDATE {schema}.{rule.entity.lower()}s
-                    SET {rule.field} = :to_value, updated_at = NOW()
-                    WHERE {rule.field} = :from_value
-                    AND updated_at < NOW() - INTERVAL '{rule.after_days} days'
+                    UPDATE {schema}.{entity_table}
+                    SET {field} = :to_value, updated_at = NOW()
+                    WHERE {field} = :from_value
+                    AND updated_at < NOW() - INTERVAL '{days} days'
                     AND deleted_at IS NULL
                 """)
 
@@ -158,8 +178,9 @@ async def _send_daily_digest_reports():
                     entity_summaries = []
                     for entity_name in (report.entities or []):
                         try:
+                            entity_table = _safe_ident(entity_name.lower() + "s")
                             count_result = await db.execute(
-                                text(f"SELECT COUNT(*) FROM {schema}.{entity_name.lower()}s WHERE deleted_at IS NULL")
+                                text(f"SELECT COUNT(*) FROM {schema}.{entity_table} WHERE deleted_at IS NULL")
                             )
                             count = count_result.scalar() or 0
                             entity_summaries.append(f"{entity_name}: {count} records")

@@ -18,9 +18,36 @@ import {
   FormInput,
 } from "lucide-react";
 
+interface EnumValue {
+  value: string;
+  label?: string;
+  color: string;
+}
+
+interface EditorField {
+  name: string;
+  label?: string;
+  type?: string;
+  sql_type?: string;
+  required?: boolean;
+  placeholder?: string;
+  default_value?: string;
+  show_in_table?: boolean;
+  show_in_form?: boolean;
+  enum_values?: EnumValue[];
+  [key: string]: unknown;
+}
+
+interface EditorEntity {
+  name: string;
+  table_name?: string;
+  fields: EditorField[];
+  [key: string]: unknown;
+}
+
 interface FieldEditorProps {
-  entity: any;
-  onEntityUpdate: (entity: any) => void;
+  entity: EditorEntity;
+  onEntityUpdate: (entity: EditorEntity) => void;
 }
 
 const FIELD_TYPES = [
@@ -48,7 +75,7 @@ const TYPE_COLORS: Record<string, { bg: string; text: string }> = {
   JSON: { bg: "#f1f5f9", text: "#475569" },
 };
 
-function getTypeDisplay(field: any): string {
+function getTypeDisplay(field: EditorField): string {
   if (field.sql_type) return field.sql_type.toUpperCase().split("(")[0];
   const t = (field.type || "text").toLowerCase();
   const match = FIELD_TYPES.find((ft) => ft.value === t);
@@ -78,10 +105,10 @@ export function FieldEditor({ entity, onEntityUpdate }: FieldEditorProps) {
   const [newFieldType, setNewFieldType] = useState("text");
   const [newFieldRequired, setNewFieldRequired] = useState(false);
 
-  const fields: any[] = entity?.fields || [];
+  const fields: EditorField[] = entity?.fields || [];
 
   const updateFields = useCallback(
-    (newFields: any[]) => {
+    (newFields: EditorField[]) => {
       onEntityUpdate({ ...entity, fields: newFields });
     },
     [entity, onEntityUpdate]
@@ -132,7 +159,7 @@ export function FieldEditor({ entity, onEntityUpdate }: FieldEditorProps) {
     updateFields(newFields);
   };
 
-  const updateField = (index: number, updates: Record<string, any>) => {
+  const updateField = (index: number, updates: Partial<EditorField>) => {
     const newFields = [...fields];
     newFields[index] = { ...newFields[index], ...updates };
     updateFields(newFields);
@@ -148,7 +175,7 @@ export function FieldEditor({ entity, onEntityUpdate }: FieldEditorProps) {
   const addField = () => {
     if (!newFieldName.trim()) return;
     const sqlTypeMatch = FIELD_TYPES.find((t) => t.value === newFieldType);
-    const newField: any = {
+    const newField: EditorField = {
       name: newFieldName.trim().toLowerCase().replace(/\s+/g, "_"),
       label: newFieldName.trim(),
       type: newFieldType,
@@ -186,7 +213,7 @@ export function FieldEditor({ entity, onEntityUpdate }: FieldEditorProps) {
   const removeEnumValue = (fieldIndex: number, enumIndex: number) => {
     const field = fields[fieldIndex];
     const newEnums = (field.enum_values || []).filter(
-      (_: any, i: number) => i !== enumIndex
+      (_: EnumValue, i: number) => i !== enumIndex
     );
     updateField(fieldIndex, { enum_values: newEnums });
   };
@@ -490,7 +517,7 @@ export function FieldEditor({ entity, onEntityUpdate }: FieldEditorProps) {
                       </label>
                       <div className="space-y-1.5">
                         {(field.enum_values || []).map(
-                          (ev: any, ei: number) => (
+                          (ev: EnumValue, ei: number) => (
                             <div
                               key={ei}
                               className="flex items-center gap-2 rounded-lg border border-gray-100 bg-gray-50 px-2.5 py-1.5"

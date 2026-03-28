@@ -4,6 +4,10 @@ import {
   FlatList, Animated, Easing, KeyboardAvoidingView,
   Platform, Alert, ActivityIndicator,
 } from "react-native";
+import {
+  ExpoSpeechRecognitionModule,
+  useSpeechRecognitionEvent,
+} from "expo-speech-recognition";
 import { C, F, R } from "../lib/theme";
 import {
   Project, getProjectSpec, listRecords, createRecord,
@@ -409,6 +413,8 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
   const [responses, setResponses] = useState<ResponseCard[]>([]);
   const [entities,  setEntities]  = useState<EntityInfo[]>([]);
   const [specLoaded, setSpecLoaded] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState("");
 
   // Animations
   const orbPulse = useRef(new Animated.Value(1)).current;
@@ -500,16 +506,83 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
     setTimeout(() => setOrbState("idle"), 1500);
   }, [inputText, project.id, entities, onDisconnect, onSwitchApp]);
 
-  const handleMicPress = () => {
-    Alert.alert("Voice Input", "Voice commands coming soon. Type your command instead.");
+  // ── Speech recognition events ──
+  useSpeechRecognitionEvent("start", () => {
+    setIsListening(true);
+    setOrbState("listening");
+    setLiveTranscript("");
+  });
+
+  useSpeechRecognitionEvent("end", () => {
+    setIsListening(false);
+    if (orbState === "listening") setOrbState("idle");
+  });
+
+  useSpeechRecognitionEvent("result", (event) => {
+    const transcript = event.results?.[0]?.transcript || "";
+    if (event.isFinal && transcript) {
+      setLiveTranscript("");
+      setInputText(transcript);
+      // Auto-send the voice command
+      setTimeout(async () => {
+        setOrbState("processing");
+        try {
+          const result = await processCommand(transcript, project.id, entities);
+          setOrbState("done");
+          addResponse(result.success ? "OK" : "!!", result.message);
+        } catch (e: any) {
+          setOrbState("done");
+          addResponse("!!", e.message ?? "Command failed");
+        }
+        setInputText("");
+        setTimeout(() => setOrbState("idle"), 1500);
+      }, 100);
+    } else {
+      setLiveTranscript(transcript);
+    }
+  });
+
+  useSpeechRecognitionEvent("error", (event) => {
+    setIsListening(false);
+    setOrbState("idle");
+    setLiveTranscript("");
+    if (event.error !== "no-speech") {
+      addResponse("!!", `Voice error: ${event.message || event.error}`);
+    }
+  });
+
+  const handleMicPress = async () => {
+    if (isListening) {
+      ExpoSpeechRecognitionModule.stop();
+      return;
+    }
+
+    // Request permissions
+    const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    if (!granted) {
+      Alert.alert(
+        "Permission Required",
+        "Enable microphone and speech recognition in Settings to use voice commands.",
+      );
+      return;
+    }
+
+    // Start listening
+    ExpoSpeechRecognitionModule.start({
+      lang: "en-US",
+      interimResults: true,
+      continuous: false,
+    });
   };
 
-  const orbLabel = {
-    idle:       "Tap mic or type a command",
-    listening:  "Listening...",
-    processing: "Processing...",
-    done:       "Done",
-  }[orbState];
+  const orbLabel = liveTranscript
+    ? `"${liveTranscript}"`
+    : {
+        idle:       "Tap mic or type a command",
+        listening:  "Listening...",
+        processing: "Processing...",
+        done:       "Done",
+      }[orbState];
 
   return (
     <KeyboardAvoidingView
@@ -597,8 +670,12 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
         >
           <Text style={s.sendBtnText}>{"\u2191"}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={s.micBtn} onPress={handleMicPress} activeOpacity={0.7}>
-          <Text style={s.micIcon}>{"\uD83C\uDFA4"}</Text>
+        <TouchableOpacity
+          style={[s.micBtn, isListening && s.micBtnActive]}
+          onPress={handleMicPress}
+          activeOpacity={0.7}
+        >
+          <Text style={s.micIcon}>{isListening ? "\u23F9" : "\uD83C\uDFA4"}</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -763,6 +840,10 @@ const s = StyleSheet.create({
     borderColor: C.primary + "60",
     alignItems: "center",
     justifyContent: "center",
+  },
+  micBtnActive: {
+    backgroundColor: C.red + "30",
+    borderColor: C.red,
   },
   micIcon: { fontSize: 20 },
 });

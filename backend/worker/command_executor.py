@@ -17,6 +17,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
+_IDENTIFIER_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+
+def _safe_identifier(name: str) -> str:
+    """Validate and return a safe SQL identifier (prevents SQL injection)."""
+    if not _IDENTIFIER_RE.match(name) or len(name) > 128:
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
+
 
 async def execute_command(project_id: str, command: str, db: AsyncSession) -> str:
     """
@@ -143,6 +152,7 @@ def _time_label(cmd: str) -> str:
 
 async def _get_schema_tables(schema: str, db: AsyncSession) -> list[str]:
     """Get all user-data tables in the app schema."""
+    _safe_identifier(schema)
     result = await db.execute(text(
         "SELECT table_name FROM information_schema.tables "
         "WHERE table_schema = :schema AND table_type = 'BASE TABLE' "
@@ -153,6 +163,8 @@ async def _get_schema_tables(schema: str, db: AsyncSession) -> list[str]:
 
 async def _get_table_columns(schema: str, table: str, db: AsyncSession) -> list[dict]:
     """Get column names and types for a table."""
+    _safe_identifier(schema)
+    _safe_identifier(table)
     result = await db.execute(text(
         "SELECT column_name, data_type "
         "FROM information_schema.columns "
@@ -163,35 +175,53 @@ async def _get_table_columns(schema: str, table: str, db: AsyncSession) -> list[
 
 
 def _find_numeric_columns(columns: list[dict]) -> list[str]:
-    """Find columns that hold numeric/money data."""
+    """Find columns that hold numeric/money data (validated identifiers only)."""
     numeric_types = {"numeric", "integer", "bigint", "real", "double precision", "money"}
     skip = {"id", "created_at", "updated_at", "deleted_at"}
-    return [
-        c["name"] for c in columns
-        if c["type"] in numeric_types and c["name"] not in skip
-    ]
+    result = []
+    for c in columns:
+        if c["type"] in numeric_types and c["name"] not in skip:
+            try:
+                _safe_identifier(c["name"])
+                result.append(c["name"])
+            except ValueError:
+                continue
+    return result
 
 
 def _find_date_columns(columns: list[dict]) -> list[str]:
-    """Find columns that hold date/time data."""
+    """Find columns that hold date/time data (validated identifiers only)."""
     date_types = {"date", "timestamp without time zone", "timestamp with time zone"}
     skip = {"created_at", "updated_at", "deleted_at"}
-    return [
-        c["name"] for c in columns
-        if c["type"] in date_types and c["name"] not in skip
-    ]
+    result = []
+    for c in columns:
+        if c["type"] in date_types and c["name"] not in skip:
+            try:
+                _safe_identifier(c["name"])
+                result.append(c["name"])
+            except ValueError:
+                continue
+    return result
 
 
 def _find_name_column(columns: list[dict]) -> Optional[str]:
-    """Find the best 'name' column for display."""
+    """Find the best 'name' column for display (validated identifier only)."""
     for preferred in ["name", "title", "label", "subject", "email", "first_name"]:
         for c in columns:
             if c["name"] == preferred:
-                return c["name"]
+                try:
+                    _safe_identifier(c["name"])
+                    return c["name"]
+                except ValueError:
+                    continue
     # Fallback: first text column
     for c in columns:
         if c["type"] in ("character varying", "text") and c["name"] not in ("id",):
-            return c["name"]
+            try:
+                _safe_identifier(c["name"])
+                return c["name"]
+            except ValueError:
+                continue
     return None
 
 
@@ -201,6 +231,7 @@ async def _generate_entity_report(
     schema: str, entity: str, tables: list[str], cmd: str, db: AsyncSession
 ) -> str:
     """Generate a detailed report for a single entity."""
+    _safe_identifier(entity)
     columns = await _get_table_columns(schema, entity, db)
     time_filter = _time_filter_sql(cmd)
     time_label = _time_label(cmd)
@@ -281,6 +312,7 @@ async def _generate_full_summary(schema: str, tables: list[str], db: AsyncSessio
 
     for table in tables:
         try:
+            _safe_identifier(table)
             count_result = await db.execute(text(
                 f"SELECT COUNT(*) FROM {schema}.{table} WHERE deleted_at IS NULL"
             ))
@@ -308,6 +340,10 @@ async def _generate_income_report(
     found_money = False
 
     for table in tables:
+        try:
+            _safe_identifier(table)
+        except ValueError:
+            continue
         columns = await _get_table_columns(schema, table, db)
         money_cols = [
             c["name"] for c in columns
@@ -377,6 +413,7 @@ async def _generate_income_report(
 
 async def _count_entity(schema: str, entity: str, cmd: str, db: AsyncSession) -> str:
     """Count records for a specific entity."""
+    _safe_identifier(entity)
     time_filter = _time_filter_sql(cmd)
     time_label = _time_label(cmd)
     display = entity.replace("_", " ").title()
@@ -393,6 +430,7 @@ async def _count_all(schema: str, tables: list[str], db: AsyncSession) -> str:
     lines = ["Record counts:", ""]
     for table in tables:
         try:
+            _safe_identifier(table)
             result = await db.execute(text(
                 f"SELECT COUNT(*) FROM {schema}.{table} WHERE deleted_at IS NULL"
             ))
@@ -406,6 +444,7 @@ async def _count_all(schema: str, tables: list[str], db: AsyncSession) -> str:
 
 async def _list_entity(schema: str, entity: str, cmd: str, db: AsyncSession) -> str:
     """List recent records for an entity."""
+    _safe_identifier(entity)
     columns = await _get_table_columns(schema, entity, db)
     name_col = _find_name_column(columns)
     time_filter = _time_filter_sql(cmd)

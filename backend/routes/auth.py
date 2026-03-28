@@ -1,10 +1,11 @@
 from __future__ import annotations
 import os
 import uuid
-import random
+import secrets
 import string
 from datetime import datetime, timedelta, timezone
 
+import hmac
 import httpx
 import bcrypt
 from jose import jwt
@@ -25,11 +26,10 @@ from schemas.auth import (
     UserResponse,
 )
 from services.email import send_verification_email, send_password_reset_email
+from auth import JWT_SECRET, JWT_ALGORITHM
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "72"))
 TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET_KEY", "")
 CODE_EXPIRY_MINUTES = 10
@@ -44,7 +44,7 @@ def _verify_password(password: str, hashed: str) -> bool:
 
 
 def _generate_code() -> str:
-    return "".join(random.choices(string.digits, k=6))
+    return "".join(secrets.choice(string.digits) for _ in range(6))
 
 
 def _make_token(user: User) -> str:
@@ -90,6 +90,16 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
     if not await _verify_turnstile(body.turnstile_token):
         raise HTTPException(status_code=400, detail="Bot verification failed. Please try again.")
 
+    # Password strength validation
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long.")
+    if not any(c.isupper() for c in body.password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter.")
+    if not any(c.isdigit() for c in body.password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one digit.")
+    if not any(c in "!@#$%^&*()_+-=[]{}|;:',.<>?/~`" for c in body.password):
+        raise HTTPException(status_code=400, detail="Password must contain at least one special character.")
+
     # Check existing email
     existing = await db.execute(select(User).where(User.email == body.email))
     if existing.scalar_one_or_none():
@@ -134,7 +144,7 @@ async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_
     if user.email_verified:
         return {"message": "Email already verified."}
 
-    if user.verification_code != body.code:
+    if not hmac.compare_digest(user.verification_code or "", body.code):
         raise HTTPException(status_code=400, detail="Invalid verification code.")
 
     if user.verification_expires_at and user.verification_expires_at < datetime.now(timezone.utc):
@@ -233,11 +243,22 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
     if not user:
         raise HTTPException(status_code=400, detail="Invalid request.")
 
-    if user.verification_code != body.code:
+    if not hmac.compare_digest(user.verification_code or "", body.code):
         raise HTTPException(status_code=400, detail="Invalid reset code.")
 
     if user.verification_expires_at and user.verification_expires_at < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset code has expired. Request a new one.")
+
+    # Password strength validation (same rules as signup)
+    pw = body.new_password
+    if len(pw) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long.")
+    if not any(c.isupper() for c in pw):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter.")
+    if not any(c.isdigit() for c in pw):
+        raise HTTPException(status_code=400, detail="Password must contain at least one digit.")
+    if not any(c in "!@#$%^&*()_+-=[]{}|;:',.<>?/~`" for c in pw):
+        raise HTTPException(status_code=400, detail="Password must contain at least one special character.")
 
     user.password_hash = _hash_password(body.new_password)
     user.verification_code = None
@@ -249,7 +270,9 @@ async def reset_password(body: ResetPasswordRequest, db: AsyncSession = Depends(
 
 @router.post("/seed-test-account")
 async def seed_test_account(db: AsyncSession = Depends(get_db)):
-    """One-time endpoint to create a test account with unlimited builds. Remove after use."""
+    """One-time endpoint to create a test account with unlimited builds. Disabled in production."""
+    if os.getenv("RENDER"):
+        raise HTTPException(status_code=404, detail="Not found")
     from models.subscription import Subscription
 
     # Check if already exists
