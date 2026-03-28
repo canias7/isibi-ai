@@ -1,0 +1,597 @@
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import {
+  View, Text, StyleSheet, TextInput, TouchableOpacity,
+  FlatList, Animated, Easing, KeyboardAvoidingView,
+  Platform, Alert, ActivityIndicator,
+} from "react-native";
+import { C, F, R } from "../lib/theme";
+import {
+  Project, getProjectSpec, listRecords, createRecord,
+  deleteRecord, countRecords, CommandResult,
+} from "../lib/api";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+type OrbState = "idle" | "listening" | "processing" | "done";
+
+interface ResponseCard {
+  id: string;
+  icon: string;
+  message: string;
+  timestamp: number;
+}
+
+interface EntityInfo {
+  name: string;        // table name as stored
+  displayName: string; // human-readable
+  fields: string[];    // field names
+}
+
+// ── Command processing ───────────────────────────────────────────────────────
+
+function buildKnowledgeBase(spec: any): EntityInfo[] {
+  if (!spec?.spec?.entities) return [];
+  return spec.spec.entities.map((e: any) => ({
+    name: e.name,
+    displayName: e.name.replace(/_/g, " "),
+    fields: (e.fields ?? []).map((f: any) => typeof f === "string" ? f : f.name),
+  }));
+}
+
+function findEntity(entities: EntityInfo[], term: string): EntityInfo | null {
+  const lower = term.toLowerCase().replace(/s$/, ""); // strip trailing 's'
+  return entities.find(e =>
+    e.displayName.toLowerCase() === lower ||
+    e.displayName.toLowerCase() === lower + "s" ||
+    e.name.toLowerCase() === lower ||
+    e.name.toLowerCase() === lower + "s" ||
+    e.displayName.toLowerCase().includes(lower) ||
+    e.name.toLowerCase().includes(lower)
+  ) ?? null;
+}
+
+function extractNameFromCommand(cmd: string): string | null {
+  // "Add a new lead named John Smith" → "John Smith"
+  const namedMatch = cmd.match(/named?\s+(.+)/i);
+  if (namedMatch) return namedMatch[1].trim();
+
+  // "Add a new lead John Smith" → "John Smith"
+  const addMatch = cmd.match(/add\s+(?:a\s+)?(?:new\s+)?\w+\s+(.+)/i);
+  if (addMatch) return addMatch[1].trim();
+
+  return null;
+}
+
+async function processCommand(
+  command: string,
+  projectId: string,
+  entities: EntityInfo[],
+): Promise<CommandResult> {
+  const cmd = command.trim();
+  const lower = cmd.toLowerCase();
+
+  // === "Add a new [entity]..." ===
+  if (lower.startsWith("add") || lower.startsWith("create") || lower.startsWith("new")) {
+    for (const entity of entities) {
+      const entityLower = entity.displayName.toLowerCase();
+      const entitySingle = entityLower.replace(/s$/, "");
+      if (lower.includes(entityLower) || lower.includes(entitySingle)) {
+        const extractedName = extractNameFromCommand(cmd);
+        const data: Record<string, string> = {};
+        // Try to set a name field
+        const nameField = entity.fields.find(f =>
+          f.toLowerCase() === "name" || f.toLowerCase() === "title" || f.toLowerCase().includes("name")
+        );
+        if (nameField && extractedName) {
+          data[nameField] = extractedName;
+        } else if (entity.fields.length > 0 && extractedName) {
+          data[entity.fields[0]] = extractedName;
+        }
+        try {
+          await createRecord(projectId, entity.name, data);
+          return {
+            success: true,
+            message: `Created new ${entitySingle}${extractedName ? `: ${extractedName}` : ""}`,
+          };
+        } catch (e: any) {
+          return { success: false, message: `Failed to create ${entitySingle}: ${e.message}` };
+        }
+      }
+    }
+    return { success: false, message: "I don't recognize that entity. Try one of: " + entities.map(e => e.displayName).join(", ") };
+  }
+
+  // === "How many [entity]s" / "Count [entity]s" ===
+  if (lower.startsWith("how many") || lower.startsWith("count")) {
+    for (const entity of entities) {
+      const entityLower = entity.displayName.toLowerCase();
+      if (lower.includes(entityLower) || lower.includes(entityLower.replace(/s$/, ""))) {
+        try {
+          const count = await countRecords(projectId, entity.name);
+          return { success: true, message: `You have ${count} ${entity.displayName}` };
+        } catch (e: any) {
+          return { success: false, message: `Failed to count: ${e.message}` };
+        }
+      }
+    }
+    return { success: false, message: "Which entity? I know: " + entities.map(e => e.displayName).join(", ") };
+  }
+
+  // === "Show me [entity]s" / "List [entity]s" ===
+  if (lower.startsWith("show") || lower.startsWith("list") || lower.startsWith("get")) {
+    for (const entity of entities) {
+      const entityLower = entity.displayName.toLowerCase();
+      if (lower.includes(entityLower) || lower.includes(entityLower.replace(/s$/, ""))) {
+        try {
+          const records = await listRecords(projectId, entity.name);
+          const rows = Array.isArray(records) ? records : (records?.rows ?? []);
+          const count = rows.length;
+          const preview = rows.slice(0, 3).map((r: any) => {
+            const nameField = entity.fields.find(f =>
+              f.toLowerCase() === "name" || f.toLowerCase() === "title" || f.toLowerCase().includes("name")
+            );
+            return nameField ? r[nameField] : JSON.stringify(r).slice(0, 40);
+          }).filter(Boolean).join(", ");
+          return {
+            success: true,
+            message: `Found ${count} ${entity.displayName}${preview ? `. Recent: ${preview}` : ""}`,
+            data: rows,
+          };
+        } catch (e: any) {
+          return { success: false, message: `Failed to list: ${e.message}` };
+        }
+      }
+    }
+    return { success: false, message: "Which entity? I know: " + entities.map(e => e.displayName).join(", ") };
+  }
+
+  // === "Delete [entity] named [value]" ===
+  if (lower.startsWith("delete") || lower.startsWith("remove")) {
+    for (const entity of entities) {
+      const entityLower = entity.displayName.toLowerCase();
+      const entitySingle = entityLower.replace(/s$/, "");
+      if (lower.includes(entityLower) || lower.includes(entitySingle)) {
+        const nameToDelete = extractNameFromCommand(cmd);
+        if (!nameToDelete) {
+          return { success: false, message: `Which ${entitySingle}? Say "Delete ${entitySingle} named [name]"` };
+        }
+        try {
+          const records = await listRecords(projectId, entity.name);
+          const rows = Array.isArray(records) ? records : (records?.rows ?? []);
+          const nameField = entity.fields.find(f =>
+            f.toLowerCase() === "name" || f.toLowerCase() === "title" || f.toLowerCase().includes("name")
+          );
+          const match = rows.find((r: any) =>
+            nameField && String(r[nameField]).toLowerCase().includes(nameToDelete.toLowerCase())
+          );
+          if (!match) {
+            return { success: false, message: `No ${entitySingle} found matching "${nameToDelete}"` };
+          }
+          await deleteRecord(projectId, entity.name, match.id);
+          return {
+            success: true,
+            message: `Deleted ${entitySingle}: ${nameField ? match[nameField] : nameToDelete}`,
+          };
+        } catch (e: any) {
+          return { success: false, message: `Failed to delete: ${e.message}` };
+        }
+      }
+    }
+    return { success: false, message: "Which entity? I know: " + entities.map(e => e.displayName).join(", ") };
+  }
+
+  // === "Search for [value]" ===
+  if (lower.startsWith("search") || lower.startsWith("find")) {
+    const searchTerm = cmd.replace(/^(search|find)\s+(for\s+)?/i, "").trim();
+    if (!searchTerm) {
+      return { success: false, message: "Search for what?" };
+    }
+    let totalFound = 0;
+    const results: string[] = [];
+    for (const entity of entities) {
+      try {
+        const records = await listRecords(projectId, entity.name);
+        const rows = Array.isArray(records) ? records : (records?.rows ?? []);
+        const matches = rows.filter((r: any) =>
+          JSON.stringify(r).toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        if (matches.length > 0) {
+          totalFound += matches.length;
+          results.push(`${matches.length} in ${entity.displayName}`);
+        }
+      } catch {
+        // skip failed tables
+      }
+    }
+    if (totalFound === 0) {
+      return { success: true, message: `No results found for "${searchTerm}"` };
+    }
+    return { success: true, message: `Found ${totalFound} results for "${searchTerm}": ${results.join(", ")}` };
+  }
+
+  // === "Help" ===
+  if (lower === "help" || lower === "?") {
+    const entityNames = entities.map(e => e.displayName).join(", ");
+    return {
+      success: true,
+      message: `Commands: "Add a new [entity]", "Show me [entity]s", "How many [entity]s", "Search for [value]", "Delete [entity] named [name]", "Disconnect". Your entities: ${entityNames}`,
+    };
+  }
+
+  return {
+    success: false,
+    message: `I don't understand "${cmd}". Say "help" for available commands.`,
+  };
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
+
+interface Props {
+  project: Project;
+  onDisconnect: () => void;
+  onSwitchApp?: (appName: string) => void;
+}
+
+export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Props) {
+  const [orbState,  setOrbState]  = useState<OrbState>("idle");
+  const [inputText, setInputText] = useState("");
+  const [responses, setResponses] = useState<ResponseCard[]>([]);
+  const [entities,  setEntities]  = useState<EntityInfo[]>([]);
+  const [specLoaded, setSpecLoaded] = useState(false);
+
+  // Animations
+  const orbPulse = useRef(new Animated.Value(1)).current;
+  const orbGlow  = useRef(new Animated.Value(0.3)).current;
+
+  // Load spec on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const spec = await getProjectSpec(project.id);
+        setEntities(buildKnowledgeBase(spec));
+      } catch {
+        // If spec load fails, we can still try commands
+      } finally {
+        setSpecLoaded(true);
+      }
+    })();
+  }, [project.id]);
+
+  // Orb pulse animation
+  useEffect(() => {
+    const config = {
+      idle:       { scale: [1, 1.05],  glow: [0.3, 0.5],  duration: 2000 },
+      listening:  { scale: [1, 1.15],  glow: [0.5, 0.9],  duration: 600  },
+      processing: { scale: [0.95, 1.1], glow: [0.6, 1.0],  duration: 400  },
+      done:       { scale: [1, 1],     glow: [0.8, 0.8],  duration: 1000 },
+    }[orbState];
+
+    const pulseLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(orbPulse, { toValue: config.scale[1], duration: config.duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(orbPulse, { toValue: config.scale[0], duration: config.duration, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ]),
+    );
+
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(orbGlow, { toValue: config.glow[1], duration: config.duration, useNativeDriver: true }),
+        Animated.timing(orbGlow, { toValue: config.glow[0], duration: config.duration, useNativeDriver: true }),
+      ]),
+    );
+
+    pulseLoop.start();
+    glowLoop.start();
+    return () => { pulseLoop.stop(); glowLoop.stop(); };
+  }, [orbState]);
+
+  const addResponse = (icon: string, message: string) => {
+    const card: ResponseCard = {
+      id: String(Date.now()),
+      icon,
+      message,
+      timestamp: Date.now(),
+    };
+    setResponses(prev => [card, ...prev].slice(0, 20));
+  };
+
+  const handleSend = useCallback(async () => {
+    const text = inputText.trim();
+    if (!text) return;
+    setInputText("");
+
+    // Handle special commands
+    if (text.toLowerCase() === "disconnect") {
+      onDisconnect();
+      return;
+    }
+    if (text.toLowerCase().startsWith("switch to ")) {
+      const appName = text.replace(/^switch to /i, "").trim();
+      if (onSwitchApp) {
+        onSwitchApp(appName);
+      } else {
+        addResponse(">>", `Switch to "${appName}" — use My Apps tab to switch`);
+      }
+      return;
+    }
+
+    setOrbState("processing");
+
+    try {
+      const result = await processCommand(text, project.id, entities);
+      setOrbState("done");
+      addResponse(result.success ? "OK" : "!!", result.message);
+    } catch (e: any) {
+      setOrbState("done");
+      addResponse("!!", e.message ?? "Command failed");
+    }
+
+    setTimeout(() => setOrbState("idle"), 1500);
+  }, [inputText, project.id, entities, onDisconnect, onSwitchApp]);
+
+  const handleMicPress = () => {
+    Alert.alert("Voice Input", "Voice commands coming soon. Type your command instead.");
+  };
+
+  const orbLabel = {
+    idle:       "Tap mic or type a command",
+    listening:  "Listening...",
+    processing: "Processing...",
+    done:       "Done",
+  }[orbState];
+
+  return (
+    <KeyboardAvoidingView
+      style={s.root}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={90}
+    >
+      {/* Header */}
+      <View style={s.header}>
+        <View style={s.headerLeft}>
+          <View style={s.headerIcon}>
+            <Text style={s.headerIconText}>
+              {project.name.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View>
+            <Text style={s.headerTitle} numberOfLines={1}>{project.name}</Text>
+            <View style={s.connectedBadge}>
+              <View style={s.connectedDot} />
+              <Text style={s.connectedText}>Connected</Text>
+            </View>
+          </View>
+        </View>
+        <TouchableOpacity style={s.disconnectBtn} onPress={onDisconnect} activeOpacity={0.7}>
+          <Text style={s.disconnectX}>X</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Spec loading indicator */}
+      {!specLoaded && (
+        <View style={s.specLoading}>
+          <ActivityIndicator color={C.primary} size="small" />
+          <Text style={s.specLoadingText}>Loading app schema...</Text>
+        </View>
+      )}
+
+      {/* Center orb area */}
+      <View style={s.orbContainer}>
+        <Animated.View style={[s.orbGlow, { opacity: orbGlow, transform: [{ scale: orbPulse }] }]} />
+        <Animated.View style={[s.orb, { transform: [{ scale: orbPulse }] }]}>
+          <View style={s.orbInner} />
+        </Animated.View>
+        <Text style={s.orbLabel}>{orbLabel}</Text>
+        {entities.length > 0 && orbState === "idle" && (
+          <Text style={s.entityHint}>
+            {entities.map(e => e.displayName).join(" / ")}
+          </Text>
+        )}
+      </View>
+
+      {/* Response cards */}
+      <FlatList
+        data={responses}
+        keyExtractor={r => r.id}
+        style={s.responseList}
+        contentContainerStyle={s.responseContent}
+        inverted
+        renderItem={({ item }) => (
+          <View style={[s.responseCard, item.icon === "!!" && s.responseCardError]}>
+            <Text style={s.responseIcon}>
+              {item.icon === "OK" ? "\u2705" : item.icon === "!!" ? "\u26A0\uFE0F" : item.icon === ">>" ? "\u27A1\uFE0F" : "\u2139\uFE0F"}
+            </Text>
+            <Text style={s.responseText}>{item.message}</Text>
+          </View>
+        )}
+      />
+
+      {/* Input bar */}
+      <View style={s.inputBar}>
+        <TextInput
+          style={s.textInput}
+          placeholder="Type a command..."
+          placeholderTextColor={C.textDim}
+          value={inputText}
+          onChangeText={setInputText}
+          onSubmitEditing={handleSend}
+          returnKeyType="send"
+          autoCorrect={false}
+        />
+        <TouchableOpacity
+          style={[s.sendBtn, !inputText.trim() && s.sendBtnDisabled]}
+          onPress={handleSend}
+          disabled={!inputText.trim()}
+          activeOpacity={0.7}
+        >
+          <Text style={s.sendBtnText}>{"\u2191"}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.micBtn} onPress={handleMicPress} activeOpacity={0.7}>
+          <Text style={s.micIcon}>{"\uD83C\uDFA4"}</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const s = StyleSheet.create({
+  root: { flex: 1, backgroundColor: C.bg },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    backgroundColor: C.card,
+  },
+  headerLeft: { flexDirection: "row", alignItems: "center", gap: 12, flex: 1 },
+  headerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.primary + "25",
+    borderWidth: 1,
+    borderColor: C.primary + "50",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerIconText: { fontSize: F.md, fontWeight: "800", color: C.primary },
+  headerTitle: { fontSize: F.md, fontWeight: "700", color: C.text, maxWidth: 200 },
+  connectedBadge: { flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 },
+  connectedDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
+  connectedText: { fontSize: 10, color: C.green, fontWeight: "600" },
+  disconnectBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: C.red + "18",
+    borderWidth: 1,
+    borderColor: C.red + "40",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  disconnectX: { fontSize: 14, fontWeight: "800", color: C.red },
+
+  // Spec loading
+  specLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 8,
+  },
+  specLoadingText: { fontSize: F.xs, color: C.textDim },
+
+  // Orb
+  orbContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 30,
+  },
+  orbGlow: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: C.primary + "10",
+  },
+  orb: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: C.primary + "20",
+    borderWidth: 2,
+    borderColor: C.primary + "50",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  orbInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: C.primary + "40",
+  },
+  orbLabel: {
+    marginTop: 14,
+    fontSize: F.sm,
+    color: C.textMid,
+    letterSpacing: 0.3,
+  },
+  entityHint: {
+    marginTop: 6,
+    fontSize: 10,
+    color: C.textDim,
+    letterSpacing: 0.3,
+    textAlign: "center",
+    paddingHorizontal: 40,
+  },
+
+  // Responses
+  responseList: { flex: 1 },
+  responseContent: { padding: 16, gap: 8 },
+  responseCard: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: C.card,
+    borderRadius: R.md,
+    borderWidth: 1,
+    borderColor: C.border,
+    padding: 12,
+    gap: 10,
+    marginBottom: 8,
+  },
+  responseCardError: {
+    borderColor: C.red + "40",
+    backgroundColor: C.red + "08",
+  },
+  responseIcon: { fontSize: 16, marginTop: 1 },
+  responseText: { fontSize: F.sm, color: C.text, flex: 1, lineHeight: 20 },
+
+  // Input bar
+  inputBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: C.border,
+    backgroundColor: C.card,
+    gap: 8,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: C.bg,
+    borderRadius: R.xl,
+    borderWidth: 1,
+    borderColor: C.border,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: F.sm,
+    color: C.text,
+  },
+  sendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendBtnDisabled: { opacity: 0.4 },
+  sendBtnText: { fontSize: 18, fontWeight: "800", color: "#fff" },
+  micBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: C.primary + "25",
+    borderWidth: 2,
+    borderColor: C.primary + "60",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  micIcon: { fontSize: 20 },
+});
