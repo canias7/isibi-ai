@@ -2564,6 +2564,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   .data-table-wrap {{ display:none !important; }}
   .mobile-card-list {{ display:flex; }}
 }}
+.quick-action-btn {{ display:flex;align-items:center;gap:8px;border:1px solid rgba(243,244,246,1);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;font-family:inherit;font-size:10px;font-weight:500;color:var(--gray-600);transition:all 0.15s ease; }}
+.quick-action-btn:hover {{ border-color:rgba(229,231,235,1);background:var(--gray-50); }}
 </style>
 </head>
 <body>
@@ -3542,9 +3544,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px">';
     entityNames.slice(0, 4).forEach(eName => {{
       const modName = (SIDEBAR_ITEMS.find(si => si.entity === eName) || {{}}).name || eName;
-      quickActionsHtml += '<button style="display:flex;align-items:center;gap:8px;border:1px solid rgba(243,244,246,1);border-radius:8px;padding:10px 12px;background:#fff;cursor:pointer;font-family:inherit;font-size:10px;font-weight:500;color:var(--gray-600);transition:all 0.15s ease" ' +
-        'onmouseover="this.style.borderColor=\'rgba(229,231,235,1)\';this.style.background=\'var(--gray-50)\'" ' +
-        'onmouseout="this.style.borderColor=\'rgba(243,244,246,1)\';this.style.background=\'#fff\'" ' +
+      quickActionsHtml += '<button class="quick-action-btn" ' +
         'onclick="showModule(\\x27' + escHtml(modName) + '\\x27);setTimeout(()=>openCreate(),100)">' +
         '<span style="display:flex;width:20px;height:20px;align-items:center;justify-content:center;border-radius:6px;background:' + PRIMARY_COLOR + '1a">' +
           '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="' + PRIMARY_COLOR + '" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>' +
