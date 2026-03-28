@@ -11,6 +11,7 @@ import {
   ChevronLeft, Pencil, Trash2, Eye, Check, ArrowUpDown,
   Table2, Columns3, Calendar, TrendingUp, Zap, Activity,
   Home, Settings, Menu, Wifi, WifiOff, Loader2, RefreshCw,
+  BarChart3,
 } from "lucide-react";
 import { get, post, patch, del } from "@/api/client";
 
@@ -341,35 +342,75 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
 
   /* ── Render ─── */
   return (
-    <div className="flex h-full overflow-hidden rounded-xl bg-white text-xs" style={{ fontFamily: "'Inter', system-ui, sans-serif" }} onClick={() => setMenuOpenRow(null)}>
-      {/* Notification toast */}
+    <div style={{
+      display: 'flex', height: '100%', overflow: 'hidden',
+      borderRadius: 12, background: '#ffffff', color: '#111827',
+      fontSize: 12, lineHeight: 1.5,
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      WebkitFontSmoothing: 'antialiased',
+    }} onClick={() => setMenuOpenRow(null)}>
+      {/* Notification toast — matches deployer .toast */}
       {notification && (
-        <div className="absolute top-3 right-3 z-50 sp-fade-in flex items-center gap-2 rounded-lg px-3 py-2 text-[11px] font-medium text-white shadow-lg"
-          style={{ background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.85)})` }}
-        >
-          <div className="flex h-4 w-4 items-center justify-center rounded-full bg-white/20">
-            <Check className="h-2.5 w-2.5" />
-          </div>
+        <div className="sp-fade-in" style={{
+          position: 'absolute', top: 16, right: 16, zIndex: 200,
+          padding: '14px 16px', borderRadius: 12,
+          fontSize: 13, fontWeight: 500,
+          display: 'flex', alignItems: 'center', gap: 10,
+          boxShadow: '0 10px 40px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.03)',
+          background: '#fff', border: '1px solid #e5e7eb',
+          color: '#111827', borderLeft: `3px solid #10b981`,
+        }}>
+          <Check style={{ width: 16, height: 16, color: '#10b981' }} />
           {notification}
         </div>
       )}
 
       {/* ── Sidebar (desktop/tablet) ─── */}
       {!isMobile && (
-        <div className="flex w-52 shrink-0 flex-col border-r border-gray-100/80 bg-gradient-to-b from-gray-50/80 to-white">
-          <div className="border-b border-gray-100/80 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg text-white text-[10px] font-bold shadow-sm"
-                style={{ background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.7)})` }}
-              >
-                {(spec?.app_name || spec?.name || "A")[0]?.toUpperCase() || "A"}
-              </div>
-              <p className="text-[12px] font-semibold tracking-tight text-gray-900">
+        <div style={{
+          width: 208,
+          background: 'linear-gradient(to bottom, rgba(249,250,251,0.8), #ffffff)',
+          borderRight: '1px solid rgba(243,244,246,0.8)',
+          display: 'flex',
+          flexDirection: 'column',
+          flexShrink: 0,
+        }}>
+          {/* Sidebar header — app logo + name + Workspace */}
+          <div style={{
+            padding: '12px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            borderBottom: '1px solid rgba(243,244,246,0.8)',
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: 8,
+              background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.7)})`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: 700, fontSize: 10, flexShrink: 0,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+            }}>
+              {(spec?.app_name || spec?.name || "A")[0]?.toUpperCase() || "A"}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontSize: 12, fontWeight: 600, color: '#111827',
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                letterSpacing: '-0.02em', margin: 0,
+              }}>
                 {spec?.app_name || spec?.name || "My App"}
               </p>
+              <p style={{ fontSize: 9, color: '#9ca3af', marginTop: 1, margin: 0 }}>Workspace</p>
             </div>
           </div>
-          <nav className="flex-1 space-y-0.5 px-2 py-3">
+
+          {/* Sidebar nav with section label */}
+          <nav style={{ flex: 1, padding: '12px 8px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <div style={{
+              fontSize: 9, fontWeight: 600, color: '#9ca3af',
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+              padding: '4px 10px 4px',
+            }}>Navigation</div>
             {modules.map((mod: any, i: number) => {
               const Icon = resolveIcon(mod.sidebar_icon);
               const isActive = i === activeModule;
@@ -377,29 +418,66 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
                 <button
                   key={mod.name || i}
                   onClick={() => handleModuleClick(i)}
-                  className={`group flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[11px] transition-all duration-150 ${
-                    isActive
-                      ? "font-medium text-white shadow-sm"
-                      : "text-gray-500 hover:bg-gray-100/80 hover:text-gray-800"
-                  }`}
-                  style={isActive ? { background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})` } : {}}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    width: '100%', textAlign: 'left',
+                    padding: '8px 10px', border: 'none',
+                    borderRadius: 8, fontSize: 11, fontWeight: 500,
+                    color: isActive ? '#ffffff' : '#6b7280',
+                    cursor: 'pointer', margin: 0,
+                    transition: 'all 0.15s ease',
+                    background: isActive
+                      ? `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})`
+                      : 'none',
+                    boxShadow: isActive ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                    fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={(e) => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'rgba(243,244,246,0.8)'; (e.currentTarget as HTMLElement).style.color = '#1f2937'; }}}
+                  onMouseLeave={(e) => { if (!isActive) { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = '#6b7280'; }}}
                 >
-                  <Icon className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${isActive ? "" : "group-hover:scale-110"}`} />
+                  <Icon style={{ width: 14, height: 14, flexShrink: 0, opacity: isActive ? 1 : 0.7 }} />
                   {mod.name}
                 </button>
               );
             })}
+            {/* INSIGHTS section label */}
+            <div style={{
+              fontSize: 9, fontWeight: 600, color: '#9ca3af',
+              textTransform: 'uppercase', letterSpacing: '0.08em',
+              padding: '12px 10px 4px',
+            }}>Insights</div>
+            <button
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                width: '100%', textAlign: 'left',
+                padding: '8px 10px', border: 'none',
+                borderRadius: 8, fontSize: 11, fontWeight: 500,
+                color: '#6b7280', cursor: 'pointer', margin: 0,
+                background: 'none', fontFamily: 'inherit',
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(243,244,246,0.8)'; (e.currentTarget as HTMLElement).style.color = '#1f2937'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = '#6b7280'; }}
+            >
+              <BarChart3 style={{ width: 14, height: 14, flexShrink: 0, opacity: 0.7 }} />
+              Overview
+            </button>
           </nav>
-          {/* Sidebar footer */}
-          <div className="border-t border-gray-100/80 p-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-gray-200 to-gray-300 text-[9px] font-bold text-gray-600">
-                U
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] font-medium text-gray-700 truncate">User</p>
-                <p className="text-[9px] text-gray-400 truncate">user@example.com</p>
-              </div>
+
+          {/* Sidebar footer — user avatar, name, role */}
+          <div style={{
+            padding: 12,
+            borderTop: '1px solid rgba(243,244,246,0.8)',
+            display: 'flex', alignItems: 'center', gap: 8,
+          }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: 'linear-gradient(to bottom right, #e5e7eb, #d1d5db)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 9, fontWeight: 700, color: '#4b5563', flexShrink: 0,
+            }}>U</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 10, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>User</p>
+              <p style={{ fontSize: 9, color: '#9ca3af', margin: 0 }}>Member</p>
             </div>
           </div>
         </div>
@@ -407,43 +485,45 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
 
       {/* ── Main content ─── */}
       <div className="flex flex-1 flex-col overflow-hidden relative">
-        {/* Top bar */}
-        <div className="flex items-center justify-between border-b border-gray-100/80 px-4 py-2.5 bg-white/80 backdrop-blur-sm">
-          <div className="flex items-center gap-2">
+        {/* Top bar — matches deployer .topbar */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 16px', height: 42,
+          borderBottom: '1px solid rgba(243,244,246,0.8)',
+          background: 'rgba(255,255,255,0.8)',
+          backdropFilter: 'blur(8px)',
+          flexShrink: 0, gap: 12,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             {viewMode !== "list" && (
               <button
                 onClick={() => { setViewMode("list"); setSelectedRow(null); }}
-                className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-gray-400 hover:text-gray-800 hover:bg-gray-50 transition-all duration-150"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 4,
+                  borderRadius: 8, padding: '4px 8px', fontSize: 10,
+                  color: '#9ca3af', border: 'none', background: 'none',
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
               >
-                <ChevronLeft className="h-3 w-3" />
+                <ChevronLeft style={{ width: 12, height: 12 }} />
                 Back
               </button>
             )}
-            <h1 className="text-[13px] font-semibold tracking-tight text-gray-900">
-              {viewMode === "create" ? `New ${currentEntity?.name || ""}` :
-               viewMode === "edit" ? `Edit ${currentEntity?.name || ""}` :
-               viewMode === "detail" ? (selectedRow?.[formFields[0]?.name] || currentEntity?.name) :
-               currentModule?.name || "Dashboard"}
-            </h1>
+            {/* Breadcrumb */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+              <span style={{ fontSize: 13, color: '#9ca3af', whiteSpace: 'nowrap' }}>
+                {spec?.app_name || spec?.name || "App"}
+              </span>
+              <span style={{ fontSize: 10, color: '#d1d5db', fontWeight: 400 }}>/</span>
+              <span style={{ fontSize: 13, color: '#111827', fontWeight: 600, letterSpacing: '-0.02em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {viewMode === "create" ? `New ${currentEntity?.name || ""}` :
+                 viewMode === "edit" ? `Edit ${currentEntity?.name || ""}` :
+                 viewMode === "detail" ? (selectedRow?.[formFields[0]?.name] || currentEntity?.name) :
+                 currentModule?.name || "Dashboard"}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {viewMode === "list" && !isDashboard && (
-              <div className="flex h-7 items-center rounded-lg border border-gray-200/80 bg-white px-2.5 shadow-sm transition-all duration-150 focus-within:border-gray-300 focus-within:shadow">
-                <Search className="mr-1.5 h-3 w-3 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search..."
-                  className="w-24 bg-transparent text-[11px] text-gray-800 placeholder-gray-400 outline-none"
-                />
-                {searchQuery && (
-                  <button onClick={() => setSearchQuery("")} className="ml-1 rounded-full p-0.5 hover:bg-gray-100 transition">
-                    <X className="h-2.5 w-2.5 text-gray-400" />
-                  </button>
-                )}
-              </div>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             {/* Live/Mock toggle */}
             {canGoLive && (
               <button
@@ -479,15 +559,26 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
                 <RefreshCw className={`h-3 w-3 text-gray-500 ${liveLoading ? "animate-spin" : ""}`} />
               </button>
             )}
-            <button className="relative flex h-7 w-7 items-center justify-center rounded-lg bg-gray-50 hover:bg-gray-100 transition-all duration-150 cursor-pointer shadow-sm">
-              <Bell className="h-3.5 w-3.5 text-gray-500" />
-              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full border border-white" style={{ backgroundColor: primaryColor }} />
+            {/* Notification bell — matches deployer .notif-bell */}
+            <button style={{
+              position: 'relative', background: '#f9fafb', border: 'none', cursor: 'pointer',
+              padding: 5, borderRadius: 8, color: '#6b7280',
+              width: 28, height: 28,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            }}>
+              <Bell style={{ width: 14, height: 14 }} />
+              <span style={{
+                position: 'absolute', top: -2, right: -2,
+                width: 8, height: 8, background: primaryColor,
+                borderRadius: '50%', border: '2px solid #fff',
+              }} />
             </button>
           </div>
         </div>
 
-        {/* Page content */}
-        <div className={`flex-1 overflow-auto ${isMobile ? "p-3 pb-16" : "p-4"}`}>
+        {/* Page content — matches deployer .content */}
+        <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '12px 12px 64px' : 16 }}>
           <div className="sp-fade-in" key={`${activeModule}-${viewMode}-${listStyle}`}>
             {viewMode === "create" || viewMode === "edit" ? (
               <FormPreview
@@ -568,6 +659,8 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
                     sortCol={sortCol}
                     sortDir={sortDir}
                     isMobile={isMobile}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
                   />
                 )}
               </>
@@ -609,21 +702,31 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
 
 /* ── View Toggle Button ─── */
 function ViewToggleButton({ icon: Icon, label, active, onClick, primaryColor }: {
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
   label: string;
   active: boolean;
   onClick: () => void;
   primaryColor: string;
 }) {
+  /* Matches deployer .view-toggle-btn */
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition-all duration-150 ${
-        active ? "text-white shadow-sm" : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-      }`}
-      style={active ? { background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})` } : {}}
+      style={{
+        padding: '6px 10px', borderRadius: 8,
+        fontSize: 10, fontWeight: 500,
+        cursor: 'pointer', border: 'none',
+        background: active
+          ? `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})`
+          : '#f9fafb',
+        color: active ? '#ffffff' : '#6b7280',
+        transition: 'all 0.15s ease',
+        display: 'flex', alignItems: 'center', gap: 6,
+        fontFamily: 'inherit',
+        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+      }}
     >
-      <Icon className="h-3 w-3" />
+      <Icon style={{ width: 12, height: 12 }} />
       {label}
     </button>
   );
@@ -643,7 +746,8 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
   const entities = spec.entities || [];
   const cards = stats.length > 0 ? stats : entities.slice(0, 4).map((e: any) => ({ label: `Total ${e.name}s`, entity: e.name }));
 
-  const gradients = [
+  // Deployer stat-card gradient colors: primary, green, amber, purple
+  const statGradients = [
     `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.7)})`,
     `linear-gradient(135deg, #10b981, #34d399)`,
     `linear-gradient(135deg, #f59e0b, #fbbf24)`,
@@ -666,109 +770,159 @@ function DashboardPreview({ spec, primaryColor, onCardClick, mockDataMap, isMobi
   const maxBar = Math.max(...barData.map((d: any) => d.value), 1);
 
   return (
-    <div className="space-y-4">
-      {/* Stat cards */}
-      <div className={`grid gap-3 ${isMobile ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-4"}`}>
+    <div>
+      {/* Stat cards — matches deployer .stats-grid + .stat-card */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)',
+        gap: 12, marginBottom: 16,
+      }}>
         {cards.map((item: any, i: number) => {
           const count = (mockDataMap[item.entity || item.name] || []).length;
           return (
             <div
               key={i}
               onClick={() => onCardClick(item.entity || item.name)}
-              className={`sp-fade-in sp-stagger-${i + 1} group cursor-pointer rounded-xl p-3.5 text-white shadow-md transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5`}
-              style={{ background: gradients[i % gradients.length] }}
+              className={`sp-fade-in sp-stagger-${i + 1}`}
+              style={{
+                borderRadius: 12, padding: 14, color: '#ffffff',
+                background: statGradients[i % statGradients.length],
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                cursor: 'pointer', position: 'relative', overflow: 'hidden',
+                display: 'flex', flexDirection: 'column',
+                transition: 'all 0.2s cubic-bezier(.4,0,.2,1)',
+              }}
             >
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-medium text-white/80">
-                  {item.label || `Total ${item.name}`}
-                </p>
-                <div className="rounded-lg bg-white/15 p-1.5 transition-transform duration-200 group-hover:scale-110">
-                  <TrendingUp className="h-3 w-3 text-white/80" />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                  {item.label || `Total ${item.name}s`}
+                </span>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.8)',
+                }}>
+                  <TrendingUp style={{ width: 12, height: 12 }} />
                 </div>
               </div>
-              <p className="mt-2 text-2xl font-bold tracking-tight">{count}</p>
-              <p className="mt-1 text-[9px] text-white/60">
+              <div style={{ fontSize: 24, fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em', lineHeight: 1.2, marginTop: 8 }}>{count}</div>
+              <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>
                 {count === 0 ? "No data yet" : `${count} total item${count !== 1 ? "s" : ""}`}
-              </p>
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
-        {/* Bar chart */}
-        <div className="rounded-xl border border-gray-100/80 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-gray-900">Overview</p>
-            <Activity className="h-3.5 w-3.5 text-gray-300" />
+      {/* Chart + Recent activity in grid — matches deployer .dashboard-grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        {/* Bar chart — matches deployer .chart-container */}
+        <div style={{
+          background: '#fff', border: '1px solid rgba(243,244,246,0.8)',
+          borderRadius: 12, padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h3 style={{ fontSize: 11, fontWeight: 600, color: '#111827', margin: 0 }}>Overview</h3>
+            <Activity style={{ width: 14, height: 14, color: '#d1d5db' }} />
           </div>
-          <div className="flex items-end gap-2 h-24">
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 96, paddingTop: 4, position: 'relative' }}>
             {barData.map((d: any, i: number) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: 4, position: 'relative' }}>
                 <div
-                  className="w-full rounded-t-md transition-all duration-300"
                   style={{
+                    width: '100%',
+                    borderRadius: '4px 4px 0 0',
+                    minHeight: 4,
                     height: `${Math.max((d.value / maxBar) * 80, 4)}px`,
                     background: d.value > 0
                       ? `linear-gradient(to top, ${primaryColor}, ${withAlpha(primaryColor, 0.6)})`
                       : "#e5e7eb",
+                    transition: 'all 0.3s ease',
                   }}
                 />
-                <span className="text-[8px] text-gray-400 truncate w-full text-center">{d.label}</span>
+                <span style={{ fontSize: 8, color: '#9ca3af', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', textAlign: 'center' }}>{d.label}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Recent items */}
-        <div className="rounded-xl border border-gray-100/80 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-[11px] font-semibold text-gray-900">Recent {firstEntity?.name || "Items"}</p>
-            <span className="text-[9px] text-gray-400">{recentItems.length} item{recentItems.length !== 1 ? "s" : ""}</span>
+        {/* Recent items — matches deployer .activity-list */}
+        <div style={{
+          background: '#fff', border: '1px solid rgba(243,244,246,0.8)',
+          borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', overflow: 'hidden',
+        }}>
+          <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ fontSize: 11, fontWeight: 600, color: '#111827', margin: 0 }}>Recent {firstEntity?.name || "Items"}</h3>
+            <span style={{ fontSize: 9, color: '#9ca3af' }}>{recentItems.length} item{recentItems.length !== 1 ? "s" : ""}</span>
           </div>
+          <div style={{ padding: '4px 0' }}>
           {recentItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-6 text-center">
-              <Box className="mb-2 h-5 w-5 text-gray-200" />
-              <p className="text-[10px] text-gray-400">No items yet</p>
-              <p className="mt-0.5 text-[9px] text-gray-300">Add data to see recent items</p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', textAlign: 'center' }}>
+              <Box style={{ width: 20, height: 20, color: '#e5e7eb', marginBottom: 8 }} />
+              <p style={{ fontSize: 10, color: '#9ca3af', margin: 0 }}>No items yet</p>
+              <p style={{ fontSize: 9, color: '#d1d5db', margin: '2px 0 0' }}>Add data to see recent items</p>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {recentItems.map((row, i) => {
-                const label = nameField ? row[nameField.name] : `Item ${i + 1}`;
-                return (
-                  <div key={i} className="flex items-center gap-2.5 rounded-lg p-2 hover:bg-gray-50 transition-all duration-150 cursor-pointer">
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
-                      style={{ background: `linear-gradient(135deg, ${statusColor(i)}, ${withAlpha(statusColor(i), 0.7)})` }}
-                    >
-                      {(label || "?")[0]?.toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-medium text-gray-800 truncate">{label}</p>
-                      <p className="text-[9px] text-gray-400">{row.created_at || "Just now"}</p>
-                    </div>
-                    <ChevronRight className="h-3 w-3 text-gray-300" />
+            recentItems.map((row, i) => {
+              const label = nameField ? row[nameField.name] : `Item ${i + 1}`;
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 16px', borderRadius: 8, margin: '0 8px',
+                  cursor: 'pointer', transition: 'background 150ms ease',
+                }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#f9fafb'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 700, color: '#ffffff',
+                    background: `linear-gradient(135deg, ${statusColor(i)}, ${withAlpha(statusColor(i), 0.7)})`,
+                  }}>
+                    {(label || "?")[0]?.toUpperCase()}
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span style={{ fontSize: 10, fontWeight: 500, color: '#1f2937' }}>{label}</span>
+                    <span style={{ fontSize: 9, color: '#9ca3af', fontWeight: 400 }}>{row.created_at || "Just now"}</span>
+                  </div>
+                  <ChevronRight style={{ width: 12, height: 12, color: '#d1d5db' }} />
+                </div>
+              );
+            })
           )}
+          </div>
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="rounded-xl border border-gray-100/80 bg-white p-4 shadow-sm">
-        <p className="text-[11px] font-semibold text-gray-900 mb-3">Quick Actions</p>
-        <div className={`grid gap-2 ${isMobile ? "grid-cols-2" : "grid-cols-4"}`}>
+      {/* Quick actions — matches deployer quick-actions style */}
+      <div style={{
+        border: '1px solid rgba(243,244,246,0.8)', borderRadius: 12,
+        background: '#fff', padding: 16, boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+      }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: '#111827', marginBottom: 12 }}>Quick Actions</p>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
           {entities.slice(0, 4).map((e: any, i: number) => (
             <button
               key={i}
               onClick={() => onCardClick(e.name)}
-              className="flex items-center gap-2 rounded-lg border border-gray-100 px-3 py-2.5 text-[10px] font-medium text-gray-600 transition-all duration-150 hover:border-gray-200 hover:bg-gray-50 hover:shadow-sm"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                border: '1px solid rgba(243,244,246,1)', borderRadius: 8,
+                padding: '10px 12px', background: '#fff', cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 10, fontWeight: 500,
+                color: '#4b5563', transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(229,231,235,1)'; el.style.background = '#f9fafb'; }}
+              onMouseLeave={(e) => { const el = e.currentTarget as HTMLElement; el.style.borderColor = 'rgba(243,244,246,1)'; el.style.background = '#fff'; }}
             >
-              <div className="flex h-5 w-5 items-center justify-center rounded-md" style={{ backgroundColor: withAlpha(primaryColor, 0.1) }}>
-                <Plus className="h-3 w-3" style={{ color: primaryColor }} />
-              </div>
+              <span style={{
+                display: 'flex', width: 20, height: 20,
+                alignItems: 'center', justifyContent: 'center',
+                borderRadius: 6, background: withAlpha(primaryColor, 0.1),
+              }}>
+                <Plus style={{ width: 12, height: 12, color: primaryColor }} />
+              </span>
               Add {e.name}
             </button>
           ))}
@@ -787,6 +941,7 @@ function TablePreview({
   menuOpenRow, setMenuOpenRow,
   activeFilter, setActiveFilter,
   onSort, sortCol, sortDir, isMobile,
+  searchQuery, setSearchQuery,
 }: {
   entity: any;
   columns: string[];
@@ -804,157 +959,281 @@ function TablePreview({
   sortCol: string | null;
   sortDir: "asc" | "desc";
   isMobile: boolean;
+  searchQuery?: string;
+  setSearchQuery?: (q: string) => void;
 }) {
   const visibleCols = isMobile ? columns.slice(0, 3) : columns.slice(0, 6);
   const statusField = entity.fields?.find((f: any) => f.name === "status" && f.enum_values?.length > 0);
+  const enumField = entity.fields?.find((f: any) => f.enum_values?.length > 0 && !["id","org_id","deleted_at","version","created_at","updated_at"].includes(f.name));
 
   return (
-    <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div>
+      {/* Header row — matches deployer table header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
-          <p className="text-[13px] font-semibold tracking-tight text-gray-900">
-            {entity.name}s
-          </p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{rows.length} total result{rows.length !== 1 ? "s" : ""}</p>
+          <p style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.02em', color: '#111827', margin: 0 }}>{entity.name}s</p>
+          <p style={{ fontSize: 10, color: '#9ca3af', marginTop: 2, margin: 0 }}>{rows.length} total result{rows.length !== 1 ? "s" : ""}</p>
         </div>
+        {/* Add button — matches deployer .btn.btn-primary */}
         <button
           onClick={onAddClick}
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-medium text-white shadow-sm transition-all duration-150 hover:shadow-md hover:-translate-y-px"
-          style={{ background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})` }}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', border: 'none', borderRadius: 8,
+            fontSize: 10, fontWeight: 500, cursor: 'pointer',
+            background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})`,
+            color: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+            fontFamily: 'inherit', whiteSpace: 'nowrap',
+          }}
         >
-          <Plus className="h-3 w-3" />
+          <Plus style={{ width: 12, height: 12 }} />
           Add {entity.name}
         </button>
       </div>
 
-      {/* Filter tabs */}
-      {statusField && (
-        <div className="flex gap-1.5 flex-wrap">
+      {/* Status/filter tabs — matches deployer .status-tabs */}
+      {(statusField || enumField) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           <FilterTab label="All" active={activeFilter === 0} onClick={() => setActiveFilter(0)} primaryColor={primaryColor} />
-          {statusField.enum_values.map((val: string, i: number) => (
+          {(statusField || enumField)?.enum_values?.map((val: string, i: number) => (
             <FilterTab key={i} label={formatColumnName(val)} active={activeFilter === i + 1} onClick={() => setActiveFilter(i + 1)} primaryColor={primaryColor} dotColor={statusColor(i)} />
           ))}
         </div>
       )}
 
-      {/* Table */}
-      <div className={`overflow-hidden rounded-xl border border-gray-100/80 shadow-sm ${isMobile ? "overflow-x-auto" : ""}`}>
-        <table className="w-full min-w-[400px]">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50/80">
-              {visibleCols.map((col: string, i: number) => (
-                <th
-                  key={i}
-                  onClick={() => onSort(col)}
-                  className="cursor-pointer select-none px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-400 hover:text-gray-700 transition-colors duration-150"
-                >
-                  <span className="flex items-center gap-1">
-                    {formatColumnName(col)}
-                    {sortCol === col && (
-                      <ArrowUpDown className="h-2.5 w-2.5 text-gray-500" />
-                    )}
-                  </span>
-                </th>
-              ))}
-              <th className="w-10 px-3 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 ? (
+      {/* Search bar — matches deployer .search-input */}
+      {setSearchQuery && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          padding: '5px 10px',
+          border: '1px solid rgba(229,231,235,0.8)', borderRadius: 8,
+          background: '#fff', minWidth: 160, height: 28,
+          boxShadow: '0 1px 2px rgba(0,0,0,0.04)', marginBottom: 12,
+          maxWidth: 240,
+        }}>
+          <Search style={{ width: 12, height: 12, color: '#9ca3af', flexShrink: 0 }} />
+          <input
+            type="text"
+            value={searchQuery || ""}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={`Search ${entity.name}...`}
+            style={{
+              border: 'none', outline: 'none', background: 'transparent',
+              fontSize: 11, color: '#1f2937', width: '100%', fontFamily: 'inherit',
+            }}
+          />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery("")} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 2 }}>
+              <X style={{ width: 10, height: 10, color: '#9ca3af' }} />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Table — matches deployer .table-container */}
+      <div style={{
+        background: '#fff', border: '1px solid rgba(243,244,246,0.8)',
+        borderRadius: 12, boxShadow: '0 1px 2px rgba(0,0,0,0.04)', overflow: 'hidden',
+      }}>
+        <div style={{ overflowX: 'auto', position: 'relative' }}>
+          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: 11, minWidth: 400 }}>
+            <thead>
               <tr>
-                <td colSpan={visibleCols.length + 1} className="py-12 text-center">
-                  <div className="flex flex-col items-center sp-fade-in">
-                    <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-gray-50">
-                      <Box className="h-5 w-5 text-gray-300" />
-                    </div>
-                    <p className="text-[11px] font-medium text-gray-500">No {entity.name}s yet</p>
-                    <p className="mt-1 text-[10px] text-gray-400">Click "Add {entity.name}" to create your first one</p>
-                  </div>
-                </td>
-              </tr>
-            ) : rows.map((row, ri) => (
-              <tr
-                key={ri}
-                onClick={() => onRowClick(row)}
-                className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-gray-50/80 transition-colors duration-100 group"
-              >
-                {visibleCols.map((col: string, ci: number) => {
-                  const field = entity.fields.find((f: any) => f.name === col);
-                  const val = row[col];
-                  const isNameField = col === "name" || col.includes("_name") || col.includes("contact") || col.includes("customer");
-                  const isNumeric = field?.db_type?.includes("INT") || field?.db_type?.includes("NUMERIC");
-                  return (
-                    <td key={ci} className="px-3 py-2.5">
-                      {field?.badge_colors && val ? (
-                        <StatusBadge label={formatColumnName(val)} color={field.badge_colors[val]} />
-                      ) : isNameField && val ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                            style={{ background: `linear-gradient(135deg, ${statusColor(ri)}, ${withAlpha(statusColor(ri), 0.7)})` }}
-                          >
-                            {String(val)[0]?.toUpperCase()}
-                          </div>
-                          <span className="text-[10px] font-medium text-gray-800">{val}</span>
-                        </div>
-                      ) : isNumeric && val && !String(val).startsWith("$") ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] text-gray-700">{val}</span>
-                          <div className="h-1 flex-1 max-w-[40px] rounded-full bg-gray-100 overflow-hidden">
-                            <div className="h-full rounded-full" style={{
-                              width: `${Math.min((Number(val) / 200) * 100, 100)}%`,
-                              backgroundColor: withAlpha(primaryColor, 0.5),
-                            }} />
-                          </div>
-                        </div>
-                      ) : (
-                        <span className={`text-[10px] ${ci === 0 ? "font-medium text-gray-800" : "text-gray-600"}`}>{val}</span>
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="px-3 py-2.5 text-right relative">
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setMenuOpenRow(menuOpenRow === ri ? null : ri); }}
-                    className="rounded-lg p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-100 transition-all duration-150"
+                {/* Checkbox column — matches deployer bulk-cb */}
+                <th style={{
+                  width: 36, padding: '8px 8px', cursor: 'default',
+                  background: 'rgba(249,250,251,0.8)',
+                  borderBottom: '1px solid rgba(243,244,246,1)',
+                }}>
+                  <input type="checkbox" style={{ width: 16, height: 16, accentColor: primaryColor, cursor: 'pointer', margin: 0 }} readOnly />
+                </th>
+                {visibleCols.map((col: string, i: number) => (
+                  <th
+                    key={i}
+                    onClick={() => onSort(col)}
+                    style={{
+                      textAlign: 'left', padding: '8px 12px',
+                      background: 'rgba(249,250,251,0.8)',
+                      borderBottom: '1px solid rgba(243,244,246,1)',
+                      fontWeight: 600, fontSize: 10,
+                      color: sortCol === col ? '#374151' : '#9ca3af',
+                      textTransform: 'uppercase', letterSpacing: '0.05em',
+                      cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap',
+                    }}
                   >
-                    <MoreHorizontal className="h-3.5 w-3.5 text-gray-400" />
-                  </button>
-                  {menuOpenRow === ri && (
-                    <div
-                      className="absolute right-2 top-full z-10 w-32 rounded-xl border border-gray-200/80 bg-white py-1.5 shadow-xl sp-fade-in"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button onClick={() => onRowClick(row)}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-[10px] text-gray-600 hover:bg-gray-50 transition-colors duration-100">
-                        <Eye className="h-3 w-3" /> View details
-                      </button>
-                      <button onClick={() => onEditClick(row)}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-[10px] text-gray-600 hover:bg-gray-50 transition-colors duration-100">
-                        <Pencil className="h-3 w-3" /> Edit
-                      </button>
-                      <div className="my-1 border-t border-gray-100" />
-                      <button onClick={() => onDeleteClick(ri)}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-[10px] text-red-500 hover:bg-red-50 transition-colors duration-100">
-                        <Trash2 className="h-3 w-3" /> Delete
+                    {formatColumnName(col)}
+                    <span style={{ display: 'inline-block', marginLeft: 4, fontSize: 9, opacity: sortCol === col ? 1 : 0.4 }}>
+                      {sortCol === col ? (sortDir === 'asc' ? '\u25B4' : '\u25BE') : '\u25B4\u25BE'}
+                    </span>
+                  </th>
+                ))}
+                <th style={{
+                  textAlign: 'right', padding: '8px 12px', cursor: 'default',
+                  background: 'rgba(249,250,251,0.8)',
+                  borderBottom: '1px solid rgba(243,244,246,1)',
+                  fontSize: 10, fontWeight: 600, color: '#9ca3af',
+                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={visibleCols.length + 2} style={{ textAlign: 'center', padding: '48px 16px', color: '#9ca3af' }}>
+                    <div className="sp-fade-in" style={{ maxWidth: 280, margin: '0 auto' }}>
+                      {/* Empty state icon — matches deployer .empty-state-icon */}
+                      <div style={{
+                        width: 40, height: 40, margin: '0 auto 12px', borderRadius: 12,
+                        background: '#f9fafb',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <Box style={{ width: 20, height: 20, opacity: 0.4, color: '#d1d5db' }} />
+                      </div>
+                      <p style={{ fontSize: 11, fontWeight: 500, color: '#6b7280', marginBottom: 4 }}>No {entity.name}s yet</p>
+                      <p style={{ fontSize: 10, marginBottom: 16, color: '#9ca3af', lineHeight: 1.5 }}>Create your first {entity.name.toLowerCase()} to get started.</p>
+                      <button
+                        onClick={onAddClick}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 6,
+                          padding: '6px 12px', border: 'none', borderRadius: 8,
+                          fontSize: 10, fontWeight: 500, cursor: 'pointer',
+                          background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})`,
+                          color: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+                          fontFamily: 'inherit',
+                        }}
+                      >
+                        <Plus style={{ width: 12, height: 12 }} />
+                        Add {entity.name}
                       </button>
                     </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  </td>
+                </tr>
+              ) : rows.map((row, ri) => (
+                <tr
+                  key={ri}
+                  onClick={() => onRowClick(row)}
+                  style={{ cursor: 'pointer', transition: 'all 100ms ease' }}
+                  className="group"
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(249,250,251,0.8)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  {/* Checkbox */}
+                  <td style={{ width: 36, padding: '10px 8px', borderBottom: '1px solid rgba(249,250,251,1)' }} onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" style={{ width: 16, height: 16, accentColor: primaryColor, cursor: 'pointer', margin: 0 }} />
+                  </td>
+                  {visibleCols.map((col: string, ci: number) => {
+                    const field = entity.fields.find((f: any) => f.name === col);
+                    const val = row[col];
+                    const isNameField = col === "name" || col.includes("_name") || col.includes("contact") || col.includes("customer");
+                    return (
+                      <td key={ci} style={{
+                        padding: '10px 12px',
+                        borderBottom: '1px solid rgba(249,250,251,1)',
+                        maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        fontSize: 10, color: ci === 0 ? '#1f2937' : '#4b5563',
+                        fontWeight: ci === 0 ? 500 : 400,
+                      }}>
+                        {field?.badge_colors && val ? (
+                          <StatusBadge label={formatColumnName(val)} color={field.badge_colors[val]} />
+                        ) : field?.enum_values && val ? (
+                          <StatusBadge label={formatColumnName(val)} color={undefined} />
+                        ) : isNameField && val ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{
+                              width: 24, height: 24, borderRadius: '50%',
+                              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 8, fontWeight: 700, color: '#fff', flexShrink: 0, textTransform: 'uppercase',
+                              background: `linear-gradient(135deg, ${statusColor(ri)}, ${withAlpha(statusColor(ri), 0.7)})`,
+                            }}>
+                              {String(val)[0]?.toUpperCase()}
+                            </div>
+                            <span style={{ fontSize: 10, fontWeight: 500, color: '#1f2937' }}>{val}</span>
+                          </div>
+                        ) : (
+                          <span>{val}</span>
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td style={{
+                    padding: '10px 12px', textAlign: 'right', position: 'relative',
+                    borderBottom: '1px solid rgba(249,250,251,1)',
+                  }}>
+                    <div style={{ display: 'inline-flex', gap: 2 }} className="opacity-0 group-hover:opacity-100 transition-opacity duration-100">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onEditClick(row); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: '#9ca3af' }}
+                        title="Edit"
+                      >
+                        <Pencil style={{ width: 12, height: 12 }} />
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setMenuOpenRow(menuOpenRow === ri ? null : ri); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: '#9ca3af' }}
+                      >
+                        <MoreHorizontal style={{ width: 14, height: 14 }} />
+                      </button>
+                    </div>
+                    {menuOpenRow === ri && (
+                      <div
+                        className="sp-fade-in"
+                        style={{
+                          position: 'absolute', right: 8, top: '100%', zIndex: 10,
+                          width: 132, borderRadius: 12,
+                          border: '1px solid rgba(229,231,235,0.8)',
+                          background: '#fff', padding: '6px 0',
+                          boxShadow: '0 10px 40px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.03)',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button onClick={() => onRowClick(row)}
+                          style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 10, color: '#4b5563', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <Eye style={{ width: 12, height: 12 }} /> View details
+                        </button>
+                        <button onClick={() => onEditClick(row)}
+                          style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 10, color: '#4b5563', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <Pencil style={{ width: 12, height: 12 }} /> Edit
+                        </button>
+                        <div style={{ margin: '4px 0', borderTop: '1px solid #f3f4f6' }} />
+                        <button onClick={() => onDeleteClick(ri)}
+                          style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 10, color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                          <Trash2 style={{ width: 12, height: 12 }} /> Delete
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Pagination */}
+      {/* Pagination — matches deployer .table-footer */}
       {rows.length > 0 && (
-        <div className="flex items-center justify-between pt-1">
-          <p className="text-[10px] text-gray-400">Showing {rows.length} of {rows.length} results</p>
-          <div className="flex gap-1">
-            <button className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] text-gray-400 hover:bg-gray-50 transition-colors duration-150">Prev</button>
-            <button className="rounded-lg px-2.5 py-1 text-[10px] font-medium text-white shadow-sm" style={{ backgroundColor: primaryColor }}>1</button>
-            <button className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] text-gray-400 hover:bg-gray-50 transition-colors duration-150">Next</button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', marginTop: 8, fontSize: 10, color: '#9ca3af' }}>
+          <span>Showing {rows.length} of {rows.length} results</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button style={{
+              padding: '4px 10px', borderRadius: 8,
+              border: '1px solid #e5e7eb', background: '#fff',
+              fontSize: 10, fontWeight: 500, color: '#9ca3af',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Prev</button>
+            <button style={{
+              padding: '4px 10px', borderRadius: 8,
+              border: `1px solid ${primaryColor}`,
+              background: primaryColor, color: '#fff',
+              fontSize: 10, fontWeight: 500,
+              cursor: 'pointer', fontFamily: 'inherit',
+              boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+            }}>1</button>
+            <button style={{
+              padding: '4px 10px', borderRadius: 8,
+              border: '1px solid #e5e7eb', background: '#fff',
+              fontSize: 10, fontWeight: 500, color: '#9ca3af',
+              cursor: 'pointer', fontFamily: 'inherit',
+            }}>Next</button>
           </div>
         </div>
       )}
@@ -1211,80 +1490,135 @@ function DetailPreview({
     !["id", "org_id", "deleted_at", "version"].includes(f.name)
   ) || [];
 
-  const tabs = entity?.ui_config?.detail_view?.tabs || [{ name: "Overview", fields: fields.map((f: any) => f.name) }];
+  // Deployer uses: Overview, Details, Related, Activity, Files, Comments
+  const defaultTabs = [
+    { name: "Overview" },
+    { name: "Details" },
+    { name: "Related" },
+    { name: "Activity" },
+    { name: "Files" },
+    { name: "Comments" },
+  ];
+  const tabs = entity?.ui_config?.detail_view?.tabs || defaultTabs;
   const nameField = fields[0];
   const statusFieldDef = entity?.fields?.find((f: any) => f.name === "status");
 
   return (
-    <div className="space-y-4">
-      {/* Header card */}
-      <div className="rounded-xl border border-gray-100/80 bg-gradient-to-r from-gray-50 to-white p-4 shadow-sm">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-bold text-white shadow-sm"
-              style={{ background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.7)})` }}
-            >
-              {String(row[nameField?.name] || "?")[0]?.toUpperCase()}
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-gray-900">
-                {row[nameField?.name] || entity?.name}
-              </p>
-              {row.status && statusFieldDef && (
-                <div className="mt-1">
-                  <StatusBadge label={formatColumnName(row.status)} color={statusFieldDef?.badge_colors?.[row.status]} />
-                </div>
-              )}
-            </div>
+    <div style={{ maxWidth: 800 }}>
+      {/* Header card — matches deployer .detail-header */}
+      <div style={{
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12,
+        border: '1px solid rgba(243,244,246,0.8)', borderRadius: 12,
+        padding: 16, marginBottom: 16,
+        background: 'linear-gradient(to right, #f9fafb, #ffffff)',
+        boxShadow: '0 1px 2px rgba(0,0,0,0.04)', flexWrap: 'wrap',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, fontWeight: 700, color: '#fff',
+            background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.7)})`,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+          }}>
+            {String(row[nameField?.name] || "?")[0]?.toUpperCase()}
           </div>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: '#111827', margin: 0 }}>
+              {row[nameField?.name] || entity?.name}
+            </p>
+            {row.status && statusFieldDef && (
+              <div style={{ marginTop: 4, display: 'inline-flex' }}>
+                <StatusBadge label={formatColumnName(row.status)} color={statusFieldDef?.badge_colors?.[row.status]} />
+              </div>
+            )}
+          </div>
+        </div>
+        {/* Edit button — matches deployer .btn */}
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <button
             onClick={onEdit}
-            className="flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-[10px] font-medium text-gray-600 transition-all duration-150 hover:bg-gray-50 hover:shadow-sm"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '6px 12px', border: '1px solid #e5e7eb',
+              borderRadius: 8, fontSize: 10, fontWeight: 500,
+              cursor: 'pointer', background: '#fff', color: '#111827',
+              fontFamily: 'inherit', whiteSpace: 'nowrap',
+            }}
           >
-            <Pencil className="h-3 w-3" /> Edit
+            <Pencil style={{ width: 12, height: 12 }} /> Edit
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-0.5 border-b border-gray-100">
+      {/* Tabs — matches deployer .detail-tabs */}
+      <div style={{
+        display: 'flex', gap: 0, borderBottom: '1px solid #e5e7eb',
+        marginBottom: 0, overflowX: 'auto',
+      }}>
         {tabs.map((tab: any, i: number) => (
           <button
             key={i}
             onClick={() => setActiveTab(i)}
-            className={`px-3 py-2 text-[10px] font-medium transition-all duration-150 border-b-2 ${
-              i === activeTab
-                ? "border-current"
-                : "border-transparent text-gray-400 hover:text-gray-600"
-            }`}
-            style={i === activeTab ? { borderColor: primaryColor, color: primaryColor } : {}}
+            style={{
+              padding: '8px 12px', fontSize: 10, fontWeight: 500,
+              color: i === activeTab ? primaryColor : '#9ca3af',
+              cursor: 'pointer', whiteSpace: 'nowrap',
+              borderBottom: i === activeTab ? `2px solid ${primaryColor}` : '2px solid transparent',
+              background: 'none', border: 'none',
+              borderBottomStyle: 'solid', borderBottomWidth: 2,
+              borderBottomColor: i === activeTab ? primaryColor : 'transparent',
+              fontFamily: 'inherit',
+              transition: 'all 0.15s ease',
+            }}
           >
             {tab.name || `Tab ${i + 1}`}
           </button>
         ))}
       </div>
 
-      {/* Fields grid */}
-      <div className={`grid gap-3 ${isMobile ? "grid-cols-1" : "grid-cols-2"}`}>
+      {/* Fields grid — matches deployer .detail-fields-grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr',
+        gap: 12, marginTop: 16,
+      }}>
         {fields.map((f: any, i: number) => {
           const isNameLike = f.name === "name" || f.name.includes("_name") || f.name.includes("contact");
           return (
-            <div key={i} className="rounded-xl border border-gray-100/60 bg-gray-50/50 p-3 transition-all duration-150 hover:bg-gray-50">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-gray-400">{formatColumnName(f.name)}</p>
-              <div className="mt-1.5">
+            <div key={i} style={{
+              padding: 12, border: '1px solid rgba(243,244,246,0.6)',
+              borderRadius: 12, background: 'rgba(249,250,251,0.5)',
+              transition: 'background 0.15s ease',
+              display: 'flex', flexDirection: 'column', gap: 6,
+            }}>
+              {/* Label — matches deployer .detail-field-label */}
+              <span style={{
+                fontSize: 9, fontWeight: 600, color: '#9ca3af',
+                textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}>{formatColumnName(f.name)}</span>
+              {/* Value — matches deployer .detail-field-value */}
+              <div>
                 {f.badge_colors && row[f.name] ? (
                   <StatusBadge label={formatColumnName(row[f.name])} color={f.badge_colors[row[f.name]]} />
+                ) : f.enum_values && row[f.name] ? (
+                  <StatusBadge label={formatColumnName(row[f.name])} color={undefined} />
                 ) : isNameLike && row[f.name] ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white"
-                      style={{ background: `linear-gradient(135deg, ${statusColor(i)}, ${withAlpha(statusColor(i), 0.7)})` }}
-                    >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{
+                      width: 20, height: 20, borderRadius: '50%',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 8, fontWeight: 700, color: '#fff',
+                      background: `linear-gradient(135deg, ${statusColor(i)}, ${withAlpha(statusColor(i), 0.7)})`,
+                    }}>
                       {String(row[f.name])[0]?.toUpperCase()}
                     </div>
-                    <span className="text-[11px] font-medium text-gray-800">{row[f.name]}</span>
+                    <span style={{ fontSize: 11, fontWeight: 500, color: '#1f2937' }}>{row[f.name]}</span>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-gray-800">{row[f.name] || "---"}</p>
+                  <span style={{ fontSize: 11, color: row[f.name] ? '#1f2937' : '#c0c5ce', fontStyle: row[f.name] ? 'normal' : 'italic' }}>
+                    {row[f.name] || "---"}
+                  </span>
                 )}
               </div>
             </div>
@@ -1315,34 +1649,58 @@ function FormPreview({
     !["id", "org_id", "created_at", "updated_at", "deleted_at", "version"].includes(f.name)
   ) || [];
 
+  /* Deployer form uses a slide-over panel. We render inline but match the visual structure:
+     - Header with title
+     - Body with form groups (label uppercase 10px 600, required asterisk in primary)
+     - Footer with gradient submit + outline cancel */
+
+  const inputStyle: React.CSSProperties = {
+    width: '100%', padding: '8px 12px',
+    border: '1px solid #e5e7eb', borderRadius: 8,
+    fontSize: 11, color: '#1f2937', background: '#fff',
+    outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+    transition: 'border-color 0.15s, box-shadow 0.15s',
+    marginTop: 4,
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="flex h-8 w-8 items-center justify-center rounded-xl text-white"
-          style={{ background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.7)})` }}
-        >
-          {mode === "create" ? <Plus className="h-3.5 w-3.5" /> : <Pencil className="h-3.5 w-3.5" />}
-        </div>
-        <div>
-          <p className="text-[13px] font-semibold text-gray-900">
-            {mode === "create" ? `New ${entity?.name}` : `Edit ${entity?.name}`}
-          </p>
-          <p className="text-[10px] text-gray-400">Fill in the details below</p>
-        </div>
+    <div>
+      {/* Slide-over header — matches deployer .slide-over-header */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '20px 0', borderBottom: '1px solid #e5e7eb', marginBottom: 0,
+      }}>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: '#111827', margin: 0 }}>
+          {mode === "create" ? `New ${entity?.name}` : `Edit ${entity?.name}`}
+        </h3>
+        <button onClick={onCancel} style={{
+          background: 'none', border: 'none', cursor: 'pointer',
+          color: '#9ca3af', padding: 6, borderRadius: 8,
+        }}>
+          <X style={{ width: 20, height: 20 }} />
+        </button>
       </div>
 
-      <div className="rounded-xl border border-gray-100/80 bg-white p-4 shadow-sm space-y-3">
+      {/* Slide-over body — matches deployer .slide-over-body */}
+      <div style={{ padding: '24px 0' }}>
         {fields.map((f: any, i: number) => (
-          <div key={i}>
-            <label className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
+          <div key={i} style={{ marginBottom: 12 }}>
+            {/* Label — matches deployer .form-group label */}
+            <label style={{
+              display: 'block', fontSize: 10, fontWeight: 600,
+              color: '#6b7280', marginBottom: 4,
+              textTransform: 'uppercase', letterSpacing: '0.05em',
+            }}>
               {formatColumnName(f.name)}
-              {!f.nullable && <span className="text-red-400 ml-0.5">*</span>}
+              {!f.nullable && (
+                <span style={{ color: '#f87171', marginLeft: 2, fontSize: 12, lineHeight: 1 }}>*</span>
+              )}
             </label>
             {f.enum_values ? (
               <select
                 value={formData[f.name] || ""}
                 onChange={(e) => setFormData({ ...formData, [f.name]: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-800 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-all duration-150"
+                style={{ ...inputStyle, cursor: 'pointer' }}
               >
                 <option value="">Select...</option>
                 {f.enum_values.map((v: string) => (
@@ -1350,25 +1708,13 @@ function FormPreview({
                 ))}
               </select>
             ) : f.db_type?.includes("BOOLEAN") ? (
-              <label className="mt-1 flex items-center gap-2 text-[11px] text-gray-800 cursor-pointer">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={formData[f.name] === true || formData[f.name] === "Yes"}
-                    onChange={(e) => setFormData({ ...formData, [f.name]: e.target.checked })}
-                    className="sr-only"
-                  />
-                  <div className={`h-5 w-9 rounded-full transition-colors duration-200 ${
-                    formData[f.name] ? "" : "bg-gray-200"
-                  }`}
-                    style={formData[f.name] ? { backgroundColor: primaryColor } : {}}
-                    onClick={() => setFormData({ ...formData, [f.name]: !formData[f.name] })}
-                  >
-                    <div className={`h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 mt-0.5 ${
-                      formData[f.name] ? "translate-x-4 ml-0.5" : "translate-x-0.5"
-                    }`} />
-                  </div>
-                </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, fontSize: 11, color: '#1f2937', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={formData[f.name] === true || formData[f.name] === "Yes"}
+                  onChange={(e) => setFormData({ ...formData, [f.name]: e.target.checked })}
+                  style={{ width: 'auto', accentColor: primaryColor }}
+                />
                 {formatColumnName(f.name)}
               </label>
             ) : f.db_type?.includes("TEXT") && !f.db_type?.includes("VARCHAR") ? (
@@ -1376,7 +1722,7 @@ function FormPreview({
                 value={formData[f.name] || ""}
                 onChange={(e) => setFormData({ ...formData, [f.name]: e.target.value })}
                 rows={3}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-800 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-all duration-150 resize-none"
+                style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }}
                 placeholder={`Enter ${formatColumnName(f.name).toLowerCase()}...`}
               />
             ) : (
@@ -1384,7 +1730,7 @@ function FormPreview({
                 type={f.db_type?.includes("INT") || f.db_type?.includes("NUMERIC") ? "number" : f.db_type?.includes("DATE") ? "date" : "text"}
                 value={formData[f.name] || ""}
                 onChange={(e) => setFormData({ ...formData, [f.name]: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-[11px] text-gray-800 outline-none focus:border-gray-300 focus:ring-1 focus:ring-gray-200 transition-all duration-150"
+                style={inputStyle}
                 placeholder={`Enter ${formatColumnName(f.name).toLowerCase()}...`}
               />
             )}
@@ -1392,20 +1738,33 @@ function FormPreview({
         ))}
       </div>
 
-      {/* Buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={onSubmit}
-          className="flex-1 rounded-lg py-2 text-[11px] font-medium text-white shadow-sm transition-all duration-150 hover:shadow-md hover:-translate-y-px"
-          style={{ background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})` }}
-        >
-          {mode === "create" ? `Create ${entity?.name}` : "Save Changes"}
-        </button>
+      {/* Slide-over footer — matches deployer .slide-over-footer */}
+      <div style={{
+        display: 'flex', justifyContent: 'flex-end', gap: 8,
+        padding: '16px 0', borderTop: '1px solid #e5e7eb',
+      }}>
         <button
           onClick={onCancel}
-          className="rounded-lg border border-gray-200 px-5 py-2 text-[11px] font-medium text-gray-500 transition-all duration-150 hover:bg-gray-50"
+          style={{
+            background: 'transparent', color: '#6b7280',
+            border: '1px solid #e5e7eb', borderRadius: 8,
+            padding: '8px 16px', fontSize: 10, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+          }}
         >
           Cancel
+        </button>
+        <button
+          onClick={onSubmit}
+          style={{
+            background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})`,
+            color: '#fff', border: 'none', borderRadius: 8,
+            padding: '8px 16px', fontSize: 10, fontWeight: 500,
+            cursor: 'pointer', fontFamily: 'inherit',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.08)',
+          }}
+        >
+          {mode === "create" ? `Create ${entity?.name}` : "Save Changes"}
         </button>
       </div>
     </div>
@@ -1417,23 +1776,30 @@ function FormPreview({
    ═══════════════════════════════════════════════════════════════════ */
 
 function StatusBadge({ label, color }: { label: string; color?: string }) {
+  /* Matches deployer .badge with ::before dot */
   const colorMap: Record<string, { bg: string; text: string; dot: string }> = {
-    pink:   { bg: "bg-pink-50",   text: "text-pink-700",   dot: "bg-pink-500" },
-    blue:   { bg: "bg-blue-50",   text: "text-blue-700",   dot: "bg-blue-500" },
-    green:  { bg: "bg-emerald-50",text: "text-emerald-700",dot: "bg-emerald-500" },
-    red:    { bg: "bg-red-50",    text: "text-red-700",    dot: "bg-red-500" },
-    amber:  { bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-500" },
-    yellow: { bg: "bg-yellow-50", text: "text-yellow-700", dot: "bg-yellow-500" },
-    purple: { bg: "bg-purple-50", text: "text-purple-700", dot: "bg-purple-500" },
-    indigo: { bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-500" },
-    orange: { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500" },
-    slate:  { bg: "bg-slate-100", text: "text-slate-700",  dot: "bg-slate-500" },
-    gray:   { bg: "bg-gray-100",  text: "text-gray-600",   dot: "bg-gray-400" },
+    pink:    { bg: "#fdf2f8", text: "#9d174d", dot: "#ec4899" },
+    blue:    { bg: "#eff6ff", text: "#1e40af", dot: "#3b82f6" },
+    green:   { bg: "#ecfdf5", text: "#065f46", dot: "#10b981" },
+    red:     { bg: "#fef2f2", text: "#991b1b", dot: "#ef4444" },
+    amber:   { bg: "#fffbeb", text: "#92400e", dot: "#f59e0b" },
+    yellow:  { bg: "#fffbeb", text: "#92400e", dot: "#f59e0b" },
+    purple:  { bg: "#faf5ff", text: "#6b21a8", dot: "#a855f7" },
+    indigo:  { bg: "#eef2ff", text: "#3730a3", dot: "#6366f1" },
+    orange:  { bg: "#fff7ed", text: "#9a3412", dot: "#f97316" },
+    slate:   { bg: "#f8fafc", text: "#475569", dot: "#94a3b8" },
+    gray:    { bg: "#f8fafc", text: "#475569", dot: "#94a3b8" },
   };
   const c = colorMap[color || "gray"] || colorMap.gray;
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-medium ${c.bg} ${c.text}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${c.dot}`} />
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      padding: '2px 8px', borderRadius: 9999,
+      fontSize: 9, fontWeight: 500, whiteSpace: 'nowrap',
+      letterSpacing: '0.01em',
+      background: c.bg, color: c.text,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: c.dot }} />
       {label}
     </span>
   );
@@ -1446,15 +1812,25 @@ function FilterTab({ label, active, onClick, primaryColor, dotColor }: {
   primaryColor: string;
   dotColor?: string;
 }) {
+  /* Matches deployer .status-tab */
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[10px] font-medium transition-all duration-150 ${
-        active ? "text-white shadow-sm" : "bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-      }`}
-      style={active ? { background: `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})` } : {}}
+      style={{
+        padding: '6px 10px', borderRadius: 8,
+        fontSize: 10, fontWeight: 500,
+        cursor: 'pointer', border: 'none',
+        background: active
+          ? `linear-gradient(135deg, ${primaryColor}, ${withAlpha(primaryColor, 0.8)})`
+          : '#f9fafb',
+        color: active ? '#ffffff' : '#6b7280',
+        transition: 'all 0.15s ease',
+        fontFamily: 'inherit',
+        display: 'flex', alignItems: 'center', gap: 6,
+        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+      }}
     >
-      {dotColor && !active && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: dotColor }} />}
+      {dotColor && !active && <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block', backgroundColor: dotColor }} />}
       {label}
     </button>
   );

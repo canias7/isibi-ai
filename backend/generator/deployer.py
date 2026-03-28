@@ -228,10 +228,14 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
     layout_hints = _detect_smart_layouts(entities, modules)
     layout_hints_js = json.dumps(layout_hints)
 
-    # Build sidebar items data for JS
+    # Build sidebar items data for JS (deduplicated by module name)
     sidebar_items = []
+    seen_names: set = set()
     for m in modules:
         mod_name = m.get("name", "Module")
+        if mod_name in seen_names:
+            continue
+        seen_names.add(mod_name)
         entity_name = m.get("entity", "")
         layout = m.get("layout", "table")
         is_dashboard = mod_name.lower() == "dashboard" or layout == "dashboard"
@@ -3303,49 +3307,51 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   // ── Sidebar ──
   function buildSidebar() {{
     const nav = document.getElementById("sidebar-nav");
-    const label = nav.querySelector(".sidebar-section-label");
-    // Insert Analytics item right after Dashboard (or first)
-    let dashboardInserted = false;
-    SIDEBAR_ITEMS.forEach(item => {{
-      const btn = document.createElement("button");
-      btn.className = "sidebar-item";
-      btn.dataset.module = item.name;
-      btn.innerHTML = getModuleIcon(item.icon) + '<span>' + escHtml(item.name) + '</span>';
-      btn.onclick = () => showModule(item.name);
-      nav.appendChild(btn);
-      if (!dashboardInserted && (item.layout === "dashboard" || item.name.toLowerCase() === "dashboard")) {{
-        dashboardInserted = true;
-        const analyticsBtn = document.createElement("button");
-        analyticsBtn.className = "sidebar-item";
-        analyticsBtn.dataset.module = "__analytics__";
-        analyticsBtn.innerHTML = getModuleIcon("chart") + '<span>Analytics</span>';
-        analyticsBtn.onclick = () => showModule("__analytics__");
-        nav.appendChild(analyticsBtn);
-      }}
+    // Clear any existing dynamic items (keep the static Navigation label)
+    const existingLabel = nav.querySelector(".sidebar-section-label");
+    nav.innerHTML = "";
+
+    // ── NAVIGATION section ──
+    const navLabel = document.createElement("div");
+    navLabel.className = "sidebar-section-label";
+    navLabel.textContent = "Navigation";
+    nav.appendChild(navLabel);
+
+    // Dashboard first, then entity items
+    const dashboardItems = SIDEBAR_ITEMS.filter(i => i.layout === "dashboard" || i.name.toLowerCase() === "dashboard");
+    const entityItems = SIDEBAR_ITEMS.filter(i => i.layout !== "dashboard" && i.name.toLowerCase() !== "dashboard");
+
+    dashboardItems.forEach(item => {{
+      nav.appendChild(_makeSidebarBtn(item.name, item.icon, item.name));
     }});
-    // If no dashboard was found, still add analytics at the top
-    if (!dashboardInserted) {{
-      const analyticsBtn = document.createElement("button");
-      analyticsBtn.className = "sidebar-item";
-      analyticsBtn.dataset.module = "__analytics__";
-      analyticsBtn.innerHTML = getModuleIcon("chart") + '<span>Analytics</span>';
-      analyticsBtn.onclick = () => showModule("__analytics__");
-      if (nav.children.length > 1) nav.insertBefore(analyticsBtn, nav.children[1]);
-      else nav.appendChild(analyticsBtn);
-    }}
-    // Add Overview item at the end if 3+ entities (no duplicate section)
+    entityItems.forEach(item => {{
+      nav.appendChild(_makeSidebarBtn(item.name, item.icon, item.name));
+    }});
+
+    // ── INSIGHTS section ──
+    const insLabel = document.createElement("div");
+    insLabel.className = "sidebar-section-label";
+    insLabel.textContent = "Insights";
+    nav.appendChild(insLabel);
+
+    nav.appendChild(_makeSidebarBtn("__analytics__", "chart", "Analytics"));
     if (Object.keys(ENTITY_FIELDS).length >= 3) {{
-      const overviewBtn = document.createElement("button");
-      overviewBtn.className = "sidebar-item";
-      overviewBtn.dataset.module = "__overview__";
-      overviewBtn.innerHTML = getModuleIcon("grid") + '<span>Overview</span>';
-      overviewBtn.onclick = () => showModule("__overview__");
-      nav.appendChild(overviewBtn);
+      nav.appendChild(_makeSidebarBtn("__overview__", "grid", "Overview"));
     }}
+
     // Detect Cmd vs Ctrl for search shortcut label
     const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || "");
     const shortcutEl = document.getElementById("search-shortcut-label");
     if (shortcutEl) shortcutEl.textContent = isMac ? "\\u2318K" : "Ctrl+K";
+  }}
+
+  function _makeSidebarBtn(moduleName, iconId, label) {{
+    const btn = document.createElement("button");
+    btn.className = "sidebar-item";
+    btn.dataset.module = moduleName;
+    btn.innerHTML = getModuleIcon(iconId) + '<span>' + escHtml(label) + '</span>';
+    btn.onclick = () => showModule(moduleName);
+    return btn;
   }}
 
   window.toggleSidebar = function() {{
