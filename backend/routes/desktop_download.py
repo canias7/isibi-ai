@@ -173,8 +173,8 @@ async def generate_desktop_app(
 
     app_host = os.getenv("APP_HOST", "")
     deploy_url = (
-        f"{app_host}/live/{project_id}?skip_auth=1" if app_host
-        else f"https://api.isibi.ai/live/{project_id}?skip_auth=1"
+        f"{app_host}/live/{project_id}" if app_host
+        else f"https://api.isibi.ai/live/{project_id}"
     )
 
     # 5. Read template files
