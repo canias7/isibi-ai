@@ -204,7 +204,7 @@ function generateModelPy(entity: SpecEntity): string {
   ];
 
   for (const f of fields) {
-    const colType = mapDbType(f.db_type);
+    const colType = mapDbType(f.db_type as string);
     const extras: string[] = [];
     if (f.primary_key) extras.push("primary_key=True");
     if (f.nullable === false && !f.primary_key) extras.push("nullable=False");
