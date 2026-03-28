@@ -2906,14 +2906,17 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   }}
 
   // ── Auth ──
+  const TOKEN_KEY = "app_token_" + PROJECT_ID;
+  const EMAIL_KEY = "user_email_" + PROJECT_ID;
+
   function getToken() {{
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get("token");
     if (urlToken) {{
-      localStorage.setItem("app_token", urlToken);
+      localStorage.setItem(TOKEN_KEY, urlToken);
       return urlToken;
     }}
-    return localStorage.getItem("app_token") || "";
+    return localStorage.getItem(TOKEN_KEY) || "";
   }}
 
   function apiHeaders() {{
@@ -2983,8 +2986,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       const data = await res.json();
       const token = data.token || data.access_token || data.jwt || "";
       if (token) {{
-        localStorage.setItem("app_token", token);
-        localStorage.setItem("user_email", email);
+        localStorage.setItem(TOKEN_KEY, token);
+        localStorage.setItem(EMAIL_KEY, email);
         document.getElementById("auth-screen").style.display = "none";
         initApp();
       }} else {{
@@ -3000,8 +3003,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   }};
 
   window.handleLogout = function() {{
-    localStorage.removeItem("app_token");
-    localStorage.removeItem("user_email");
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(EMAIL_KEY);
     document.getElementById("auth-email").value = "";
     document.getElementById("auth-password").value = "";
     document.getElementById("auth-error").style.display = "none";
@@ -3296,7 +3299,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 
   // ── Update sidebar user info ──
   function updateUserDisplay() {{
-    const email = localStorage.getItem("user_email") || "User";
+    const email = localStorage.getItem(EMAIL_KEY) || "User";
     const initial = (email[0] || "U").toUpperCase();
     const nameEl = document.getElementById("sidebar-user-name");
     const avatarEl = document.getElementById("sidebar-user-avatar");

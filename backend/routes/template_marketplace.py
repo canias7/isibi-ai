@@ -11,6 +11,8 @@ Endpoints:
   POST /api/template-marketplace/{id}/rate      — rate a template (1-5)
 """
 
+import copy
+import re
 import uuid
 from datetime import datetime
 from typing import Optional, List
@@ -26,6 +28,40 @@ from models.marketplace_template import MarketplaceTemplate, MarketplaceRating
 from models.project import Project
 
 router = APIRouter(prefix="/template-marketplace", tags=["template-marketplace"])
+
+
+# ---------------------------------------------------------------------------
+# Personal data stripping
+# ---------------------------------------------------------------------------
+
+_EMAIL_RE = re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+")
+_PHONE_RE = re.compile(r"\+?\d[\d\-\s()]{7,}\d")
+_API_KEY_RE = re.compile(r"(sk|pk|api|key|secret|token)[_-][A-Za-z0-9]{16,}", re.IGNORECASE)
+
+
+def _strip_personal_data(spec: dict) -> dict:
+    """Remove all personal/sensitive data from a spec before marketplace sale."""
+    clean = copy.deepcopy(spec)
+
+    # Remove internal metadata (keys starting with underscore)
+    for key in list(clean.keys()):
+        if key.startswith("_"):  # _branding, _white_label, _deploy_history, _meta, etc.
+            del clean[key]
+
+    # Walk through all values and redact personal data patterns
+    def _redact(obj):
+        if isinstance(obj, dict):
+            return {k: _redact(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [_redact(item) for item in obj]
+        elif isinstance(obj, str):
+            s = _EMAIL_RE.sub("[email redacted]", obj)
+            s = _PHONE_RE.sub("[phone redacted]", s)
+            s = _API_KEY_RE.sub("[key redacted]", s)
+            return s
+        return obj
+
+    return _redact(clean)
 
 
 # ---------------------------------------------------------------------------
@@ -73,6 +109,9 @@ async def publish_template(
     if not project.spec:
         raise HTTPException(status_code=400, detail="Project has no spec to publish")
 
+    # Strip personal data before storing in the marketplace
+    clean_spec = _strip_personal_data(project.spec)
+
     template = MarketplaceTemplate(
         author_id=user_id,
         project_id=pid,
@@ -80,7 +119,7 @@ async def publish_template(
         description=body.description,
         category=body.category,
         price=body.price,
-        spec=project.spec,
+        spec=clean_spec,
         preview_images=body.preview_images,
         is_published=True,
     )
@@ -318,6 +357,9 @@ async def purchase_template(
         # TODO: integrate with Stripe payment flow
         pass
 
+    # Strip personal data before cloning to buyer's project
+    clean_spec = _strip_personal_data(template.spec or {})
+
     # Clone spec into a new project for the buyer
     project = Project(
         org_id=org_id,
@@ -325,7 +367,7 @@ async def purchase_template(
         name=template.title,
         description=f"Created from marketplace template: {template.title}",
         prompt=f"Marketplace template: {template.title}",
-        spec=template.spec,
+        spec=clean_spec,
         status="ready",
     )
     db.add(project)

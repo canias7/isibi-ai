@@ -136,6 +136,24 @@ async def _ensure_table_exists(
         )
 
 
+async def _ensure_schema_or_create(project_id: str, db: AsyncSession) -> None:
+    """Ensure the project's DB schema exists. Create from spec if missing."""
+    tables = await list_schema_tables(project_id, DATABASE_URL)
+    if tables:
+        return  # Schema already exists
+
+    # Schema doesn't exist — try to create it from the project's spec
+    from models.project import Project as ProjectModel
+
+    result = await db.execute(
+        select(ProjectModel.spec).where(ProjectModel.id == UUID(project_id))
+    )
+    spec = result.scalar_one_or_none()
+    if spec and isinstance(spec, dict) and spec.get("entities"):
+        from generator.app_db import create_app_schema
+        await create_app_schema(project_id, spec, DATABASE_URL)
+
+
 def _row_to_dict(record) -> dict[str, Any]:
     """Convert an asyncpg Record to a JSON-safe dict."""
     d = dict(record)
@@ -434,6 +452,7 @@ async def list_rows(
     sort_col = _validate_identifier(sort_by, "sort column")
     schema = get_schema_name(str(project_id))
 
+    await _ensure_schema_or_create(str(project_id), db)
     await _ensure_table_exists(str(project_id), table)
 
     # Enforce hard LIMIT cap for safety (default 100, max 500)
@@ -491,6 +510,7 @@ async def get_row(
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
 
+    await _ensure_schema_or_create(str(project_id), db)
     await _ensure_table_exists(str(project_id), table)
 
     conn = await _get_raw_connection(DATABASE_URL)
@@ -525,6 +545,7 @@ async def create_row(
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
 
+    await _ensure_schema_or_create(str(project_id), db)
     await _ensure_table_exists(str(project_id), table)
 
     if not body:
@@ -627,6 +648,7 @@ async def update_row(
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
 
+    await _ensure_schema_or_create(str(project_id), db)
     await _ensure_table_exists(str(project_id), table)
 
     if not body:
@@ -737,6 +759,7 @@ async def delete_row(
     table = _validate_identifier(table_name, "table name")
     schema = get_schema_name(str(project_id))
 
+    await _ensure_schema_or_create(str(project_id), db)
     await _ensure_table_exists(str(project_id), table)
 
     conn = await _get_raw_connection(DATABASE_URL)

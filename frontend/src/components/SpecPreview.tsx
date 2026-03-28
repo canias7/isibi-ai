@@ -400,7 +400,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
               }}>
                 {spec?.app_name || spec?.name || "My App"}
               </p>
-              <p style={{ fontSize: 9, color: '#9ca3af', marginTop: 1, margin: 0 }}>Workspace</p>
+              {/* Deployer hides this subtitle (display:none) */}
             </div>
           </div>
 
@@ -446,6 +446,7 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
               textTransform: 'uppercase', letterSpacing: '0.08em',
               padding: '12px 10px 4px',
             }}>Insights</div>
+            {/* Analytics — deployer always shows this */}
             <button
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
@@ -459,26 +460,56 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = '#6b7280'; }}
             >
               <BarChart3 style={{ width: 14, height: 14, flexShrink: 0, opacity: 0.7 }} />
-              Overview
+              Analytics
             </button>
+            {/* Overview — deployer shows this when 3+ entities */}
+            {entities.length >= 3 && (
+              <button
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  width: '100%', textAlign: 'left',
+                  padding: '8px 10px', border: 'none',
+                  borderRadius: 8, fontSize: 11, fontWeight: 500,
+                  color: '#6b7280', cursor: 'pointer', margin: 0,
+                  background: 'none', fontFamily: 'inherit',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(243,244,246,0.8)'; (e.currentTarget as HTMLElement).style.color = '#1f2937'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'none'; (e.currentTarget as HTMLElement).style.color = '#6b7280'; }}
+              >
+                <Home style={{ width: 14, height: 14, flexShrink: 0, opacity: 0.7 }} />
+                Overview
+              </button>
+            )}
           </nav>
 
-          {/* Sidebar footer — user avatar, name, role */}
+          {/* Sidebar footer — matches deployer .sidebar-footer */}
           <div style={{
             padding: 12,
             borderTop: '1px solid rgba(243,244,246,0.8)',
             display: 'flex', alignItems: 'center', gap: 8,
           }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              background: 'linear-gradient(to bottom right, #e5e7eb, #d1d5db)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 9, fontWeight: 700, color: '#4b5563', flexShrink: 0,
-            }}>U</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 10, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>User</p>
-              <p style={{ fontSize: 9, color: '#9ca3af', margin: 0 }}>Member</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: 'linear-gradient(to bottom right, #e5e7eb, #d1d5db)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 9, fontWeight: 700, color: '#4b5563', flexShrink: 0,
+              }}>U</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 10, fontWeight: 500, color: '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', margin: 0 }}>User</p>
+                <p style={{ fontSize: 9, color: '#9ca3af', margin: 0 }}>Member</p>
+              </div>
             </div>
+            {/* Logout button — matches deployer .logout-btn */}
+            <button style={{
+              background: 'none', border: '1px solid #e5e7eb',
+              padding: '4px 10px', borderRadius: 6,
+              fontSize: 11, color: '#9ca3af', cursor: 'pointer',
+              fontFamily: 'inherit', transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap',
+            }}>
+              <Settings style={{ width: 10, height: 10, opacity: 0.5 }} />
+            </button>
           </div>
         </div>
       )}
@@ -574,6 +605,16 @@ export function SpecPreview({ spec, device, projectId }: SpecPreviewProps) {
                 borderRadius: '50%', border: '2px solid #fff',
               }} />
             </button>
+            {/* Topbar avatar — matches deployer .topbar-avatar (rounded square) */}
+            <div style={{
+              width: 28, height: 28, borderRadius: 8,
+              background: '#f9fafb',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+              fontSize: 10, fontWeight: 600, color: '#4b5563',
+            }}>
+              {(spec?.app_name || spec?.name || "A")[0]?.toUpperCase() || "A"}
+            </div>
           </div>
         </div>
 
