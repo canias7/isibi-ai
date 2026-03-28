@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pydantic import BaseModel, EmailStr, Field
-from typing import Literal
+from typing import Literal, Optional
 
 
 class SignupRequest(BaseModel):
@@ -8,7 +8,7 @@ class SignupRequest(BaseModel):
     password: str = Field(min_length=8, max_length=128)
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
-    account_type: Literal["user", "developer"] = "user"
+    account_type: Optional[Literal["user", "developer"]] = "developer"
     turnstile_token: str
 
 

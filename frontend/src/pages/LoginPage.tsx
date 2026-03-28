@@ -68,7 +68,7 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
       >
         <div className="relative z-10 max-w-md text-white">
           <h1 className="text-4xl font-bold tracking-tight">isibi.ai</h1>
-          <p className="mt-3 text-xl font-medium text-white/90">Build Software in Minutes</p>
+          <p className="mt-3 text-xl font-medium text-white/90">Build & Download Software</p>
           <p className="mt-6 text-sm text-white/70 leading-relaxed">
             The fastest way to go from idea to deployed application. No complex setup required.
           </p>
@@ -125,7 +125,7 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
           >
             isibi.ai
           </div>
-          <p className="mt-2 text-sm text-gray-500">Build Software in Minutes</p>
+          <p className="mt-2 text-sm text-gray-500">Build & Download Software</p>
         </div>
 
         <div className="w-full max-w-sm">

@@ -17,7 +17,6 @@ export function SignupPage({ onSignup }: Props) {
     last_name: "",
     email: "",
     password: "",
-    account_type: "user" as "user" | "developer",
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -38,7 +37,7 @@ export function SignupPage({ onSignup }: Props) {
         password: form.password,
         first_name: form.first_name,
         last_name: form.last_name,
-        account_type: form.account_type,
+        account_type: "developer",
         turnstile_token: turnstileToken || "dev",
       });
       setAuth(res.access_token, res.user);
@@ -186,57 +185,6 @@ export function SignupPage({ onSignup }: Props) {
                 minLength={8}
                 required
               />
-            </div>
-
-            {/* Account type */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700">Account type</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => set("account_type", "user")}
-                  className={`relative rounded-xl border-2 px-4 py-4 text-left transition ${
-                    form.account_type === "user"
-                      ? "border-pink-500 bg-pink-50"
-                      : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">&#128100;</span>
-                    <span className="text-sm font-semibold text-black">User</span>
-                  </div>
-                  <p className="mt-1.5 text-xs text-gray-500">Browse and download apps</p>
-                  {form.account_type === "user" && (
-                    <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full" style={{ backgroundColor: "#ec4899" }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => set("account_type", "developer")}
-                  className={`relative rounded-xl border-2 px-4 py-4 text-left transition ${
-                    form.account_type === "developer"
-                      ? "border-pink-500 bg-pink-50"
-                      : "border-gray-200 bg-white hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">&#128295;</span>
-                    <span className="text-sm font-semibold text-black">Developer</span>
-                  </div>
-                  <p className="mt-1.5 text-xs text-gray-500">Build and sell apps</p>
-                  {form.account_type === "developer" && (
-                    <div className="absolute right-3 top-3 flex h-5 w-5 items-center justify-center rounded-full" style={{ backgroundColor: "#ec4899" }}>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  )}
-                </button>
-              </div>
             </div>
 
             <div className="flex justify-center">

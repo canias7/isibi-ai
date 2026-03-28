@@ -139,19 +139,12 @@ interface SidebarItem {
   comingSoon?: boolean;
 }
 
-const DEV_SIDEBAR: SidebarItem[] = [
+const SIDEBAR: SidebarItem[] = [
   { id: "chat", label: "New Chat", icon: Plus },
+  { id: "myapps", label: "My Apps", icon: AppWindow },
   { id: "projects", label: "My Projects", icon: FolderOpen },
-  { id: "mylistings", label: "My Listings", icon: BarChart3 },
   { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
   { id: "templates", label: "Templates", icon: LayoutTemplate, comingSoon: true },
-  { id: "docs", label: "Docs", icon: BookOpen, comingSoon: true },
-  { id: "history", label: "History", icon: Clock, comingSoon: true },
-];
-
-const USER_SIDEBAR: SidebarItem[] = [
-  { id: "myapps", label: "My Apps", icon: AppWindow },
-  { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
   { id: "docs", label: "Docs", icon: BookOpen, comingSoon: true },
   { id: "history", label: "History", icon: Clock, comingSoon: true },
 ];
@@ -856,9 +849,8 @@ function parseConversationHints(messages: Message[]): { appName?: string; entity
 
 export function OnboardingPage({ onSpecCreated }: Props) {
   const { user, clearAuth, isAuthenticated } = useAuthStore();
-  const isDev = user?.account_type === "developer";
-  const sidebarItems = isDev ? DEV_SIDEBAR : USER_SIDEBAR;
-  const defaultView: View = isDev ? "chat" : "myapps";
+  const sidebarItems = SIDEBAR;
+  const defaultView: View = "chat";
 
   const [prompt, setPrompt] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -1244,7 +1236,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
 
   // Load saved projects from API on mount
   useEffect(() => {
-    if (projectsLoaded || !isDev) return;
+    if (projectsLoaded) return;
     (async () => {
       try {
         const projects = await get<Array<{
@@ -1294,7 +1286,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         setProjectsLoaded(true);
       }
     })();
-  }, [projectsLoaded, isDev]);
+  }, [projectsLoaded]);
 
   const hasStartedChat = messages.length > 0 && activeView === "chat";
 
@@ -2191,7 +2183,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <History className="h-4 w-4" />
             </button>
           )}
-          {builtSpec && isDev && (
+          {builtSpec && (
             <button
               onClick={() => setPreviewTab("erd")}
               className={`rounded-lg p-2 transition ${
@@ -2202,7 +2194,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <Network className="h-4 w-4" />
             </button>
           )}
-          {builtSpec && isDev && (
+          {builtSpec && (
             <button
               onClick={() => setPreviewTab("editor")}
               className={`rounded-lg p-2 transition ${
@@ -2213,7 +2205,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <FileText className="h-4 w-4" />
             </button>
           )}
-          {builtSpec && builtProjectId && isDev && (
+          {builtSpec && builtProjectId && (
             <button
               onClick={() => setPreviewTab("settings")}
               className={`rounded-lg p-2 transition ${
@@ -2395,7 +2387,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           <button className="rounded-lg p-1.5 text-gray-400 transition hover:text-black">
             <ExternalLink className="h-4 w-4" />
           </button>
-          {builtSpec && builtProjectId && isDev && (
+          {builtSpec && builtProjectId && (
             <button
               onClick={handleDownloadApp}
               disabled={deploying}
@@ -2406,7 +2398,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               Get App
             </button>
           )}
-          {builtSpec && builtProjectId && isDev && (
+          {builtSpec && builtProjectId && (
             <>
               <button
                 onClick={handleListOnMarketplace}
@@ -2446,7 +2438,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               )}
             </>
           )}
-          {builtSpec && builtProjectId && isDev && (
+          {builtSpec && builtProjectId && (
             <button
               onClick={() => {
                 setExportRepoName(builtSpec?.app_name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "my-app");
@@ -3760,20 +3752,18 @@ export function OnboardingPage({ onSpecCreated }: Props) {
         </div>
 
         {/* New Chat button */}
-        {isDev && (
-          <div className="px-3 pb-2">
-            <button
-              onClick={startNewChat}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
-            >
-              <Plus className="h-4 w-4" />
-              New Project
-            </button>
-          </div>
-        )}
+        <div className="px-3 pb-2">
+          <button
+            onClick={startNewChat}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-black px-3 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
+          >
+            <Plus className="h-4 w-4" />
+            New Project
+          </button>
+        </div>
 
         {/* Chat sessions list */}
-        {isDev && !projectsLoaded && (
+        {!projectsLoaded && (
           <div className="border-b border-gray-200 px-2 pb-2">
             <p className="px-2 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
               Projects
@@ -3788,7 +3778,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </div>
           </div>
         )}
-        {isDev && projectsLoaded && chatSessions.length > 0 && (
+        {projectsLoaded && chatSessions.length > 0 && (
           <SidebarProjectList
             chatSessions={chatSessions}
             activeChatId={activeChatId}
@@ -3798,11 +3788,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
           />
         )}
 
-        {/* Account type indicator */}
+        {/* User name */}
         <div className="mx-3 mb-2 mt-2 rounded-lg bg-gray-100 px-3 py-2">
-          <p className="text-[11px] font-medium text-gray-500">
-            {isDev ? "Developer Account" : "User Account"}
-          </p>
           <p className="text-xs font-medium text-black">
             {user ? `${user.first_name} ${user.last_name}` : ""}
           </p>
@@ -3858,8 +3845,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
               <Menu className="h-4 w-4 text-gray-600 dark:text-gray-400" />
             </button>
 
-            {isDev && (
-              <div data-tour="model-selector" className="relative" ref={dropdownRef}>
+            <div data-tour="model-selector" className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setModelOpen(!modelOpen)}
                   className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-black transition hover:bg-gray-100"
@@ -3900,7 +3886,6 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   </div>
                 )}
               </div>
-            )}
           </div>
 
           {/* Top bar right actions */}
@@ -3943,15 +3928,6 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   </p>
                   <p className="text-xs text-gray-400">{user?.email || ""}</p>
                   <div className="mt-1 flex items-center gap-1.5">
-                    {user?.account_type && (
-                      <span
-                        className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
-                          isDev ? "bg-pink-100 text-pink-700" : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {isDev ? "Developer" : "User"}
-                      </span>
-                    )}
                     <span
                       className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium ${
                         billingInfo?.plan === "pro" || billingInfo?.plan === "teams"

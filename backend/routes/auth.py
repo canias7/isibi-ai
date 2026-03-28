@@ -105,7 +105,7 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
         last_name=body.last_name,
         email=body.email,
         password_hash=_hash_password(body.password),
-        account_type_col=body.account_type,
+        account_type_col=body.account_type or "developer",
         email_verified=False,
         verification_code=code,
         verification_expires_at=datetime.now(timezone.utc) + timedelta(minutes=CODE_EXPIRY_MINUTES),
