@@ -118,6 +118,31 @@ export async function countRecords(projectId: string, table: string): Promise<nu
   return Array.isArray(data) ? data.length : (data?.rows?.length ?? 0);
 }
 
+// ── Scheduled Commands ───────────────────────────────────────────────────────
+
+export async function createScheduledCommand(projectId: string, data: {
+  command: string;
+  schedule_type: string;
+  schedule_time: string;
+  schedule_day?: string;
+  timezone?: string;
+}) {
+  return apiFetch(`/api/apps/${projectId}/scheduled-commands`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listScheduledCommands(projectId: string) {
+  return apiFetch(`/api/apps/${projectId}/scheduled-commands`);
+}
+
+export async function deleteScheduledCommand(projectId: string, commandId: string) {
+  return apiFetch(`/api/apps/${projectId}/scheduled-commands/${commandId}`, {
+    method: "DELETE",
+  });
+}
+
 // ── App Schema ───────────────────────────────────────────────────────────────
 
 export async function getAppSchema(projectId: string) {

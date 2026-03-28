@@ -8,6 +8,7 @@ import { C, F, R } from "../lib/theme";
 import {
   Project, getProjectSpec, listRecords, createRecord,
   deleteRecord, countRecords, CommandResult,
+  createScheduledCommand, listScheduledCommands, deleteScheduledCommand,
 } from "../lib/api";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -62,6 +63,109 @@ function extractNameFromCommand(cmd: string): string | null {
   return null;
 }
 
+// ── Schedule parsing ──────────────────────────────────────────────────────────
+
+interface ParsedSchedule {
+  schedule_type: string;
+  schedule_time: string;
+  schedule_day?: string;
+  command: string;
+  timezone?: string;
+}
+
+function parseScheduleCommand(input: string): ParsedSchedule | null {
+  const lower = input.toLowerCase().trim();
+
+  // "every day at 5pm, give me income report"
+  // "every monday at 9am, show me new leads"
+  // "every month on the 1st at 8am, send summary"
+  // "schedule daily at 17:00, report of all income"
+  const everyDayMatch = lower.match(
+    /every\s+day\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)[,:]?\s+(.+)/i
+  );
+  if (everyDayMatch) {
+    return {
+      schedule_type: "daily",
+      schedule_time: parseTime(everyDayMatch[1]),
+      command: everyDayMatch[2].trim(),
+    };
+  }
+
+  const everyWeekdayMatch = lower.match(
+    /every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)[,:]?\s+(.+)/i
+  );
+  if (everyWeekdayMatch) {
+    return {
+      schedule_type: "weekly",
+      schedule_day: everyWeekdayMatch[1],
+      schedule_time: parseTime(everyWeekdayMatch[2]),
+      command: everyWeekdayMatch[3].trim(),
+    };
+  }
+
+  const everyMonthMatch = lower.match(
+    /every\s+month\s+(?:on\s+(?:the\s+)?)?(\d{1,2})(?:st|nd|rd|th)?\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)[,:]?\s+(.+)/i
+  );
+  if (everyMonthMatch) {
+    return {
+      schedule_type: "monthly",
+      schedule_day: everyMonthMatch[1],
+      schedule_time: parseTime(everyMonthMatch[2]),
+      command: everyMonthMatch[3].trim(),
+    };
+  }
+
+  // "schedule [command] at [time]"
+  const scheduleAtMatch = lower.match(
+    /schedule\s+(.+?)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s*$/i
+  );
+  if (scheduleAtMatch) {
+    return {
+      schedule_type: "daily",
+      schedule_time: parseTime(scheduleAtMatch[2]),
+      command: scheduleAtMatch[1].trim(),
+    };
+  }
+
+  // "at 5pm every day, give me income report"
+  const atEveryMatch = lower.match(
+    /at\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+every\s+day[,:]?\s+(.+)/i
+  );
+  if (atEveryMatch) {
+    return {
+      schedule_type: "daily",
+      schedule_time: parseTime(atEveryMatch[1]),
+      command: atEveryMatch[2].trim(),
+    };
+  }
+
+  return null;
+}
+
+function parseTime(timeStr: string): string {
+  const cleaned = timeStr.trim().toLowerCase();
+  const match = cleaned.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+  if (!match) return "00:00";
+
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2] ? parseInt(match[2], 10) : 0;
+  const period = match[3];
+
+  if (period === "pm" && hours < 12) hours += 12;
+  if (period === "am" && hours === 12) hours = 0;
+
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+}
+
+function formatTime12h(time24: string): string {
+  const [hStr, mStr] = time24.split(":");
+  let h = parseInt(hStr, 10);
+  const period = h >= 12 ? "PM" : "AM";
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${mStr} ${period}`;
+}
+
 async function processCommand(
   command: string,
   projectId: string,
@@ -69,6 +173,73 @@ async function processCommand(
 ): Promise<CommandResult> {
   const cmd = command.trim();
   const lower = cmd.toLowerCase();
+
+  // === Schedule commands ===
+  const schedule = parseScheduleCommand(cmd);
+  if (schedule) {
+    try {
+      await createScheduledCommand(projectId, {
+        command: schedule.command,
+        schedule_type: schedule.schedule_type,
+        schedule_time: schedule.schedule_time,
+        schedule_day: schedule.schedule_day,
+        timezone: schedule.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+      const dayLabel = schedule.schedule_day ? ` on ${schedule.schedule_day}` : "";
+      const typeLabel = schedule.schedule_type === "daily" ? "every day"
+        : schedule.schedule_type === "weekly" ? `every week${dayLabel}`
+        : schedule.schedule_type === "monthly" ? `every month${dayLabel}`
+        : "once";
+      return {
+        success: true,
+        message: `Scheduled! I'll "${schedule.command}" ${typeLabel} at ${formatTime12h(schedule.schedule_time)}`,
+      };
+    } catch (e: any) {
+      return { success: false, message: `Failed to create schedule: ${e.message}` };
+    }
+  }
+
+  // === "show my schedules" / "my schedules" ===
+  if (lower === "show my schedules" || lower === "my schedules" || lower === "show schedules" || lower === "list schedules") {
+    try {
+      const result = await listScheduledCommands(projectId);
+      const items = result?.items ?? [];
+      if (items.length === 0) {
+        return { success: true, message: "You have no scheduled commands." };
+      }
+      const list = items.map((s: any) => {
+        const status = s.enabled ? "active" : "paused";
+        const dayLabel = s.schedule_day ? ` (${s.schedule_day})` : "";
+        return `- "${s.command}" ${s.schedule_type}${dayLabel} at ${formatTime12h(s.schedule_time)} [${status}]`;
+      }).join("\n");
+      return { success: true, message: `Your scheduled commands:\n${list}` };
+    } catch (e: any) {
+      return { success: false, message: `Failed to load schedules: ${e.message}` };
+    }
+  }
+
+  // === "cancel schedule [name]" ===
+  if (lower.startsWith("cancel schedule") || lower.startsWith("remove schedule") || lower.startsWith("delete schedule")) {
+    const term = cmd.replace(/^(?:cancel|remove|delete)\s+schedule\s*/i, "").trim().toLowerCase();
+    try {
+      const result = await listScheduledCommands(projectId);
+      const items = result?.items ?? [];
+      if (items.length === 0) {
+        return { success: true, message: "You have no scheduled commands to cancel." };
+      }
+      // Find matching command
+      const match = items.find((s: any) =>
+        s.command.toLowerCase().includes(term) || term === ""
+      );
+      if (!match) {
+        return { success: false, message: `No schedule found matching "${term}". Say "show my schedules" to see all.` };
+      }
+      await deleteScheduledCommand(projectId, match.id);
+      return { success: true, message: `Cancelled schedule: "${match.command}"` };
+    } catch (e: any) {
+      return { success: false, message: `Failed to cancel schedule: ${e.message}` };
+    }
+  }
 
   // === "Add a new [entity]..." ===
   if (lower.startsWith("add") || lower.startsWith("create") || lower.startsWith("new")) {
@@ -214,7 +385,7 @@ async function processCommand(
     const entityNames = entities.map(e => e.displayName).join(", ");
     return {
       success: true,
-      message: `Commands: "Add a new [entity]", "Show me [entity]s", "How many [entity]s", "Search for [value]", "Delete [entity] named [name]", "Disconnect". Your entities: ${entityNames}`,
+      message: `Commands: "Add a new [entity]", "Show me [entity]s", "How many [entity]s", "Search for [value]", "Delete [entity] named [name]", "Every day at 5pm, [command]", "Show my schedules", "Cancel schedule [name]", "Disconnect". Your entities: ${entityNames}`,
     };
   }
 

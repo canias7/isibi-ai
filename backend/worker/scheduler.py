@@ -18,6 +18,7 @@ async def run_scheduler():
             await _check_expired_subscriptions()
             await _send_daily_digest_reports()
             await _cleanup_expired_record_locks()
+            await _run_scheduled_commands()
         except asyncio.CancelledError:
             logger.info("Scheduler cancelled, shutting down")
             break
@@ -222,3 +223,97 @@ async def _cleanup_expired_record_locks():
                 logger.info(f"Cleaned up {result.rowcount} expired record locks")
         except Exception as e:
             logger.warning(f"Record lock cleanup failed: {e}")
+
+
+async def _run_scheduled_commands():
+    """Execute scheduled commands whose time has arrived."""
+    async with async_session() as db:
+        try:
+            from models.app_scheduled_command import AppScheduledCommand
+            from worker.command_executor import execute_command
+            import pytz
+
+            now_utc = datetime.now(timezone.utc)
+
+            # Fetch all enabled commands
+            result = await db.execute(
+                select(AppScheduledCommand).where(AppScheduledCommand.enabled == True)
+            )
+            commands = result.scalars().all()
+
+            executed = 0
+            for cmd in commands:
+                try:
+                    # Convert current UTC time to the command's timezone
+                    try:
+                        tz = pytz.timezone(cmd.timezone or "UTC")
+                    except pytz.UnknownTimeZoneError:
+                        tz = pytz.UTC
+                    now_local = now_utc.astimezone(tz)
+
+                    # Parse scheduled time
+                    parts = cmd.schedule_time.split(":")
+                    sched_hour = int(parts[0])
+                    sched_minute = int(parts[1]) if len(parts) > 1 else 0
+
+                    # Check if current time matches (within 1-minute window)
+                    if now_local.hour != sched_hour or now_local.minute != sched_minute:
+                        continue
+
+                    # Check schedule_type constraints
+                    if cmd.schedule_type == "weekly":
+                        day_name = now_local.strftime("%A").lower()
+                        if cmd.schedule_day and day_name != cmd.schedule_day.lower():
+                            continue
+
+                    elif cmd.schedule_type == "monthly":
+                        if cmd.schedule_day:
+                            try:
+                                if now_local.day != int(cmd.schedule_day):
+                                    continue
+                            except ValueError:
+                                continue
+
+                    elif cmd.schedule_type == "once":
+                        # Only run if never run before
+                        if cmd.last_run_at is not None:
+                            continue
+
+                    # Avoid running the same command twice in the same minute
+                    if cmd.last_run_at:
+                        last_local = cmd.last_run_at.astimezone(tz)
+                        if (
+                            last_local.date() == now_local.date()
+                            and last_local.hour == now_local.hour
+                            and last_local.minute == now_local.minute
+                        ):
+                            continue
+
+                    # Execute the command
+                    result_text = await execute_command(str(cmd.project_id), cmd.command, db)
+
+                    # Update state
+                    cmd.last_run_at = now_utc
+                    cmd.last_result = result_text
+                    executed += 1
+
+                    # Disable one-time commands after execution
+                    if cmd.schedule_type == "once":
+                        cmd.enabled = False
+
+                    logger.info(
+                        f"Scheduled command executed: '{cmd.command[:50]}' "
+                        f"for project {cmd.project_id}"
+                    )
+
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to execute scheduled command {cmd.id}: {e}"
+                    )
+
+            if executed > 0:
+                await db.commit()
+                logger.info(f"Executed {executed} scheduled commands")
+
+        except Exception as e:
+            logger.warning(f"Scheduled commands check failed: {e}")

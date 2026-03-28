@@ -6736,6 +6736,130 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     return parsed;
   }}
 
+  // ── Schedule helpers ────────────────────────────────────────────
+  function aiParseTime(timeStr) {{
+    var cleaned = timeStr.trim().toLowerCase();
+    var match = cleaned.match(/^(\d{{1,2}})(?::(\d{{2}}))?\s*(am|pm)?$/);
+    if (!match) return "00:00";
+    var hours = parseInt(match[1], 10);
+    var minutes = match[2] ? parseInt(match[2], 10) : 0;
+    var period = match[3];
+    if (period === "pm" && hours < 12) hours += 12;
+    if (period === "am" && hours === 12) hours = 0;
+    return (hours < 10 ? "0" : "") + hours + ":" + (minutes < 10 ? "0" : "") + minutes;
+  }}
+
+  function aiFormatTime12h(time24) {{
+    var parts = time24.split(":");
+    var h = parseInt(parts[0], 10);
+    var m = parts[1] || "00";
+    var period = h >= 12 ? "PM" : "AM";
+    if (h > 12) h -= 12;
+    if (h === 0) h = 12;
+    return h + ":" + m + " " + period;
+  }}
+
+  async function aiCreateSchedule(schedType, schedTime, schedDay, schedCmd) {{
+    aiAddMsg("Creating schedule...", "bot");
+    try {{
+      var tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      var body = {{
+        command: schedCmd,
+        schedule_type: schedType,
+        schedule_time: schedTime,
+        timezone: tz
+      }};
+      if (schedDay) body.schedule_day = schedDay;
+      var res = await fetch("/api/apps/{project_id}/scheduled-commands", {{
+        method: "POST",
+        headers: {{ "Content-Type": "application/json", "Authorization": "Bearer " + (localStorage.getItem("app_token") || "") }},
+        body: JSON.stringify(body)
+      }});
+      if (res.ok) {{
+        var dayLabel = schedDay ? " on " + escHtml(schedDay) : "";
+        var typeLabel = schedType === "daily" ? "every day"
+          : schedType === "weekly" ? "every week" + dayLabel
+          : schedType === "monthly" ? "every month" + dayLabel
+          : "once";
+        aiAddMsg("&#9989; Scheduled! I'll <em>" + escHtml(schedCmd) + "</em> " + typeLabel + " at <strong>" + aiFormatTime12h(schedTime) + "</strong>", "bot");
+      }} else {{
+        var errData = await res.json().catch(function() {{ return {{}}; }});
+        aiAddMsg("Could not create schedule: " + (errData.detail || "server error"), "bot");
+      }}
+    }} catch(err) {{
+      aiAddMsg("Error creating schedule: " + err.message, "bot");
+    }}
+  }}
+
+  async function aiShowSchedules() {{
+    try {{
+      var res = await fetch("/api/apps/{project_id}/scheduled-commands", {{
+        headers: {{ "Authorization": "Bearer " + (localStorage.getItem("app_token") || "") }}
+      }});
+      if (res.ok) {{
+        var data = await res.json();
+        var items = data.items || [];
+        if (items.length === 0) {{
+          aiAddMsg("You have no scheduled commands.", "bot");
+          return;
+        }}
+        var html = "<strong>Your scheduled commands:</strong><br>";
+        items.forEach(function(s) {{
+          var status = s.enabled ? "&#9989; active" : "&#9940; paused";
+          var dayLabel = s.schedule_day ? " (" + escHtml(s.schedule_day) + ")" : "";
+          html += "&#8226; <em>" + escHtml(s.command) + "</em> &mdash; " + escHtml(s.schedule_type) + dayLabel + " at " + aiFormatTime12h(s.schedule_time) + " [" + status + "]<br>";
+          if (s.last_result) {{
+            html += "&nbsp;&nbsp;Last result: " + escHtml(s.last_result.substring(0, 100)) + (s.last_result.length > 100 ? "..." : "") + "<br>";
+          }}
+        }});
+        aiAddMsg(html, "bot");
+      }} else {{
+        aiAddMsg("Could not load schedules.", "bot");
+      }}
+    }} catch(err) {{
+      aiAddMsg("Error loading schedules: " + err.message, "bot");
+    }}
+  }}
+
+  async function aiCancelSchedule(keyword) {{
+    try {{
+      var res = await fetch("/api/apps/{project_id}/scheduled-commands", {{
+        headers: {{ "Authorization": "Bearer " + (localStorage.getItem("app_token") || "") }}
+      }});
+      if (!res.ok) {{
+        aiAddMsg("Could not load schedules.", "bot");
+        return;
+      }}
+      var data = await res.json();
+      var items = data.items || [];
+      if (items.length === 0) {{
+        aiAddMsg("You have no scheduled commands to cancel.", "bot");
+        return;
+      }}
+      var match = null;
+      if (keyword) {{
+        match = items.find(function(s) {{ return s.command.toLowerCase().indexOf(keyword.toLowerCase()) >= 0; }});
+      }} else {{
+        match = items[0]; // cancel the most recent if no keyword
+      }}
+      if (!match) {{
+        aiAddMsg("No schedule found matching '" + escHtml(keyword) + "'. Say <em>show schedules</em> to see all.", "bot");
+        return;
+      }}
+      var delRes = await fetch("/api/apps/{project_id}/scheduled-commands/" + match.id, {{
+        method: "DELETE",
+        headers: {{ "Authorization": "Bearer " + (localStorage.getItem("app_token") || "") }}
+      }});
+      if (delRes.ok) {{
+        aiAddMsg("Cancelled schedule: <em>" + escHtml(match.command) + "</em>", "bot");
+      }} else {{
+        aiAddMsg("Could not cancel schedule.", "bot");
+      }}
+    }} catch(err) {{
+      aiAddMsg("Error cancelling schedule: " + err.message, "bot");
+    }}
+  }}
+
   async function aiProcessCommand(text) {{
     var q = text.trim();
     var kb = aiBuildKnowledge();
@@ -6779,6 +6903,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
         "&#8226; <em>Search for X</em> or <em>Find X</em><br>" +
         "&#8226; <em>Go to [module]</em> or <em>Open [module]</em><br>" +
         "&#8226; <em>Show dashboard</em> or <em>Go home</em><br>" +
+        "&#8226; <em>Every day at 5pm, give me income report</em> &mdash; schedule a command<br>" +
+        "&#8226; <em>Show schedules</em> &mdash; list scheduled commands<br>" +
+        "&#8226; <em>Cancel schedule [name]</em> &mdash; remove a schedule<br>" +
         "&#8226; <em>help</em> &mdash; show this list",
         "bot"
       );
@@ -6947,6 +7074,66 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       }} else if (typeof window.globalSearch === "function") {{
         window.globalSearch(term);
       }}
+      return;
+    }}
+
+    // ── Scheduled commands ──────────────────────────────────────────
+
+    // "every day at 5pm, give me income report"
+    var schedEveryDay = q.match(/every\s+day\s+at\s+(\d{{1,2}}(?::\d{{2}})?\s*(?:am|pm)?)[,:]?\s+(.+)/i);
+    if (schedEveryDay) {{
+      var schedTime = aiParseTime(schedEveryDay[1]);
+      var schedCmd = schedEveryDay[2].trim();
+      aiCreateSchedule("daily", schedTime, null, schedCmd);
+      return;
+    }}
+
+    // "every monday at 9am, show me new leads"
+    var schedWeekday = q.match(/every\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+at\s+(\d{{1,2}}(?::\d{{2}})?\s*(?:am|pm)?)[,:]?\s+(.+)/i);
+    if (schedWeekday) {{
+      var schedTime = aiParseTime(schedWeekday[2]);
+      var schedCmd = schedWeekday[3].trim();
+      aiCreateSchedule("weekly", schedTime, schedWeekday[1].toLowerCase(), schedCmd);
+      return;
+    }}
+
+    // "every month on the 1st at 8am, send summary"
+    var schedMonthly = q.match(/every\s+month\s+(?:on\s+(?:the\s+)?)?(\d{{1,2}})(?:st|nd|rd|th)?\s+at\s+(\d{{1,2}}(?::\d{{2}})?\s*(?:am|pm)?)[,:]?\s+(.+)/i);
+    if (schedMonthly) {{
+      var schedTime = aiParseTime(schedMonthly[2]);
+      var schedCmd = schedMonthly[3].trim();
+      aiCreateSchedule("monthly", schedTime, schedMonthly[1], schedCmd);
+      return;
+    }}
+
+    // "schedule [command] at [time]"
+    var schedAt = q.match(/schedule\s+(.+?)\s+at\s+(\d{{1,2}}(?::\d{{2}})?\s*(?:am|pm)?)\s*$/i);
+    if (schedAt) {{
+      var schedTime = aiParseTime(schedAt[2]);
+      var schedCmd = schedAt[1].trim();
+      aiCreateSchedule("daily", schedTime, null, schedCmd);
+      return;
+    }}
+
+    // "at 5pm every day, give me income report"
+    var schedAtEvery = q.match(/at\s+(\d{{1,2}}(?::\d{{2}})?\s*(?:am|pm)?)\s+every\s+day[,:]?\s+(.+)/i);
+    if (schedAtEvery) {{
+      var schedTime = aiParseTime(schedAtEvery[1]);
+      var schedCmd = schedAtEvery[2].trim();
+      aiCreateSchedule("daily", schedTime, null, schedCmd);
+      return;
+    }}
+
+    // "show schedules" / "my schedules"
+    if (/(?:show|list|my)\s+schedules?/i.test(q)) {{
+      aiShowSchedules();
+      return;
+    }}
+
+    // "cancel schedule [keyword]"
+    var cancelMatch = q.match(/(?:cancel|remove|delete)\s+schedule\s*(.*)/i);
+    if (cancelMatch) {{
+      aiCancelSchedule(cancelMatch[1].trim());
       return;
     }}
 

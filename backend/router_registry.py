@@ -132,9 +132,11 @@ def _register_automation_routers(app):
     from routes.app_deadline_reminders import router as app_deadline_reminders_router
     from routes.app_status_rules import router as app_status_rules_router
     from routes.app_duplicate_detection import router as app_duplicate_detection_router
+    from routes.app_scheduled_commands import router as app_scheduled_commands_router
 
     app.include_router(app_email_triggers_router, prefix="/api")
     app.include_router(app_scheduled_reports_router, prefix="/api")
+    app.include_router(app_scheduled_commands_router, prefix="/api")
     app.include_router(app_webhook_config_router, prefix="/api")
     app.include_router(app_auto_assign_router, prefix="/api")
     app.include_router(app_deadline_reminders_router, prefix="/api")

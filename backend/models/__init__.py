@@ -62,6 +62,7 @@ from .app_duplicate_rule import AppDuplicateRule
 from .app_message import AppMessage
 from .app_email import AppEmail
 from .app_snapshot import AppSnapshot
+from .app_scheduled_command import AppScheduledCommand
 from .sso_config import SSOConfig
 
 __all__ = [
@@ -88,5 +89,6 @@ __all__ = [
     "AppAutoAssignRule", "AppDeadlineReminder",
     "AppStatusRule", "AppDuplicateRule",
     "AppMessage", "AppEmail", "AppSnapshot",
+    "AppScheduledCommand",
     "SSOConfig",
 ]

@@ -249,25 +249,13 @@ async def generate_desktop_app(
     )
 
     # 10. Build zip in memory
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        prefix = f"{folder_name}/"
-        zf.writestr(f"{prefix}package.json", package_json)
-        zf.writestr(f"{prefix}main.js", template_main)
-        zf.writestr(f"{prefix}app-config.json", app_config)
-        zf.writestr(f"{prefix}icon.png", icon_png)
-        zf.writestr(f"{prefix}README.txt", readme_txt)
-        zf.writestr(f"{prefix}start.command", start_command)
-        zf.writestr(f"{prefix}start.bat", start_bat)
+    # macOS .app bundle paths
+    app_bundle = f"{folder_name}/{safe_name}.app/"
+    app_contents = f"{app_bundle}Contents/"
+    app_macos = f"{app_contents}MacOS/"
+    app_resources = f"{app_contents}Resources/"
 
-        # Create a macOS .app bundle wrapper
-        app_bundle = f"{prefix}{safe_name}.app/"
-        app_contents = f"{app_bundle}Contents/"
-        app_macos = f"{app_contents}MacOS/"
-        app_resources = f"{app_contents}Resources/"
-
-        # Info.plist
-        info_plist = f'''<?xml version="1.0" encoding="UTF-8"?>
+    info_plist = f'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -292,8 +280,7 @@ async def generate_desktop_app(
 </dict>
 </plist>'''
 
-        # Launcher script (runs the Electron app from the parent directory)
-        launcher_script = f'''#!/bin/bash
+    launcher_script = f'''#!/bin/bash
 DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$DIR"
 if [ ! -d "node_modules" ]; then
@@ -303,14 +290,35 @@ fi
 npx electron .
 '''
 
-        zf.writestr(f"{app_contents}Info.plist", info_plist)
-        zf.writestr(f"{app_macos}launcher", launcher_script)
-        zf.writestr(f"{app_resources}icon.png", icon_png)
+    prefix = f"{folder_name}/"
+    electron_prefix = f"{prefix}electron/"
 
-        # Make executables
-        for item in zf.infolist():
-            if item.filename.endswith("start.command") or item.filename.endswith("/launcher"):
-                item.external_attr = 0o755 << 16
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        # Electron files (in subfolder for advanced users)
+        zf.writestr(f"{electron_prefix}package.json", package_json)
+        zf.writestr(f"{electron_prefix}main.js", template_main)
+        zf.writestr(f"{electron_prefix}app-config.json", app_config)
+        zf.writestr(f"{electron_prefix}icon.png", icon_png)
+        zf.writestr(f"{electron_prefix}start.bat", start_bat)
+
+        # start.command with executable permissions
+        sc_info = zipfile.ZipInfo(f"{electron_prefix}start.command")
+        sc_info.external_attr = 0o755 << 16
+        zf.writestr(sc_info, start_command)
+
+        # macOS .app bundle (primary — double-click this)
+        zf.writestr(f"{app_contents}Info.plist", info_plist)
+        zf.writestr(f"{app_resources}icon.png", icon_png)
+        zf.writestr(f"{app_resources}app-config.json", app_config)
+
+        # Launcher with executable permissions
+        launcher_info = zipfile.ZipInfo(f"{app_macos}launcher")
+        launcher_info.external_attr = 0o755 << 16
+        zf.writestr(launcher_info, launcher_script)
+
+        # README at root
+        zf.writestr(f"{prefix}README.txt", readme_txt)
 
     buf.seek(0)
     zip_bytes = buf.getvalue()
