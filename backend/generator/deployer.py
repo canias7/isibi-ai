@@ -2138,6 +2138,75 @@ tr.bulk-selected {{ background:var(--primary-light) !important; }}
   cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;white-space:nowrap;
 }}
 .chat-input-wrap button:hover {{ background:#db2777; }}
+/* ── AI Command Sidebar ── */
+.ai-sidebar {{
+  position:fixed;top:0;right:0;width:350px;height:100vh;background:#fff;
+  border-left:1px solid #e5e7eb;transform:translateX(100%);
+  transition:transform 0.3s cubic-bezier(0.4,0,0.2,1);z-index:1000;
+  display:flex;flex-direction:column;font-family:inherit;
+}}
+.ai-sidebar.open {{ transform:translateX(0); }}
+.ai-sidebar-toggle {{
+  position:fixed;right:16px;bottom:80px;width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-hover,#4f46e5));
+  color:#fff;border:none;cursor:pointer;
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:999;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform 0.2s,box-shadow 0.2s;
+}}
+.ai-sidebar-toggle:hover {{ transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,0.22); }}
+.ai-sidebar-toggle svg {{ width:24px;height:24px; }}
+.ai-sidebar-header {{
+  padding:16px 20px;background:linear-gradient(135deg,#ec4899,#a855f7);color:#fff;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}}
+.ai-sidebar-header h3 {{ font-size:15px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px; }}
+.ai-sidebar-header h3 svg {{ width:18px;height:18px; }}
+.ai-sidebar-close {{
+  background:rgba(255,255,255,0.2);border:none;color:#fff;width:28px;height:28px;
+  border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:16px;transition:background 0.2s;
+}}
+.ai-sidebar-close:hover {{ background:rgba(255,255,255,0.35); }}
+.ai-sidebar-messages {{
+  flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;
+}}
+.ai-sidebar-msg {{
+  max-width:90%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;
+  word-wrap:break-word;
+}}
+.ai-sidebar-msg.bot {{
+  background:#f3f4f6;color:#374151;align-self:flex-start;border-bottom-left-radius:4px;
+}}
+.ai-sidebar-msg.user {{
+  background:var(--primary,#6366f1);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;
+}}
+.ai-sidebar-msg.confirm {{
+  background:#fef3c7;color:#92400e;align-self:flex-start;border-bottom-left-radius:4px;
+  border:1px solid #fcd34d;
+}}
+.ai-sidebar-input-wrap {{
+  padding:12px 16px;border-top:1px solid #e5e7eb;display:flex;gap:8px;flex-shrink:0;
+}}
+.ai-sidebar-input-wrap input {{
+  flex:1;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;font-size:13px;
+  outline:none;font-family:inherit;
+}}
+.ai-sidebar-input-wrap input:focus {{ border-color:var(--primary,#6366f1); }}
+.ai-sidebar-input-wrap button {{
+  background:var(--primary,#6366f1);color:#fff;border:none;border-radius:8px;padding:8px 12px;
+  cursor:pointer;font-size:13px;font-weight:500;font-family:inherit;white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;
+}}
+.ai-sidebar-input-wrap button:hover {{ opacity:0.9; }}
+.ai-sidebar-input-wrap .ai-mic-btn {{
+  background:transparent;color:var(--text-secondary,#6b7280);padding:8px;
+}}
+.ai-sidebar-input-wrap .ai-mic-btn:hover {{ color:var(--text,#111827);opacity:1; }}
+@media (max-width:640px) {{
+  .ai-sidebar {{ width:100vw; }}
+  .ai-sidebar-toggle {{ right:12px;bottom:74px;width:42px;height:42px;border-radius:10px; }}
+}}
 /* ── Overview Page ── */
 .overview-stat-row {{ display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:24px; }}
 .overview-stat-card {{
@@ -2834,6 +2903,23 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   <div class="chat-input-wrap">
     <input type="text" id="chat-input" placeholder="Ask about this app..." onkeydown="if(event.key==='Enter')sendChatMsg()">
     <button onclick="sendChatMsg()">Send</button>
+  </div>
+</div>
+
+<!-- AI Command Sidebar -->
+<button class="ai-sidebar-toggle" id="ai-sidebar-toggle" onclick="toggleAiSidebar()" title="AI Commands">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+</button>
+<div class="ai-sidebar" id="ai-sidebar">
+  <div class="ai-sidebar-header">
+    <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 17l6-6-6-6"/><line x1="12" y1="19" x2="20" y2="19"/></svg> AI Assistant</h3>
+    <button class="ai-sidebar-close" onclick="toggleAiSidebar()">&times;</button>
+  </div>
+  <div class="ai-sidebar-messages" id="ai-sidebar-messages"></div>
+  <div class="ai-sidebar-input-wrap">
+    <input type="text" id="ai-sidebar-input" placeholder="Type a command..." onkeydown="if(event.key==='Enter')sendAiCommand()">
+    <button class="ai-mic-btn" title="Voice input (coming soon)" onclick="alert('Voice input coming soon!')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+    <button onclick="sendAiCommand()">Send</button>
   </div>
 </div>
 
@@ -6588,6 +6674,317 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
   window.confirmDeleteAction = typeof confirmDeleteAction !== 'undefined' ? confirmDeleteAction : function() {{}};
   window.toggleSidebar = typeof toggleSidebar !== 'undefined' ? toggleSidebar : function() {{}};
   window.setBreadcrumb = typeof setBreadcrumb !== 'undefined' ? setBreadcrumb : function() {{}};
+
+  // ── AI Command Sidebar ──
+  var aiSidebarOpen = false;
+  var aiSidebarInited = false;
+  var aiPendingConfirm = null;
+
+  function aiAddMsg(text, cls) {{
+    var area = document.getElementById("ai-sidebar-messages");
+    var div = document.createElement("div");
+    div.className = "ai-sidebar-msg " + cls;
+    div.innerHTML = text.replace(/\\n/g, "<br>");
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+  }}
+
+  function aiBuildKnowledge() {{
+    var entities = Object.keys(ENTITY_FIELDS);
+    var modules = SIDEBAR_ITEMS.map(function(s) {{ return s.name; }});
+    return {{ entities: entities, modules: modules }};
+  }}
+
+  function aiFindEntity(text) {{
+    var kb = aiBuildKnowledge();
+    var lower = text.toLowerCase();
+    for (var i = 0; i < kb.entities.length; i++) {{
+      var e = kb.entities[i];
+      if (lower.indexOf(e.toLowerCase()) !== -1) return e;
+      // try plural
+      if (lower.indexOf(e.toLowerCase() + "s") !== -1) return e;
+    }}
+    return null;
+  }}
+
+  function aiFindModule(text) {{
+    var lower = text.toLowerCase();
+    for (var i = 0; i < SIDEBAR_ITEMS.length; i++) {{
+      var item = SIDEBAR_ITEMS[i];
+      if (lower.indexOf(item.name.toLowerCase()) !== -1) return item.name;
+    }}
+    return null;
+  }}
+
+  function aiParseFields(text, entity) {{
+    var fields = ENTITY_FIELDS[entity] || [];
+    var parsed = {{}};
+    fields.forEach(function(f) {{
+      var label = (f.label || f.name).toLowerCase();
+      var patterns = [
+        new RegExp(label + "\\s*[:=]\\s*[\"']?([^\"',]+)[\"']?", "i"),
+        new RegExp("(?:with|and)\\s+" + label + "\\s+([^,\\.and]+)", "i")
+      ];
+      for (var p = 0; p < patterns.length; p++) {{
+        var m = text.match(patterns[p]);
+        if (m) {{
+          parsed[f.name] = m[1].trim();
+          break;
+        }}
+      }}
+    }});
+    return parsed;
+  }}
+
+  async function aiProcessCommand(text) {{
+    var q = text.trim();
+    var kb = aiBuildKnowledge();
+
+    // Handle pending confirmation
+    if (aiPendingConfirm) {{
+      if (/^(y|yes|confirm|ok|sure)/i.test(q)) {{
+        var pc = aiPendingConfirm;
+        aiPendingConfirm = null;
+        try {{
+          var res = await fetch(API_BASE + "/" + pc.entity + "/" + pc.id, {{
+            method: "DELETE",
+            headers: {{ "Content-Type": "application/json" }}
+          }});
+          if (res.ok) {{
+            aiAddMsg("Deleted successfully! Refreshing data...", "bot");
+            if (typeof showModule === "function" && currentModule) showModule(currentModule);
+          }} else {{
+            aiAddMsg("Could not delete. The server returned an error.", "bot");
+          }}
+        }} catch(err) {{
+          aiAddMsg("Error deleting: " + err.message, "bot");
+        }}
+        return;
+      }} else {{
+        aiPendingConfirm = null;
+        aiAddMsg("Cancelled. No records were deleted.", "bot");
+        return;
+      }}
+    }}
+
+    // Help
+    if (/^(help|what can you do|\?|commands)$/i.test(q)) {{
+      aiAddMsg(
+        "<strong>Available commands:</strong><br>" +
+        "&#8226; <em>Add a new [entity]</em> &mdash; open create form<br>" +
+        "&#8226; <em>Add [entity] with name X and email Y</em> &mdash; create directly<br>" +
+        "&#8226; <em>Show all [entity]s</em> or <em>List [entity]s</em><br>" +
+        "&#8226; <em>How many [entity]s?</em> or <em>Count [entity]s</em><br>" +
+        "&#8226; <em>Delete [entity] named X</em><br>" +
+        "&#8226; <em>Search for X</em> or <em>Find X</em><br>" +
+        "&#8226; <em>Go to [module]</em> or <em>Open [module]</em><br>" +
+        "&#8226; <em>Show dashboard</em> or <em>Go home</em><br>" +
+        "&#8226; <em>help</em> &mdash; show this list",
+        "bot"
+      );
+      return;
+    }}
+
+    // Show dashboard / Go home
+    if (/show\s+dashboard|go\s+home|open\s+dashboard/i.test(q)) {{
+      var dashMod = SIDEBAR_ITEMS.find(function(s) {{ return /dashboard/i.test(s.name); }});
+      if (dashMod && typeof showModule === "function") {{
+        showModule(dashMod.name);
+        aiAddMsg("Here's your dashboard", "bot");
+      }} else if (SIDEBAR_ITEMS.length > 0 && typeof showModule === "function") {{
+        showModule(SIDEBAR_ITEMS[0].name);
+        aiAddMsg("Here's your dashboard", "bot");
+      }} else {{
+        aiAddMsg("Could not find a dashboard module.", "bot");
+      }}
+      return;
+    }}
+
+    // Go to / Open [module]
+    var goMatch = q.match(/(?:go\s+to|open|switch\s+to|navigate\s+to)\s+(.+)/i);
+    if (goMatch) {{
+      var modName = aiFindModule(goMatch[1]);
+      if (modName && typeof showModule === "function") {{
+        showModule(modName);
+        aiAddMsg("Switched to " + escHtml(modName), "bot");
+      }} else {{
+        aiAddMsg("Module not found. Available modules: " + kb.modules.join(", "), "bot");
+      }}
+      return;
+    }}
+
+    // Add/Create with field values: "Add customer with name John and email john@test.com"
+    var createWithFields = q.match(/(?:add|create)\s+(?:a\s+)?(?:new\s+)?(\w+)\s+with\s+(.+)/i);
+    if (createWithFields) {{
+      var entity = aiFindEntity(createWithFields[1]);
+      if (entity) {{
+        var parsed = aiParseFields(q, entity);
+        if (Object.keys(parsed).length > 0) {{
+          try {{
+            var res = await fetch(API_BASE + "/" + entity, {{
+              method: "POST",
+              headers: {{ "Content-Type": "application/json" }},
+              body: JSON.stringify(parsed)
+            }});
+            if (res.ok) {{
+              var data = await res.json();
+              var displayName = parsed.name || parsed.title || parsed.label || Object.values(parsed)[0] || entity;
+              aiAddMsg("Created a new " + escHtml(entity) + ": <strong>" + escHtml(displayName) + "</strong>", "bot");
+              if (typeof showModule === "function" && currentModule) showModule(currentModule);
+            }} else {{
+              var errData = await res.json().catch(function() {{ return {{}}; }});
+              aiAddMsg("Could not create: " + (errData.detail || "server error"), "bot");
+            }}
+          }} catch(err) {{
+            aiAddMsg("Error creating record: " + err.message, "bot");
+          }}
+          return;
+        }}
+      }}
+    }}
+
+    // Add / Create [entity] (open form)
+    var addMatch = q.match(/(?:add|create)\s+(?:a\s+)?(?:new\s+)?(\w+)/i);
+    if (addMatch) {{
+      var entity = aiFindEntity(addMatch[1]);
+      if (entity) {{
+        var mod = SIDEBAR_ITEMS.find(function(s) {{ return s.entity === entity; }});
+        if (mod && typeof showModule === "function") {{
+          showModule(mod.name);
+          setTimeout(function() {{
+            if (typeof openCreate === "function") openCreate();
+          }}, 150);
+          aiAddMsg("Opening the form to add a new " + escHtml(entity) + ". Fill in the details!", "bot");
+        }} else {{
+          aiAddMsg("Entity '" + escHtml(entity) + "' found but no module linked.", "bot");
+        }}
+        return;
+      }} else {{
+        aiAddMsg("Entity not recognized. Available: " + kb.entities.join(", "), "bot");
+        return;
+      }}
+    }}
+
+    // Show / List [entity]s
+    if (/(?:show|list|display|view)\s+(?:me\s+)?(?:all\s+)?(\w+)/i.test(q)) {{
+      var listMatch = q.match(/(?:show|list|display|view)\s+(?:me\s+)?(?:all\s+)?(\w+)/i);
+      var entity = aiFindEntity(listMatch[1]);
+      if (entity) {{
+        var mod = SIDEBAR_ITEMS.find(function(s) {{ return s.entity === entity; }});
+        if (mod && typeof showModule === "function") {{
+          showModule(mod.name);
+          aiAddMsg("Here are your " + escHtml(entity) + "s", "bot");
+        }} else {{
+          aiAddMsg("No module found for " + escHtml(entity), "bot");
+        }}
+        return;
+      }}
+    }}
+
+    // Count [entity]s
+    if (/(?:how\s+many|count|total)\s+(\w+)/i.test(q)) {{
+      var countMatch = q.match(/(?:how\s+many|count|total)\s+(\w+)/i);
+      var entity = aiFindEntity(countMatch[1]);
+      if (entity) {{
+        try {{
+          var res = await fetch(API_BASE + "/" + entity);
+          if (res.ok) {{
+            var data = await res.json();
+            var count = Array.isArray(data) ? data.length : (data.items ? data.items.length : 0);
+            aiAddMsg("You have <strong>" + count + "</strong> " + escHtml(entity) + "(s)", "bot");
+          }} else {{
+            aiAddMsg("Could not fetch count. Server returned an error.", "bot");
+          }}
+        }} catch(err) {{
+          aiAddMsg("Error fetching data: " + err.message, "bot");
+        }}
+        return;
+      }}
+    }}
+
+    // Delete [entity] named [value]
+    var delMatch = q.match(/delete\s+(\w+)\s+(?:named|called|with\s+name)\s+[\"']?(.+?)[\"']?\s*$/i);
+    if (delMatch) {{
+      var entity = aiFindEntity(delMatch[1]);
+      var searchName = delMatch[2].trim();
+      if (entity) {{
+        try {{
+          var res = await fetch(API_BASE + "/" + entity);
+          if (res.ok) {{
+            var data = await res.json();
+            var items = Array.isArray(data) ? data : (data.items || []);
+            var found = items.find(function(item) {{
+              return Object.values(item).some(function(v) {{
+                return String(v).toLowerCase() === searchName.toLowerCase();
+              }});
+            }});
+            if (found) {{
+              aiPendingConfirm = {{ entity: entity, id: found.id, name: searchName }};
+              aiAddMsg("Found <strong>" + escHtml(searchName) + "</strong>. Are you sure you want to delete? (yes/no)", "confirm");
+            }} else {{
+              aiAddMsg("No " + escHtml(entity) + " named '" + escHtml(searchName) + "' was found.", "bot");
+            }}
+          }} else {{
+            aiAddMsg("Could not search records. Server error.", "bot");
+          }}
+        }} catch(err) {{
+          aiAddMsg("Error searching: " + err.message, "bot");
+        }}
+        return;
+      }}
+    }}
+
+    // Search / Find
+    var searchMatch = q.match(/(?:search|find|look\s+(?:for|up))\s+(?:for\s+)?[\"']?(.+?)[\"']?\s*$/i);
+    if (searchMatch) {{
+      var term = searchMatch[1].trim();
+      aiAddMsg("Searching for '" + escHtml(term) + "'...", "bot");
+      var searchInput = document.querySelector(".topbar-search input, #global-search, .search-input");
+      if (searchInput) {{
+        searchInput.value = term;
+        searchInput.dispatchEvent(new Event("input", {{ bubbles: true }}));
+        searchInput.focus();
+      }} else if (typeof window.globalSearch === "function") {{
+        window.globalSearch(term);
+      }}
+      return;
+    }}
+
+    // Fallback
+    aiAddMsg(
+      "I didn't understand that command. Type <em>help</em> to see what I can do.",
+      "bot"
+    );
+  }}
+
+  window.toggleAiSidebar = function() {{
+    aiSidebarOpen = !aiSidebarOpen;
+    document.getElementById("ai-sidebar").classList.toggle("open", aiSidebarOpen);
+    var toggleBtn = document.getElementById("ai-sidebar-toggle");
+    if (aiSidebarOpen) {{
+      toggleBtn.style.display = "none";
+    }} else {{
+      toggleBtn.style.display = "flex";
+    }}
+    if (aiSidebarOpen && !aiSidebarInited) {{
+      aiSidebarInited = true;
+      aiAddMsg(
+        "Hi! I'm your AI command assistant. I can help you manage data in <strong>" + escHtml(APP_NAME) + "</strong>.<br><br>" +
+        "Type <em>help</em> to see available commands.",
+        "bot"
+      );
+    }}
+    if (aiSidebarOpen) document.getElementById("ai-sidebar-input").focus();
+  }};
+
+  window.sendAiCommand = function() {{
+    var input = document.getElementById("ai-sidebar-input");
+    var text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    aiAddMsg(escHtml(text), "user");
+    aiProcessCommand(text);
+  }};
 
   // ── Init ──
   function initApp() {{
