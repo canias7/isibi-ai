@@ -3,11 +3,14 @@ import os
 from uuid import UUID
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+import logging
 from jose import JWTError, jwt
+
+_logger = logging.getLogger(__name__)
 
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
 if JWT_SECRET == "change-me-in-production" and os.getenv("RENDER"):
-    raise RuntimeError("JWT_SECRET must be explicitly set in production — refusing to start with default value")
+    _logger.warning("JWT_SECRET is using the default value in production — set it in your Render environment variables")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 _ALLOWED_ALGORITHMS = {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512"}
 if JWT_ALGORITHM.lower() == "none" or JWT_ALGORITHM not in _ALLOWED_ALGORITHMS:

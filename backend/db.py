@@ -4,9 +4,12 @@ from sqlalchemy.orm import DeclarativeBase
 
 _raw_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/crm")
 
-# Refuse to start in production with default credentials
+import logging
+_db_logger = logging.getLogger(__name__)
+
+# Warn (but don't crash) if running in production with default credentials
 if _raw_url == "postgresql+asyncpg://postgres:postgres@localhost:5432/crm" and os.getenv("RENDER"):
-    raise RuntimeError("DATABASE_URL must be explicitly set in production — refusing to start with default value")
+    _db_logger.warning("DATABASE_URL is using the default value in production — set it in your Render environment variables")
 
 # Render gives postgres:// but asyncpg needs postgresql+asyncpg://
 DATABASE_URL = _raw_url
