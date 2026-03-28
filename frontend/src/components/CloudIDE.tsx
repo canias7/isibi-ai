@@ -3,8 +3,6 @@ import {
   ChevronRight,
   ChevronDown,
   FileCode2,
-  FileJson,
-  FileText,
   Folder,
   FolderOpen,
   X,
@@ -15,8 +13,39 @@ import {
 
 // ── Types ───────────────────────────────────────────────────────────
 
+interface SpecEntity {
+  name: string;
+  table?: string;
+  fields?: SpecField[];
+  [key: string]: unknown;
+}
+
+interface SpecField {
+  name: string;
+  type?: string;
+  ts_type?: string;
+  show_in_table?: boolean;
+  enum_values?: string[];
+  [key: string]: unknown;
+}
+
+interface SpecModule {
+  name?: string;
+  entity?: string;
+  route?: string;
+  [key: string]: unknown;
+}
+
+interface Spec {
+  app_name?: string;
+  name?: string;
+  entities?: SpecEntity[];
+  modules?: SpecModule[];
+  [key: string]: unknown;
+}
+
 interface CloudIDEProps {
-  spec: any;
+  spec: Spec | null;
   generating: boolean;
   projectId?: string;
   onComplete?: () => void;
@@ -157,7 +186,7 @@ function titleCase(s: string): string {
   return s.replace(/(^|_| )(\w)/g, (_, __, c) => c.toUpperCase());
 }
 
-function generateModelPy(entity: any): string {
+function generateModelPy(entity: SpecEntity): string {
   const name = entity.name;
   const tableName = entity.table || snakeCase(name);
   const fields = entity.fields || [];

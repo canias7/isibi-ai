@@ -2674,7 +2674,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
 .spreadsheet-toolbar {{ display:flex;align-items:center;gap:8px;padding:8px 12px;border-bottom:1px solid var(--gray-100);background:rgba(249,250,251,0.6);flex-shrink:0; }}
 .spreadsheet-toolbar button {{ display:flex;align-items:center;gap:4px;padding:5px 10px;border:1px solid var(--gray-200);border-radius:6px;background:#fff;font-size:10px;font-weight:500;color:var(--gray-600);cursor:pointer;font-family:inherit;transition:all 0.15s ease; }}
 .spreadsheet-toolbar button:hover {{ background:var(--gray-50);border-color:var(--gray-300); }}
-.spreadsheet-toolbar button.ss-primary {{ background:linear-gradient(135deg,{primary_color},{primary_hover});color:#fff;border-color:transparent; }}
+.spreadsheet-toolbar button.ss-primary {{ background:linear-gradient(135deg,{primary_color},var(--primary-hover));color:#fff;border-color:transparent; }}
 .spreadsheet-toolbar button.ss-primary:hover {{ opacity:0.9; }}
 .spreadsheet-toolbar .ss-separator {{ width:1px;height:20px;background:var(--gray-200);margin:0 4px; }}
 .spreadsheet-formula-bar {{ display:flex;align-items:center;gap:8px;padding:4px 12px;border-bottom:1px solid var(--gray-100);background:#fff;font-size:11px;flex-shrink:0; }}
