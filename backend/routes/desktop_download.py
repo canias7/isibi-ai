@@ -260,10 +260,56 @@ async def generate_desktop_app(
         zf.writestr(f"{prefix}start.command", start_command)
         zf.writestr(f"{prefix}start.bat", start_bat)
 
-        # Make start.command executable by setting the external attributes
-        # (Unix permission bits in the upper 16 bits)
+        # Create a macOS .app bundle wrapper
+        app_bundle = f"{prefix}{safe_name}.app/"
+        app_contents = f"{app_bundle}Contents/"
+        app_macos = f"{app_contents}MacOS/"
+        app_resources = f"{app_contents}Resources/"
+
+        # Info.plist
+        info_plist = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleExecutable</key>
+    <string>launcher</string>
+    <key>CFBundleName</key>
+    <string>{app_name}</string>
+    <key>CFBundleDisplayName</key>
+    <string>{app_name}</string>
+    <key>CFBundleIdentifier</key>
+    <string>ai.isibi.{pkg_name}</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleIconFile</key>
+    <string>icon</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>10.15</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>'''
+
+        # Launcher script (runs the Electron app from the parent directory)
+        launcher_script = f'''#!/bin/bash
+DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
+cd "$DIR"
+if [ ! -d "node_modules" ]; then
+    echo "Installing dependencies (first run only)..."
+    npm install --production 2>/dev/null
+fi
+npx electron .
+'''
+
+        zf.writestr(f"{app_contents}Info.plist", info_plist)
+        zf.writestr(f"{app_macos}launcher", launcher_script)
+        zf.writestr(f"{app_resources}icon.png", icon_png)
+
+        # Make executables
         for item in zf.infolist():
-            if item.filename.endswith("start.command"):
+            if item.filename.endswith("start.command") or item.filename.endswith("/launcher"):
                 item.external_attr = 0o755 << 16
 
     buf.seek(0)

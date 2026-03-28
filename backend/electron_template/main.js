@@ -11,6 +11,10 @@ try {
   }
 } catch (e) { console.error('Config error:', e); }
 
+// Set app name early so it shows in menu bar and dock
+app.name = config.name || 'My App';
+if (app.setName) app.setName(config.name || 'My App');
+
 let mainWindow;
 
 function createWindow() {
