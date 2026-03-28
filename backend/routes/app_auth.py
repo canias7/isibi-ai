@@ -32,6 +32,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
 from models.app_user import AppUser
+from models.user import User
+from models.project import Project
 
 _logger = logging.getLogger(__name__)
 
@@ -204,7 +206,11 @@ async def app_signup(
     body: AppSignupRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Register a new user for a generated app."""
+    """Register a new user for a generated app.
+
+    If the email matches the project owner, auto-links them as owner
+    instead of creating a separate account.
+    """
     # Check for existing user with same email in this project
     result = await db.execute(
         select(AppUser).where(
@@ -215,12 +221,37 @@ async def app_signup(
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
 
+    # Check if this email belongs to the project owner — auto-link instead of creating separate account
+    platform_result = await db.execute(
+        select(User).where(User.email == body.email)
+    )
+    platform_user = platform_result.scalar_one_or_none()
+
+    owner_role = "user"
+    password_hash = _hash_password(body.password)
+    display_name = body.display_name
+
+    if platform_user:
+        project_result = await db.execute(
+            select(Project).where(
+                Project.id == project_id,
+                Project.user_id == platform_user.id,
+                Project.deleted_at.is_(None),
+            )
+        )
+        if project_result.scalar_one_or_none():
+            # This is the project owner — use their platform password hash and mark as owner
+            owner_role = "owner"
+            password_hash = platform_user.password_hash
+            display_name = display_name or f"{platform_user.first_name} {platform_user.last_name}"
+
     app_user = AppUser(
         id=uuid.uuid4(),
         project_id=project_id,
         email=body.email,
-        password_hash=_hash_password(body.password),
-        display_name=body.display_name,
+        password_hash=password_hash,
+        display_name=display_name,
+        role=owner_role,
     )
     db.add(app_user)
     await db.commit()
@@ -246,7 +277,63 @@ async def app_login(
     body: AppLoginRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Login as an app user for a generated app."""
+    """Login as an app user for a generated app.
+
+    Checks platform users (project owner) first, then app_users table.
+    This allows the developer who built the app to log in with their
+    isibi.ai credentials without creating a separate account.
+    """
+    # 1. Check if this is the project owner logging in with isibi.ai credentials
+    platform_result = await db.execute(
+        select(User).where(User.email == body.email)
+    )
+    platform_user = platform_result.scalar_one_or_none()
+
+    if platform_user:
+        # Check if this user owns this project
+        project_result = await db.execute(
+            select(Project).where(
+                Project.id == project_id,
+                Project.user_id == platform_user.id,
+                Project.deleted_at.is_(None),
+            )
+        )
+        if project_result.scalar_one_or_none():
+            # Verify password against platform user's password
+            if _verify_password(body.password, platform_user.password_hash):
+                # Ensure an app_user record exists for the owner (auto-create if missing)
+                existing_app_user = await db.execute(
+                    select(AppUser).where(
+                        AppUser.project_id == project_id,
+                        AppUser.email == platform_user.email,
+                    )
+                )
+                app_user = existing_app_user.scalar_one_or_none()
+                if not app_user:
+                    app_user = AppUser(
+                        id=uuid.uuid4(),
+                        project_id=project_id,
+                        email=platform_user.email,
+                        password_hash=platform_user.password_hash,
+                        display_name=f"{platform_user.first_name} {platform_user.last_name}",
+                        role="owner",
+                    )
+                    db.add(app_user)
+                    await db.commit()
+                    await db.refresh(app_user)
+
+                token = _make_app_token(app_user, project_id)
+
+                # Store session in Redis
+                await _store_session(token, {
+                    "user_id": str(app_user.id),
+                    "project_id": str(project_id),
+                    "email": app_user.email,
+                })
+
+                return AppTokenResponse(access_token=token, user=_app_user_response(app_user))
+
+    # 2. Then check app_users table (for marketplace buyers and other users)
     result = await db.execute(
         select(AppUser).where(
             AppUser.project_id == project_id,

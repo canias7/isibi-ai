@@ -17,6 +17,8 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from models.project import Project
+from models.user import User
+from models.app_user import AppUser
 
 logger = logging.getLogger(__name__)
 
@@ -179,6 +181,36 @@ self.addEventListener('fetch', (e) => {{
         )
     )
     await db.commit()
+
+    # Auto-create app_user for the project owner so they can log in immediately
+    try:
+        pid = uuid.UUID(str(project_id))
+        project_row = await db.execute(select(Project).where(Project.id == pid))
+        project_obj = project_row.scalar_one_or_none()
+        if project_obj:
+            owner_row = await db.execute(select(User).where(User.id == project_obj.user_id))
+            owner = owner_row.scalar_one_or_none()
+            if owner:
+                existing_app_user = await db.execute(
+                    select(AppUser).where(
+                        AppUser.email == owner.email,
+                        AppUser.project_id == pid,
+                    )
+                )
+                if not existing_app_user.scalar_one_or_none():
+                    app_user = AppUser(
+                        id=uuid.uuid4(),
+                        project_id=pid,
+                        email=owner.email,
+                        password_hash=owner.password_hash,
+                        display_name=f"{owner.first_name} {owner.last_name}",
+                        role="owner",
+                    )
+                    db.add(app_user)
+                    await db.commit()
+                    logger.info("Auto-created app_user (owner) for project %s, email %s", project_id, owner.email)
+    except Exception as e:
+        logger.warning("Failed to auto-create owner app_user for project %s: %s", project_id, e)
 
     result_info = {
         "project_id": str(project_id),
@@ -2579,11 +2611,11 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     <div class="auth-header">
       <div class="auth-logo">{app_initial}</div>
       <h2>{app_name}</h2>
-      <p>Sign in to continue</p>
+      <p>Log in with your isibi.ai account</p>
     </div>
     <div class="auth-tabs">
       <button class="auth-tab active" id="auth-tab-login" onclick="switchAuthTab('login')">Log In</button>
-      <button class="auth-tab" id="auth-tab-signup" onclick="switchAuthTab('signup')">Sign Up</button>
+      <button class="auth-tab" id="auth-tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
     </div>
     <div class="auth-body">
       <div class="auth-error" id="auth-error"></div>
@@ -2951,8 +2983,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     currentAuthTab = tab;
     document.getElementById("auth-tab-login").classList.toggle("active", tab === "login");
     document.getElementById("auth-tab-signup").classList.toggle("active", tab === "signup");
-    document.getElementById("auth-submit").textContent = tab === "login" ? "Log In" : "Sign Up";
+    document.getElementById("auth-submit").textContent = tab === "login" ? "Log In" : "Create Account";
     document.getElementById("auth-error").style.display = "none";
+    // Update subtitle based on tab
+    var subtitle = document.querySelector(".auth-header p");
+    if (subtitle) {{
+      subtitle.textContent = tab === "login" ? "Log in with your isibi.ai account" : "Or create a new account";
+    }}
   }};
 
   window.handleAuth = async function() {{
@@ -2968,7 +3005,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     }}
 
     submitBtn.disabled = true;
-    submitBtn.textContent = currentAuthTab === "login" ? "Logging in..." : "Signing up...";
+    submitBtn.textContent = currentAuthTab === "login" ? "Logging in..." : "Creating account...";
     errorEl.style.display = "none";
 
     const endpoint = currentAuthTab === "login"
@@ -3002,7 +3039,7 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
       errorEl.style.display = "block";
     }} finally {{
       submitBtn.disabled = false;
-      submitBtn.textContent = currentAuthTab === "login" ? "Log In" : "Sign Up";
+      submitBtn.textContent = currentAuthTab === "login" ? "Log In" : "Create Account";
     }}
   }};
 
