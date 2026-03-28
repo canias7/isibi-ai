@@ -201,7 +201,8 @@ async def verify_domain(
                 break
     except (dns.resolver.NoAnswer, dns.resolver.NXDOMAIN, dns.resolver.NoNameservers):
         verified = False
-    except Exception:
+    except Exception as exc:
+        logger.warning("DNS verification failed for %s: %s", domain.domain, exc)
         verified = False
 
     if verified:

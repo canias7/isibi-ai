@@ -23,7 +23,7 @@ from models.subscription import Subscription
 
 router = APIRouter(prefix="/credits", tags=["credits"])
 
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY", "")
+_STRIPE_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 
 CREDIT_PACKS = {
     "10": {"credits": 10, "price_cents": 500, "name": "10 Credits"},
@@ -117,7 +117,7 @@ async def purchase_credits(
         if sub and sub.stripe_customer_id:
             checkout_params["customer"] = sub.stripe_customer_id
 
-        session = stripe.checkout.Session.create(**checkout_params)
+        session = stripe.checkout.Session.create(**checkout_params, api_key=_STRIPE_KEY)
 
         return {
             "checkout_url": session.url,

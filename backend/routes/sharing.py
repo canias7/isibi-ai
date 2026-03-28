@@ -97,8 +97,6 @@ async def get_shared_project(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint — returns project name + spec for read-only preview."""
-    from sqlalchemy import cast, String
-
     # Use PostgreSQL JSON operator to query by share token (indexed, no full table scan)
     result = await db.execute(
         select(Project).where(

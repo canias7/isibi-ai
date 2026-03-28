@@ -20,8 +20,16 @@ interface AuthState {
 function loadUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem("user");
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Validate required fields exist
+    if (parsed && typeof parsed.id === "string" && typeof parsed.email === "string") {
+      return parsed as AuthUser;
+    }
+    localStorage.removeItem("user");
+    return null;
   } catch {
+    localStorage.removeItem("user");
     return null;
   }
 }

@@ -40,9 +40,61 @@ _logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/apps", tags=["App Auth"])
 
-# In-memory reset code store: key = "{project_id}:{email}" -> {"code": str, "expires": datetime}
-# In production, this would be stored in the database and emailed to the user.
-_reset_codes: dict[str, dict] = {}
+# Reset code store — uses Redis when available, in-memory fallback
+_reset_codes: dict[str, dict] = {}  # fallback only
+_RESET_CODE_TTL_SECONDS = 900  # 15 minutes
+
+
+async def _store_reset_code(key: str, code: str) -> None:
+    """Store a reset code in Redis (preferred) or in-memory (fallback)."""
+    redis_client = await _get_redis()
+    if redis_client:
+        try:
+            import json
+            await redis_client.setex(
+                f"reset:{key}", _RESET_CODE_TTL_SECONDS, json.dumps({"code": code})
+            )
+            return
+        except Exception:
+            pass
+    # Fallback to in-memory
+    _reset_codes[key] = {
+        "code": code,
+        "expires": datetime.now(timezone.utc) + timedelta(seconds=_RESET_CODE_TTL_SECONDS),
+    }
+
+
+async def _get_reset_code(key: str) -> str | None:
+    """Retrieve a reset code from Redis or in-memory."""
+    redis_client = await _get_redis()
+    if redis_client:
+        try:
+            import json
+            raw = await redis_client.get(f"reset:{key}")
+            if raw:
+                return json.loads(raw).get("code")
+            return None
+        except Exception:
+            pass
+    # Fallback to in-memory
+    stored = _reset_codes.get(key)
+    if not stored:
+        return None
+    if datetime.now(timezone.utc) > stored["expires"]:
+        _reset_codes.pop(key, None)
+        return None
+    return stored["code"]
+
+
+async def _delete_reset_code(key: str) -> None:
+    """Remove a reset code from Redis and in-memory."""
+    redis_client = await _get_redis()
+    if redis_client:
+        try:
+            await redis_client.delete(f"reset:{key}")
+        except Exception:
+            pass
+    _reset_codes.pop(key, None)
 APP_JWT_EXPIRE_HOURS = int(os.getenv("APP_JWT_EXPIRE_HOURS", "72"))
 
 security = HTTPBearer()
@@ -421,13 +473,10 @@ async def app_forgot_password(
     app_user = result.scalar_one_or_none()
 
     if app_user and app_user.is_active:
-        # Generate a 6-digit reset code
+        # Generate a 6-digit reset code and store in Redis
         code = f"{secrets.randbelow(900000) + 100000}"
         store_key = f"{project_id}:{body.email}"
-        _reset_codes[store_key] = {
-            "code": code,
-            "expires": datetime.now(timezone.utc) + timedelta(minutes=15),
-        }
+        await _store_reset_code(store_key, code)
         # In production: send email with the code via email service
         _logger.debug("Password reset code generated for %s in project %s", body.email, project_id)
 
@@ -447,18 +496,14 @@ async def app_reset_password(
     Verifies the code, updates the password, and invalidates the code.
     """
     store_key = f"{project_id}:{body.email}"
-    stored = _reset_codes.get(store_key)
+    stored_code = await _get_reset_code(store_key)
 
-    if not stored:
+    if not stored_code:
         raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
 
-    # Check expiry
-    if datetime.now(timezone.utc) > stored["expires"]:
-        _reset_codes.pop(store_key, None)
-        raise HTTPException(status_code=400, detail="Reset code has expired. Please request a new one.")
-
-    # Check code
-    if stored["code"] != body.code:
+    # Check code (timing-safe)
+    import hmac
+    if not hmac.compare_digest(stored_code, body.code):
         raise HTTPException(status_code=400, detail="Invalid reset code.")
 
     # Validate new password
@@ -481,6 +526,6 @@ async def app_reset_password(
     await db.commit()
 
     # Invalidate the code
-    _reset_codes.pop(store_key, None)
+    await _delete_reset_code(store_key)
 
     return {"message": "Password reset successfully. You can now log in with your new password."}

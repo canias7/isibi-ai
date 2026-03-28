@@ -41,8 +41,14 @@ class CodeBody(BaseModel):
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+_2fa_columns_ensured = False
+
+
 async def _ensure_2fa_columns(db: AsyncSession) -> None:
-    """Add TOTP columns to the users table if they don't exist yet."""
+    """Add TOTP columns to the users table if they don't exist yet. Runs once per process."""
+    global _2fa_columns_ensured
+    if _2fa_columns_ensured:
+        return
     await db.execute(text(
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(255)"
     ))
@@ -50,6 +56,7 @@ async def _ensure_2fa_columns(db: AsyncSession) -> None:
         "ALTER TABLE users ADD COLUMN IF NOT EXISTS is_2fa_enabled BOOLEAN DEFAULT false"
     ))
     await db.commit()
+    _2fa_columns_ensured = True
 
 
 async def _get_user_2fa_info(db: AsyncSession, user_id: UUID) -> dict:
