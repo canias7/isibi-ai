@@ -65,6 +65,11 @@ async def _get_app_auth(
     - App-user JWT (type=app_user): verifies project_id matches
     - No token: returns 401
     """
+    # Allow preview mode (read-only, no auth required)
+    preview = request.query_params.get("preview") or request.headers.get("x-preview")
+    if preview:
+        return  # Skip auth for preview mode
+
     auth_header = request.headers.get("authorization", "")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Authentication required")

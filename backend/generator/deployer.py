@@ -2919,10 +2919,13 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     return localStorage.getItem(TOKEN_KEY) || "";
   }}
 
+  const IS_PREVIEW = new URLSearchParams(window.location.search).has("preview");
+
   function apiHeaders() {{
     const h = {{ "Content-Type": "application/json" }};
     const t = getToken();
     if (t) h["Authorization"] = "Bearer " + t;
+    if (IS_PREVIEW) h["X-Preview"] = "1";
     return h;
   }}
 
@@ -3131,7 +3134,8 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     }}
     startLoading();
     try {{
-      const res = await fetch(API_BASE + "/api/apps/" + PROJECT_ID + "/data/" + table, {{ headers: apiHeaders() }});
+      const previewQ = IS_PREVIEW ? "?preview=1" : "";
+      const res = await fetch(API_BASE + "/api/apps/" + PROJECT_ID + "/data/" + table + previewQ, {{ headers: apiHeaders() }});
       if (!res.ok) throw new Error("API error " + res.status);
       const data = await res.json();
       const rows = Array.isArray(data) ? data : (data.items || data.data || []);
