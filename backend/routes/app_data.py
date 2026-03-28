@@ -580,6 +580,14 @@ async def create_row(
     if not safe_data:
         raise HTTPException(status_code=400, detail="No valid columns provided")
 
+    # Auto-set system fields if not provided
+    import uuid as _uuid
+    if "id" not in safe_data:
+        safe_data["id"] = str(_uuid.uuid4())
+    if "org_id" not in safe_data:
+        # Use project_id as org_id for app data (each app is its own org)
+        safe_data["org_id"] = str(project_id)
+
     columns = list(safe_data.keys())
     col_names = ", ".join(f'"{c}"' for c in columns)
     placeholders = ", ".join(f"${i + 1}" for i in range(len(columns)))
