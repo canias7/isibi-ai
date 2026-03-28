@@ -505,6 +505,7 @@ export function MarketplacePage() {
           status: "online",
           color: "#ec4899",
           source: "marketplace",
+          projectId: res.project_id,
         });
         setToastMessage(`"${item.title}" added to your projects!`);
         setTimeout(() => navigate("/app"), 1200);

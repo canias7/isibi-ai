@@ -8,6 +8,7 @@ export interface UserApp {
   status: "online" | "offline";
   color: string;
   source: "created" | "marketplace";
+  projectId?: string; // links to the project
   htmlContent?: string; // the actual app code — editable until downloaded to PC
   createdAt: string;
 }

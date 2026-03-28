@@ -1,16 +1,13 @@
 import { useState } from "react";
 import {
-  User,
-  Power,
-  Download,
-  Trash2,
   Pencil,
-  X,
-  Save,
+  Trash2,
+  Search,
   AppWindow,
+  Plus,
+  Store,
 } from "lucide-react";
 import { useAppStore, type UserApp } from "@/stores/appStore";
-import JSZip from "jszip";
 
 const TYPE_LABEL: Record<string, string> = {
   software: "Software",
@@ -19,214 +16,95 @@ const TYPE_LABEL: Record<string, string> = {
   agent: "Agent",
 };
 
-export function MyAppsPage() {
-  const { apps, toggleStatus, removeApp, updateApp } = useAppStore();
-  const [selected, setSelected] = useState<string | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState("");
-  const [editName, setEditName] = useState("");
+type FilterType = "all" | "online" | "offline" | "created" | "marketplace";
+type SortType = "recent" | "name-az" | "name-za";
 
-  const selectedApp = apps.find((a) => a.id === selected);
+interface MyAppsPageProps {
+  onNewChat?: () => void;
+  onMarketplace?: () => void;
+  onOpenProject?: (projectId: string) => void;
+}
 
-  const getPosition = (index: number, total: number, radius: number) => {
-    const angle = (index * 2 * Math.PI) / total - Math.PI / 2;
-    return {
-      x: Math.cos(angle) * radius,
-      y: Math.sin(angle) * radius,
-    };
-  };
+export function MyAppsPage({ onNewChat, onMarketplace, onOpenProject }: MyAppsPageProps) {
+  const { apps, toggleStatus, removeApp } = useAppStore();
+  const [filter, setFilter] = useState<FilterType>("all");
+  const [sort, setSort] = useState<SortType>("recent");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
 
-  const startEdit = (app: UserApp) => {
-    setEditing(app.id);
-    setEditContent(app.htmlContent || "");
-    setEditName(app.name);
-  };
+  // Filter apps
+  const filtered = apps
+    .filter((app) => {
+      if (filter === "online") return app.status === "online";
+      if (filter === "offline") return app.status === "offline";
+      if (filter === "created") return app.source === "created";
+      if (filter === "marketplace") return app.source === "marketplace";
+      return true;
+    })
+    .filter((app) =>
+      searchQuery
+        ? app.name.toLowerCase().includes(searchQuery.toLowerCase())
+        : true
+    )
+    .sort((a, b) => {
+      switch (sort) {
+        case "name-az":
+          return a.name.localeCompare(b.name);
+        case "name-za":
+          return b.name.localeCompare(a.name);
+        case "recent":
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
 
-  const saveEdit = () => {
-    if (!editing) return;
-    updateApp(editing, { name: editName, htmlContent: editContent });
-    setEditing(null);
-  };
+  const filterPills: { label: string; value: FilterType }[] = [
+    { label: "All", value: "all" },
+    { label: "Online", value: "online" },
+    { label: "Offline", value: "offline" },
+    { label: "Created", value: "created" },
+    { label: "Marketplace", value: "marketplace" },
+  ];
 
-  const handleDownloadToPC = async (app: UserApp) => {
-    if (!app.htmlContent) return;
-
-    const slug = app.name.toLowerCase().replace(/\s+/g, "-");
-    const zip = new JSZip();
-    const folder = zip.folder(slug)!;
-
-    folder.file("index.html", app.htmlContent);
-
-    folder.file(
-      "package.json",
-      JSON.stringify(
-        {
-          name: slug,
-          version: "1.0.0",
-          main: "main.js",
-          scripts: { start: "electron ." },
-          dependencies: { electron: "^33.0.0" },
-        },
-        null,
-        2
-      )
-    );
-
-    folder.file(
-      "main.js",
-      `const { app, BrowserWindow } = require("electron");
-const path = require("path");
-
-app.whenReady().then(() => {
-  const win = new BrowserWindow({
-    width: 1024,
-    height: 700,
-    title: ${JSON.stringify(app.name)},
-    webPreferences: { nodeIntegration: false, contextIsolation: true },
-  });
-  win.loadFile("index.html");
-  win.setMenuBarVisibility(false);
-});
-
-app.on("window-all-closed", () => app.quit());
-`
-    );
-
-    folder.file(
-      "start.command",
-      `#!/bin/bash
-cd "$(dirname "$0")"
-if ! command -v npm &>/dev/null; then
-  echo ""
-  echo "  Node.js is required to run this app."
-  echo "  Install it from: https://nodejs.org"
-  echo ""
-  read -p "Press Enter to exit..."
-  exit 1
-fi
-if [ ! -d node_modules ]; then
-  echo "Installing dependencies (first run only, may take a minute)..."
-  npm install --no-fund --no-audit
-fi
-echo "Launching ${app.name}..."
-npx electron .
-`,
-      { unixPermissions: "755" }
-    );
-
-    folder.file(
-      "start.bat",
-      `@echo off
-cd /d "%~dp0"
-where npm >nul 2>nul || (echo. & echo   Node.js is required. Install from https://nodejs.org & echo. & pause & exit /b 1)
-if not exist node_modules (
-  echo Installing dependencies [first run only, may take a minute]...
-  npm install --no-fund --no-audit
-)
-echo Launching ${app.name}...
-npx electron .
-`
-    );
-
-    const blob = await zip.generateAsync({ type: "blob", platform: "UNIX" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${slug}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - d.getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
   // Empty state
   if (apps.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <div className="text-center">
-          <AppWindow className="mx-auto h-10 w-10 text-gray-300" />
-          <p className="mt-3 text-sm font-medium text-black">No apps yet</p>
-          <p className="mt-1 max-w-xs text-xs text-gray-400">
-            Build something in the chat or download from the marketplace to see
-            your apps here.
+        <div className="text-center max-w-sm">
+          <AppWindow className="mx-auto h-12 w-12 text-gray-300" />
+          <p className="mt-4 text-lg font-semibold text-black">No apps yet</p>
+          <p className="mt-2 text-sm text-gray-500">
+            Build your first app or browse the marketplace.
           </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Edit mode
-  if (editing) {
-    const app = apps.find((a) => a.id === editing);
-    if (!app) return null;
-
-    return (
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Edit header */}
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-3">
-          <div className="flex items-center gap-3">
+          <div className="mt-6 flex items-center justify-center gap-3">
             <button
-              onClick={() => setEditing(null)}
-              className="flex h-8 w-8 items-center justify-center rounded-lg transition hover:bg-gray-100"
+              onClick={onNewChat}
+              className="flex items-center gap-2 rounded-lg bg-black px-4 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
             >
-              <X className="h-4 w-4 text-gray-500" />
-            </button>
-            <input
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              className="border-b border-transparent bg-transparent text-sm font-semibold text-black focus:border-gray-300 focus:outline-none"
-            />
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] text-gray-500">
-              Editing
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setEditing(null)}
-              className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-600 transition hover:bg-gray-50"
-            >
-              Cancel
+              <Plus className="h-4 w-4" />
+              Start Building
             </button>
             <button
-              onClick={saveEdit}
-              className="flex items-center gap-1.5 rounded-lg bg-black px-3 py-1.5 text-xs font-medium text-white transition hover:bg-gray-800"
+              onClick={onMarketplace}
+              className="flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2.5 text-sm font-medium text-black transition hover:bg-gray-50"
             >
-              <Save className="h-3 w-3" />
-              Save
+              <Store className="h-4 w-4" />
+              Browse Marketplace
             </button>
-          </div>
-        </div>
-
-        {/* Edit body — two columns: code editor + live preview */}
-        <div className="flex flex-1 overflow-hidden">
-          {/* Code editor */}
-          <div className="flex w-1/2 flex-col border-r border-gray-200">
-            <div className="border-b border-gray-200 px-4 py-2">
-              <span className="text-xs font-medium text-gray-500">
-                HTML / Code
-              </span>
-            </div>
-            <textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              spellCheck={false}
-              className="flex-1 resize-none bg-gray-50 p-4 font-mono text-xs text-black focus:outline-none"
-            />
-          </div>
-
-          {/* Live preview */}
-          <div className="flex w-1/2 flex-col">
-            <div className="border-b border-gray-200 px-4 py-2">
-              <span className="text-xs font-medium text-gray-500">
-                Preview
-              </span>
-            </div>
-            <iframe
-              srcDoc={editContent}
-              sandbox="allow-scripts"
-              className="flex-1 bg-white"
-              title="App preview"
-            />
           </div>
         </div>
       </div>
@@ -234,267 +112,231 @@ npx electron .
   }
 
   return (
-    <div className="flex flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto w-full max-w-5xl px-6 py-8">
+    <div className="flex flex-1 flex-col overflow-y-auto bg-white">
+      <div className="mx-auto w-full max-w-6xl px-6 py-8">
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-black">My Apps</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Your apps hub. Click an app to manage or edit it.
+            Manage your apps. Toggle them on or off, edit, or remove.
           </p>
         </div>
 
-        {/* Octopus visualization */}
-        <div
-          className="relative mx-auto mb-10"
-          style={{ height: 520, maxWidth: 600 }}
-        >
-          {/* Connection lines (tentacles) */}
-          <svg
-            className="absolute inset-0"
-            width="100%"
-            height="100%"
-            viewBox="-300 -260 600 520"
-          >
-            {apps.map((app, i) => {
-              const pos = getPosition(i, apps.length, 180);
-              return (
-                <line
-                  key={app.id}
-                  x1={0}
-                  y1={0}
-                  x2={pos.x}
-                  y2={pos.y}
-                  stroke={app.status === "online" ? app.color : "#d1d5db"}
-                  strokeWidth={app.status === "online" ? 2.5 : 1.5}
-                  strokeDasharray={app.status === "offline" ? "6 4" : "none"}
-                  opacity={app.status === "online" ? 0.6 : 0.3}
-                />
-              );
-            })}
-          </svg>
-
-          {/* Center node — Customer */}
-          <div className="absolute left-1/2 top-1/2 z-10 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-black bg-white shadow-lg">
-              <User className="h-8 w-8 text-black" />
-            </div>
-            <span className="mt-2 text-sm font-semibold text-black">You</span>
-            <span className="text-[11px] text-gray-400">
-              {apps.filter((a) => a.status === "online").length} online
-            </span>
-          </div>
-
-          {/* App nodes around the center */}
-          {apps.map((app, i) => {
-            const pos = getPosition(i, apps.length, 180);
-            const isOnline = app.status === "online";
-            return (
-              <div
-                key={app.id}
-                className="absolute left-1/2 top-1/2 z-10"
-                style={{
-                  transform: `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px))`,
-                }}
-              >
-                <button
-                  onClick={() =>
-                    setSelected(selected === app.id ? null : app.id)
-                  }
-                  className={`group relative flex flex-col items-center transition-transform hover:scale-110 ${
-                    selected === app.id ? "scale-110" : ""
-                  }`}
-                >
-                  <div
-                    className="flex h-14 w-14 items-center justify-center rounded-full border-2 bg-white shadow-md transition"
-                    style={{
-                      borderColor: isOnline ? app.color : "#d1d5db",
-                    }}
-                  >
-                    <span
-                      className="text-lg font-bold"
-                      style={{ color: isOnline ? app.color : "#9ca3af" }}
-                    >
-                      {app.name.charAt(0)}
-                    </span>
-                  </div>
-
-                  <div
-                    className={`absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full border-2 border-white ${
-                      isOnline ? "bg-green-500" : "bg-gray-300"
-                    }`}
-                  />
-
-                  <span className="mt-1.5 max-w-[100px] truncate text-center text-xs font-medium text-black">
-                    {app.name}
-                  </span>
-                  <span
-                    className={`text-[10px] font-medium ${
-                      isOnline ? "text-green-600" : "text-gray-400"
-                    }`}
-                  >
-                    {isOnline ? "Online" : "Offline"}
-                  </span>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Selected app details */}
-        {selectedApp && (
-          <div className="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div
-                  className="flex h-10 w-10 items-center justify-center rounded-full"
-                  style={{
-                    backgroundColor: selectedApp.color + "15",
-                    color: selectedApp.color,
-                  }}
-                >
-                  <span className="text-base font-bold">
-                    {selectedApp.name.charAt(0)}
-                  </span>
-                </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-black">
-                    {selectedApp.name}
-                  </h3>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">
-                      {TYPE_LABEL[selectedApp.type]}
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 text-xs font-medium ${
-                        selectedApp.status === "online"
-                          ? "text-green-600"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      <span
-                        className={`h-1.5 w-1.5 rounded-full ${
-                          selectedApp.status === "online"
-                            ? "bg-green-500"
-                            : "bg-gray-300"
-                        }`}
-                      />
-                      {selectedApp.status === "online" ? "Online" : "Offline"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-4 flex gap-2">
+        {/* Filter bar */}
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          {/* Filter pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            {filterPills.map((pill) => (
               <button
-                onClick={() => toggleStatus(selectedApp.id)}
-                className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition ${
-                  selectedApp.status === "online"
-                    ? "border-red-200 text-red-600 hover:bg-red-50"
-                    : "border-green-200 text-green-600 hover:bg-green-50"
+                key={pill.value}
+                onClick={() => setFilter(pill.value)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  filter === pill.value
+                    ? "bg-black text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
-                <Power className="h-3.5 w-3.5" />
-                {selectedApp.status === "online" ? "Turn Off" : "Turn On"}
+                {pill.label}
               </button>
-              {selectedApp.htmlContent && (
-                <button
-                  onClick={() => startEdit(selectedApp)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit
-                </button>
-              )}
-              {selectedApp.htmlContent && (
-                <button
-                  onClick={() => handleDownloadToPC(selectedApp)}
-                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
-                >
-                  <Download className="h-3.5 w-3.5" />
-                  Download
-                </button>
-              )}
-              <button
-                onClick={() => {
-                  removeApp(selectedApp.id);
-                  setSelected(null);
-                }}
-                className="flex items-center justify-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-xs font-medium text-red-500 transition hover:bg-red-50"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
+            ))}
+          </div>
+
+          {/* Search + Sort */}
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search apps..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-8 w-48 rounded-lg border border-gray-200 bg-white pl-8 pr-3 text-xs text-black placeholder-gray-400 focus:border-pink-300 focus:outline-none focus:ring-1 focus:ring-pink-200"
+              />
             </div>
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as SortType)}
+              className="h-8 rounded-lg border border-gray-200 bg-white px-2.5 text-xs text-gray-600 focus:border-pink-300 focus:outline-none focus:ring-1 focus:ring-pink-200"
+            >
+              <option value="recent">Recent</option>
+              <option value="name-az">Name A-Z</option>
+              <option value="name-za">Name Z-A</option>
+            </select>
+          </div>
+        </div>
+
+        {/* No results */}
+        {filtered.length === 0 && (
+          <div className="py-16 text-center">
+            <Search className="mx-auto h-8 w-8 text-gray-300" />
+            <p className="mt-3 text-sm font-medium text-gray-500">No apps match your filters</p>
+            <button
+              onClick={() => { setFilter("all"); setSearchQuery(""); }}
+              className="mt-2 text-xs font-medium text-pink-500 hover:text-pink-600"
+            >
+              Clear filters
+            </button>
           </div>
         )}
 
-        {/* App list (compact) */}
-        <div className="mx-auto mt-8 max-w-2xl">
-          <h2 className="mb-3 text-sm font-semibold text-black">All Apps</h2>
-          <div className="space-y-2">
-            {apps.map((app) => (
-              <div
-                key={app.id}
-                onClick={() => setSelected(app.id)}
-                className={`flex cursor-pointer items-center justify-between rounded-lg border px-4 py-3 transition hover:border-gray-300 ${
-                  selected === app.id
-                    ? "border-gray-300 bg-gray-50"
-                    : "border-gray-200"
-                }`}
+        {/* App cards grid */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((app) => (
+            <AppCard
+              key={app.id}
+              app={app}
+              onToggle={() => toggleStatus(app.id)}
+              onEdit={() => {
+                if (app.projectId && onOpenProject) {
+                  onOpenProject(app.projectId);
+                }
+              }}
+              onDelete={() => setDeleteConfirm(app.id)}
+              formatDate={formatDate}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Delete confirmation modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl">
+            <h3 className="text-base font-semibold text-black">Delete App</h3>
+            <p className="mt-2 text-sm text-gray-500">
+              Are you sure you want to remove this app? This action cannot be undone.
+            </p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: app.color + "15",
-                      color: app.color,
-                    }}
-                  >
-                    <span className="text-xs font-bold">
-                      {app.name.charAt(0)}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-black">{app.name}</p>
-                    <p className="text-xs text-gray-400">
-                      {TYPE_LABEL[app.type]} · {app.source === "marketplace" ? "Marketplace" : "Created"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium ${
-                      app.status === "online"
-                        ? "bg-green-50 text-green-700"
-                        : "bg-gray-100 text-gray-500"
-                    }`}
-                  >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        app.status === "online" ? "bg-green-500" : "bg-gray-300"
-                      }`}
-                    />
-                    {app.status === "online" ? "Online" : "Offline"}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleStatus(app.id);
-                    }}
-                    className={`rounded-md p-1.5 transition ${
-                      app.status === "online"
-                        ? "text-gray-400 hover:bg-red-50 hover:text-red-500"
-                        : "text-gray-400 hover:bg-green-50 hover:text-green-500"
-                    }`}
-                  >
-                    <Power className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  removeApp(deleteConfirm);
+                  setDeleteConfirm(null);
+                }}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-600"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── App Card Component ─── */
+
+function AppCard({
+  app,
+  onToggle,
+  onEdit,
+  onDelete,
+  formatDate,
+}: {
+  app: UserApp;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  formatDate: (d: string) => string;
+}) {
+  const isOnline = app.status === "online";
+
+  return (
+    <div className="group rounded-xl border border-gray-200 bg-white p-5 transition-shadow duration-200 hover:shadow-md">
+      {/* Top row: icon + info */}
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-3">
+          {/* App icon */}
+          <div
+            className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white text-lg font-bold"
+            style={{ backgroundColor: app.color }}
+          >
+            {app.name.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-bold text-black">{app.name}</h3>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {/* Type badge */}
+              <span className="rounded-md bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600">
+                {TYPE_LABEL[app.type] || "Software"}
+              </span>
+              {/* Source badge */}
+              <span
+                className={`rounded-md px-1.5 py-0.5 text-[10px] font-medium ${
+                  app.source === "marketplace"
+                    ? "bg-pink-50 text-pink-600"
+                    : "bg-blue-50 text-blue-600"
+                }`}
+              >
+                {app.source === "marketplace" ? "From Marketplace" : "Built by you"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Status dot */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span
+            className={`h-2 w-2 rounded-full ${
+              isOnline ? "bg-green-500" : "bg-gray-300"
+            }`}
+          />
+          <span
+            className={`text-[11px] font-medium ${
+              isOnline ? "text-green-600" : "text-gray-400"
+            }`}
+          >
+            {isOnline ? "Online" : "Offline"}
+          </span>
+        </div>
+      </div>
+
+      {/* Date */}
+      <p className="mt-3 text-[11px] text-gray-400">
+        Added {formatDate(app.createdAt)}
+      </p>
+
+      {/* Action row */}
+      <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
+        <div className="flex items-center gap-1">
+          {/* Edit button */}
+          <button
+            onClick={onEdit}
+            title="Edit app"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-black"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+          {/* Delete button */}
+          <button
+            onClick={onDelete}
+            title="Delete app"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Toggle switch */}
+        <button
+          onClick={onToggle}
+          title={isOnline ? "Turn off" : "Turn on"}
+          className="relative h-6 w-11 rounded-full transition-colors duration-200"
+          style={{ backgroundColor: isOnline ? "#ec4899" : "#d1d5db" }}
+        >
+          <span
+            className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200"
+            style={{
+              transform: isOnline ? "translateX(20px)" : "translateX(0)",
+            }}
+          />
+        </button>
       </div>
     </div>
   );

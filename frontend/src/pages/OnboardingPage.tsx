@@ -56,6 +56,7 @@ import {
 } from "lucide-react";
 import { post, get, del } from "@/api/client";
 import { useAuthStore } from "@/stores/authStore";
+import { useAppStore } from "@/stores/appStore";
 import { useThemeStore } from "@/stores/themeStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { MarketplacePage } from "./MarketplacePage";
@@ -2062,6 +2063,17 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Add to My Apps after successful download
+      const addApp = useAppStore.getState().addApp;
+      addApp({
+        name: builtSpec?.app_name || builtSpec?.name || "My App",
+        type: "software",
+        status: "online",
+        color: builtSpec?.design_system?.colors?.primary || "#ec4899",
+        source: "created",
+        projectId: builtProjectId,
+      });
     } catch (err: unknown) {
       const e = err as Record<string, string>;
       alert(`Desktop download failed: ${e?.message || "Unknown error"}`);
@@ -3306,7 +3318,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
   const renderContent = () => {
     switch (activeView) {
       case "myapps":
-        return <MyAppsPage />;
+        return <MyAppsPage onNewChat={() => setActiveView("chat")} onMarketplace={() => setActiveView("marketplace")} onOpenProject={(projectId) => { const session = chatSessions.find(s => s.projectId === projectId); if (session) { setActiveChatId(session.id); setActiveView("chat"); } else { setActiveView("chat"); } }} />;
       case "marketplace":
         return <MarketplacePage />;
       case "mylistings":
