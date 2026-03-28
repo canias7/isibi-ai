@@ -61,7 +61,7 @@ import { useThemeStore } from "@/stores/themeStore";
 import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { MarketplacePage } from "./MarketplacePage";
 import { MyAppsPage } from "./MyAppsPage";
-import { DevMarketplacePage } from "./DevMarketplacePage";
+import { MarketplacePage } from "./MarketplacePage";
 import { SpecPreview } from "@/components/SpecPreview";
 import { VisualEditor } from "@/components/VisualEditor";
 import { CloudIDE } from "@/components/CloudIDE";
@@ -3218,9 +3218,9 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             {mpSuccess ? (
               <div className="rounded-lg bg-green-50 p-4 text-center">
                 <Check className="mx-auto mb-2 h-6 w-6 text-green-500" />
-                <p className="text-sm font-medium text-green-700">Listed on Marketplace!</p>
+                <p className="text-sm font-medium text-green-700">Your app is now listed on the marketplace!</p>
                 <p className="mt-1 text-xs text-green-600">
-                  Your app is now available for others to discover and use.
+                  Others can now discover, purchase, and use your app.
                 </p>
                 <button
                   onClick={() => {
@@ -3270,13 +3270,13 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                         className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-black focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
                       >
                         <option value="">Select...</option>
-                        <option value="business">Business</option>
-                        <option value="education">Education</option>
+                        <option value="crm">CRM</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="gym">Gym</option>
                         <option value="healthcare">Healthcare</option>
-                        <option value="ecommerce">E-Commerce</option>
-                        <option value="social">Social</option>
-                        <option value="productivity">Productivity</option>
-                        <option value="finance">Finance</option>
+                        <option value="ecommerce">E-commerce</option>
+                        <option value="real-estate">Real Estate</option>
+                        <option value="education">Education</option>
                         <option value="other">Other</option>
                       </select>
                     </div>
@@ -3322,7 +3322,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
       case "marketplace":
         return <MarketplacePage />;
       case "mylistings":
-        return <DevMarketplacePage />;
+        return <MarketplacePage />;
       case "projects":
         return (
           <div className="flex flex-1 flex-col overflow-y-auto p-6">

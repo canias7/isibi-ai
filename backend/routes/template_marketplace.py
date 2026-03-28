@@ -141,7 +141,7 @@ async def publish_template(
 async def list_marketplace_templates(
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
-    sort: str = Query("popular", pattern="^(popular|recent|price)$"),
+    sort: str = Query("popular", pattern="^(popular|recent|price|price-high|highest-rated)$"),
     author_id: Optional[str] = Query(None, description="Filter by author UUID"),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -171,6 +171,10 @@ async def list_marketplace_templates(
         query = query.order_by(MarketplaceTemplate.created_at.desc())
     elif sort == "price":
         query = query.order_by(MarketplaceTemplate.price.asc())
+    elif sort == "price-high":
+        query = query.order_by(MarketplaceTemplate.price.desc())
+    elif sort == "highest-rated":
+        query = query.order_by(MarketplaceTemplate.rating_avg.desc())
 
     # Total count
     count_q = select(func.count()).select_from(query.subquery())
