@@ -33,7 +33,7 @@ async def run_scheduler():
             logger.info("Scheduler cancelled, shutting down")
             break
         except Exception as e:
-            logger.error(f"Scheduler error: {e}")
+            logger.error("Scheduler error: %s", e, exc_info=True)
 
 
 async def _check_deadline_reminders():

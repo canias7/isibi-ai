@@ -31,6 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db import get_db
+from auth import JWT_SECRET, JWT_ALGORITHM
 from models.app_user import AppUser
 from models.user import User
 from models.project import Project
@@ -42,9 +43,6 @@ router = APIRouter(prefix="/apps", tags=["App Auth"])
 # In-memory reset code store: key = "{project_id}:{email}" -> {"code": str, "expires": datetime}
 # In production, this would be stored in the database and emailed to the user.
 _reset_codes: dict[str, dict] = {}
-
-JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 APP_JWT_EXPIRE_HOURS = int(os.getenv("APP_JWT_EXPIRE_HOURS", "72"))
 
 security = HTTPBearer()
@@ -430,12 +428,8 @@ async def app_forgot_password(
             "code": code,
             "expires": datetime.now(timezone.utc) + timedelta(minutes=15),
         }
-        # In production: send email with the code
-        # For now, we log it for testing purposes
-        import logging
-        logging.getLogger(__name__).info(
-            "Reset code for %s in project %s: %s", body.email, project_id, code
-        )
+        # In production: send email with the code via email service
+        _logger.debug("Password reset code generated for %s in project %s", body.email, project_id)
 
     return {"message": "If an account with that email exists, a reset code has been sent."}
 

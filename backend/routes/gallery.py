@@ -5,7 +5,7 @@ Public App Gallery — browse, publish, and like community apps.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -146,7 +146,7 @@ async def publish_to_gallery(
         preview_image_url=body.preview_image_url,
         demo_url=body.demo_url,
         is_published=True,
-        published_at=datetime.utcnow(),
+        published_at=datetime.now(timezone.utc),
     )
     db.add(entry)
     await db.commit()

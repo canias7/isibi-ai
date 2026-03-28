@@ -5,7 +5,7 @@ Scheduled Reports — let developers set up automated reports for their generate
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -156,7 +156,7 @@ async def send_report_now(
 
     # In production, this would generate and email the report.
     # For now, we update last_sent_at and return a confirmation.
-    report.last_sent_at = datetime.utcnow()
+    report.last_sent_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(report)
 

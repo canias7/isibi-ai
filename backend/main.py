@@ -85,7 +85,7 @@ async def lifespan(app: FastAPI):
     # Create tables from SQLAlchemy models
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    print("ALL TABLES CREATED")
+    logger.info("All database tables created")
 
     # Run Alembic migrations (idempotent — safe to run on every startup)
     try:
@@ -95,9 +95,9 @@ async def lifespan(app: FastAPI):
         alembic_cfg = Config(os.path.join(os.path.dirname(__file__), "alembic.ini"))
         alembic_cfg.set_main_option("script_location", os.path.join(os.path.dirname(__file__), "alembic"))
         command.upgrade(alembic_cfg, "head")
-        print("ALEMBIC MIGRATIONS APPLIED")
+        logger.info("Alembic migrations applied")
     except Exception as e:
-        print(f"MIGRATION NOTE: {e}")
+        logger.warning("Migration note: %s", e)
 
     # Load verified custom domains into in-memory index
     from routes.custom_domain_ssl import load_verified_domains
@@ -146,7 +146,7 @@ _DEFAULT_ORIGINS = "http://localhost:5173,http://localhost:3000,https://isibi.ai
 _ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", _DEFAULT_ORIGINS).split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in _ALLOWED_ORIGINS if o.strip() != "*"],
+    allow_origins=[o.strip() for o in _ALLOWED_ORIGINS if o.strip() and o.strip() != "*" and o.strip().startswith(("http://", "https://"))],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "X-Preview", "X-Requested-With"],
@@ -374,7 +374,8 @@ async def _resolve_subdomain_to_project_id(subdomain: str) -> str | None:
             )
             pid = result.scalar_one_or_none()
             return str(pid) if pid else None
-    except Exception:
+    except Exception as exc:
+        logger.warning("Failed to resolve subdomain %s: %s", subdomain, exc)
         return None
 
 
@@ -460,6 +461,9 @@ async def serve_embed_app(project_id: str):
 
     app_html = build_path.read_text(encoding="utf-8")
 
+    # Use JSON encoding for project_id in JS to prevent template injection
+    safe_pid = _json.dumps(str(project_id))
+
     embed_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -475,13 +479,14 @@ async def serve_embed_app(project_id: str):
 <script>
 // postMessage API for cross-origin communication
 (function() {{
+  var pid = {safe_pid};
   window.addEventListener('message', function(event) {{
     if (event.data && event.data.type === 'isibi_ping') {{
-      event.source.postMessage({{ type: 'isibi_pong', projectId: '{project_id}' }}, event.origin);
+      event.source.postMessage({{ type: 'isibi_pong', projectId: pid }}, event.origin);
     }}
   }});
   if (window.parent !== window) {{
-    window.parent.postMessage({{ type: 'isibi_embed_ready', projectId: '{project_id}' }}, '*');
+    window.parent.postMessage({{ type: 'isibi_embed_ready', projectId: pid }}, '*');
   }}
 }})();
 </script>

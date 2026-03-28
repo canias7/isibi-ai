@@ -5,7 +5,7 @@ Analytics Dashboard — track and query app usage events.
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -23,9 +23,15 @@ router = APIRouter(tags=["app-analytics"])
 # ── Schemas ───────────────────────────────────────────────────────────────────
 
 class TrackEventBody(BaseModel):
-    event_type: str
+    event_type: str  # max length validated below
     page: Optional[str] = None
     metadata: Optional[dict] = None
+
+    def model_post_init(self, __context) -> None:
+        if len(self.event_type) > 100:
+            raise ValueError("event_type must be 100 characters or fewer")
+        if self.page and len(self.page) > 500:
+            raise ValueError("page must be 500 characters or fewer")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -78,7 +84,7 @@ async def get_analytics_summary(
 ):
     """Get analytics summary for a project."""
     pid = uuid.UUID(project_id)
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
 
     base_filter = [AppEvent.project_id == pid, AppEvent.created_at >= since]
 

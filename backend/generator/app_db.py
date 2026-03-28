@@ -131,8 +131,8 @@ async def _get_or_create_pool(schema: str, db_url: str) -> asyncpg.Pool:
                 if now - last_used > _POOL_IDLE_TIMEOUT_SECONDS:
                     try:
                         await old_pool.close()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning("Failed to close idle pool for schema %s: %s", idle_schema, e)
                     del _schema_pools[idle_schema]
                     logger.info("Evicted idle pool for schema %s", idle_schema)
 
@@ -142,8 +142,8 @@ async def _get_or_create_pool(schema: str, db_url: str) -> asyncpg.Pool:
                 old_pool, _ = _schema_pools[oldest]
                 try:
                     await old_pool.close()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to close oldest pool for schema %s: %s", oldest, e)
                 del _schema_pools[oldest]
                 logger.info("Evicted oldest pool for schema %s", oldest)
 
@@ -180,8 +180,8 @@ async def cleanup_idle_pools() -> int:
             pool, _ = _schema_pools.pop(schema)
             try:
                 await pool.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to close pool for schema %s: %s", schema, e)
             closed += 1
             logger.info("Cleaned up idle pool for schema %s", schema)
     return closed
@@ -193,8 +193,8 @@ async def close_all_pools() -> None:
         for schema, (pool, _) in _schema_pools.items():
             try:
                 await pool.close()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning("Failed to close pool for schema %s during shutdown: %s", schema, e)
         _schema_pools.clear()
         logger.info("All schema connection pools closed")
 
@@ -367,8 +367,8 @@ async def create_app_schema(
                     f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_active" '
                     f'ON "{schema}"."{table_name}" ("id") WHERE "deleted_at" IS NULL'
                 )
-            except Exception:
-                pass  # Index creation is best-effort
+            except Exception as exc:
+                logger.debug("Index creation failed (best-effort) for %s.%s: %s", schema, table_name, exc)
 
             # 2. Index on deleted_at for soft-delete filtering
             try:
@@ -376,8 +376,8 @@ async def create_app_schema(
                     f'CREATE INDEX IF NOT EXISTS "idx_{table_name}_deleted_at" '
                     f'ON "{schema}"."{table_name}" ("deleted_at")'
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Index creation failed (best-effort) for %s.%s: %s", schema, table_name, exc)
 
     finally:
         await conn.close()
@@ -410,8 +410,8 @@ async def drop_app_schema(schema_name: str, db_url: str) -> None:
             pool, _ = _schema_pools.pop(schema_name)
             try:
                 await pool.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.debug("Failed to close pool for dropped schema %s: %s", schema_name, exc)
 
 
 async def get_schema_connection(

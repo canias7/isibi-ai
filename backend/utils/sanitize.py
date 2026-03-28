@@ -43,12 +43,24 @@ def sanitize_dict(data: dict) -> dict:
     return result
 
 
+_SQL_RESERVED = frozenset({
+    "select", "insert", "update", "delete", "drop", "alter", "create",
+    "table", "index", "grant", "revoke", "truncate", "exec", "execute",
+    "union", "having", "group", "order", "where", "from", "into",
+})
+
+
 def sanitize_sql_identifier(name: str) -> str:
     """Ensure a string is safe to use as a SQL identifier.
 
     Raises ValueError if the name contains characters outside
-    [a-zA-Z0-9_] or does not start with a letter or underscore.
+    [a-zA-Z0-9_], does not start with a letter or underscore,
+    exceeds 128 chars, or is a SQL reserved keyword.
     """
+    if not name or len(name) > 128:
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
     if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name):
         raise ValueError(f"Invalid SQL identifier: {name}")
+    if name.lower() in _SQL_RESERVED:
+        raise ValueError(f"SQL reserved keyword cannot be used as identifier: {name}")
     return name

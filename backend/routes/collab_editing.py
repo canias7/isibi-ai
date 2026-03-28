@@ -19,7 +19,6 @@ Conflict resolution strategy:
 """
 
 import copy
-import os
 import json
 import uuid
 import logging
@@ -29,14 +28,11 @@ from typing import Any, Dict, List, Set
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException, Query
 from jose import JWTError, jwt
 
-from auth import get_current_org_id
+from auth import get_current_org_id, JWT_SECRET, JWT_ALGORITHM
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/collab", tags=["Collaborative Editing"])
-
-JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
-JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 # ── In-memory connection tracking ───────────────────────────────────
 

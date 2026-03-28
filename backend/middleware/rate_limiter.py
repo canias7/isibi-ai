@@ -33,6 +33,10 @@ logger = logging.getLogger(__name__)
 
 # (prefix, max_requests_per_minute) — checked in order, first match wins
 RATE_LIMITS: list[tuple[str, int]] = [
+    ("/api/auth/login", 5),
+    ("/api/auth/signup", 5),
+    ("/api/auth/forgot-password", 3),
+    ("/api/auth/reset-password", 5),
     ("/api/auth/", 10),
     ("/api/chat/", 5),
     ("/api/", 60),

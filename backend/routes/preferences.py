@@ -9,7 +9,7 @@ POST   /api/preferences/memory           — add a memory item
 DELETE /api/preferences/memory/{index}   — remove memory item by index
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from uuid import UUID
@@ -95,7 +95,7 @@ async def update_preferences(
     if body.preferences is not None:
         merged = {**(pref.preferences or {}), **body.preferences}
         pref.preferences = merged
-    pref.updated_at = datetime.utcnow()
+    pref.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(pref)
     return pref
@@ -113,7 +113,7 @@ async def add_memory(
     current_memory = list(pref.memory or [])
     current_memory.append(body.fact)
     pref.memory = current_memory
-    pref.updated_at = datetime.utcnow()
+    pref.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(pref)
     return pref
@@ -133,7 +133,7 @@ async def remove_memory(
         raise HTTPException(status_code=404, detail="Memory index out of range")
     removed = current_memory.pop(index)
     pref.memory = current_memory
-    pref.updated_at = datetime.utcnow()
+    pref.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(pref)
     return MemoryRemoveResponse(

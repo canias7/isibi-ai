@@ -295,7 +295,9 @@ export function MyAppsPage({
                   const blob = new Blob([app.htmlContent], {
                     type: "text/html",
                   });
-                  window.open(URL.createObjectURL(blob), "_blank");
+                  const url = URL.createObjectURL(blob);
+                  window.open(url, "_blank");
+                  setTimeout(() => URL.revokeObjectURL(url), 1000);
                 }
               }}
               onEdit={() => {

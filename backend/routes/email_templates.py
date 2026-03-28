@@ -12,7 +12,7 @@ Endpoints:
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -156,7 +156,7 @@ async def update_email_template(
     if body.is_active is not None:
         template.is_active = body.is_active
 
-    template.updated_at = datetime.utcnow()
+    template.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(template)
 

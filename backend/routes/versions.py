@@ -8,7 +8,7 @@ POST /api/projects/{id}/versions/{version_id}/restore — restore project to a v
 """
 
 import uuid as _uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from uuid import UUID
@@ -184,7 +184,7 @@ async def restore_version(
 
     # Restore the spec
     project.spec = version.spec_snapshot
-    project.updated_at = datetime.utcnow()
+    project.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
     return RestoreResponse(
@@ -241,7 +241,7 @@ async def rollback_to_previous(
 
     # Restore the spec
     project.spec = target.spec_snapshot
-    project.updated_at = datetime.utcnow()
+    project.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
     return RollbackResponse(

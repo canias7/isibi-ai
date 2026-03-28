@@ -27,7 +27,7 @@ export const useAppStore = create<AppStore>()(
       apps: [],
 
       addApp: (app) => {
-        const id = Math.random().toString(36).slice(2, 9);
+        const id = crypto.randomUUID();
         set((s) => ({
           apps: [
             ...s.apps,

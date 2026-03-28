@@ -88,8 +88,8 @@ async def execute_command(project_id: str, command: str, db: AsyncSession) -> st
         return await _generate_full_summary(schema, tables, db)
 
     except Exception as e:
-        logger.error(f"Command execution failed for project {project_id}: {e}")
-        return f"Error executing command: {str(e)}"
+        logger.error("Command execution failed for project %s: %s", project_id, e, exc_info=True)
+        return "Error executing command. Please try again or rephrase your request."
 
 
 # ── Pattern helpers ──────────────────────────────────────────────────
@@ -263,8 +263,8 @@ async def _generate_entity_report(
                 total_val = _format_number(row[0], col)
                 avg_val = _format_number(row[1], col)
                 lines.append(f"  {col_label}: Total={total_val}, Avg={avg_val}, Min={_format_number(row[2], col)}, Max={_format_number(row[3], col)}")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Report query failed: %s", exc)
 
     # Recent entries
     name_col = _find_name_column(columns)
@@ -281,8 +281,8 @@ async def _generate_entity_report(
                 lines.append(f"Recent {display_name}:")
                 for r in rows:
                     lines.append(f"  - {r[0]}")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Report query failed: %s", exc)
 
     # Comparison with yesterday (only if today filter)
     if _is_today_filter(cmd):
@@ -298,8 +298,8 @@ async def _generate_entity_report(
                 sign = "+" if change >= 0 else ""
                 lines.append("")
                 lines.append(f"Compared to yesterday: {sign}{change} ({sign}{pct:.0f}%)")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Report query failed: %s", exc)
 
     return "\n".join(lines)
 
@@ -319,8 +319,8 @@ async def _generate_full_summary(schema: str, tables: list[str], db: AsyncSessio
             count = count_result.scalar() or 0
             display = table.replace("_", " ").title()
             lines.append(f"  {display}: {count} records")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Report query failed: %s", exc)
 
     return "\n".join(lines)
 
@@ -405,8 +405,8 @@ async def _generate_income_report(
                 sign = "+" if change >= 0 else ""
                 lines.append("")
                 lines.append(f"Compared to yesterday: {sign}${change:,.2f} ({sign}{pct:.0f}% revenue)")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Report query failed: %s", exc)
 
     return "\n".join(lines)
 
@@ -437,8 +437,8 @@ async def _count_all(schema: str, tables: list[str], db: AsyncSession) -> str:
             count = result.scalar() or 0
             display = table.replace("_", " ").title()
             lines.append(f"  {display}: {count}")
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("Report query failed: %s", exc)
     return "\n".join(lines)
 
 

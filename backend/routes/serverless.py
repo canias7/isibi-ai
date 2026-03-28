@@ -6,7 +6,7 @@ Serverless Functions — create, manage, and invoke custom backend logic.
 
 import uuid
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -214,7 +214,22 @@ async def invoke_function(
     # Execute the function code in a sandboxed restricted environment
     exec_output = None
     exec_error = None
+
+    # Enforce code size limit (50 KB)
+    if len(func_obj.code) > 50_000:
+        raise HTTPException(status_code=400, detail="Function code exceeds maximum size (50 KB)")
+
     try:
+        # Reject dangerous patterns before execution
+        code_lower = func_obj.code.lower()
+        _BLOCKED_PATTERNS = ["import ", "__import__", "eval(", "exec(", "open(", "compile(",
+                             "__class__", "__subclasses__", "__globals__", "__builtins__",
+                             "getattr", "setattr", "delattr", "vars(", "dir(", "globals(",
+                             "locals(", "breakpoint"]
+        for pattern in _BLOCKED_PATTERNS:
+            if pattern in code_lower:
+                raise HTTPException(status_code=400, detail=f"Forbidden pattern in function code: {pattern.strip()}")
+
         # Restricted builtins — no file I/O, no imports, no eval/exec nesting
         safe_builtins = {
             "abs": abs, "all": all, "any": any, "bool": bool,
@@ -229,8 +244,11 @@ async def invoke_function(
         sandbox_globals = {"__builtins__": safe_builtins}
         sandbox_locals = {"input_data": invoke_input, "result": None}
 
+        # Compile first to catch syntax errors without executing
+        compiled = compile(func_obj.code, "<serverless>", "exec")
+
         # Execute the stored code (Python runtime)
-        exec(func_obj.code, sandbox_globals, sandbox_locals)
+        exec(compiled, sandbox_globals, sandbox_locals)
 
         # If the code defines a handler(input_data) function, call it
         if "handler" in sandbox_locals and callable(sandbox_locals["handler"]):
@@ -242,7 +260,7 @@ async def invoke_function(
     except Exception as e:
         exec_error = str(e)
 
-    func_obj.last_invoked_at = datetime.utcnow()
+    func_obj.last_invoked_at = datetime.now(timezone.utc)
     func_obj.invoke_count = (func_obj.invoke_count or 0) + 1
 
     await db.commit()

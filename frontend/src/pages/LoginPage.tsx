@@ -36,7 +36,7 @@ export function LoginPage({ onLogin, onNeedVerify }: Props) {
       const res = await post<{ access_token: string; user: AuthUser }>("/auth/login", {
         email,
         password,
-        turnstile_token: turnstileToken || "dev",
+        turnstile_token: turnstileToken,
       });
       setAuth(res.access_token, res.user);
       onLogin();

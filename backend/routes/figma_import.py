@@ -75,10 +75,17 @@ async def upload_design(
 
     # Build storage path: uploads/{project_id}/designs/{uuid}_{filename}
     file_uuid = uuid.uuid4()
-    safe_filename = file.filename.replace("/", "_").replace("\\", "_")
+    # Use basename only to prevent directory traversal attacks
+    safe_filename = os.path.basename(file.filename or "upload").replace("/", "_").replace("\\", "_")
+    if not safe_filename or safe_filename.startswith("."):
+        safe_filename = "upload"
     stored_name = f"{file_uuid}_{safe_filename}"
     designs_dir = UPLOADS_DIR / str(project_id) / "designs"
     file_path = designs_dir / stored_name
+
+    # Verify resolved path stays within uploads directory
+    if not file_path.resolve().is_relative_to(UPLOADS_DIR.resolve()):
+        raise HTTPException(status_code=400, detail="Invalid filename")
 
     # Ensure directory exists
     designs_dir.mkdir(parents=True, exist_ok=True)

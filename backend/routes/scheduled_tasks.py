@@ -11,7 +11,7 @@ Endpoints:
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -166,7 +166,7 @@ async def update_scheduled_task(
     if body.is_active is not None:
         task.is_active = body.is_active
 
-    task.updated_at = datetime.utcnow()
+    task.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(task)
 

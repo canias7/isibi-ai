@@ -87,10 +87,9 @@ async def stripe_setup(
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    # Validate the key by making a lightweight Stripe call
+    # Validate the key by making a lightweight Stripe call (per-request key, not global)
     try:
-        stripe.api_key = body.stripe_secret_key
-        stripe.Account.retrieve()
+        stripe.Account.retrieve(api_key=body.stripe_secret_key)
     except stripe.error.AuthenticationError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -197,27 +196,21 @@ async def stripe_webhook(
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
 
-    # If a webhook secret is stored, verify the signature
-    if config.webhook_secret:
-        try:
-            event = stripe.Webhook.construct_event(
-                payload, sig_header, config.webhook_secret
-            )
-        except (ValueError, stripe.error.SignatureVerificationError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid webhook signature",
-            )
-    else:
-        # No webhook secret configured — parse the payload directly
-        import json
-        try:
-            event = json.loads(payload)
-        except json.JSONDecodeError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid payload",
-            )
+    # Verify webhook signature — reject if no secret is configured (security requirement)
+    if not config.webhook_secret:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Webhook secret not configured for this project. Configure it in Stripe settings.",
+        )
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, config.webhook_secret
+        )
+    except (ValueError, stripe.error.SignatureVerificationError):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid webhook signature",
+        )
 
     # ---- Handle specific event types ----
     event_type = event.get("type") if isinstance(event, dict) else event.type

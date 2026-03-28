@@ -5,7 +5,7 @@ Webhook Triggers UI Config — let developers configure webhook triggers for the
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 import httpx
@@ -151,7 +151,7 @@ async def test_webhook_trigger(
         "entity": trigger.entity,
         "project_id": project_id,
         "trigger_id": str(trigger.id),
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "data": {
             "message": "This is a test webhook delivery from isibi.ai",
             "record": {"id": "sample-record-id", "name": "Sample Record"},
@@ -174,7 +174,7 @@ async def test_webhook_trigger(
                 json=test_payload,
                 headers=request_headers,
             )
-        trigger.last_triggered_at = datetime.utcnow()
+        trigger.last_triggered_at = datetime.now(timezone.utc)
         await db.commit()
         return {
             "detail": "Test webhook sent",

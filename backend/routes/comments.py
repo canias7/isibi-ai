@@ -161,8 +161,8 @@ async def update_comment(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Can only edit your own comments")
 
     comment.body = body.body
-    from datetime import datetime
-    comment.updated_at = datetime.utcnow()
+    from datetime import datetime, timezone
+    comment.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(comment)
 

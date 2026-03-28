@@ -97,20 +97,26 @@ async def get_shared_project(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint — returns project name + spec for read-only preview."""
-    # Search for the project with this share token in the spec
-    result = await db.execute(select(Project))
-    projects = result.scalars().all()
+    from sqlalchemy import cast, String
 
-    for project in projects:
-        spec = project.spec or {}
-        if spec.get("_share_token") == token:
-            # Return a sanitized version (remove the share token from the response)
-            safe_spec = {k: v for k, v in spec.items() if not k.startswith("_")}
-            return {
-                "name": project.name,
-                "description": project.description,
-                "spec": safe_spec,
-                "status": project.status,
-            }
+    # Use PostgreSQL JSON operator to query by share token (indexed, no full table scan)
+    result = await db.execute(
+        select(Project).where(
+            Project.spec["_share_token"].as_string() == token,
+            Project.deleted_at.is_(None),
+        )
+    )
+    project = result.scalar_one_or_none()
 
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shared project not found or link expired")
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Shared project not found or link expired")
+
+    spec = project.spec or {}
+    # Return a sanitized version (remove internal fields from the response)
+    safe_spec = {k: v for k, v in spec.items() if not k.startswith("_")}
+    return {
+        "name": project.name,
+        "description": project.description,
+        "spec": safe_spec,
+        "status": project.status,
+    }

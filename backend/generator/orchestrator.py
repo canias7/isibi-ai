@@ -20,7 +20,7 @@ import os
 import json
 import logging
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -216,7 +216,7 @@ async def refine_project(
         })
         project.conversation_history = history
         project.status = "ready"
-        project.updated_at = datetime.utcnow()
+        project.updated_at = datetime.now(timezone.utc)
         project.version += 1
 
         await db.commit()
@@ -290,7 +290,7 @@ async def delete_project(
 ) -> None:
     """Soft-delete a project."""
     project = await _get_project(db, project_id, org_id)
-    project.deleted_at = datetime.utcnow()
+    project.deleted_at = datetime.now(timezone.utc)
     await db.commit()
 
 

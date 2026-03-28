@@ -9,7 +9,7 @@ Endpoints:
 """
 
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func, desc
@@ -35,7 +35,7 @@ async def team_activity(
     db: AsyncSession = Depends(get_db),
 ):
     """Aggregated activity feed for the org from audit logs."""
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
 
     base_filter = [
         AuditLog.org_id == org_id,
@@ -115,7 +115,7 @@ async def team_stats(
     active_members = member_result.scalar() or 0
 
     # Builds this month
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     builds_result = await db.execute(
         select(func.count(AuditLog.id)).where(

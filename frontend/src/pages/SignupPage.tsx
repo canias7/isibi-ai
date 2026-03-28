@@ -58,7 +58,7 @@ export function SignupPage({ onSignup }: Props) {
         first_name: form.first_name,
         last_name: form.last_name,
         account_type: "developer",
-        turnstile_token: turnstileToken || "dev",
+        turnstile_token: turnstileToken,
       });
       setAuth(res.access_token, res.user);
       onSignup(form.email);

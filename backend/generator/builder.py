@@ -491,7 +491,7 @@ def _gen_static_files() -> dict[str, str]:
         \"\"\"Shared CRUD helpers with cursor-based pagination, soft delete, and org_id filtering.\"\"\"
 
         import base64
-        from datetime import datetime
+        from datetime import datetime, timezone
         from uuid import UUID
 
         from fastapi import HTTPException, status
@@ -555,7 +555,7 @@ def _gen_static_files() -> dict[str, str]:
             for key, value in data.items():
                 setattr(obj, key, value)
             obj.version += 1
-            obj.updated_at = datetime.utcnow()
+            obj.updated_at = datetime.now(timezone.utc)
             await db.commit()
             await db.refresh(obj)
             return obj
@@ -563,8 +563,8 @@ def _gen_static_files() -> dict[str, str]:
 
         async def soft_delete(db, model, record_id, org_id):
             obj = await get_one(db, model, record_id, org_id)
-            obj.deleted_at = datetime.utcnow()
-            obj.updated_at = datetime.utcnow()
+            obj.deleted_at = datetime.now(timezone.utc)
+            obj.updated_at = datetime.now(timezone.utc)
             await db.commit()
     """)
 
