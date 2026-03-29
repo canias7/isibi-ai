@@ -188,11 +188,20 @@ input { font-family: inherit; }
   filter: blur(12px); z-index: -1;
   transition: all .3s;
 }
+.node-square {
+  cursor: grab;
+}
+.node-square:active, .dragging .node-square {
+  cursor: grabbing;
+}
 .node-square:hover {
   transform: scale(1.1);
   border-color: rgba(255,255,255,.2);
 }
 .node-square:hover::after { opacity: .45; filter: blur(18px); }
+.dragging { z-index: 10 !important; }
+.dragging .node-square { transform: scale(1.15); box-shadow: 0 0 40px var(--pink-glow); }
+.dragging .node-tooltip { display: none !important; }
 
 /* Status ring */
 .node-square .status-ring {
