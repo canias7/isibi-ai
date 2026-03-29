@@ -26,6 +26,9 @@ function getDetectedPlatform(): "mac" | "win" | "linux" {
  * Full-width gradient download banner for the Control Center / Landing page.
  */
 export function DownloadBanner({ compact = false }: { compact?: boolean }) {
+  // Hide banner when running inside the desktop app
+  if ((window as any).isibiDesktop?.isDesktop) return null;
+
   const detected = getDetectedPlatform();
 
   if (compact) {
