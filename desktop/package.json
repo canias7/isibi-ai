@@ -3,6 +3,11 @@
   "productName": "ISIBI Control Center",
   "version": "1.0.0",
   "description": "Desktop control center for managing your isibi.ai apps",
+  "author": "isibi.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/canias7/isibi-ai.git"
+  },
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -29,7 +34,7 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["universal"]
+          "arch": ["arm64", "x64"]
         }
       ],
       "artifactName": "ISIBI-Control-Center.${ext}"
