@@ -1,46 +1,127 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
+const http = require('http');
 
-// Read config
-let config = {
-  url: 'https://isibi.ai',
+// ── Config ──────────────────────────────────────────────────────────────────
+const CONFIG = {
   apiUrl: 'https://isibi-backend.onrender.com/api',
   name: 'ISIBI Control Center',
-  width: 1200,
-  height: 800,
+  width: 1100,
+  height: 750,
+  pollInterval: 60000, // 60s
 };
+
 try {
   const configPath = path.join(__dirname, 'app-config.json');
   if (fs.existsSync(configPath)) {
-    config = { ...config, ...JSON.parse(fs.readFileSync(configPath, 'utf-8')) };
+    Object.assign(CONFIG, JSON.parse(fs.readFileSync(configPath, 'utf-8')));
   }
 } catch (e) {
   console.error('Config error:', e);
 }
 
-app.name = config.name;
-if (app.setName) app.setName(config.name);
+// ── Token storage (simple file-based) ───────────────────────────────────────
+const TOKEN_PATH = path.join(app.getPath('userData'), 'auth-token.json');
+
+function getStoredToken() {
+  try {
+    if (fs.existsSync(TOKEN_PATH)) {
+      const data = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
+      return data.token || null;
+    }
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+function storeToken(token) {
+  try {
+    fs.mkdirSync(path.dirname(TOKEN_PATH), { recursive: true });
+    fs.writeFileSync(TOKEN_PATH, JSON.stringify({ token }));
+  } catch (e) {
+    console.error('Failed to store token:', e);
+  }
+}
+
+function clearStoredToken() {
+  try { if (fs.existsSync(TOKEN_PATH)) fs.unlinkSync(TOKEN_PATH); } catch (e) { /* ignore */ }
+}
+
+// ── HTTP helper ─────────────────────────────────────────────────────────────
+function apiFetch(endpoint, method = 'GET', body = null) {
+  return new Promise((resolve, reject) => {
+    const token = getStoredToken();
+    const url = new URL(endpoint, CONFIG.apiUrl.endsWith('/') ? CONFIG.apiUrl : CONFIG.apiUrl + '/');
+    const fullUrl = CONFIG.apiUrl + endpoint;
+
+    const parsedUrl = new URL(fullUrl);
+    const options = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (parsedUrl.protocol === 'https:' ? 443 : 80),
+      path: parsedUrl.pathname + parsedUrl.search,
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+    };
+
+    const transport = parsedUrl.protocol === 'https:' ? https : http;
+    const req = transport.request(options, (res) => {
+      let data = '';
+      res.on('data', (chunk) => data += chunk);
+      res.on('end', () => {
+        try {
+          if (res.statusCode === 401) {
+            clearStoredToken();
+            resolve({ error: 'unauthorized', statusCode: 401 });
+            return;
+          }
+          if (res.statusCode === 204) { resolve(null); return; }
+          resolve(JSON.parse(data));
+        } catch (e) {
+          resolve({ raw: data, statusCode: res.statusCode });
+        }
+      });
+    });
+
+    req.on('error', (e) => reject(e));
+    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout')); });
+
+    if (body) req.write(JSON.stringify(body));
+    req.end();
+  });
+}
+
+// ── App state ───────────────────────────────────────────────────────────────
+app.name = CONFIG.name;
+if (app.setName) app.setName(CONFIG.name);
 
 let mainWindow;
 let tray;
+let pollTimer;
+let previousStatuses = {};
 
+// ── Window ──────────────────────────────────────────────────────────────────
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: config.width || 1200,
-    height: config.height || 800,
-    title: config.name,
+    width: CONFIG.width,
+    height: CONFIG.height,
+    title: CONFIG.name,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
     },
     titleBarStyle: 'hiddenInset',
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#0f172a',
     icon: path.join(__dirname, 'icon.png'),
   });
 
-  mainWindow.loadURL(config.url);
+  mainWindow.loadFile(path.join(__dirname, 'index.html'));
 
   // Set dock icon on macOS
   const iconPath = path.join(__dirname, 'icon.png');
@@ -54,7 +135,7 @@ function createWindow() {
     return { action: 'deny' };
   });
 
-  // Hide to tray instead of quitting on close (macOS)
+  // Hide to tray on close (macOS)
   mainWindow.on('close', (e) => {
     if (!app.isQuitting) {
       e.preventDefault();
@@ -66,127 +147,172 @@ function createWindow() {
   // App menu
   const template = [
     {
-      label: config.name,
+      label: CONFIG.name,
       submenu: [
         { label: 'About ISIBI Control Center', role: 'about' },
         { type: 'separator' },
-        {
-          label: 'Quit',
-          accelerator: 'CmdOrCtrl+Q',
-          click: () => {
-            app.isQuitting = true;
-            app.quit();
-          },
-        },
+        { label: 'Quit', accelerator: 'CmdOrCtrl+Q', click: () => { app.isQuitting = true; app.quit(); } },
       ],
     },
-    {
-      label: 'Edit',
-      submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
-        { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
-      ],
-    },
-    {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { type: 'separator' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { role: 'resetZoom' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
-    },
-    {
-      label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'close' }],
-    },
+    { label: 'Edit', submenu: [{ role: 'undo' }, { role: 'redo' }, { type: 'separator' }, { role: 'cut' }, { role: 'copy' }, { role: 'paste' }, { role: 'selectAll' }] },
+    { label: 'View', submenu: [{ role: 'reload' }, { role: 'forceReload' }, { type: 'separator' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'resetZoom' }, { type: 'separator' }, { role: 'togglefullscreen' }] },
+    { label: 'Window', submenu: [{ role: 'minimize' }, { role: 'close' }] },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+// ── Tray ────────────────────────────────────────────────────────────────────
 function createTray() {
   const iconPath = path.join(__dirname, 'icon.png');
   if (!fs.existsSync(iconPath)) return;
 
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
   tray = new Tray(icon);
-  tray.setToolTip('ISIBI Control Center');
-
+  tray.setToolTip(CONFIG.name);
   updateTrayMenu([]);
 
   tray.on('click', () => {
-    if (mainWindow) {
-      mainWindow.show();
-      if (app.dock) app.dock.show();
-    }
+    if (mainWindow) { mainWindow.show(); if (app.dock) app.dock.show(); }
   });
 }
 
 function updateTrayMenu(apps) {
-  const appItems =
-    apps.length > 0
-      ? apps.map((a) => ({
-          label: `${a.status === 'online' ? '\u25CF' : '\u25CB'} ${a.name}`,
-          enabled: true,
-          click: () => {
-            if (mainWindow) {
-              mainWindow.show();
-              if (app.dock) app.dock.show();
-            }
-          },
-        }))
-      : [{ label: 'No apps yet', enabled: false }];
+  const appItems = apps.length > 0
+    ? apps.map((a) => ({
+        label: `${a.status === 'deployed' ? '\u25CF' : '\u25CB'} ${a.name}`,
+        enabled: true,
+        click: () => { if (mainWindow) { mainWindow.show(); if (app.dock) app.dock.show(); } },
+      }))
+    : [{ label: 'No apps yet', enabled: false }];
 
   const contextMenu = Menu.buildFromTemplate([
-    { label: 'ISIBI Control Center', enabled: false },
+    { label: CONFIG.name, enabled: false },
     { type: 'separator' },
     ...appItems,
     { type: 'separator' },
-    {
-      label: 'Open Control Center',
-      click: () => {
-        if (mainWindow) {
-          mainWindow.show();
-          if (app.dock) app.dock.show();
-        }
-      },
-    },
-    {
-      label: 'Quit',
-      click: () => {
-        app.isQuitting = true;
-        app.quit();
-      },
-    },
+    { label: 'Open Control Center', click: () => { if (mainWindow) { mainWindow.show(); if (app.dock) app.dock.show(); } } },
+    { label: 'Quit', click: () => { app.isQuitting = true; app.quit(); } },
   ]);
   if (tray) tray.setContextMenu(contextMenu);
 }
 
+// ── Background polling ──────────────────────────────────────────────────────
+async function pollStatuses() {
+  if (!getStoredToken()) return;
+
+  try {
+    const projects = await apiFetch('/projects');
+    if (Array.isArray(projects)) {
+      updateTrayMenu(projects);
+
+      // Check for status changes and send notifications
+      for (const proj of projects) {
+        const prevStatus = previousStatuses[proj.id];
+        if (prevStatus && prevStatus !== proj.status) {
+          if (proj.status === 'error') {
+            showNotification(`${proj.name} is down`, 'Your app encountered an error and may be offline.');
+          } else if (prevStatus === 'error' && proj.status === 'deployed') {
+            showNotification(`${proj.name} is back online`, 'Your app has recovered and is running normally.');
+          }
+        }
+        previousStatuses[proj.id] = proj.status;
+      }
+
+      // Send to renderer
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('status-update', projects);
+      }
+    }
+  } catch (e) {
+    console.error('Poll error:', e.message);
+  }
+}
+
+function startPolling() {
+  pollStatuses();
+  pollTimer = setInterval(pollStatuses, CONFIG.pollInterval);
+}
+
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+function showNotification(title, body) {
+  if (Notification.isSupported()) {
+    new Notification({ title, body, icon: path.join(__dirname, 'icon.png') }).show();
+  }
+}
+
+// ── IPC Handlers ────────────────────────────────────────────────────────────
+ipcMain.handle('get-token', () => getStoredToken());
+ipcMain.handle('set-token', (_, token) => { storeToken(token); startPolling(); });
+ipcMain.handle('clear-token', () => { clearStoredToken(); stopPolling(); });
+
+ipcMain.handle('login', async (_, email, password) => {
+  try {
+    const result = await apiFetch('/auth/login', 'POST', { email, password, turnstile_token: 'desktop' });
+    if (result && result.access_token) {
+      storeToken(result.access_token);
+      startPolling();
+    }
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('get-apps', async () => {
+  try { return await apiFetch('/projects'); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('get-app-status', async (_, projectId) => {
+  try { return await apiFetch(`/projects/${projectId}/deploy/status`); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('get-uptime', async (_, projectId) => {
+  try { return await apiFetch(`/projects/${projectId}/uptime`); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('health-check', async (_, projectId) => {
+  try { return await apiFetch(`/projects/${projectId}/uptime/check`, 'POST'); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('restart-app', async (_, projectId) => {
+  try { return await apiFetch(`/projects/${projectId}/restart`, 'POST'); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('deploy-app', async (_, projectId) => {
+  try { return await apiFetch(`/projects/${projectId}/deploy`, 'POST', { force: true }); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('get-notifications', async () => {
+  try { return await apiFetch('/notifications'); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('get-unread-count', async () => {
+  try { return await apiFetch('/notifications/unread-count'); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('mark-read', async (_, notificationId) => {
+  try { return await apiFetch(`/notifications/${notificationId}/read`, 'POST'); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('mark-all-read', async () => {
+  try { return await apiFetch('/notifications/read-all', 'POST'); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('open-external', (_, url) => { shell.openExternal(url); });
+
+// ── App lifecycle ───────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   createWindow();
   createTray();
+  if (getStoredToken()) startPolling();
 });
 
-app.on('before-quit', () => {
-  app.isQuitting = true;
-});
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit();
-});
+app.on('before-quit', () => { app.isQuitting = true; stopPolling(); });
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', () => {
-  if (mainWindow) {
-    mainWindow.show();
-    if (app.dock) app.dock.show();
-  } else {
-    createWindow();
-  }
+  if (mainWindow) { mainWindow.show(); if (app.dock) app.dock.show(); }
+  else createWindow();
 });

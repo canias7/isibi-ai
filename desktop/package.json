@@ -25,6 +25,9 @@
     "files": [
       "main.js",
       "preload.js",
+      "index.html",
+      "styles.css",
+      "renderer.js",
       "app-config.json",
       "icon.png"
     ],

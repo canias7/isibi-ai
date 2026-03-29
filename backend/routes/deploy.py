@@ -157,6 +157,17 @@ async def trigger_deploy(
     return deploy_info
 
 
+@router.post("/projects/{project_id}/restart")
+async def restart_app(
+    project_id: str,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Restart (force-redeploy) an app."""
+    body = DeployRequest(force=True)
+    return await trigger_deploy(project_id, body, user_id, db)
+
+
 @router.get("/projects/{project_id}/deploy/status")
 async def deploy_status(
     project_id: str,
