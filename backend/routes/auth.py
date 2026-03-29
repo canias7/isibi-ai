@@ -72,8 +72,8 @@ async def _verify_turnstile(token: str) -> bool:
     if not TURNSTILE_SECRET:
         # Dev mode: skip verification
         return True
-    if token == "mobile":
-        # Mobile app bypass — no Turnstile widget on native apps
+    if token in ("mobile", "desktop"):
+        # Native app bypass — no Turnstile widget on mobile/desktop apps
         return True
 
     async with httpx.AsyncClient() as client:
