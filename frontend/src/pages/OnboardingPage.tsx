@@ -2443,7 +2443,7 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                   const { addApp, apps } = useAppStore.getState();
                   const specData = builtSpec as any;
                   const appName = specData?.app_name || specData?.name || "My App";
-                  const existing = apps.find((a) => a.projectId === builtProjectId);
+                  const existing = apps.find((a: { projectId?: string }) => a.projectId === builtProjectId);
                   if (!existing) {
                     addApp({
                       name: appName,

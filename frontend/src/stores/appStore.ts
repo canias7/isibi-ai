@@ -23,21 +23,21 @@ interface AppStore {
 
 export const useAppStore = create<AppStore>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       apps: [],
 
-      addApp: (app) => {
+      addApp: (app: Omit<UserApp, "id" | "createdAt">): string => {
         // Prevent duplicates — if same projectId exists, update it instead
-        const existing = app.projectId
-          ? useAppStore.getState().apps.find((a) => a.projectId === app.projectId)
-          : null;
-        if (existing) {
-          set((s) => ({
-            apps: s.apps.map((a) =>
-              a.id === existing.id ? { ...a, ...app, id: existing.id, createdAt: existing.createdAt } : a
-            ),
-          }));
-          return existing.id;
+        if (app.projectId) {
+          const existing = get().apps.find((a: UserApp) => a.projectId === app.projectId);
+          if (existing) {
+            set((s) => ({
+              apps: s.apps.map((a: UserApp) =>
+                a.id === existing.id ? { ...a, ...app, id: existing.id, createdAt: existing.createdAt } : a
+              ),
+            }));
+            return existing.id;
+          }
         }
         const id = crypto.randomUUID();
         set((s) => ({
@@ -49,21 +49,21 @@ export const useAppStore = create<AppStore>()(
         return id;
       },
 
-      removeApp: (id) =>
-        set((s) => ({ apps: s.apps.filter((a) => a.id !== id) })),
+      removeApp: (id: string) =>
+        set((s) => ({ apps: s.apps.filter((a: UserApp) => a.id !== id) })),
 
-      toggleStatus: (id) =>
+      toggleStatus: (id: string) =>
         set((s) => ({
-          apps: s.apps.map((a) =>
+          apps: s.apps.map((a: UserApp) =>
             a.id === id
-              ? { ...a, status: a.status === "online" ? "offline" : "online" }
+              ? { ...a, status: a.status === "online" ? ("offline" as const) : ("online" as const) }
               : a
           ),
         })),
 
-      updateApp: (id, updates) =>
+      updateApp: (id: string, updates: Partial<UserApp>) =>
         set((s) => ({
-          apps: s.apps.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+          apps: s.apps.map((a: UserApp) => (a.id === id ? { ...a, ...updates } : a)),
         })),
     }),
     { name: "isibi-apps" }
