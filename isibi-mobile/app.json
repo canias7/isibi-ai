@@ -17,6 +17,7 @@
         "NSUserNotificationUsageDescription": "ISIBI uses notifications to alert you about new leads, calls, and important CRM activity.",
         "NSSpeechRecognitionUsageDescription": "ISIBI uses speech recognition for voice commands.",
         "NSMicrophoneUsageDescription": "ISIBI needs microphone access for voice commands.",
+        "NSPhotoLibraryUsageDescription": "ISIBI uses your photo library to let you upload images and attachments.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.anonymous.isibimobile"
