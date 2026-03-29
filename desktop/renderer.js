@@ -14,7 +14,7 @@ function spawnParticles() {
 // ── State ───────────────────────────────────────────────────────────────────
 let apps=[], uptimeData={}, notifications=[], unreadCount=0, notifOpen=false, loading={};
 let nodePositions = {}; // {appId: {x, y}} — persisted positions
-let dragging = null; // {id, offsetX, offsetY}
+let dragging = null; // {id, offsetX, offsetY, startX, startY, moved}
 
 // Load saved positions
 try { const saved = localStorage.getItem('isibi-node-positions'); if(saved) nodePositions = JSON.parse(saved); } catch(e){}
@@ -142,25 +142,31 @@ function onDragStart(e, appId) {
   const node = document.querySelector(`[data-id="${appId}"]`);
   if (!node) return;
   const rect = node.getBoundingClientRect();
-  const content = document.getElementById('content');
-  const contentRect = content.getBoundingClientRect();
   dragging = {
     id: appId,
     offsetX: e.clientX - rect.left,
     offsetY: e.clientY - rect.top,
-    contentLeft: contentRect.left,
-    contentTop: contentRect.top,
-    scrollTop: content.scrollTop,
+    startX: e.clientX,
+    startY: e.clientY,
+    moved: false,
   };
   node.style.zIndex = '10';
-  node.classList.add('dragging');
 }
 
 function onDragMove(e) {
   if (!dragging) return;
-  const content = document.getElementById('content');
+  const dx = e.clientX - dragging.startX;
+  const dy = e.clientY - dragging.startY;
+
+  // Only start dragging after moving at least 5px (otherwise it's a click)
+  if (!dragging.moved && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+  dragging.moved = true;
+
+  const node = document.querySelector(`[data-id="${dragging.id}"]`);
+  if (node) node.classList.add('dragging');
+
   const canvas = document.getElementById('workflow-canvas');
-  if (!content || !canvas) return;
+  if (!canvas) return;
 
   const canvasRect = canvas.getBoundingClientRect();
   const x = e.clientX - canvasRect.left - dragging.offsetX;
@@ -168,7 +174,6 @@ function onDragMove(e) {
 
   nodePositions[dragging.id] = { x: Math.max(0, x), y: Math.max(0, y) };
 
-  const node = document.querySelector(`[data-id="${dragging.id}"]`);
   if (node) {
     node.style.left = nodePositions[dragging.id].x + 'px';
     node.style.top = nodePositions[dragging.id].y + 'px';
@@ -180,8 +185,19 @@ function onDragMove(e) {
 function onDragEnd() {
   if (!dragging) return;
   const node = document.querySelector(`[data-id="${dragging.id}"]`);
+  const wasDrag = dragging.moved;
+  const appId = dragging.id;
+
   if (node) { node.style.zIndex = ''; node.classList.remove('dragging'); }
-  savePositions();
+
+  if (wasDrag) {
+    // Was a drag — save position
+    savePositions();
+  } else {
+    // Was a click — open the app
+    openApp(appId);
+  }
+
   dragging = null;
 }
 
