@@ -412,7 +412,9 @@ async function openApp(id){
     }
     return;
   }
-  const url = s?.url || `https://isibi-backend.onrender.com/live/${id}`;
+  let url = s?.url || `https://isibi-backend.onrender.com/live/${id}`;
+  // Skip app-level auth since user is already authenticated in Control Center
+  url += (url.includes('?') ? '&' : '?') + 'skip_auth=1';
   window.isibi.openAppWindow(id, url);
 }
 async function doHealthCheck(id){loading[id]='health';renderNodes();await window.isibi.healthCheck(id);delete loading[id];await loadUptime(id);}
