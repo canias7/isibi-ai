@@ -1,6 +1,6 @@
 import * as SecureStore from "expo-secure-store";
 
-export const API_BASE = "https://api.isibi.ai";
+export const API_BASE = "https://isibi-backend.onrender.com";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
