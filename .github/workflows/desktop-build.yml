@@ -34,7 +34,7 @@ jobs:
           name: mac-build
           path: |
             desktop/dist/*.zip
-            desktop/dist/*.yml
+            desktop/dist/latest-mac.yml
 
   build-windows:
     name: Build Windows
@@ -62,7 +62,7 @@ jobs:
           name: win-build
           path: |
             desktop/dist/*.exe
-            desktop/dist/*.yml
+            desktop/dist/latest.yml
 
   build-linux:
     name: Build Linux
@@ -90,7 +90,7 @@ jobs:
           name: linux-build
           path: |
             desktop/dist/*.AppImage
-            desktop/dist/*.yml
+            desktop/dist/latest-linux.yml
 
   release:
     name: Create Release
@@ -126,11 +126,11 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/mac-build/*.zip
-            artifacts/mac-build/*.yml
-            artifacts/win-build/*.exe
-            artifacts/win-build/*.yml
-            artifacts/linux-build/*.AppImage
-            artifacts/linux-build/*.yml
+            artifacts/mac-build/desktop/dist/ISIBI-Control-Center-macOS.zip
+            artifacts/mac-build/desktop/dist/latest-mac.yml
+            artifacts/win-build/desktop/dist/ISIBI-Control-Center-Setup.exe
+            artifacts/win-build/desktop/dist/latest.yml
+            artifacts/linux-build/desktop/dist/ISIBI-Control-Center.AppImage
+            artifacts/linux-build/desktop/dist/latest-linux.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
