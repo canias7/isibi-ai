@@ -140,14 +140,45 @@ input { font-family: inherit; }
 
 .connection-line {
   stroke: url(#neon-gradient);
-  stroke-width: 1.5;
+  stroke-width: 2.5;
   fill: none;
-  filter: drop-shadow(0 0 3px var(--pink-glow));
+  filter: drop-shadow(0 0 6px var(--pink-glow)) drop-shadow(0 0 12px rgba(236,72,153,.3));
+}
+
+.connection-line-glow {
+  stroke: url(#neon-gradient);
+  stroke-width: 8;
+  fill: none;
+  opacity: .15;
+  filter: blur(4px);
 }
 
 .connection-dot {
   fill: var(--pink);
-  filter: drop-shadow(0 0 4px var(--pink));
+  filter: drop-shadow(0 0 8px var(--pink)) drop-shadow(0 0 16px var(--pink-glow));
+}
+
+.connection-arrow {
+  fill: var(--pink);
+  filter: drop-shadow(0 0 6px var(--pink));
+}
+
+.junction-dot {
+  fill: var(--pink);
+  filter: drop-shadow(0 0 10px var(--pink)) drop-shadow(0 0 20px var(--pink-glow));
+}
+
+.junction-ring {
+  fill: none;
+  stroke: var(--pink);
+  stroke-width: 1;
+  opacity: .3;
+  animation: junction-pulse 2s ease-in-out infinite;
+}
+
+@keyframes junction-pulse {
+  0%,100% { r: 8; opacity: .3; }
+  50% { r: 14; opacity: 0; }
 }
 
 /* ── App Nodes (small squares) ───────────────────────────────────────────── */

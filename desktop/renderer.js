@@ -192,7 +192,7 @@ function drawConnections() {
   if (!svg || !canvas || apps.length < 2) return;
 
   // Remove old
-  svg.querySelectorAll('.connection-line,.connection-dot').forEach(el => el.remove());
+  svg.querySelectorAll('.connection-line,.connection-line-glow,.connection-dot,.connection-arrow,.junction-dot,.junction-ring').forEach(el => el.remove());
 
   // Get centers from positions
   const centers = apps.map(app => {
@@ -215,34 +215,78 @@ function drawConnections() {
   if (centers.length > 3) {
     drawLine(svg, centers[0], centers[centers.length - 1], 0.1);
   }
+
+  // Glowing junction dots at each node
+  drawJunctions(svg, centers);
 }
 
 function drawLine(svg, from, to, opacity) {
   const dx = to.x - from.x, dy = to.y - from.y;
   const dist = Math.sqrt(dx*dx + dy*dy);
-  const bend = Math.min(dist * 0.3, 50);
-  // Perpendicular offset for curve
+  if (dist < 10) return;
+  const bend = Math.min(dist * 0.25, 40);
   const mx = (from.x+to.x)/2 - (dy/dist)*bend;
   const my = (from.y+to.y)/2 + (dx/dist)*bend;
   const d = `M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`;
 
+  // Glow layer (wide, blurred)
+  const glow = document.createElementNS('http://www.w3.org/2000/svg','path');
+  glow.setAttribute('d',d);
+  glow.setAttribute('class','connection-line-glow');
+  glow.style.opacity = opacity * 0.4;
+  svg.appendChild(glow);
+
+  // Main line
   const path = document.createElementNS('http://www.w3.org/2000/svg','path');
   path.setAttribute('d',d);
   path.setAttribute('class','connection-line');
   path.style.opacity = opacity;
   svg.appendChild(path);
 
-  // Traveling dot
+  // Arrow at destination
+  const angle = Math.atan2(to.y - my, to.x - mx);
+  const arrowSize = 8;
+  const ax = to.x - Math.cos(angle) * 5; // slightly before the node
+  const ay = to.y - Math.sin(angle) * 5;
+  const a1x = ax - arrowSize * Math.cos(angle - 0.4);
+  const a1y = ay - arrowSize * Math.sin(angle - 0.4);
+  const a2x = ax - arrowSize * Math.cos(angle + 0.4);
+  const a2y = ay - arrowSize * Math.sin(angle + 0.4);
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  arrow.setAttribute('points', `${ax},${ay} ${a1x},${a1y} ${a2x},${a2y}`);
+  arrow.setAttribute('class','connection-arrow');
+  arrow.style.opacity = opacity;
+  svg.appendChild(arrow);
+
+  // Traveling dot (larger, brighter)
   const dot = document.createElementNS('http://www.w3.org/2000/svg','circle');
-  dot.setAttribute('r','2.5');
+  dot.setAttribute('r','3.5');
   dot.setAttribute('class','connection-dot');
-  dot.style.opacity = Math.min(opacity * 2, 0.6);
+  dot.style.opacity = Math.min(opacity * 2.5, 0.8);
   const am = document.createElementNS('http://www.w3.org/2000/svg','animateMotion');
-  am.setAttribute('dur',(3+Math.random()*4)+'s');
+  am.setAttribute('dur',(3+Math.random()*3)+'s');
   am.setAttribute('repeatCount','indefinite');
   am.setAttribute('path',d);
   dot.appendChild(am);
   svg.appendChild(dot);
+}
+
+// Draw glowing junction dots at each node center
+function drawJunctions(svg, centers) {
+  centers.forEach(c => {
+    // Glow circle
+    const g = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    g.setAttribute('cx', c.x); g.setAttribute('cy', c.y); g.setAttribute('r', '5');
+    g.setAttribute('class','junction-dot');
+    svg.appendChild(g);
+
+    // Pulsing ring
+    const ring = document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ring.setAttribute('cx', c.x); ring.setAttribute('cy', c.y); ring.setAttribute('r', '8');
+    ring.setAttribute('class','junction-ring');
+    ring.style.animationDelay = Math.random() * 2 + 's';
+    svg.appendChild(ring);
+  });
 }
 
 // ── Render nodes ────────────────────────────────────────────────────────────
