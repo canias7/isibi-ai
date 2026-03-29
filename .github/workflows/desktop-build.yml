@@ -32,7 +32,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: desktop/dist/*.dmg
+          path: desktop/dist/*.zip
 
   build-windows:
     name: Build Windows
@@ -116,7 +116,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/mac-build/*.dmg
+            artifacts/mac-build/*.zip
             artifacts/win-build/*.exe
             artifacts/linux-build/*.AppImage
         env:

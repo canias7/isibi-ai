@@ -4,7 +4,7 @@ const GITHUB_RELEASE_BASE =
   "https://github.com/canias7/isibi-ai/releases/latest/download";
 
 const DOWNLOAD_LINKS = {
-  mac: `${GITHUB_RELEASE_BASE}/ISIBI-Control-Center.dmg`,
+  mac: `${GITHUB_RELEASE_BASE}/ISIBI-Control-Center-macOS.zip`,
   win: `${GITHUB_RELEASE_BASE}/ISIBI-Control-Center-Setup.exe`,
   linux: `${GITHUB_RELEASE_BASE}/ISIBI-Control-Center.AppImage`,
 } as const;
