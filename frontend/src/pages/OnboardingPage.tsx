@@ -140,7 +140,7 @@ interface SidebarItem {
 
 const SIDEBAR: SidebarItem[] = [
   { id: "chat", label: "New Chat", icon: Plus },
-  { id: "myapps", label: "My Apps", icon: AppWindow },
+  { id: "myapps", label: "Control Center", icon: Monitor },
   { id: "projects", label: "My Projects", icon: FolderOpen },
   { id: "marketplace", label: "isibi marketplace", icon: Store, badge: "NEW" },
   { id: "templates", label: "Templates", icon: LayoutTemplate, comingSoon: true },

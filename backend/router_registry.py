@@ -89,6 +89,7 @@ def _register_app_feature_routers(app):
     from routes.app_view_configs import router as app_view_configs_router
     from routes.app_workflows import router as app_workflows_router
     from routes.desktop_download import router as desktop_download_router
+    from routes.control_center_download import router as control_center_router
 
     app.include_router(webhooks_router, prefix="/api")
     app.include_router(api_keys_router, prefix="/api")
@@ -121,6 +122,7 @@ def _register_app_feature_routers(app):
     app.include_router(app_view_configs_router, prefix="/api")
     app.include_router(app_workflows_router, prefix="/api")
     app.include_router(desktop_download_router, prefix="/api")
+    app.include_router(control_center_router, prefix="/api")
 
 
 def _register_automation_routers(app):
