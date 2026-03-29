@@ -204,32 +204,41 @@ function onDragEnd() {
 // ── Draw connections ────────────────────────────────────────────────────────
 function drawConnections() {
   const svg = document.getElementById('connections-svg');
-  const canvas = document.getElementById('workflow-canvas');
-  if (!svg || !canvas || apps.length < 2) return;
+  const container = document.getElementById('nodes-container');
+  if (!svg || !container || apps.length < 2) return;
 
   // Remove old
   svg.querySelectorAll('.connection-line,.connection-line-glow,.connection-dot,.connection-arrow,.junction-dot,.junction-ring').forEach(el => el.remove());
 
-  // Get centers from positions
+  // Resize SVG to match container
+  const containerRect = container.getBoundingClientRect();
+  const canvasRect = document.getElementById('workflow-canvas').getBoundingClientRect();
+  svg.style.width = containerRect.width + 'px';
+  svg.style.height = Math.max(containerRect.height, 500) + 'px';
+
+  // Get centers from node positions (offset by container position relative to canvas)
+  const offsetX = containerRect.left - canvasRect.left;
+  const offsetY = containerRect.top - canvasRect.top;
+
   const centers = apps.map(app => {
     const pos = nodePositions[app.id];
     if (!pos) return null;
-    return { x: pos.x + 36, y: pos.y + 36, id: app.id }; // +36 = half of 72px square
+    return { x: pos.x + 36 + offsetX, y: pos.y + 36 + offsetY, id: app.id }; // +36 = half of 72px square
   }).filter(Boolean);
 
   if (centers.length < 2) return;
 
   // Connect each node to the next
   for (let i = 0; i < centers.length - 1; i++) {
-    drawLine(svg, centers[i], centers[i + 1], 0.4);
+    drawLine(svg, centers[i], centers[i + 1], 0.5);
   }
-  // Cross connections
+  // Cross connections for mesh
   for (let i = 0; i < centers.length - 2; i++) {
-    drawLine(svg, centers[i], centers[i + 2], 0.12);
+    drawLine(svg, centers[i], centers[i + 2], 0.15);
   }
   // Loop
   if (centers.length > 3) {
-    drawLine(svg, centers[0], centers[centers.length - 1], 0.1);
+    drawLine(svg, centers[0], centers[centers.length - 1], 0.12);
   }
 
   // Glowing junction dots at each node
