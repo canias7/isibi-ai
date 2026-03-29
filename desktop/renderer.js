@@ -388,7 +388,11 @@ function renderNotifications() {
 function updateBadge(){const b=document.getElementById('notif-badge');if(!b)return;if(unreadCount>0){b.style.display='flex';b.textContent=unreadCount>9?'9+':unreadCount;}else b.style.display='none';}
 
 // ── Actions ─────────────────────────────────────────────────────────────────
-async function openApp(id){const s=await window.isibi.getAppStatus(id);window.isibi.openExternal(s?.url||`https://isibi-backend.onrender.com/live/${id}`);}
+async function openApp(id){
+  const s=await window.isibi.getAppStatus(id);
+  const url = s?.url || `https://isibi-backend.onrender.com/live/${id}`;
+  window.isibi.openAppWindow(id, url);
+}
 async function doHealthCheck(id){loading[id]='health';renderNodes();await window.isibi.healthCheck(id);delete loading[id];await loadUptime(id);}
 async function doRestart(id){loading[id]='restart';renderNodes();await window.isibi.restartApp(id);delete loading[id];await loadApps();}
 function toggleNotifications(){notifOpen=!notifOpen;const p=document.getElementById('notif-panel');if(p){p.classList.toggle('open',notifOpen);if(notifOpen)loadNotifications();}}

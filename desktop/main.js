@@ -327,6 +327,46 @@ ipcMain.handle('mark-all-read', async () => {
 
 ipcMain.handle('open-external', (_, url) => { shell.openExternal(url); });
 
+// Open apps inside their own desktop windows
+const appWindows = {}; // {projectId: BrowserWindow}
+
+ipcMain.handle('open-app-window', (_, projectId, url) => {
+  // If window already exists and isn't destroyed, focus it
+  if (appWindows[projectId] && !appWindows[projectId].isDestroyed()) {
+    appWindows[projectId].focus();
+    return;
+  }
+
+  const win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    title: 'ISIBI App',
+    backgroundColor: '#ffffff',
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+    },
+    icon: path.join(__dirname, 'icon.png'),
+  });
+
+  win.loadURL(url);
+
+  // Update title when page loads
+  win.webContents.on('did-finish-load', () => {
+    const pageTitle = win.webContents.getTitle();
+    if (pageTitle) win.setTitle(pageTitle);
+  });
+
+  // Open external links in browser
+  win.webContents.setWindowOpenHandler(({ url: linkUrl }) => {
+    if (linkUrl.startsWith('http')) shell.openExternal(linkUrl);
+    return { action: 'deny' };
+  });
+
+  win.on('closed', () => { delete appWindows[projectId]; });
+  appWindows[projectId] = win;
+});
+
 ipcMain.handle('check-for-updates', async () => {
   try { return await autoUpdater.checkForUpdatesAndNotify(); } catch (e) { return { error: e.message }; }
 });

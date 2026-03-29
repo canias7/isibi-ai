@@ -23,6 +23,7 @@ contextBridge.exposeInMainWorld('isibi', {
 
   // Utils
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+  openAppWindow: (id, url) => ipcRenderer.invoke('open-app-window', id, url),
 
   // Events from main process
   onStatusUpdate: (callback) => {
