@@ -2418,6 +2418,62 @@ export function OnboardingPage({ onSpecCreated }: Props) {
             </button>
           )}
           {builtSpec && builtProjectId && (
+            <button
+              onClick={async () => {
+                try {
+                  setDeploying(true);
+                  // Deploy if not already deployed
+                  if (!deployUrl) {
+                    const BASE_URL = import.meta.env.VITE_API_URL || "/api";
+                    const token = localStorage.getItem("token");
+                    const res = await fetch(`${BASE_URL}/projects/${builtProjectId}/deploy`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                      },
+                      body: JSON.stringify({}),
+                    });
+                    if (res.ok) {
+                      const data = await res.json();
+                      setDeployUrl(data.url || data.subdomain_url || null);
+                    }
+                  }
+                  // Add to Control Center (appStore)
+                  const { addApp, apps } = useAppStore.getState();
+                  const specData = builtSpec as any;
+                  const appName = specData?.app_name || specData?.name || "My App";
+                  const existing = apps.find((a) => a.projectId === builtProjectId);
+                  if (!existing) {
+                    addApp({
+                      name: appName,
+                      type: "software",
+                      status: "online",
+                      color: specData?.design_system?.colors?.primary || "#ec4899",
+                      source: "created",
+                      projectId: builtProjectId,
+                    });
+                  }
+                  alert("Published! Your app is now in the Control Center.");
+                } catch (err) {
+                  console.error("Publish error:", err);
+                } finally {
+                  setDeploying(false);
+                }
+              }}
+              disabled={deploying}
+              className="flex items-center gap-1.5 rounded-lg bg-green-500 px-2.5 py-1.5 text-[11px] font-medium text-white transition hover:bg-green-600 disabled:opacity-50"
+              title="Deploy and add to Control Center"
+            >
+              {deploying ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Check className="h-3.5 w-3.5" />
+              )}
+              Publish
+            </button>
+          )}
+          {builtSpec && builtProjectId && (
             <>
               <button
                 onClick={handleListOnMarketplace}
@@ -3400,6 +3456,8 @@ export function OnboardingPage({ onSpecCreated }: Props) {
                     return (
                       <div
                         key={session.id}
+                        onClick={() => loadChat(session)}
+                        style={{ cursor: "pointer" }}
                         className={`group flex w-full items-start gap-4 rounded-xl border bg-white px-4 py-3.5 text-left transition hover:shadow-sm ${
                           activeChatId === session.id
                             ? "border-black shadow-sm"

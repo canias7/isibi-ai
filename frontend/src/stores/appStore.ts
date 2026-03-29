@@ -27,6 +27,18 @@ export const useAppStore = create<AppStore>()(
       apps: [],
 
       addApp: (app) => {
+        // Prevent duplicates — if same projectId exists, update it instead
+        const existing = app.projectId
+          ? useAppStore.getState().apps.find((a) => a.projectId === app.projectId)
+          : null;
+        if (existing) {
+          set((s) => ({
+            apps: s.apps.map((a) =>
+              a.id === existing.id ? { ...a, ...app, id: existing.id, createdAt: existing.createdAt } : a
+            ),
+          }));
+          return existing.id;
+        }
         const id = crypto.randomUUID();
         set((s) => ({
           apps: [
