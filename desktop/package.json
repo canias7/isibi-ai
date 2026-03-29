@@ -34,7 +34,7 @@
       "target": [
         {
           "target": "zip",
-          "arch": ["arm64"]
+          "arch": ["x64"]
         }
       ],
       "artifactName": "ISIBI-Control-Center-macOS.${ext}"
