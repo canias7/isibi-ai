@@ -389,7 +389,29 @@ function updateBadge(){const b=document.getElementById('notif-badge');if(!b)retu
 
 // ── Actions ─────────────────────────────────────────────────────────────────
 async function openApp(id){
-  const s=await window.isibi.getAppStatus(id);
+  const app = apps.find(a => a.id === id);
+  if (app && app.status !== 'deployed') {
+    // Show tooltip or alert that app needs to be deployed first
+    const node = document.querySelector(`[data-id="${id}"] .node-label`);
+    if (node) {
+      const orig = node.textContent;
+      node.textContent = '⚠ Deploy first on isibi.ai';
+      node.style.color = 'var(--yellow)';
+      setTimeout(() => { node.textContent = orig; node.style.color = ''; }, 2500);
+    }
+    return;
+  }
+  const s = await window.isibi.getAppStatus(id);
+  if (s?.deployed === false || s?.status === 'not_deployed') {
+    const node = document.querySelector(`[data-id="${id}"] .node-label`);
+    if (node) {
+      const orig = node.textContent;
+      node.textContent = '⚠ Not deployed yet';
+      node.style.color = 'var(--yellow)';
+      setTimeout(() => { node.textContent = orig; node.style.color = ''; }, 2500);
+    }
+    return;
+  }
   const url = s?.url || `https://isibi-backend.onrender.com/live/${id}`;
   window.isibi.openAppWindow(id, url);
 }
