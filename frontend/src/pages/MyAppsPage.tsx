@@ -12,12 +12,9 @@ import {
   Download,
   AlertTriangle,
   X,
-  Monitor,
-  Apple,
-  Terminal,
-  Loader2,
 } from "lucide-react";
 import { useAppStore, type UserApp } from "@/stores/appStore";
+import { DownloadBanner } from "@/components/DownloadBanner";
 
 /* ─── Constants ─── */
 
@@ -106,48 +103,8 @@ export function MyAppsPage({
   const [sort, setSort] = useState<SortType>("recent");
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
-  const [downloading, setDownloading] = useState<string | null>(null);
 
   useEffect(ensureKeyframes, []);
-
-  /* ── Platform detection ── */
-  const detectedPlatform = (() => {
-    const ua = navigator.userAgent.toLowerCase();
-    if (ua.includes("win")) return "win";
-    if (ua.includes("linux")) return "linux";
-    return "mac";
-  })();
-
-  /* ── Control Center download ── */
-  const downloadControlCenter = async (platform: "mac" | "win" | "linux") => {
-    setDownloading(platform);
-    try {
-      const BASE_URL = import.meta.env.VITE_API_URL || "/api";
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${BASE_URL}/control-center/download`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ platform }),
-      });
-      if (!res.ok) throw new Error("Download failed");
-      const blob = await res.blob();
-      const ext = platform === "mac" ? "macOS" : platform === "win" ? "Windows" : "Linux";
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `ISIBI-Control-Center-${ext}.zip`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(a.href);
-    } catch (err) {
-      console.error("Download error:", err);
-    } finally {
-      setDownloading(null);
-    }
-  };
 
   /* ── Filtering & sorting ── */
 
@@ -257,53 +214,8 @@ export function MyAppsPage({
         </div>
 
         {/* ── Download banner ── */}
-        <div
-          className="mb-8 overflow-hidden rounded-2xl p-6"
-          style={{
-            background: "linear-gradient(135deg, #ec4899 0%, #8b5cf6 50%, #6366f1 100%)",
-          }}
-        >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                <Monitor className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">
-                  Download ISIBI Control Center
-                </h2>
-                <p className="text-sm text-white/80">
-                  Manage all your apps from your desktop
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {([
-                { id: "mac" as const, label: "macOS", Icon: Apple },
-                { id: "win" as const, label: "Windows", Icon: Monitor },
-                { id: "linux" as const, label: "Linux", Icon: Terminal },
-              ]).map(({ id, label, Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => downloadControlCenter(id)}
-                  disabled={downloading !== null}
-                  className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                    detectedPlatform === id
-                      ? "bg-white text-purple-700 shadow-lg"
-                      : "bg-white/20 text-white hover:bg-white/30 backdrop-blur-sm"
-                  } disabled:opacity-50`}
-                >
-                  {downloading === id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Icon className="h-4 w-4" />
-                  )}
-                  {label}
-                  <Download className="h-3.5 w-3.5 opacity-60" />
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="mb-8">
+          <DownloadBanner />
         </div>
 
         {/* ── Filter bar ── */}

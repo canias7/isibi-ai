@@ -4,6 +4,7 @@ import { Loader2 } from "lucide-react";
 import { Turnstile } from "react-turnstile";
 import { post } from "@/api/client";
 import { useAuthStore, type AuthUser } from "@/stores/authStore";
+import { DownloadBanner } from "@/components/DownloadBanner";
 
 interface ApiError {
   status: number;
@@ -290,6 +291,10 @@ export function SignupPage({ onSignup }: Props) {
               Log in
             </Link>
           </p>
+
+          <div className="mt-6">
+            <DownloadBanner compact />
+          </div>
         </div>
       </div>
     </div>

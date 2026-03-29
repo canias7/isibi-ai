@@ -1,0 +1,7 @@
+{
+  "url": "https://isibi.ai/app",
+  "apiUrl": "https://isibi-backend.onrender.com/api",
+  "name": "ISIBI Control Center",
+  "width": 1200,
+  "height": 800
+}

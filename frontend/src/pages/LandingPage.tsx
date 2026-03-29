@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
+import { DownloadBanner } from "@/components/DownloadBanner";
 
 export function LandingPage() {
   const { isAuthenticated } = useAuthStore();
@@ -459,6 +460,13 @@ export function LandingPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ──────────────── DOWNLOAD DESKTOP APP ──────────────── */}
+      <section className="py-12">
+        <div className="mx-auto max-w-5xl px-6">
+          <DownloadBanner />
         </div>
       </section>
 
