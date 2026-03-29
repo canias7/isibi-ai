@@ -32,7 +32,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: desktop/dist/*.zip
+          path: |
+            desktop/dist/*.zip
+            desktop/dist/*.yml
 
   build-windows:
     name: Build Windows
@@ -58,7 +60,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: win-build
-          path: desktop/dist/*.exe
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.yml
 
   build-linux:
     name: Build Linux
@@ -84,7 +88,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: desktop/dist/*.AppImage
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.yml
 
   release:
     name: Create Release
@@ -100,24 +106,31 @@ jobs:
         with:
           path: artifacts
 
+      - name: Get version from package.json
+        id: version
+        run: echo "version=$(node -p "require('./desktop/package.json').version")" >> $GITHUB_OUTPUT
+
       - name: List artifacts
         run: find artifacts -type f
 
       - name: Create or update release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: desktop-latest
-          name: ISIBI Control Center - Latest
+          tag_name: v${{ steps.version.outputs.version }}
+          name: ISIBI Control Center v${{ steps.version.outputs.version }}
           body: |
             Download the ISIBI Control Center desktop app for your platform:
-            - **macOS**: Download the `.dmg` file, open it, and drag to Applications
+            - **macOS**: Download the `.zip` file, unzip and open the app
             - **Windows**: Download and run the `.exe` installer
             - **Linux**: Download the `.AppImage`, make it executable (`chmod +x`), and run it
           draft: false
           prerelease: false
           files: |
             artifacts/mac-build/*.zip
+            artifacts/mac-build/*.yml
             artifacts/win-build/*.exe
+            artifacts/win-build/*.yml
             artifacts/linux-build/*.AppImage
+            artifacts/linux-build/*.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
