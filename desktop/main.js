@@ -4,7 +4,7 @@ const fs = require('fs');
 
 // Read config
 let config = {
-  url: 'https://isibi.ai/app',
+  url: 'https://isibi.ai/login',
   apiUrl: 'https://isibi-backend.onrender.com/api',
   name: 'ISIBI Control Center',
   width: 1200,
