@@ -13,84 +13,60 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install dependencies
         working-directory: desktop
         run: npm install
-
-      - name: Build macOS DMG
+      - name: Build macOS
         working-directory: desktop
-        run: npx electron-builder --mac
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        run: npx electron-builder --mac --publish never
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: mac-build
-          path: |
-            desktop/dist/*.zip
-            desktop/dist/latest-mac.yml
+          path: desktop/dist/ISIBI-Control-Center-macOS.zip
 
   build-windows:
     name: Build Windows
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install dependencies
         working-directory: desktop
         run: npm install
-
-      - name: Build Windows installer
+      - name: Build Windows
         working-directory: desktop
-        run: npx electron-builder --win
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        run: npx electron-builder --win --publish never
       - name: Upload Windows artifact
         uses: actions/upload-artifact@v4
         with:
           name: win-build
-          path: |
-            desktop/dist/*.exe
-            desktop/dist/latest.yml
+          path: desktop/dist/ISIBI-Control-Center-Setup.exe
 
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - name: Install dependencies
         working-directory: desktop
         run: npm install
-
-      - name: Build Linux AppImage
+      - name: Build Linux
         working-directory: desktop
-        run: npx electron-builder --linux
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        run: npx electron-builder --linux --publish never
       - name: Upload Linux artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-build
-          path: |
-            desktop/dist/*.AppImage
-            desktop/dist/latest-linux.yml
+          path: desktop/dist/ISIBI-Control-Center.AppImage
 
   release:
     name: Create Release
@@ -113,7 +89,7 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f
 
-      - name: Create or update release
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
@@ -122,15 +98,12 @@ jobs:
             Download the ISIBI Control Center desktop app for your platform:
             - **macOS**: Download the `.zip` file, unzip and open the app
             - **Windows**: Download and run the `.exe` installer
-            - **Linux**: Download the `.AppImage`, make it executable (`chmod +x`), and run it
+            - **Linux**: Download the `.AppImage`, make it executable and run it
           draft: false
           prerelease: false
           files: |
-            artifacts/mac-build/desktop/dist/ISIBI-Control-Center-macOS.zip
-            artifacts/mac-build/desktop/dist/latest-mac.yml
-            artifacts/win-build/desktop/dist/ISIBI-Control-Center-Setup.exe
-            artifacts/win-build/desktop/dist/latest.yml
-            artifacts/linux-build/desktop/dist/ISIBI-Control-Center.AppImage
-            artifacts/linux-build/desktop/dist/latest-linux.yml
+            artifacts/mac-build/ISIBI-Control-Center-macOS.zip
+            artifacts/win-build/ISIBI-Control-Center-Setup.exe
+            artifacts/linux-build/ISIBI-Control-Center.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
