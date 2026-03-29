@@ -7141,10 +7141,9 @@ html.dark ::-webkit-scrollbar-thumb:hover {{ background:#64748b; }}
     var parsed = {{}};
     fields.forEach(function(f) {{
       var label = (f.label || f.name).toLowerCase();
-      var patterns = [
-        new RegExp(label + "\\s*[:=]\\s*[\"']?([^\"',]+)[\"']?", "i"),
-        new RegExp("(?:with|and)\\s+" + label + "\\s+([^,\\.and]+)", "i")
-      ];
+      var re1 = label + '[:\\\\=]\\\\s*([^,]+)';
+      var re2 = '(?:with|and)\\\\s+' + label + '\\\\s+([^,.]+)';
+      var patterns = [new RegExp(re1, 'i'), new RegExp(re2, 'i')];
       for (var p = 0; p < patterns.length; p++) {{
         var m = text.match(patterns[p]);
         if (m) {{
