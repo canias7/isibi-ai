@@ -1,8 +1,32 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, Notification, dialog } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const https = require('https');
 const http = require('http');
+
+// ── Auto-updater ────────────────────────────────────────────────────────────
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('update-available', (info) => {
+  console.log('Update available:', info.version);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-available', info.version);
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('Update downloaded:', info.version);
+  showNotification('Update Ready', `Version ${info.version} will be installed on restart.`);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-downloaded', info.version);
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('Auto-update error:', err.message);
+});
 
 // ── Config ──────────────────────────────────────────────────────────────────
 const CONFIG = {
@@ -303,11 +327,24 @@ ipcMain.handle('mark-all-read', async () => {
 
 ipcMain.handle('open-external', (_, url) => { shell.openExternal(url); });
 
+ipcMain.handle('check-for-updates', async () => {
+  try { return await autoUpdater.checkForUpdatesAndNotify(); } catch (e) { return { error: e.message }; }
+});
+
+ipcMain.handle('install-update', () => { autoUpdater.quitAndInstall(); });
+
 // ── App lifecycle ───────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   createWindow();
   createTray();
   if (getStoredToken()) startPolling();
+
+  // Check for updates after launch (silently)
+  setTimeout(() => {
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.log('Update check skipped:', err.message);
+    });
+  }, 5000);
 });
 
 app.on('before-quit', () => { app.isQuitting = true; stopPolling(); });
