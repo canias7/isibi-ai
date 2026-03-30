@@ -20,7 +20,7 @@
         "NSPhotoLibraryUsageDescription": "ISIBI uses your photo library to let you upload images and attachments.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "buildNumber": "3",
+      "buildNumber": "5",
       "bundleIdentifier": "com.anonymous.isibimobile"
     },
     "android": {
@@ -38,7 +38,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.anonymous.isibimobile",
-      "versionCode": 2
+      "versionCode": 4
     },
     "web": {
       "favicon": "./assets/favicon.png"
