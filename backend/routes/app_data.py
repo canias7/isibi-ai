@@ -666,6 +666,15 @@ async def create_row(
         except Exception as e:
             logger.warning("Activity log error on create: %s", e)
 
+        # Audit log: platform-level
+        try:
+            from routes.audit_log import log_action
+            from uuid import UUID as _UUID
+            client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "")
+            await log_action(db, project_id, project_id, "record_created", table, _UUID(str(row_data.get("id", project_id))), {"table": table}, client_ip)
+        except Exception as e:
+            logger.debug("Audit log error: %s", e)
+
         # Merge duplicate warnings into response if any
         if duplicate_warnings:
             row_data.update(duplicate_warnings)
@@ -767,6 +776,15 @@ async def update_row(
         except Exception as e:
             logger.warning("Activity log error on update: %s", e)
 
+        # Audit log
+        try:
+            from routes.audit_log import log_action
+            from uuid import UUID as _UUID
+            client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "")
+            await log_action(db, project_id, project_id, "record_updated", table, _UUID(row_id), {"table": table, "changes": changes}, client_ip)
+        except Exception as e:
+            logger.debug("Audit log error: %s", e)
+
         # Fire email triggers for record update
         await fire_email_triggers(str(project_id), "record_updated", table, row_data, db)
 
@@ -845,6 +863,15 @@ async def delete_row(
             await _log_activity(str(project_id), table, row_id, "deleted", db)
         except Exception as e:
             logger.warning("Activity log error on delete: %s", e)
+
+        # Audit log
+        try:
+            from routes.audit_log import log_action
+            from uuid import UUID as _UUID
+            client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "")
+            await log_action(db, project_id, project_id, "record_deleted", table, _UUID(row_id), {"table": table}, client_ip)
+        except Exception as e:
+            logger.debug("Audit log error: %s", e)
 
     finally:
         await conn.close()

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, Notification, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, shell, ipcMain, Notification, dialog, safeStorage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
@@ -51,10 +51,26 @@ const TOKEN_PATH = path.join(app.getPath('userData'), 'auth-token.json');
 
 function getStoredToken() {
   try {
-    if (fs.existsSync(TOKEN_PATH)) {
-      const data = JSON.parse(fs.readFileSync(TOKEN_PATH, 'utf-8'));
-      return data.token || null;
+    if (!fs.existsSync(TOKEN_PATH)) return null;
+    const raw = fs.readFileSync(TOKEN_PATH);
+
+    // Try encrypted first (safeStorage)
+    if (safeStorage.isEncryptionAvailable()) {
+      try {
+        return safeStorage.decryptString(raw);
+      } catch {
+        // Might be old plaintext format — migrate it
+        const data = JSON.parse(raw.toString('utf-8'));
+        if (data.token) {
+          storeToken(data.token); // Re-store encrypted
+          return data.token;
+        }
+      }
     }
+
+    // Fallback: plaintext JSON
+    const data = JSON.parse(raw.toString('utf-8'));
+    return data.token || null;
   } catch (e) { /* ignore */ }
   return null;
 }
@@ -62,7 +78,12 @@ function getStoredToken() {
 function storeToken(token) {
   try {
     fs.mkdirSync(path.dirname(TOKEN_PATH), { recursive: true });
-    fs.writeFileSync(TOKEN_PATH, JSON.stringify({ token }));
+    if (safeStorage.isEncryptionAvailable()) {
+      const encrypted = safeStorage.encryptString(token);
+      fs.writeFileSync(TOKEN_PATH, encrypted);
+    } else {
+      fs.writeFileSync(TOKEN_PATH, JSON.stringify({ token }));
+    }
   } catch (e) {
     console.error('Failed to store token:', e);
   }

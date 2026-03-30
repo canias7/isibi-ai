@@ -189,6 +189,50 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Response caching (must be before rate limiter so cached responses skip it)
 app.add_middleware(ResponseCacheMiddleware)
 
+# CSRF protection — require X-Requested-With header on mutating requests
+class CSRFMiddleware:
+    """Block cross-origin form submissions by requiring a custom header.
+
+    Browsers don't send custom headers on cross-origin form POSTs,
+    so requiring X-Requested-With blocks CSRF without needing tokens.
+    Safe methods (GET, HEAD, OPTIONS) and preview/webhook paths are exempt.
+    """
+    SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+    EXEMPT_PREFIXES = ("/live/", "/health", "/api/intake", "/webhook", "/api/apps/")
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        method = scope.get("method", "GET")
+        path = scope.get("path", "")
+
+        if method in self.SAFE_METHODS or any(path.startswith(p) for p in self.EXEMPT_PREFIXES):
+            await self.app(scope, receive, send)
+            return
+
+        # Check for custom header
+        headers = dict(scope.get("headers", []))
+        has_xhr = b"x-requested-with" in headers
+        has_auth = b"authorization" in headers
+        has_content = headers.get(b"content-type", b"").startswith(b"application/json")
+
+        # Allow if: has XHR header, has Authorization header (API client), or sends JSON
+        if has_xhr or has_auth or has_content:
+            await self.app(scope, receive, send)
+            return
+
+        # Block — likely a cross-origin form submission
+        from starlette.responses import JSONResponse
+        response = JSONResponse({"detail": "CSRF validation failed"}, status_code=403)
+        await response(scope, receive, send)
+
+app.add_middleware(CSRFMiddleware)
+
 # Rate limiting
 app.add_middleware(RateLimiterMiddleware)
 

@@ -39,6 +39,8 @@ RATE_LIMITS: list[tuple[str, int]] = [
     ("/api/auth/reset-password", 5),
     ("/api/auth/", 10),
     ("/api/chat/", 5),
+    ("/api/apps/", 30),       # Generated app data endpoints
+    ("/api/projects/", 40),   # Project management
     ("/api/", 60),
 ]
 
