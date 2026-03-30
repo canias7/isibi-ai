@@ -11,7 +11,7 @@ import {
 import { C, F, R } from "../lib/theme";
 import {
   Project, getProjectSpec, listRecords, createRecord,
-  deleteRecord, countRecords, CommandResult, aiCommand,
+  deleteRecord, countRecords, CommandResult, aiCommand, ghostStream,
   createScheduledCommand, listScheduledCommands, deleteScheduledCommand,
 } from "../lib/api";
 
@@ -543,11 +543,18 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
     if (orbState === "listening") setOrbState("idle");
   });
 
+  // Throttle ghost stream calls to avoid spamming the API
+  const lastStreamRef = useRef(0);
+
   useSpeechRecognitionEvent("result", (event) => {
     const transcript = event.results?.[0]?.transcript || "";
     if (event.isFinal && transcript) {
       setLiveTranscript("");
       setInputText(transcript);
+
+      // Send final transcript to ghost stream (triggers ghost animation)
+      ghostStream(project.id, transcript, true).catch(() => {});
+
       // Auto-send the voice command
       setTimeout(async () => {
         setOrbState("processing");
@@ -565,6 +572,13 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
       }, 100);
     } else {
       setLiveTranscript(transcript);
+
+      // Stream interim transcripts to ghost endpoint (throttled to every 1.5s)
+      const now = Date.now();
+      if (transcript.length > 10 && now - lastStreamRef.current > 1500) {
+        lastStreamRef.current = now;
+        ghostStream(project.id, transcript, false).catch(() => {});
+      }
     }
   });
 

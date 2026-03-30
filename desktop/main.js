@@ -284,23 +284,79 @@ async function pollStatuses() {
 }
 
 // ── Ghost cursor animation ──────────────────────────────────────────────
+const liveGhostState = {}; // projectId → {formOpen, fieldsTyped}
+
 async function pollGhostQueue() {
   if (!getStoredToken()) return;
-  if (!appSettings.ghostCursor) return; // Ghost cursor disabled in settings
+  if (!appSettings.ghostCursor) return;
 
-  // Check each open app window for pending ghost animations
   for (const [projectId, win] of Object.entries(appWindows)) {
     if (!win || win.isDestroyed()) continue;
 
     try {
       const result = await apiFetch(`/apps/${projectId}/ghost-queue`);
+
+      // Handle live streaming data (partial fields while user speaks)
+      if (result && result.live && result.live.fields && Object.keys(result.live.fields).length > 0) {
+        const live = result.live;
+        const state = liveGhostState[projectId] || { formOpen: false, fieldsTyped: {} };
+
+        // Open form if not already open
+        if (!state.formOpen && live.entity) {
+          await win.webContents.executeJavaScript(`
+            (function() {
+              if (typeof showModule === 'function') showModule('${live.entity}');
+              setTimeout(function() { if (typeof openCreate === 'function') openCreate(); }, 300);
+            })();
+          `);
+          state.formOpen = true;
+        }
+
+        // Type new fields that haven't been typed yet
+        for (const [field, value] of Object.entries(live.fields)) {
+          if (state.fieldsTyped[field] === value) continue;
+          state.fieldsTyped[field] = value;
+
+          // Inject typing into the field
+          await win.webContents.executeJavaScript(`
+            (function() {
+              var input = document.querySelector('#modal-body input[name="${field}"]')
+                || document.querySelector('#modal-body select[name="${field}"]')
+                || document.querySelector('#modal-body textarea[name="${field}"]');
+              if (!input) {
+                var all = document.querySelectorAll('#modal-body input, #modal-body select, #modal-body textarea');
+                for (var i = 0; i < all.length; i++) {
+                  var n = (all[i].name || '').toLowerCase();
+                  if (n.includes('${field}'.toLowerCase()) || '${field}'.toLowerCase().includes(n)) { input = all[i]; break; }
+                }
+              }
+              if (input && input.type !== 'hidden') {
+                input.classList.add('ghost-typing-glow');
+                input.value = '${String(value).replace(/'/g, "\\'")}';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                setTimeout(function() { input.classList.remove('ghost-typing-glow'); }, 800);
+              }
+            })();
+          `);
+        }
+
+        // If final, reset state and let full animation handle save
+        if (live.is_final) {
+          liveGhostState[projectId] = { formOpen: false, fieldsTyped: {} };
+        } else {
+          liveGhostState[projectId] = state;
+        }
+      }
+
+      // Handle completed ghost animations (full create)
       if (result && result.items && result.items.length > 0) {
         for (const ghost of result.items) {
           await executeGhostAnimation(win, ghost);
         }
+        liveGhostState[projectId] = { formOpen: false, fieldsTyped: {} };
       }
     } catch (e) {
-      // Silently ignore — ghost queue is best-effort
+      // Silently ignore
     }
   }
 }
@@ -480,16 +536,18 @@ async function executeGhostAnimation(win, ghost) {
   }
 }
 
+let ghostTimer;
+
 function startPolling() {
   pollStatuses();
-  pollTimer = setInterval(() => {
-    pollStatuses();
-    pollGhostQueue();
-  }, 5000); // Poll every 5s for ghost animations (faster than status)
+  pollTimer = setInterval(pollStatuses, CONFIG.pollInterval);
+  // Ghost queue polls every 2s for real-time feel
+  ghostTimer = setInterval(pollGhostQueue, 2000);
 }
 
 function stopPolling() {
   if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  if (ghostTimer) { clearInterval(ghostTimer); ghostTimer = null; }
 }
 
 function showNotification(title, body) {

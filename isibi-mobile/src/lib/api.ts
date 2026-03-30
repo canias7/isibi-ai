@@ -156,6 +156,19 @@ export async function aiCommand(
   });
 }
 
+// ── Ghost Stream (real-time field extraction while speaking) ──────────────────
+
+export async function ghostStream(
+  projectId: string,
+  text: string,
+  isFinal: boolean = false
+): Promise<{ status: string; entity?: string; fields?: Record<string, string> }> {
+  return apiFetch(`/api/apps/${projectId}/ghost-stream`, {
+    method: "POST",
+    body: JSON.stringify({ text, is_final: isFinal }),
+  });
+}
+
 // ── App Schema ───────────────────────────────────────────────────────────────
 
 export async function getAppSchema(projectId: string) {

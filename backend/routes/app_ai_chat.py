@@ -602,4 +602,121 @@ async def get_ghost_queue(project_id: _uuid.UUID):
     """Poll for pending ghost animations. Desktop app calls this."""
     pid = str(project_id)
     items = _ghost_queue.pop(pid, [])
-    return {"items": [g.model_dump() for g in items]}
+    # Also include live streaming fields
+    live = _ghost_live.pop(pid, None)
+    result = {"items": [g.model_dump() for g in items]}
+    if live:
+        result["live"] = live
+    return result
+
+
+# ── Live ghost streaming — fields extracted in real-time while speaking ──
+
+# In-memory live state: project_id → {entity, table, fields so far, open: bool}
+_ghost_live: dict[str, dict] = {}
+
+
+class GhostStreamRequest(BaseModel):
+    text: str  # Current interim transcript
+    is_final: bool = False
+
+
+@router.post("/{project_id}/ghost-stream")
+async def ghost_stream(
+    project_id: _uuid.UUID,
+    body: GhostStreamRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Stream speech transcript to extract fields in real-time.
+    Called repeatedly with interim transcripts while user speaks.
+    When is_final=True, triggers the actual record creation.
+    """
+    pid = str(project_id)
+    text = body.text.strip()
+    if not text:
+        return {"status": "waiting"}
+
+    if not ANTHROPIC_API_KEY:
+        return {"status": "no_ai"}
+
+    # Detect if this looks like a create command
+    lower = text.lower()
+    is_create = any(lower.startswith(w) for w in ("create", "add", "new", "make"))
+    if not is_create:
+        # Not a create command — skip streaming, let normal flow handle it
+        return {"status": "skip"}
+
+    # Fetch project spec for entity info
+    result = await db.execute(
+        select(Project).where(Project.id == project_id, Project.deleted_at.is_(None))
+    )
+    project = result.scalar_one_or_none()
+    if not project:
+        return {"status": "error", "message": "Project not found"}
+
+    spec = project.spec or {}
+    entities = spec.get("entities", [])
+
+    # Build entity summary for Claude
+    skip_fields = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
+    entity_info = []
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        name = ent.get("name", "")
+        table = ent.get("table", name.lower().replace(" ", "_"))
+        fields = [f.get("name", "") for f in ent.get("fields", []) if isinstance(f, dict) and f.get("name") not in skip_fields]
+        entity_info.append(f"- {name} (table: {table}): {', '.join(fields)}")
+
+    schema_text = "\n".join(entity_info)
+
+    # Ask Claude to extract fields from the partial transcript
+    system_prompt = f"""Extract fields from this partial voice command for a business app.
+Available entities:
+{schema_text}
+
+Respond with JSON only:
+{{"entity": "EntityName", "table": "table_name", "fields": {{"field_name": "value"}}}}
+
+Only include fields where you're confident about the value from what was said so far.
+If you can't determine the entity yet, respond: {{"entity": "", "fields": {{}}}}"""
+
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model=AI_MODEL,
+            max_tokens=256,
+            system=system_prompt,
+            messages=[{"role": "user", "content": text}],
+        )
+        raw = message.content[0].text
+        json_match = re.search(r"\{[\s\S]*\}", raw)
+        if not json_match:
+            return {"status": "parsing"}
+        parsed = json.loads(json_match.group())
+    except Exception as e:
+        logger.debug("Ghost stream parse error: %s", e)
+        return {"status": "parsing"}
+
+    entity = parsed.get("entity", "")
+    table = parsed.get("table", "")
+    fields = parsed.get("fields", {})
+
+    if entity and fields:
+        # Queue live ghost data for the desktop app
+        _ghost_live[pid] = {
+            "entity": entity,
+            "table": table,
+            "fields": fields,
+            "is_final": body.is_final,
+        }
+
+        # If this is the final transcript, also trigger the full create
+        if body.is_final:
+            ghost = GhostData(entity=entity, table=table, fields=fields)
+            if pid not in _ghost_queue:
+                _ghost_queue[pid] = []
+            _ghost_queue[pid].append(ghost)
+
+    return {"status": "ok", "entity": entity, "fields": fields}
