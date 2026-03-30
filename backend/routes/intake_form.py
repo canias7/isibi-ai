@@ -334,7 +334,7 @@ h+='<div class="card"><h2>'+sec.t+'</h2><div class="accent-line"></div>';
 sec.f.forEach(f=>{
 h+='<div class="field"><label>'+f.l+(f.r?' <span class="req">*</span>':'')+'</label>';
 if(f.ty==="ta"){
-h+='<textarea rows="3" placeholder="'+(f.ph||"Type your answer...")+'" oninput="upd(\''+f.n+'\',this.value)">'+val(f.n)+'</textarea>';
+h+='<textarea rows="3" placeholder="'+(f.ph||"Type your answer...")+'" oninput="upd(\''+f.n+'\',this.value)" onchange="upd(\''+f.n+'\',this.value)">'+val(f.n)+'</textarea>';
 }else if(f.ty==="sel"){
 h+='<div class="chips">';
 (f.o||[]).forEach(o=>{h+='<div class="chip'+(val(f.n)===o?' on':'')+'" onclick="setChip(\''+f.n+'\',\''+o.replace(/'/g,"\\'")+'\')">'+o+'</div>';});
@@ -345,7 +345,7 @@ let arr=D[f.n]||[];
 (f.o||[]).forEach(o=>{h+='<div class="chip multi'+(arr.includes(o)?' on':'')+'" onclick="togMulti(\''+f.n+'\',\''+o.replace(/'/g,"\\'")+'\')">'+( arr.includes(o)?'&#10003; ':'')+o+'</div>';});
 h+='</div>';
 }else{
-h+='<input type="'+(f.ty||"text")+'" value="'+val(f.n)+'" placeholder="'+(f.ph||"")+'" oninput="upd(\''+f.n+'\',this.value)">';
+h+='<input type="'+(f.ty||"text")+'" value="'+val(f.n)+'" placeholder="'+(f.ph||"")+'" oninput="upd(\''+f.n+'\',this.value)" onchange="upd(\''+f.n+'\',this.value)">';
 }
 h+='</div>';
 });
@@ -357,10 +357,18 @@ h+='</div></div></div>';
 document.getElementById("app").innerHTML=h;
 }
 
-function next(){if(S<SECTIONS.length-1){S++;render();window.scrollTo(0,0)}}
-function back(){if(S>0){S--;render();window.scrollTo(0,0)}}
+function next(){saveAll();if(S<SECTIONS.length-1){S++;render();window.scrollTo(0,0)}}
+function back(){saveAll();if(S>0){S--;render();window.scrollTo(0,0)}}
+
+function saveAll(){
+document.querySelectorAll('input,textarea').forEach(function(el){
+var n=el.getAttribute('oninput');
+if(n){var m=n.match(/upd\('([^']+)'/);if(m)D[m[1]]=el.value;}
+});
+}
 
 async function submit(){
+saveAll();
 if(sending)return;
 sending=true;
 var btn=document.getElementById("sbtn");
