@@ -126,17 +126,54 @@ async def _ensure_project_access(
     await _get_project(db, project_id, org_id)
 
 
+def _resolve_table_name(requested: str, available: list[str]) -> str | None:
+    """Fuzzy-match a table name against available tables.
+
+    Handles: plural/singular, underscores, camelCase, case differences.
+    E.g. 'contacts' matches 'contact', 'MenuCategories' matches 'menucategory'.
+    """
+    req = requested.lower().replace("_", "").replace(" ", "")
+
+    for t in available:
+        if t == requested:
+            return t
+
+    # Lowercase exact
+    for t in available:
+        if t.lower() == requested.lower():
+            return t
+
+    # Strip trailing 's' (plural)
+    for t in available:
+        t_low = t.lower()
+        if t_low == req or t_low == req.rstrip("s") or t_low + "s" == req:
+            return t
+        # Also try without underscores
+        t_clean = t_low.replace("_", "")
+        if t_clean == req or t_clean == req.rstrip("s") or t_clean + "s" == req:
+            return t
+
+    # Substring match as last resort
+    for t in available:
+        if req.rstrip("s") in t.lower() or t.lower() in req:
+            return t
+
+    return None
+
+
 async def _ensure_table_exists(
     project_id: str,
     table_name: str,
-) -> None:
-    """Verify the table exists in the project's schema."""
+) -> str:
+    """Verify the table exists in the project's schema. Returns the resolved table name."""
     tables = await list_schema_tables(project_id, DATABASE_URL)
-    if table_name not in tables:
+    resolved = _resolve_table_name(table_name, tables)
+    if not resolved:
         raise HTTPException(
             status_code=404,
-            detail=f"Table '{table_name}' not found in project schema.",
+            detail=f"Table '{table_name}' not found in project schema. Available: {', '.join(tables)}",
         )
+    return resolved
 
 
 async def _ensure_schema_or_create(project_id: str, db: AsyncSession) -> None:
@@ -457,7 +494,7 @@ async def list_rows(
     schema = get_schema_name(str(project_id))
 
     await _ensure_schema_or_create(str(project_id), db)
-    await _ensure_table_exists(str(project_id), table)
+    table = await _ensure_table_exists(str(project_id), table)
 
     # Enforce hard LIMIT cap for safety (default 100, max 500)
     effective_page_size = min(page_size, 500)
@@ -515,7 +552,7 @@ async def get_row(
     schema = get_schema_name(str(project_id))
 
     await _ensure_schema_or_create(str(project_id), db)
-    await _ensure_table_exists(str(project_id), table)
+    table = await _ensure_table_exists(str(project_id), table)
 
     conn = await _get_raw_connection(DATABASE_URL)
     try:
@@ -550,7 +587,7 @@ async def create_row(
     schema = get_schema_name(str(project_id))
 
     await _ensure_schema_or_create(str(project_id), db)
-    await _ensure_table_exists(str(project_id), table)
+    table = await _ensure_table_exists(str(project_id), table)
 
     if not body:
         raise HTTPException(status_code=400, detail="Request body cannot be empty")
@@ -661,7 +698,7 @@ async def update_row(
     schema = get_schema_name(str(project_id))
 
     await _ensure_schema_or_create(str(project_id), db)
-    await _ensure_table_exists(str(project_id), table)
+    table = await _ensure_table_exists(str(project_id), table)
 
     if not body:
         raise HTTPException(status_code=400, detail="Request body cannot be empty")
@@ -772,7 +809,7 @@ async def delete_row(
     schema = get_schema_name(str(project_id))
 
     await _ensure_schema_or_create(str(project_id), db)
-    await _ensure_table_exists(str(project_id), table)
+    table = await _ensure_table_exists(str(project_id), table)
 
     conn = await _get_raw_connection(DATABASE_URL)
     try:
@@ -833,7 +870,7 @@ async def batch_update_rows(
     schema = get_schema_name(str(project_id))
 
     await _ensure_schema_or_create(str(project_id), db)
-    await _ensure_table_exists(str(project_id), table)
+    table = await _ensure_table_exists(str(project_id), table)
 
     updates = body.get("updates", [])
     if not updates or not isinstance(updates, list):
