@@ -100,13 +100,7 @@ interface Message {
 }
 
 // Local permissive AppSpec — OnboardingPage handles specs from API that may
-// have different shapes. Using the strict shared type causes cascading errors.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AppSpec = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AppSpecEntity = any;
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AppSpecModule = any;
+import type { AppSpec, EntitySpec as AppSpecEntity, ModuleSpec as AppSpecModule } from "@/types/spec";
 
 interface ChatSession {
   id: string;
