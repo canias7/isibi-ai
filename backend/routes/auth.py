@@ -27,7 +27,7 @@ from schemas.auth import (
     UserResponse,
 )
 from services.email import send_verification_email, send_password_reset_email
-from auth import JWT_SECRET, JWT_ALGORITHM
+from auth import JWT_SECRET, JWT_ALGORITHM, get_current_user_id
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
