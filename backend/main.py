@@ -189,6 +189,38 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Response caching (must be before rate limiter so cached responses skip it)
 app.add_middleware(ResponseCacheMiddleware)
 
+# ── Request size limit middleware ──
+MAX_BODY_SIZE = 10 * 1024 * 1024  # 10MB max request body
+
+class RequestSizeLimitMiddleware:
+    """Reject requests with bodies exceeding MAX_BODY_SIZE."""
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        content_length = 0
+        for header_name, header_value in scope.get("headers", []):
+            if header_name == b"content-length":
+                try:
+                    content_length = int(header_value)
+                except ValueError:
+                    pass
+                break
+
+        if content_length > MAX_BODY_SIZE:
+            from starlette.responses import JSONResponse
+            response = JSONResponse({"detail": f"Request body too large. Max {MAX_BODY_SIZE // 1024 // 1024}MB."}, status_code=413)
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+
+app.add_middleware(RequestSizeLimitMiddleware)
+
 # CSRF protection — require X-Requested-With header on mutating requests
 class CSRFMiddleware:
     """Block cross-origin form submissions by requiring a custom header.

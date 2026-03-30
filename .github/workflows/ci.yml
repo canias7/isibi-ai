@@ -37,6 +37,10 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.txt
 
+      - name: Dependency vulnerability scan
+        working-directory: backend
+        run: pip install pip-audit && pip-audit --strict --desc 2>&1 || echo "::warning::pip-audit found vulnerabilities"
+
       - name: Run tests
         working-directory: backend
         env:
@@ -61,6 +65,10 @@ jobs:
       - name: Install dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: Dependency vulnerability scan
+        working-directory: frontend
+        run: npm audit --audit-level=high 2>&1 || echo "::warning::npm audit found vulnerabilities"
 
       - name: Type check
         working-directory: frontend

@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -257,21 +257,30 @@ async def deploy_history(
     return {"history": history[-5:]}
 
 
+def _verify_admin(request) -> None:
+    """Verify admin access: check API key and optionally IP allowlist."""
+    admin_key = os.getenv("ADMIN_KEY", "")
+    if not admin_key:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access not configured")
+    provided = request.headers.get("x-admin-key", "") or request.query_params.get("key", "")
+    if not provided or provided != admin_key:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin key")
+    # IP allowlist (optional)
+    allowed_ips = os.getenv("ADMIN_ALLOWED_IPS", "")
+    if allowed_ips:
+        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "").split(",")[0].strip()
+        if client_ip not in [ip.strip() for ip in allowed_ips.split(",") if ip.strip()]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="IP not allowed")
+
+
 @router.post("/admin/redeploy-all")
 async def admin_redeploy_all(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """
-    Admin endpoint: re-deploys ALL deployed projects with the latest deployer code.
-    Protected by a secret key in the query param.
-    """
-    import os
-    admin_key = os.getenv("ADMIN_KEY", "isibi-admin-2026")
+    """Admin: re-deploy ALL deployed projects. Protected by admin key + IP allowlist."""
+    _verify_admin(request)
 
-    # Import Request to get query params
-    # This is a simple admin endpoint, not for production use
-    from fastapi import Query
-    
     results = await db.execute(
         select(Project).where(
             Project.status == "deployed",
@@ -299,9 +308,11 @@ async def admin_redeploy_all(
 
 @router.post("/admin/create-schemas")
 async def admin_create_schemas(
+    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
-    """Create database schemas for all deployed projects that don't have one yet."""
+    """Create database schemas for all deployed projects. Protected by admin key."""
+    _verify_admin(request)
     from generator.app_db import create_app_schema, get_schema_name
     from db import DATABASE_URL
 

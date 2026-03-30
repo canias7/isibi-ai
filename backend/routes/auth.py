@@ -1,5 +1,6 @@
 from __future__ import annotations
 import os
+import time
 import uuid
 import secrets
 import string
@@ -33,6 +34,32 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 JWT_EXPIRE_HOURS = int(os.getenv("JWT_EXPIRE_HOURS", "72"))
 TURNSTILE_SECRET = os.getenv("TURNSTILE_SECRET_KEY", "")
 CODE_EXPIRY_MINUTES = 10
+
+# ── Account lockout after failed logins ──
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_MINUTES = 15
+_login_attempts: dict[str, list[float]] = {}  # email → [timestamps]
+
+
+def _check_lockout(email: str) -> bool:
+    """Return True if account is locked out."""
+    attempts = _login_attempts.get(email, [])
+    cutoff = time.time() - (LOCKOUT_MINUTES * 60)
+    recent = [t for t in attempts if t > cutoff]
+    _login_attempts[email] = recent
+    return len(recent) >= MAX_LOGIN_ATTEMPTS
+
+
+def _record_failed_login(email: str):
+    """Record a failed login attempt."""
+    if email not in _login_attempts:
+        _login_attempts[email] = []
+    _login_attempts[email].append(time.time())
+
+
+def _clear_login_attempts(email: str):
+    """Clear failed attempts on successful login."""
+    _login_attempts.pop(email, None)
 
 
 def _hash_password(password: str) -> str:
@@ -166,6 +193,15 @@ async def verify_email(body: VerifyEmailRequest, db: AsyncSession = Depends(get_
 
 @router.post("/login", response_model=TokenResponse)
 async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+    email_lower = body.email.lower().strip()
+
+    # Check account lockout
+    if _check_lockout(email_lower):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many failed attempts. Account locked for {LOCKOUT_MINUTES} minutes."
+        )
+
     # Verify Turnstile
     if not await _verify_turnstile(body.turnstile_token):
         raise HTTPException(status_code=400, detail="Bot verification failed. Please try again.")
@@ -174,10 +210,10 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = result.scalar_one_or_none()
 
     if not user or not _verify_password(body.password, user.password_hash):
+        _record_failed_login(email_lower)
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
     if not user.email_verified:
-        # Resend code automatically
         code = _generate_code()
         user.verification_code = code
         user.verification_expires_at = datetime.now(timezone.utc) + timedelta(minutes=CODE_EXPIRY_MINUTES)
@@ -188,11 +224,26 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
             detail="Email not verified. A new verification code has been sent."
         )
 
+    _clear_login_attempts(email_lower)
     user.last_login_at = datetime.now(timezone.utc)
     await db.commit()
 
     token = _make_token(user)
     return TokenResponse(access_token=token, user=_user_response(user))
+
+
+@router.post("/refresh", response_model=TokenResponse)
+async def refresh_token(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Issue a fresh token if the current one is still valid."""
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    new_token = _make_token(user)
+    return TokenResponse(access_token=new_token, user=_user_response(user))
 
 
 # ─── Resend Code ─────────────────────────────────────────
