@@ -54,6 +54,22 @@ class AiQueryResponse(BaseModel):
 
 # ── Helpers ──────────────────────────────────────────────────────────
 
+def _fuzzy_table(requested: str, available: list[str]) -> str | None:
+    """Fuzzy match table name: contacts→contact, MenuCategory→menucategory."""
+    req = requested.lower().replace("_", "").replace(" ", "")
+    for t in available:
+        if t.lower() == requested.lower():
+            return t
+    for t in available:
+        t_clean = t.lower().replace("_", "")
+        if t_clean == req or t_clean == req.rstrip("s") or t_clean + "s" == req:
+            return t
+    for t in available:
+        if req.rstrip("s") in t.lower() or t.lower() in req:
+            return t
+    return None
+
+
 def _pick_table(question: str, tables: list[str]) -> str | None:
     """
     Simple heuristic: find the table whose name best matches the question.
@@ -395,7 +411,7 @@ Rules:
     ai_message = parsed.get("message", raw)
     pid_str = str(project_id)
 
-    # Find the actual table name
+    # Find the actual table name — try spec first, then fuzzy match against DB
     table_name = None
     for ent in entities:
         if not isinstance(ent, dict):
@@ -405,6 +421,16 @@ Rules:
             break
     if not table_name and entity_name:
         table_name = entity_name.lower().replace(" ", "_")
+
+    # Resolve against actual DB tables (fuzzy: contacts→contact, etc.)
+    if table_name:
+        try:
+            actual_tables = await list_schema_tables(pid_str, DATABASE_URL)
+            resolved = _fuzzy_table(table_name, actual_tables)
+            if resolved:
+                table_name = resolved
+        except Exception:
+            pass
 
     # Execute the action
     if intent == "create" and table_name:
@@ -419,11 +445,24 @@ Rules:
                 # Get columns to validate field names
                 columns = await get_table_columns(pid_str, table_name, DATABASE_URL)
                 col_names = {c["column_name"] for c in columns}
+                skip_cols = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
 
-                # Filter data to only include valid columns
-                valid_data = {k: v for k, v in data.items() if k in col_names}
+                # Fuzzy field matching: "name"→"first_name", "phone_number"→"phone", etc.
+                valid_data = {}
+                for k, v in data.items():
+                    k_low = k.lower().replace(" ", "_")
+                    if k_low in col_names and k_low not in skip_cols:
+                        valid_data[k_low] = v
+                    else:
+                        # Try partial match
+                        for col in col_names - skip_cols:
+                            if k_low in col or col in k_low or k_low.replace("_", "") == col.replace("_", ""):
+                                valid_data[col] = v
+                                break
+
                 if not valid_data:
-                    return AiCommandResponse(message=f"I couldn't map the fields correctly. Available fields: {', '.join(col_names - {'id', 'org_id', 'created_at', 'updated_at', 'deleted_at', 'version'})}", action="chat")
+                    editable = col_names - skip_cols
+                    return AiCommandResponse(message=f"I couldn't map the fields. Available fields: {', '.join(sorted(editable))}", action="chat")
 
                 cols = ", ".join(f'"{k}"' for k in valid_data.keys())
                 placeholders = ", ".join(f"${i+1}" for i in range(len(valid_data)))
