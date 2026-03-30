@@ -322,7 +322,8 @@ const SECTIONS=[
 
 let D={},S=0,sending=false;
 function val(n){return D[n]||""}
-function set(n,v){D[n]=v;render()}
+function upd(n,v){D[n]=v;}
+function setChip(n,v){D[n]=v;render()}
 function togMulti(n,o){let a=D[n]||[];if(a.includes(o))D[n]=a.filter(x=>x!==o);else D[n]=[...a,o];render()}
 
 function render(){
@@ -333,10 +334,10 @@ h+='<div class="card"><h2>'+sec.t+'</h2><div class="accent-line"></div>';
 sec.f.forEach(f=>{
 h+='<div class="field"><label>'+f.l+(f.r?' <span class="req">*</span>':'')+'</label>';
 if(f.ty==="ta"){
-h+='<textarea rows="3" placeholder="'+(f.ph||"Type your answer...")+'" oninput="set(\''+f.n+'\',this.value)">'+val(f.n)+'</textarea>';
+h+='<textarea rows="3" placeholder="'+(f.ph||"Type your answer...")+'" oninput="upd(\''+f.n+'\',this.value)">'+val(f.n)+'</textarea>';
 }else if(f.ty==="sel"){
 h+='<div class="chips">';
-(f.o||[]).forEach(o=>{h+='<div class="chip'+(val(f.n)===o?' on':'')+'" onclick="set(\''+f.n+'\',\''+o.replace(/'/g,"\\'")+'\')">'+o+'</div>';});
+(f.o||[]).forEach(o=>{h+='<div class="chip'+(val(f.n)===o?' on':'')+'" onclick="setChip(\''+f.n+'\',\''+o.replace(/'/g,"\\'")+'\')">'+o+'</div>';});
 h+='</div>';
 }else if(f.ty==="multi"){
 h+='<div class="chips">';
@@ -344,7 +345,7 @@ let arr=D[f.n]||[];
 (f.o||[]).forEach(o=>{h+='<div class="chip multi'+(arr.includes(o)?' on':'')+'" onclick="togMulti(\''+f.n+'\',\''+o.replace(/'/g,"\\'")+'\')">'+( arr.includes(o)?'&#10003; ':'')+o+'</div>';});
 h+='</div>';
 }else{
-h+='<input type="'+(f.ty||"text")+'" value="'+val(f.n)+'" placeholder="'+(f.ph||"")+'" oninput="set(\''+f.n+'\',this.value)">';
+h+='<input type="'+(f.ty||"text")+'" value="'+val(f.n)+'" placeholder="'+(f.ph||"")+'" oninput="upd(\''+f.n+'\',this.value)">';
 }
 h+='</div>';
 });
