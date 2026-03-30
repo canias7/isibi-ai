@@ -11,7 +11,7 @@ import {
 import { C, F, R } from "../lib/theme";
 import {
   Project, getProjectSpec, listRecords, createRecord,
-  deleteRecord, countRecords, CommandResult,
+  deleteRecord, countRecords, CommandResult, aiCommand,
   createScheduledCommand, listScheduledCommands, deleteScheduledCommand,
 } from "../lib/api";
 
@@ -393,10 +393,19 @@ async function processCommand(
     };
   }
 
-  return {
-    success: false,
-    message: `I don't understand "${cmd}". Say "help" for available commands.`,
-  };
+  // No pattern matched — use AI to understand natural language
+  try {
+    const aiResult = await aiCommand(projectId, cmd);
+    return {
+      success: aiResult.action !== "chat" || true,
+      message: aiResult.message || "I'm not sure what you mean. Try saying something like 'show me contacts' or 'add a new lead named John'.",
+    };
+  } catch (e: any) {
+    return {
+      success: false,
+      message: `I couldn't process that. Try saying "help" for available commands.`,
+    };
+  }
 }
 
 // ── Component ────────────────────────────────────────────────────────────────

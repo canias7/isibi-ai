@@ -245,3 +245,218 @@ async def ai_query(
         )
 
     return AiQueryResponse(answer=answer, data=serialized_rows)
+
+
+# ── AI Command — natural language CRUD + conversation ────────────────
+
+class AiCommandRequest(BaseModel):
+    text: str
+
+class AiCommandResponse(BaseModel):
+    message: str
+    action: Optional[str] = None  # "created", "deleted", "listed", "chat"
+    data: Optional[list[dict[str, Any]]] = None
+
+
+@router.post("/{project_id}/ai/command")
+async def ai_command(
+    project_id: _uuid.UUID,
+    body: AiCommandRequest,
+    db: AsyncSession = Depends(get_db),
+) -> AiCommandResponse:
+    """
+    Process a natural language voice command — conversational AI with CRUD capabilities.
+
+    Accepts plain text (from voice or typing) and uses Claude to:
+    - Understand intent (create, list, delete, or just chat)
+    - Execute CRUD operations if needed
+    - Respond conversationally
+    """
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Text cannot be empty.")
+
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="AI service not configured.")
+
+    # Fetch project spec
+    result = await db.execute(
+        select(Project).where(
+            Project.id == project_id,
+            Project.deleted_at.is_(None),
+        )
+    )
+    project = result.scalar_one_or_none()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found.")
+
+    spec = project.spec or {}
+    entities = spec.get("entities", [])
+    app_name = spec.get("app_name", project.name or "App")
+
+    # Build entity schema summary for Claude
+    entity_summaries = []
+    entity_map = {}  # name -> table_name
+    for entity in entities:
+        if not isinstance(entity, dict):
+            continue
+        name = entity.get("name", "")
+        table = entity.get("table", name.lower().replace(" ", "_"))
+        entity_map[name.lower()] = table
+        fields = entity.get("fields", [])
+        field_names = [f.get("name", "") for f in fields if isinstance(f, dict) and f.get("name") not in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version")]
+        entity_summaries.append(f"- {name} (table: {table}): fields = {', '.join(field_names)}")
+
+    schema_text = "\n".join(entity_summaries) if entity_summaries else "No entities defined."
+
+    # System prompt for Claude
+    system_prompt = f"""You are a helpful voice assistant for "{app_name}". You help users manage their data through natural conversation.
+
+Available entities and their fields:
+{schema_text}
+
+IMPORTANT: You must respond with a JSON object in this exact format:
+{{
+  "intent": "create" | "list" | "delete" | "count" | "chat",
+  "entity": "EntityName" (only for create/list/delete/count),
+  "data": {{ "field": "value", ... }} (only for create),
+  "filter": "search term" (optional, for list/delete),
+  "message": "Your conversational response to the user"
+}}
+
+Rules:
+- For casual conversation (hello, hi, how are you, thanks, etc.), use intent "chat" and respond friendly
+- For creating records, extract ALL field values mentioned and map them to the correct field names
+- For listing/showing records, use intent "list"
+- For counting, use intent "count"
+- For deleting, use intent "delete" and include a filter to identify the record
+- Always be conversational and helpful in your message
+- If you're not sure what entity they mean, ask them in your message with intent "chat"
+- Only use entity names from the available list above"""
+
+    # Call Claude
+    try:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
+        message = client.messages.create(
+            model=AI_MODEL,
+            max_tokens=512,
+            system=system_prompt,
+            messages=[{"role": "user", "content": text}],
+        )
+        raw = message.content[0].text
+    except Exception as e:
+        logger.error("Claude API error in ai_command: %s", e)
+        raise HTTPException(status_code=502, detail="AI service unavailable.")
+
+    # Parse Claude's response
+    try:
+        # Extract JSON from response (Claude sometimes wraps in markdown)
+        json_match = re.search(r"\{[\s\S]*\}", raw)
+        if not json_match:
+            return AiCommandResponse(message=raw, action="chat")
+        parsed = json.loads(json_match.group())
+    except (json.JSONDecodeError, AttributeError):
+        return AiCommandResponse(message=raw, action="chat")
+
+    intent = parsed.get("intent", "chat")
+    entity_name = parsed.get("entity", "")
+    ai_message = parsed.get("message", raw)
+    pid_str = str(project_id)
+
+    # Find the actual table name
+    table_name = None
+    for ent in entities:
+        if not isinstance(ent, dict):
+            continue
+        if ent.get("name", "").lower() == entity_name.lower():
+            table_name = ent.get("table", entity_name.lower().replace(" ", "_"))
+            break
+    if not table_name and entity_name:
+        table_name = entity_name.lower().replace(" ", "_")
+
+    # Execute the action
+    if intent == "create" and table_name:
+        try:
+            data = parsed.get("data", {})
+            if not data:
+                return AiCommandResponse(message=ai_message, action="chat")
+
+            schema = get_schema_name(pid_str)
+            conn = await _get_raw_connection(DATABASE_URL)
+            try:
+                # Get columns to validate field names
+                columns = await get_table_columns(pid_str, table_name, DATABASE_URL)
+                col_names = {c["column_name"] for c in columns}
+
+                # Filter data to only include valid columns
+                valid_data = {k: v for k, v in data.items() if k in col_names}
+                if not valid_data:
+                    return AiCommandResponse(message=f"I couldn't map the fields correctly. Available fields: {', '.join(col_names - {'id', 'org_id', 'created_at', 'updated_at', 'deleted_at', 'version'})}", action="chat")
+
+                cols = ", ".join(f'"{k}"' for k in valid_data.keys())
+                placeholders = ", ".join(f"${i+1}" for i in range(len(valid_data)))
+                values = list(valid_data.values())
+
+                await conn.execute(
+                    f'INSERT INTO "{schema}"."{table_name}" ({cols}) VALUES ({placeholders})',
+                    *values,
+                )
+                return AiCommandResponse(message=ai_message, action="created")
+            finally:
+                await conn.close()
+        except Exception as e:
+            logger.error("AI create error: %s", e)
+            return AiCommandResponse(message=f"I tried to create the record but got an error: {str(e)}", action="chat")
+
+    elif intent == "list" and table_name:
+        try:
+            rows = await _fetch_table_data(pid_str, table_name, limit=20)
+            serialized = [_serialize_row(r) for r in rows]
+            return AiCommandResponse(message=ai_message, action="listed", data=serialized)
+        except Exception as e:
+            logger.error("AI list error: %s", e)
+            return AiCommandResponse(message=f"I couldn't fetch the data: {str(e)}", action="chat")
+
+    elif intent == "count" and table_name:
+        try:
+            rows = await _fetch_table_data(pid_str, table_name, limit=10000)
+            count = len(rows)
+            return AiCommandResponse(message=ai_message or f"You have {count} {entity_name}(s).", action="listed")
+        except Exception as e:
+            return AiCommandResponse(message=f"I couldn't count: {str(e)}", action="chat")
+
+    elif intent == "delete" and table_name:
+        try:
+            filter_text = parsed.get("filter", "")
+            if not filter_text:
+                return AiCommandResponse(message="I need to know which record to delete. Can you be more specific?", action="chat")
+
+            schema = get_schema_name(pid_str)
+            conn = await _get_raw_connection(DATABASE_URL)
+            try:
+                # Soft delete by name/title match
+                name_col = None
+                columns = await get_table_columns(pid_str, table_name, DATABASE_URL)
+                for c in columns:
+                    if c["column_name"] in ("name", "title", "first_name", "customer_name"):
+                        name_col = c["column_name"]
+                        break
+
+                if not name_col:
+                    return AiCommandResponse(message="I couldn't find a name field to match against.", action="chat")
+
+                result = await conn.execute(
+                    f'UPDATE "{schema}"."{table_name}" SET "deleted_at" = NOW() '
+                    f'WHERE LOWER("{name_col}") LIKE $1 AND "deleted_at" IS NULL',
+                    f"%{filter_text.lower()}%",
+                )
+                deleted = result.split()[-1] if isinstance(result, str) else "0"
+                return AiCommandResponse(message=ai_message, action="deleted")
+            finally:
+                await conn.close()
+        except Exception as e:
+            logger.error("AI delete error: %s", e)
+            return AiCommandResponse(message=f"I couldn't delete: {str(e)}", action="chat")
+
+    # Default: conversational response
+    return AiCommandResponse(message=ai_message, action="chat")

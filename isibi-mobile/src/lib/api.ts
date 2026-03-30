@@ -143,6 +143,18 @@ export async function deleteScheduledCommand(projectId: string, commandId: strin
   });
 }
 
+// ── AI Voice Command ──────────────────────────────────────────────────────────
+
+export async function aiCommand(
+  projectId: string,
+  text: string
+): Promise<{ message: string; action?: string; data?: any[] }> {
+  return apiFetch(`/api/apps/${projectId}/ai/command`, {
+    method: "POST",
+    body: JSON.stringify({ text }),
+  });
+}
+
 // ── App Schema ───────────────────────────────────────────────────────────────
 
 export async function getAppSchema(projectId: string) {
