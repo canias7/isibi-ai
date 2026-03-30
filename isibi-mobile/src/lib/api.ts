@@ -147,11 +147,12 @@ export async function deleteScheduledCommand(projectId: string, commandId: strin
 
 export async function aiCommand(
   projectId: string,
-  text: string
+  text: string,
+  history?: { role: string; content: string }[]
 ): Promise<{ message: string; action?: string; data?: any[] }> {
   return apiFetch(`/api/apps/${projectId}/ai/command`, {
     method: "POST",
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, history: history || [] }),
   });
 }
 

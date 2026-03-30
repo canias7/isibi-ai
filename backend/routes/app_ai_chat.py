@@ -249,8 +249,13 @@ async def ai_query(
 
 # ── AI Command — natural language CRUD + conversation ────────────────
 
+class AiHistoryMessage(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
 class AiCommandRequest(BaseModel):
     text: str
+    history: Optional[list[AiHistoryMessage]] = None
 
 class AiCommandResponse(BaseModel):
     message: str
@@ -354,6 +359,13 @@ Rules:
 - If you're not sure what entity they mean, ask them in your message with intent "chat"
 - Only use entity names from the available list above"""
 
+    # Build messages with conversation history
+    messages = []
+    if body.history:
+        for h in body.history[-10:]:  # Keep last 10 messages for context
+            messages.append({"role": h.role, "content": h.content})
+    messages.append({"role": "user", "content": text})
+
     # Call Claude
     try:
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -361,7 +373,7 @@ Rules:
             model=AI_MODEL,
             max_tokens=512,
             system=system_prompt,
-            messages=[{"role": "user", "content": text}],
+            messages=messages,
         )
         raw = message.content[0].text
     except Exception as e:

@@ -174,6 +174,7 @@ async function processCommand(
   command: string,
   projectId: string,
   entities: EntityInfo[],
+  history?: {role: string; content: string}[],
 ): Promise<CommandResult> {
   const cmd = command.trim();
   const lower = cmd.toLowerCase();
@@ -255,7 +256,7 @@ async function processCommand(
         // If no specific data provided, let AI ask for required fields
         if (!extractedName) {
           try {
-            const aiResult = await aiCommand(projectId, cmd);
+            const aiResult = await aiCommand(projectId, cmd, history);
             return { success: true, message: aiResult.message };
           } catch {
             return { success: false, message: `What info do you want for this ${entitySingle}? Try: "add a ${entitySingle} named John"` };
@@ -407,7 +408,7 @@ async function processCommand(
 
   // No pattern matched — use AI to understand natural language
   try {
-    const aiResult = await aiCommand(projectId, cmd);
+    const aiResult = await aiCommand(projectId, cmd, history);
     return {
       success: aiResult.action !== "chat" || true,
       message: aiResult.message || "I'm not sure what you mean. Try saying something like 'show me contacts' or 'add a new lead named John'.",
@@ -436,6 +437,7 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
   const [specLoaded, setSpecLoaded] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [liveTranscript, setLiveTranscript] = useState("");
+  const [aiHistory, setAiHistory] = useState<{role: string; content: string}[]>([]);
 
   // Animations
   const orbPulse = useRef(new Animated.Value(1)).current;
@@ -516,16 +518,18 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
     setOrbState("processing");
 
     try {
-      const result = await processCommand(text, project.id, entities);
+      const result = await processCommand(text, project.id, entities, aiHistory);
       setOrbState("done");
       addResponse(result.success ? "OK" : "!!", result.message);
+      // Update AI conversation history
+      setAiHistory(prev => [...prev, {role: "user", content: text}, {role: "assistant", content: result.message}].slice(-20));
     } catch (e: any) {
       setOrbState("done");
       addResponse("!!", e.message ?? "Command failed");
     }
 
     setTimeout(() => setOrbState("idle"), 1500);
-  }, [inputText, project.id, entities, onDisconnect, onSwitchApp]);
+  }, [inputText, project.id, entities, onDisconnect, onSwitchApp, aiHistory]);
 
   // ── Speech recognition events ──
   useSpeechRecognitionEvent("start", () => {
@@ -548,9 +552,10 @@ export default function CommandScreen({ project, onDisconnect, onSwitchApp }: Pr
       setTimeout(async () => {
         setOrbState("processing");
         try {
-          const result = await processCommand(transcript, project.id, entities);
+          const result = await processCommand(transcript, project.id, entities, aiHistory);
           setOrbState("done");
           addResponse(result.success ? "OK" : "!!", result.message);
+          setAiHistory(prev => [...prev, {role: "user", content: transcript}, {role: "assistant", content: result.message}].slice(-20));
         } catch (e: any) {
           setOrbState("done");
           addResponse("!!", e.message ?? "Command failed");
