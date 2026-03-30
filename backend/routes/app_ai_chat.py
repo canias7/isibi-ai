@@ -314,6 +314,7 @@ async def ai_command(
     spec = project.spec or {}
     entities = spec.get("entities", [])
     app_name = spec.get("app_name", project.name or "App")
+    project_org_id = str(project.org_id) if project.org_id else None
 
     # Build entity schema summary for Claude with required field info
     entity_summaries = []
@@ -480,6 +481,11 @@ Rules:
                 if not valid_data:
                     editable = sorted(col_info.keys())
                     return AiCommandResponse(message=f"I couldn't map the fields. Available fields: {', '.join(editable)}", action="chat")
+
+                # Always include org_id
+                all_col_names = {c["column_name"] for c in columns}
+                if project_org_id and "org_id" in all_col_names:
+                    valid_data["org_id"] = project_org_id
 
                 # Fill NOT NULL columns with defaults if not provided
                 for col, info in col_info.items():
