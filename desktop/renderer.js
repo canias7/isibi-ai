@@ -15,6 +15,12 @@ function spawnParticles() {
 let apps=[], uptimeData={}, notifications=[], unreadCount=0, notifOpen=false, loading={};
 let nodePositions = {}; // {appId: {x, y}} — persisted positions
 let dragging = null; // {id, offsetX, offsetY, startX, startY, moved}
+let settingsOpen = false;
+
+// Settings with defaults
+let settings = { ghostCursor: true };
+try { const s = localStorage.getItem('isibi-settings'); if(s) settings = {...settings, ...JSON.parse(s)}; } catch(e){}
+function saveSetting(key, val) { settings[key] = val; localStorage.setItem('isibi-settings', JSON.stringify(settings)); }
 
 // Load saved positions
 try { const saved = localStorage.getItem('isibi-node-positions'); if(saved) nodePositions = JSON.parse(saved); } catch(e){}
@@ -62,6 +68,7 @@ function showDashboard() {
       <div class="header-right">
         <button class="btn-icon" id="refresh-btn" title="Refresh"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>
         <button class="btn-icon" id="notif-btn" title="Notifications"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="badge" id="notif-badge" style="display:none">0</span></button>
+        <button class="btn-icon" id="settings-btn" title="Settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         <button class="btn-logout" id="logout-btn">Sign Out</button>
       </div>
     </div>
@@ -80,11 +87,29 @@ function showDashboard() {
       <div class="notif-header"><h3>Notifications</h3><button class="btn-icon" id="close-notif"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
       <div style="padding:6px 16px"><button class="btn-secondary" style="width:100%;padding:7px" onclick="markAllRead()">Mark all read</button></div>
       <div class="notif-list" id="notif-list"></div>
+    </div>
+    <div class="notif-panel" id="settings-panel">
+      <div class="notif-header"><h3>Settings</h3><button class="btn-icon" id="close-settings"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <div style="padding:16px 20px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text-primary)">Ghost Cursor AI</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Animate form filling when creating records via voice</div>
+          </div>
+          <label style="position:relative;width:44px;height:24px;flex-shrink:0">
+            <input type="checkbox" id="toggle-ghost" ${settings.ghostCursor?'checked':''} onchange="saveSetting('ghostCursor',this.checked);window.isibi.setSetting('ghostCursor',this.checked)" style="opacity:0;width:0;height:0">
+            <span style="position:absolute;cursor:pointer;inset:0;background:${settings.ghostCursor?'var(--pink)':'rgba(255,255,255,.15)'};border-radius:12px;transition:all .2s"></span>
+            <span style="position:absolute;top:3px;left:${settings.ghostCursor?'23px':'3px'};width:18px;height:18px;background:white;border-radius:50%;transition:all .2s"></span>
+          </label>
+        </div>
+      </div>
     </div>`;
   spawnParticles();
   document.getElementById('refresh-btn').addEventListener('click',()=>loadApps());
   document.getElementById('notif-btn').addEventListener('click',toggleNotifications);
   document.getElementById('close-notif').addEventListener('click',toggleNotifications);
+  document.getElementById('settings-btn').addEventListener('click',toggleSettings);
+  document.getElementById('close-settings').addEventListener('click',toggleSettings);
   document.getElementById('logout-btn').addEventListener('click',async()=>{await window.isibi.clearToken();showLogin();});
 
   // Global mouse handlers for dragging
@@ -419,7 +444,8 @@ async function openApp(id){
 }
 async function doHealthCheck(id){loading[id]='health';renderNodes();await window.isibi.healthCheck(id);delete loading[id];await loadUptime(id);}
 async function doRestart(id){loading[id]='restart';renderNodes();await window.isibi.restartApp(id);delete loading[id];await loadApps();}
-function toggleNotifications(){notifOpen=!notifOpen;const p=document.getElementById('notif-panel');if(p){p.classList.toggle('open',notifOpen);if(notifOpen)loadNotifications();}}
+function toggleNotifications(){notifOpen=!notifOpen;settingsOpen=false;const p=document.getElementById('notif-panel');const s=document.getElementById('settings-panel');if(p)p.classList.toggle('open',notifOpen);if(s)s.classList.remove('open');if(notifOpen)loadNotifications();}
+function toggleSettings(){settingsOpen=!settingsOpen;notifOpen=false;const s=document.getElementById('settings-panel');const p=document.getElementById('notif-panel');if(s)s.classList.toggle('open',settingsOpen);if(p)p.classList.remove('open');}
 async function readNotification(id){await window.isibi.markRead(id);notifications=notifications.map(n=>n.id===id?{...n,is_read:true}:n);renderNotifications();unreadCount=Math.max(0,unreadCount-1);updateBadge();}
 async function markAllRead(){await window.isibi.markAllRead();notifications=notifications.map(n=>({...n,is_read:true}));renderNotifications();unreadCount=0;updateBadge();}
 

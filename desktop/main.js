@@ -72,6 +72,16 @@ function clearStoredToken() {
   try { if (fs.existsSync(TOKEN_PATH)) fs.unlinkSync(TOKEN_PATH); } catch (e) { /* ignore */ }
 }
 
+// ── Settings storage ────────────────────────────────────────────────────────
+const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
+let appSettings = { ghostCursor: true };
+try { if (fs.existsSync(SETTINGS_PATH)) appSettings = { ...appSettings, ...JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8')) }; } catch (e) {}
+
+function saveSetting(key, val) {
+  appSettings[key] = val;
+  try { fs.writeFileSync(SETTINGS_PATH, JSON.stringify(appSettings)); } catch (e) {}
+}
+
 // ── HTTP helper ─────────────────────────────────────────────────────────────
 function apiFetch(endpoint, method = 'GET', body = null) {
   return new Promise((resolve, reject) => {
@@ -255,6 +265,7 @@ async function pollStatuses() {
 // ── Ghost cursor animation ──────────────────────────────────────────────
 async function pollGhostQueue() {
   if (!getStoredToken()) return;
+  if (!appSettings.ghostCursor) return; // Ghost cursor disabled in settings
 
   // Check each open app window for pending ghost animations
   for (const [projectId, win] of Object.entries(appWindows)) {
@@ -525,6 +536,9 @@ ipcMain.handle('mark-all-read', async () => {
 });
 
 ipcMain.handle('open-external', (_, url) => { shell.openExternal(url); });
+
+ipcMain.handle('set-setting', (_, key, val) => { saveSetting(key, val); });
+ipcMain.handle('get-setting', (_, key) => appSettings[key]);
 
 // Open apps inside their own desktop windows
 const appWindows = {}; // {projectId: BrowserWindow}

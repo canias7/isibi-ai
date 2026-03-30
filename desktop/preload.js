@@ -30,6 +30,10 @@ contextBridge.exposeInMainWorld('isibi', {
     ipcRenderer.on('status-update', (_, data) => callback(data));
   },
 
+  // Settings
+  setSetting: (key, val) => ipcRenderer.invoke('set-setting', key, val),
+  getSetting: (key) => ipcRenderer.invoke('get-setting', key),
+
   // Desktop info
   isDesktop: true,
   platform: process.platform,
