@@ -25,6 +25,7 @@ const AboutPage = lazy(() => import("@/pages/AboutPage").then(m => ({ default: m
 const BlogPage = lazy(() => import("@/pages/BlogPage").then(m => ({ default: m.BlogPage })));
 const CareersPage = lazy(() => import("@/pages/CareersPage").then(m => ({ default: m.CareersPage })));
 const ContactPage = lazy(() => import("@/pages/ContactPage").then(m => ({ default: m.ContactPage })));
+const WebsiteIntakeForm = lazy(() => import("@/pages/WebsiteIntakeForm").then(m => ({ default: m.WebsiteIntakeForm })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -119,6 +120,9 @@ function AppRoutes() {
       <Route path="/build-ecommerce" element={<BuildEcommercePage />} />
       <Route path="/build-restaurant-software" element={<BuildRestaurantPage />} />
       <Route path="/build-gym-software" element={<BuildGymPage />} />
+
+      {/* Public forms */}
+      <Route path="/website123" element={<WebsiteIntakeForm />} />
 
       {/* Catch-all */}
       <Route path="*" element={<NotFoundPage />} />

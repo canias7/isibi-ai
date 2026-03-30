@@ -124,6 +124,9 @@ def _register_app_feature_routers(app):
     app.include_router(desktop_download_router, prefix="/api")
     app.include_router(control_center_router, prefix="/api")
 
+    from routes.intake_form import router as intake_form_router
+    app.include_router(intake_form_router, prefix="/api")
+
 
 def _register_automation_routers(app):
     """Automation: email triggers, webhooks, scheduled reports, auto-assign, etc."""
