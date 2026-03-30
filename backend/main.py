@@ -260,10 +260,6 @@ app.add_middleware(CustomDomainMiddleware)
 # ── Register all routers via the registry ──
 register_all_routers(app)
 
-# ── Public standalone pages (no /api prefix) ──
-from routes.intake_form import router as _intake_router
-app.include_router(_intake_router)
-
 # ── Serve uploaded files ──
 _uploads_dir = Path(os.getenv("UPLOADS_DIR", os.path.join(os.path.dirname(__file__), "uploads")))
 _uploads_dir.mkdir(parents=True, exist_ok=True)
