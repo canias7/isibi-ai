@@ -176,7 +176,7 @@ function createWindow() {
     icon: path.join(__dirname, 'icon.png'),
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindow.loadFile(path.join(__dirname, 'dist-renderer', 'index.html'));
 
   // Set dock icon on macOS
   const iconPath = path.join(__dirname, 'icon.png');

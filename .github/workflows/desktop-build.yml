@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies
         working-directory: desktop
         run: npm install
+      - name: Build React renderer
+        working-directory: desktop
+        run: npx vite build
       - name: Build macOS
         working-directory: desktop
         run: npx electron-builder --mac --publish never
@@ -39,6 +42,9 @@ jobs:
       - name: Install dependencies
         working-directory: desktop
         run: npm install
+      - name: Build React renderer
+        working-directory: desktop
+        run: npx vite build
       - name: Build Windows
         working-directory: desktop
         run: npx electron-builder --win --publish never
@@ -59,6 +65,9 @@ jobs:
       - name: Install dependencies
         working-directory: desktop
         run: npm install
+      - name: Build React renderer
+        working-directory: desktop
+        run: npx vite build
       - name: Build Linux
         working-directory: desktop
         run: npx electron-builder --linux --publish never
