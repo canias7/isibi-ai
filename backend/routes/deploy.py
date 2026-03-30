@@ -6,6 +6,7 @@ Deploy routes — trigger deployments, check status, and serve deployed apps.
 
 import json
 import logging
+import os
 import traceback
 import uuid
 from datetime import datetime, timezone
@@ -102,6 +103,15 @@ async def trigger_deploy(
             )
             result["subdomain_url"] = sub_url
         return result
+
+    # Ensure database schema exists for this project
+    try:
+        from generator.app_db import create_app_schema, get_schema_name
+        schema_name = get_schema_name(str(project.id))
+        await create_app_schema(str(project.id), project.spec, os.getenv("DATABASE_URL", ""))
+        logger.info("Ensured app schema exists: %s", schema_name)
+    except Exception as e:
+        logger.warning("Schema creation during deploy (non-fatal): %s", e)
 
     # Deploy
     try:
