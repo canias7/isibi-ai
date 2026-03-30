@@ -121,6 +121,7 @@ export interface EntitySpec {
   indexes?: string[];
   relationships?: RelationshipSpec[];
   ui_config: UIConfig;
+  [key: string]: unknown;
 }
 
 // ── Module spec ─────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ export interface ModuleSpec {
     opens: string;
   };
   visible_to_roles?: string[];
+  [key: string]: unknown;
 }
 
 // ── Dashboard stat config (spec-driven) ─────────────────────────────
