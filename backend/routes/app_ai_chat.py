@@ -294,9 +294,10 @@ async def ai_command(
     entities = spec.get("entities", [])
     app_name = spec.get("app_name", project.name or "App")
 
-    # Build entity schema summary for Claude
+    # Build entity schema summary for Claude with required field info
     entity_summaries = []
     entity_map = {}  # name -> table_name
+    skip_fields = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
     for entity in entities:
         if not isinstance(entity, dict):
             continue
@@ -304,8 +305,24 @@ async def ai_command(
         table = entity.get("table", name.lower().replace(" ", "_"))
         entity_map[name.lower()] = table
         fields = entity.get("fields", [])
-        field_names = [f.get("name", "") for f in fields if isinstance(f, dict) and f.get("name") not in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version")]
-        entity_summaries.append(f"- {name} (table: {table}): fields = {', '.join(field_names)}")
+        field_details = []
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            fname = f.get("name", "")
+            if fname in skip_fields:
+                continue
+            nullable = f.get("nullable", True)
+            has_validation = f.get("validation", {}).get("rule") == "required"
+            required = not nullable or has_validation
+            enum_values = f.get("enum_values", [])
+            detail = fname
+            if required:
+                detail += " (REQUIRED)"
+            if enum_values:
+                detail += f" [options: {', '.join(str(v) for v in enum_values[:8])}]"
+            field_details.append(detail)
+        entity_summaries.append(f"- {name} (table: {table}):\n  Fields: {', '.join(field_details)}")
 
     schema_text = "\n".join(entity_summaries) if entity_summaries else "No entities defined."
 
@@ -319,18 +336,21 @@ IMPORTANT: You must respond with a JSON object in this exact format:
 {{
   "intent": "create" | "list" | "delete" | "count" | "chat",
   "entity": "EntityName" (only for create/list/delete/count),
-  "data": {{ "field": "value", ... }} (only for create),
+  "data": {{ "field": "value", ... }} (only for create, include ALL required fields),
   "filter": "search term" (optional, for list/delete),
   "message": "Your conversational response to the user"
 }}
 
 Rules:
-- For casual conversation (hello, hi, how are you, thanks, etc.), use intent "chat" and respond friendly
+- For casual conversation (hello, hi, how are you, thanks, etc.), use intent "chat" and respond friendly and brief
+- IMPORTANT: When the user wants to create a record but has NOT provided all REQUIRED fields, DO NOT use intent "create". Instead use intent "chat" and ASK them for the missing required information. For example if they say "create a lead", ask "Sure! What's the lead's name?" or list what info you need.
+- Only use intent "create" when you have enough data to fill at least the required fields
 - For creating records, extract ALL field values mentioned and map them to the correct field names
+- For fields with options/enums, pick the best matching option from the list
 - For listing/showing records, use intent "list"
 - For counting, use intent "count"
 - For deleting, use intent "delete" and include a filter to identify the record
-- Always be conversational and helpful in your message
+- Always be conversational, friendly, and brief in your message (this is voice, keep it short)
 - If you're not sure what entity they mean, ask them in your message with intent "chat"
 - Only use entity names from the available list above"""
 

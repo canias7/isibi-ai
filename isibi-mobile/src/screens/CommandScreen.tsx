@@ -252,26 +252,33 @@ async function processCommand(
       const entitySingle = entityLower.replace(/s$/, "");
       if (lower.includes(entityLower) || lower.includes(entitySingle)) {
         const extractedName = extractNameFromCommand(cmd);
+        // If no specific data provided, let AI ask for required fields
+        if (!extractedName) {
+          try {
+            const aiResult = await aiCommand(projectId, cmd);
+            return { success: true, message: aiResult.message };
+          } catch {
+            return { success: false, message: `What info do you want for this ${entitySingle}? Try: "add a ${entitySingle} named John"` };
+          }
+        }
         const data: Record<string, string> = {};
-        // Try to set a name field
         const nameField = entity.fields.find(f =>
           f.toLowerCase() === "name" || f.toLowerCase() === "title" || f.toLowerCase().includes("name")
         );
         if (nameField) {
-          data[nameField] = extractedName || "New " + entity.displayName;
+          data[nameField] = extractedName;
         } else if (entity.fields.length > 0) {
-          // Find first editable field (skip id, org_id, timestamps)
           const skipFields = ["id", "org_id", "created_at", "updated_at", "deleted_at", "version"];
           const firstField = entity.fields.find(f => !skipFields.includes(f.toLowerCase()));
           if (firstField) {
-            data[firstField] = extractedName || "New " + entity.displayName;
+            data[firstField] = extractedName;
           }
         }
         try {
           await createRecord(projectId, entity.name, data);
           return {
             success: true,
-            message: `Created new ${entitySingle}${extractedName ? `: ${extractedName}` : ""}`,
+            message: `Created new ${entitySingle}: ${extractedName}`,
           };
         } catch (e: any) {
           return { success: false, message: `Failed to create ${entitySingle}: ${e.message}` };
