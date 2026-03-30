@@ -439,37 +439,74 @@ Rules:
             if not data:
                 return AiCommandResponse(message=ai_message, action="chat")
 
+            # Use the app data API internally (handles validation, defaults, fuzzy matching)
+            from routes.app_data import _ensure_table_exists, _ensure_schema_or_create
+            resolved_table = await _ensure_table_exists(pid_str, table_name)
+
             schema = get_schema_name(pid_str)
             conn = await _get_raw_connection(DATABASE_URL)
             try:
-                # Get columns to validate field names
-                columns = await get_table_columns(pid_str, table_name, DATABASE_URL)
-                col_names = {c["column_name"] for c in columns}
+                # Get columns to do fuzzy field matching
+                columns = await get_table_columns(pid_str, resolved_table, DATABASE_URL)
+                col_info = {}
                 skip_cols = {"id", "org_id", "created_at", "updated_at", "deleted_at", "version"}
+                for c in columns:
+                    cn = c["column_name"]
+                    if cn not in skip_cols:
+                        col_info[cn] = c
 
-                # Fuzzy field matching: "name"→"first_name", "phone_number"→"phone", etc.
+                # Fuzzy field matching
                 valid_data = {}
                 for k, v in data.items():
                     k_low = k.lower().replace(" ", "_")
-                    if k_low in col_names and k_low not in skip_cols:
-                        valid_data[k_low] = v
-                    else:
-                        # Try partial match
-                        for col in col_names - skip_cols:
-                            if k_low in col or col in k_low or k_low.replace("_", "") == col.replace("_", ""):
-                                valid_data[col] = v
+                    # Exact match
+                    if k_low in col_info:
+                        valid_data[k_low] = str(v)
+                        continue
+                    # Partial match
+                    matched = False
+                    for col in col_info:
+                        if k_low in col or col in k_low or k_low.replace("_", "") == col.replace("_", ""):
+                            valid_data[col] = str(v)
+                            matched = True
+                            break
+                    # "name" → try "first_name" or "customer_name"
+                    if not matched and k_low == "name":
+                        for col in col_info:
+                            if "name" in col and col != "last_name":
+                                valid_data[col] = str(v)
                                 break
 
                 if not valid_data:
-                    editable = col_names - skip_cols
-                    return AiCommandResponse(message=f"I couldn't map the fields. Available fields: {', '.join(sorted(editable))}", action="chat")
+                    editable = sorted(col_info.keys())
+                    return AiCommandResponse(message=f"I couldn't map the fields. Available fields: {', '.join(editable)}", action="chat")
+
+                # Fill NOT NULL columns with defaults if not provided
+                for col, info in col_info.items():
+                    if col in valid_data:
+                        continue
+                    is_nullable = info.get("is_nullable", "YES") == "YES"
+                    has_default = info.get("column_default") is not None
+                    if not is_nullable and not has_default:
+                        # Provide a sensible default based on type
+                        dt = info.get("data_type", "text").lower()
+                        if "int" in dt:
+                            valid_data[col] = "0"
+                        elif "numeric" in dt or "decimal" in dt or "float" in dt or "double" in dt:
+                            valid_data[col] = "0"
+                        elif "bool" in dt:
+                            valid_data[col] = "true"
+                        elif "date" in dt or "time" in dt:
+                            pass  # Let DB handle with NOW() default
+                        else:
+                            valid_data[col] = ""
 
                 cols = ", ".join(f'"{k}"' for k in valid_data.keys())
                 placeholders = ", ".join(f"${i+1}" for i in range(len(valid_data)))
                 values = list(valid_data.values())
 
                 await conn.execute(
-                    f'INSERT INTO "{schema}"."{table_name}" ({cols}) VALUES ({placeholders})',
+                    f'INSERT INTO "{schema}"."{resolved_table}" ({cols}) VALUES ({placeholders})',
                     *values,
                 )
                 return AiCommandResponse(message=ai_message, action="created")
