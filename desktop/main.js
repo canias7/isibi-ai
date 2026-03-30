@@ -252,9 +252,208 @@ async function pollStatuses() {
   }
 }
 
+// ── Ghost cursor animation ──────────────────────────────────────────────
+async function pollGhostQueue() {
+  if (!getStoredToken()) return;
+
+  // Check each open app window for pending ghost animations
+  for (const [projectId, win] of Object.entries(appWindows)) {
+    if (!win || win.isDestroyed()) continue;
+
+    try {
+      const result = await apiFetch(`/apps/${projectId}/ghost-queue`);
+      if (result && result.items && result.items.length > 0) {
+        for (const ghost of result.items) {
+          await executeGhostAnimation(win, ghost);
+        }
+      }
+    } catch (e) {
+      // Silently ignore — ghost queue is best-effort
+    }
+  }
+}
+
+async function executeGhostAnimation(win, ghost) {
+  if (!win || win.isDestroyed() || !ghost.fields || Object.keys(ghost.fields).length === 0) return;
+
+  const fields = ghost.fields;
+  const entityName = ghost.entity || ghost.table || '';
+
+  // Build the ghost animation script
+  const script = `
+  (async function() {
+    // ── Ghost cursor CSS ──
+    if (!document.getElementById('ghost-cursor-style')) {
+      const style = document.createElement('style');
+      style.id = 'ghost-cursor-style';
+      style.textContent = \`
+        #ghost-cursor {
+          position: fixed; z-index: 99999; pointer-events: none;
+          width: 20px; height: 20px;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          filter: drop-shadow(0 0 8px rgba(236,72,153,.8)) drop-shadow(0 0 16px rgba(236,72,153,.4));
+        }
+        #ghost-cursor svg { width: 20px; height: 20px; }
+        #ghost-trail {
+          position: fixed; z-index: 99998; pointer-events: none;
+          width: 12px; height: 12px; border-radius: 50%;
+          background: radial-gradient(circle, rgba(236,72,153,.6) 0%, transparent 70%);
+          transition: all 0.5s ease;
+          filter: blur(4px);
+        }
+        .ghost-typing-glow {
+          box-shadow: 0 0 12px rgba(236,72,153,.4), 0 0 24px rgba(139,92,246,.2) !important;
+          border-color: #ec4899 !important;
+        }
+        @keyframes ghost-fade-in { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
+        @keyframes ghost-fade-out { from { opacity: 1; } to { opacity: 0; transform: scale(0.5) translateY(-10px); } }
+      \`;
+      document.head.appendChild(style);
+    }
+
+    // Create cursor element
+    const cursor = document.createElement('div');
+    cursor.id = 'ghost-cursor';
+    cursor.innerHTML = '<svg viewBox="0 0 24 24" fill="white" stroke="none"><path d="M5.5 3.21V20.8c0 .45.54.67.85.35l4.86-4.86a.5.5 0 0 1 .35-.15h6.87a.5.5 0 0 0 .35-.85L6.35 2.86a.5.5 0 0 0-.85.35z"/></svg>';
+    cursor.style.animation = 'ghost-fade-in 0.3s ease';
+    cursor.style.left = '50%'; cursor.style.top = '50%';
+    document.body.appendChild(cursor);
+
+    const trail = document.createElement('div');
+    trail.id = 'ghost-trail';
+    trail.style.left = '50%'; trail.style.top = '50%';
+    document.body.appendChild(trail);
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function moveTo(el) {
+      const rect = el.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      cursor.style.left = x + 'px';
+      cursor.style.top = y + 'px';
+      trail.style.left = (x + 4) + 'px';
+      trail.style.top = (y + 4) + 'px';
+    }
+
+    async function typeInto(el, text) {
+      el.focus();
+      el.classList.add('ghost-typing-glow');
+      el.value = '';
+      for (let i = 0; i < text.length; i++) {
+        el.value += text[i];
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        await sleep(40 + Math.random() * 30);
+      }
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(200);
+      el.classList.remove('ghost-typing-glow');
+    }
+
+    async function selectOption(el, value) {
+      el.focus();
+      el.classList.add('ghost-typing-glow');
+      const opts = Array.from(el.options);
+      const match = opts.find(o => o.value.toLowerCase() === value.toLowerCase() || o.text.toLowerCase() === value.toLowerCase());
+      if (match) { el.value = match.value; }
+      else { el.value = value; }
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      await sleep(300);
+      el.classList.remove('ghost-typing-glow');
+    }
+
+    // Wait for any existing modal to be ready
+    await sleep(300);
+
+    // Step 1: Open the create form
+    if (typeof openCreate === 'function') {
+      // Navigate to the right module first
+      const moduleName = ${JSON.stringify(entityName)};
+      if (typeof showModule === 'function' && moduleName) {
+        showModule(moduleName);
+        await sleep(500);
+      }
+      openCreate();
+      await sleep(600);
+    }
+
+    // Step 2: Fill each field with ghost cursor animation
+    const fields = ${JSON.stringify(fields)};
+    const formBody = document.getElementById('modal-body');
+    if (!formBody) { cursor.remove(); trail.remove(); return; }
+
+    for (const [fieldName, value] of Object.entries(fields)) {
+      if (!value) continue;
+
+      // Find the input by name
+      let input = formBody.querySelector('input[name="' + fieldName + '"]');
+      if (!input) input = formBody.querySelector('select[name="' + fieldName + '"]');
+      if (!input) input = formBody.querySelector('textarea[name="' + fieldName + '"]');
+
+      // Fuzzy match: try partial name matching
+      if (!input) {
+        const allInputs = formBody.querySelectorAll('input, select, textarea');
+        for (const inp of allInputs) {
+          const n = (inp.name || '').toLowerCase();
+          const fn = fieldName.toLowerCase();
+          if (n.includes(fn) || fn.includes(n)) { input = inp; break; }
+        }
+      }
+
+      if (!input || input.type === 'hidden') continue;
+
+      // Scroll field into view
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      await sleep(300);
+
+      // Move cursor to field
+      moveTo(input);
+      await sleep(400);
+
+      // Type or select
+      if (input.tagName === 'SELECT') {
+        await selectOption(input, String(value));
+      } else {
+        await typeInto(input, String(value));
+      }
+
+      await sleep(200);
+    }
+
+    // Step 3: Move to save button and click
+    const saveBtn = document.getElementById('modal-save');
+    if (saveBtn) {
+      moveTo(saveBtn);
+      await sleep(500);
+      saveBtn.classList.add('ghost-typing-glow');
+      await sleep(200);
+      saveBtn.click();
+      await sleep(300);
+      saveBtn.classList.remove('ghost-typing-glow');
+    }
+
+    // Step 4: Fade out cursor
+    cursor.style.animation = 'ghost-fade-out 0.5s ease forwards';
+    trail.style.animation = 'ghost-fade-out 0.5s ease forwards';
+    await sleep(600);
+    cursor.remove();
+    trail.remove();
+  })();
+  `;
+
+  try {
+    await win.webContents.executeJavaScript(script);
+  } catch (e) {
+    console.error('Ghost animation error:', e.message);
+  }
+}
+
 function startPolling() {
   pollStatuses();
-  pollTimer = setInterval(pollStatuses, CONFIG.pollInterval);
+  pollTimer = setInterval(() => {
+    pollStatuses();
+    pollGhostQueue();
+  }, 5000); // Poll every 5s for ghost animations (faster than status)
 }
 
 function stopPolling() {

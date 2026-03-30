@@ -273,10 +273,19 @@ class AiCommandRequest(BaseModel):
     text: str
     history: Optional[list[AiHistoryMessage]] = None
 
+class GhostData(BaseModel):
+    entity: str = ""
+    table: str = ""
+    fields: dict[str, Any] = {}
+
 class AiCommandResponse(BaseModel):
     message: str
     action: Optional[str] = None  # "created", "deleted", "listed", "chat"
     data: Optional[list[dict[str, Any]]] = None
+    ghost: Optional[GhostData] = None
+
+# In-memory ghost animation queue: project_id → list of pending animations
+_ghost_queue: dict[str, list[GhostData]] = {}
 
 
 @router.post("/{project_id}/ai/command")
@@ -515,7 +524,17 @@ Rules:
                     f'INSERT INTO "{schema}"."{resolved_table}" ({cols}) VALUES ({placeholders})',
                     *values,
                 )
-                return AiCommandResponse(message=ai_message, action="created")
+
+                # Queue ghost animation for desktop app
+                # Only include user-provided fields (not auto-filled defaults)
+                user_fields = {k: v for k, v in data.items()}
+                ghost = GhostData(entity=entity_name, table=resolved_table, fields=user_fields)
+                pid_key = pid_str
+                if pid_key not in _ghost_queue:
+                    _ghost_queue[pid_key] = []
+                _ghost_queue[pid_key].append(ghost)
+
+                return AiCommandResponse(message=ai_message, action="created", ghost=ghost)
             finally:
                 await conn.close()
         except Exception as e:
@@ -574,3 +593,13 @@ Rules:
 
     # Default: conversational response
     return AiCommandResponse(message=ai_message, action="chat")
+
+
+# ── Ghost animation queue endpoints ──────────────────────────────────
+
+@router.get("/{project_id}/ghost-queue")
+async def get_ghost_queue(project_id: _uuid.UUID):
+    """Poll for pending ghost animations. Desktop app calls this."""
+    pid = str(project_id)
+    items = _ghost_queue.pop(pid, [])
+    return {"items": [g.model_dump() for g in items]}
