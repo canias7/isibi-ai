@@ -27,8 +27,8 @@ interface ResponseCard {
 }
 
 interface EntityInfo {
-  name: string;        // table name as stored
-  displayName: string; // human-readable
+  name: string;        // table name for API calls (e.g. "leads")
+  displayName: string; // human-readable (e.g. "Lead")
   fields: string[];    // field names
 }
 
@@ -37,7 +37,7 @@ interface EntityInfo {
 function buildKnowledgeBase(spec: any): EntityInfo[] {
   if (!spec?.spec?.entities) return [];
   return spec.spec.entities.map((e: any) => ({
-    name: e.name,
+    name: e.table || e.name.toLowerCase().replace(/\s+/g, "_"),
     displayName: e.name.replace(/_/g, " "),
     fields: (e.fields ?? []).map((f: any) => typeof f === "string" ? f : f.name),
   }));
@@ -257,10 +257,15 @@ async function processCommand(
         const nameField = entity.fields.find(f =>
           f.toLowerCase() === "name" || f.toLowerCase() === "title" || f.toLowerCase().includes("name")
         );
-        if (nameField && extractedName) {
-          data[nameField] = extractedName;
-        } else if (entity.fields.length > 0 && extractedName) {
-          data[entity.fields[0]] = extractedName;
+        if (nameField) {
+          data[nameField] = extractedName || "New " + entity.displayName;
+        } else if (entity.fields.length > 0) {
+          // Find first editable field (skip id, org_id, timestamps)
+          const skipFields = ["id", "org_id", "created_at", "updated_at", "deleted_at", "version"];
+          const firstField = entity.fields.find(f => !skipFields.includes(f.toLowerCase()));
+          if (firstField) {
+            data[firstField] = extractedName || "New " + entity.displayName;
+          }
         }
         try {
           await createRecord(projectId, entity.name, data);
