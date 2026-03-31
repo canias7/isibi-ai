@@ -25,8 +25,8 @@ let systemIndex: SystemIndex | null = null;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 680,
-    height: 92,
+    width: 480,
+    height: 140,
     title: 'ISIBI Ghost Mode',
     frame: false,
     transparent: true,
@@ -224,8 +224,11 @@ function launchGhostMode() {
   createWindow();
   createTray();
 
-  // Register global shortcut to toggle Ghost Mode
-  globalShortcut.register('F9', () => {
+  // Show Agent Hub as the main app window on launch
+  createHubWindow();
+
+  // Register global shortcut to toggle Ghost Mode voice bar
+  const registered = globalShortcut.register('F9', () => {
     if (mainWindow?.isVisible()) {
       mainWindow.hide();
     } else {
@@ -235,6 +238,8 @@ function launchGhostMode() {
       mainWindow?.webContents.send('bar-opened');
     }
   });
+  if (!registered) console.error('[Ghost Mode] Failed to register F9 shortcut');
+  else console.log('[Ghost Mode] F9 shortcut registered');
 
   // Index the system on first launch
   console.log('[Ghost Mode] Starting system index...');
@@ -288,117 +293,110 @@ app.on('will-quit', () => {
 const GHOST_MODE_HTML = `<!DOCTYPE html><html><head><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,system-ui,sans-serif;background:transparent;color:#f0e6ff;overflow:hidden}
-.bar{background:rgba(10,0,21,.95);backdrop-filter:blur(40px) saturate(1.5);border:1px solid rgba(236,72,153,.2);border-radius:16px;margin:8px;box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 20px rgba(236,72,153,.1);display:flex;flex-direction:column}
-.agents{display:flex;align-items:center;gap:5px;padding:8px 14px 0;overflow-x:auto;flex-shrink:0}
-.agents::-webkit-scrollbar{display:none}
-.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;background:rgba(255,255,255,.04);color:rgba(240,230,255,.35);border:1px solid transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.15s}
-.chip:hover{background:rgba(255,255,255,.08);color:#ddd}
-.chip.on{background:rgba(236,72,153,.1);color:#f9a8d4;border-color:rgba(236,72,153,.25)}
-.chip .cd{width:5px;height:5px;border-radius:50%;flex-shrink:0}
-.hub{padding:3px 7px;border-radius:6px;font-size:10px;background:rgba(255,255,255,.03);color:rgba(240,230,255,.2);border:1px dashed rgba(255,255,255,.08);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.15s}
-.hub:hover{background:rgba(255,255,255,.07);color:#ccc;border-style:solid}
-.row{display:flex;align-items:center;gap:8px;padding:8px 14px 10px;flex-shrink:0}
-.orb{width:26px;height:26px;border-radius:50%;flex-shrink:0;background:radial-gradient(circle at 38% 38%,#f472b6,#ec4899 40%,#a855f7 70%,#6366f1);box-shadow:0 0 12px rgba(236,72,153,.5);animation:idle 3s ease-in-out infinite}
-.orb.go{animation:pulse .8s ease-in-out infinite;box-shadow:0 0 18px rgba(236,72,153,.7)}
-.orb.mic{animation:listen 1s ease-in-out infinite;background:radial-gradient(circle at 38% 38%,#f472b6,#ef4444 40%,#ec4899 70%,#a855f7);box-shadow:0 0 20px rgba(239,68,68,.6)}
-@keyframes idle{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
-@keyframes listen{0%,100%{transform:scale(1);box-shadow:0 0 14px rgba(239,68,68,.5)}50%{transform:scale(1.18);box-shadow:0 0 28px rgba(239,68,68,.7)}}
-.row input{flex:1;padding:6px 0;background:none;border:none;color:#f0e6ff;font-size:15px;outline:none}
-.row input::placeholder{color:rgba(240,230,255,.25)}
-.ib{width:30px;height:30px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.15s}
-.ib.m{background:rgba(255,255,255,.05);color:rgba(240,230,255,.35)}
-.ib.m:hover{background:rgba(255,255,255,.1);color:#f0e6ff}
-.ib.m.on{background:rgba(239,68,68,.15);color:#ef4444}
-.ib.s{background:linear-gradient(135deg,#ec4899,#8b5cf6);color:#fff}
-.ib.s:hover{box-shadow:0 0 14px rgba(236,72,153,.4)}
-.tag{font-size:9px;color:rgba(240,230,255,.18);background:rgba(255,255,255,.03);padding:2px 5px;border-radius:3px;flex-shrink:0}
-.out{display:none;border-top:1px solid rgba(236,72,153,.08);padding:10px 14px;max-height:260px;overflow-y:auto;flex-shrink:0}
-.out.vis{display:block}
-.out::-webkit-scrollbar{width:3px}
-.out::-webkit-scrollbar-thumb{background:rgba(236,72,153,.15);border-radius:2px}
-.ri{padding:7px 10px;border-radius:8px;margin-bottom:4px;font-size:12px;line-height:1.4;animation:si .15s ease}
-.ri.st{background:rgba(139,92,246,.06);color:#c4b5fd;display:flex;align-items:center;gap:6px}
-.ri.sp{background:rgba(236,72,153,.05);color:#f9a8d4;font-size:11px}
-.ri.er{background:rgba(239,68,68,.08);color:#fca5a5}
-.ri.dn{background:rgba(34,197,94,.06);color:#86efac}
-@keyframes si{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
-.spin{width:12px;height:12px;border-radius:50%;border:2px solid rgba(139,92,246,.15);border-top-color:#a855f7;animation:sp .6s linear infinite;flex-shrink:0}
+.bar{background:rgba(10,0,21,.95);backdrop-filter:blur(40px) saturate(1.5);border:1px solid rgba(236,72,153,.2);border-radius:20px;margin:8px;box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 20px rgba(236,72,153,.1);display:flex;flex-direction:column;align-items:center;padding:14px 20px;gap:8px}
+.orb{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#f472b6,#ec4899 40%,#a855f7 70%,#6366f1);box-shadow:0 0 16px rgba(236,72,153,.5);animation:idle 3s ease-in-out infinite;cursor:pointer;flex-shrink:0}
+.orb.mic{animation:listen 1s ease-in-out infinite;background:radial-gradient(circle at 38% 38%,#f472b6,#ef4444 40%,#ec4899 70%,#a855f7);box-shadow:0 0 24px rgba(239,68,68,.6)}
+.orb.go{animation:pulse .8s ease-in-out infinite;box-shadow:0 0 20px rgba(236,72,153,.7)}
+@keyframes idle{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
+@keyframes listen{0%,100%{transform:scale(1);box-shadow:0 0 16px rgba(239,68,68,.5)}50%{transform:scale(1.2);box-shadow:0 0 32px rgba(239,68,68,.7)}}
+.label{font-size:12px;color:rgba(240,230,255,.35);text-align:center;min-height:16px;transition:.2s}
+.label.active{color:#f9a8d4}
+.label.error{color:#fca5a5}
+.label.done{color:#86efac}
+.transcript{font-size:14px;color:#f0e6ff;text-align:center;min-height:18px;font-weight:500;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status{display:none;align-items:center;gap:6px;font-size:12px;color:#c4b5fd;padding:4px 12px;border-radius:8px;background:rgba(139,92,246,.06)}
+.status.vis{display:flex}
+.spin{width:10px;height:10px;border-radius:50%;border:2px solid rgba(139,92,246,.15);border-top-color:#a855f7;animation:sp .6s linear infinite;flex-shrink:0}
 @keyframes sp{to{transform:rotate(360deg)}}
-svg{display:block}
+.hint{font-size:9px;color:rgba(240,230,255,.15);margin-top:2px}
 </style></head><body>
 <div class="bar">
-<div class="agents" id="ag"></div>
-<div class="row">
 <div class="orb" id="orb"></div>
-<input type="text" id="inp" placeholder="What do you need?" autofocus>
-<button class="ib m" id="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
-<button class="ib s" id="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
-<span class="tag">F9</span>
-</div>
-<div class="out" id="out"></div>
+<div class="transcript" id="transcript"></div>
+<div class="label" id="label">Press to speak or say a command</div>
+<div class="status" id="status"><div class="spin"></div><span id="statusText"></span></div>
+<div class="hint">F9 to toggle</div>
 </div>
 <script>
 const{ipcRenderer}=require('electron');
-const inp=document.getElementById('inp'),orb=document.getElementById('orb'),out=document.getElementById('out'),mic=document.getElementById('mic'),go=document.getElementById('go'),ag=document.getElementById('ag');
-let listening=false,rec=null,selAgent=null,agents=[];
+const orb=document.getElementById('orb'),label=document.getElementById('label'),transcript=document.getElementById('transcript'),status=document.getElementById('status'),statusText=document.getElementById('statusText');
+let listening=false,rec=null,agents=[],selAgent=null;
 
-async function loadAgents(){agents=await ipcRenderer.invoke('agents-list');drawChips()}
-function drawChips(){
-  ag.innerHTML='';
-  const active=agents.filter(a=>a.isActive);
-  if(!selAgent&&active.length)selAgent=active[0].id;
-  active.forEach(a=>{
-    const c=document.createElement('div');c.className='chip'+(a.id===selAgent?' on':'');
-    c.innerHTML='<span class="cd" style="background:'+a.color+'"></span>'+a.emoji+' '+a.name;
-    c.onclick=()=>{selAgent=a.id;drawChips();inp.focus()};ag.appendChild(c)
-  });
-  const h=document.createElement('div');h.className='hub';h.textContent='+ Agents';
-  h.onclick=()=>ipcRenderer.invoke('open-hub');ag.appendChild(h)
-}
+async function loadAgents(){agents=await ipcRenderer.invoke('agents-list');const a=agents.filter(x=>x.isActive);if(a.length)selAgent=a[0].id}
 ipcRenderer.on('agents-updated',()=>loadAgents());loadAgents();
 
-// Voice
-(function(){const S=window.SpeechRecognition||window.webkitSpeechRecognition;if(!S)return;rec=new S();rec.continuous=false;rec.interimResults=true;rec.lang='en-US';
-rec.onresult=e=>{let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;inp.value=t;if(e.results[e.results.length-1].isFinal){stopMic();send()}};
-rec.onend=()=>stopMic();rec.onerror=()=>stopMic()})();
-function startMic(){if(!rec)return;listening=true;mic.classList.add('on');orb.classList.add('mic');inp.placeholder='Listening...';rec.start()}
-function stopMic(){listening=false;mic.classList.remove('on');orb.classList.remove('mic');const s=agents.find(a=>a.id===selAgent);inp.placeholder=s?'Ask '+s.name+'...':'What do you need?';try{rec&&rec.stop()}catch(e){}}
-mic.onclick=()=>listening?stopMic():startMic();
+// Voice recognition setup
+(function(){
+  const S=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!S){label.textContent='Voice not supported in this browser';return}
+  rec=new S();rec.continuous=false;rec.interimResults=true;rec.lang='en-US';
+  rec.onresult=e=>{
+    let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;
+    transcript.textContent=t;
+    if(e.results[e.results.length-1].isFinal){stopMic();sendCommand(t.trim())}
+  };
+  rec.onend=()=>{if(listening)stopMic()};
+  rec.onerror=e=>{stopMic();label.textContent='Could not hear you. Try again.';label.className='label error'}
+})();
 
-inp.onkeydown=e=>{if(e.key==='Enter')send();if(e.key==='Escape')ipcRenderer.invoke('ghost-hide');
-if(e.key==='Tab'){e.preventDefault();const a=agents.filter(x=>x.isActive);if(a.length>1){const i=a.findIndex(x=>x.id===selAgent);selAgent=a[(i+1)%a.length].id;drawChips()}}};
-go.onclick=()=>send();
-
-ipcRenderer.on('bar-opened',async()=>{inp.value='';inp.focus();hide();await loadAgents();ipcRenderer.invoke('ghost-resize',84)});
-
-function show(){out.classList.add('vis');ipcRenderer.invoke('ghost-resize',Math.min(out.scrollHeight+84+14,360))}
-function hide(){out.classList.remove('vis');out.innerHTML=''}
-function add(cls,txt){const d=document.createElement('div');d.className='ri '+cls;
-if(cls==='st')d.innerHTML='<div class="spin"></div>'+txt;else d.textContent=txt;
-out.appendChild(d);show();out.scrollTop=out.scrollHeight}
-
-async function send(){
-  const raw=inp.value.trim();if(!raw)return;inp.value='';
-  let tid=selAgent,cmd=raw;
-  const m=raw.match(/^@(\\S+)\\s+(.+)/);
-  if(m){const f=agents.find(a=>a.name.toLowerCase()===m[1].toLowerCase());if(f){tid=f.id;cmd=m[2]}}
-  const s=agents.find(a=>a.id===tid);
-  hide();add('st',(s?s.emoji+' ':'')+'Working on it...');orb.classList.add('go');
-  const r=await ipcRenderer.invoke('ghost-command',cmd,tid);
-  if(r.error){out.innerHTML='';add('er',r.error);orb.classList.remove('go');return}
-  out.innerHTML='';const lbl=r.agentEmoji?r.agentEmoji+' ':'';
-  r.tasks.forEach(t=>add('sp',lbl+t.command+' \\u2014 '+t.steps+' steps'));poll()
+function startMic(){
+  if(!rec)return;listening=true;orb.classList.add('mic');
+  label.textContent='Listening...';label.className='label active';
+  transcript.textContent='';
+  try{rec.start()}catch(e){}
 }
+function stopMic(){
+  listening=false;orb.classList.remove('mic');
+  label.textContent='Press to speak or say a command';label.className='label';
+  try{rec&&rec.stop()}catch(e){}
+}
+
+// Click orb to toggle mic
+orb.onclick=()=>listening?stopMic():startMic();
+
+// Auto-start mic when bar opens
+ipcRenderer.on('bar-opened',async()=>{
+  transcript.textContent='';status.className='status';
+  await loadAgents();
+  ipcRenderer.invoke('ghost-resize',140);
+  setTimeout(()=>startMic(),300)
+});
+
+// Send voice command
+async function sendCommand(cmd){
+  if(!cmd)return;
+  orb.classList.add('go');
+  label.textContent='Working on it...';label.className='label active';
+  status.className='status vis';statusText.textContent='Processing...';
+  ipcRenderer.invoke('ghost-resize',160);
+
+  const r=await ipcRenderer.invoke('ghost-command',cmd,selAgent);
+  if(r.error){
+    orb.classList.remove('go');status.className='status';
+    label.textContent=r.error;label.className='label error';
+    setTimeout(()=>{ipcRenderer.invoke('ghost-hide');ipcRenderer.invoke('ghost-resize',140)},3000);
+    return
+  }
+  statusText.textContent=r.tasks.map(t=>t.steps+' steps').join(', ');
+  poll()
+}
+
 async function poll(){
   const r=await ipcRenderer.invoke('ghost-status');
-  if(r.active){const it=out.querySelectorAll('.ri'),l=it[it.length-1];
-  if(l){l.className='ri st';l.innerHTML='<div class="spin"></div>Step '+r.active.step+'/'+r.active.totalSteps+': '+r.active.currentAction}
-  show();setTimeout(poll,500)}else{orb.classList.remove('go');
-  const it=out.querySelectorAll('.ri'),l=it[it.length-1];
-  if(l){l.className='ri dn';l.textContent='\\u2713 Done!'}show();
-  setTimeout(()=>{ipcRenderer.invoke('ghost-hide');ipcRenderer.invoke('ghost-resize',84)},2000)}
+  if(r.active){
+    statusText.textContent='Step '+r.active.step+'/'+r.active.totalSteps+': '+r.active.currentAction;
+    setTimeout(poll,500)
+  }else{
+    orb.classList.remove('go');status.className='status';
+    label.textContent='Done!';label.className='label done';
+    transcript.textContent='';
+    setTimeout(()=>{ipcRenderer.invoke('ghost-hide');ipcRenderer.invoke('ghost-resize',140)},2000)
+  }
 }
+
+// Escape to hide
+document.onkeydown=e=>{if(e.key==='Escape'){stopMic();ipcRenderer.invoke('ghost-hide')}}
 </script></body></html>`;
 
 // ── Agent Hub UI (inline HTML) ─────────────────────────────────────────
