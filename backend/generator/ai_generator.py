@@ -431,6 +431,15 @@ Generate 4-8 entities. Think about:
     if _compliance_ctx:
         plan_prompt += f"\n\n## Required Compliance Fields\n{_compliance_ctx}"
 
+    # Cross-spec pattern context
+    try:
+        from generator.cross_spec_analyzer import get_cross_spec_context
+        _cross_ctx = get_cross_spec_context(user_prompt)
+        if _cross_ctx:
+            plan_prompt += f"\n\n{_cross_ctx}"
+    except ImportError:
+        pass
+
     # Inject multi-intent context into plan prompt
     intents = _parse_intents(user_prompt)
     if len(intents) > 1:

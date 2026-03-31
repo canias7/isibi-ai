@@ -12,6 +12,7 @@ import json
 import os
 import re
 import logging
+import time as _time
 from pathlib import Path
 from typing import Optional
 
@@ -349,6 +350,43 @@ def _build_spec_index() -> list[dict]:
     return index
 
 
+# ── Semantic Synonyms for RAG Search ─────────────────────────────────
+
+SEMANTIC_SYNONYMS = {
+    "pet": ["animal", "dog", "cat", "veterinary", "grooming"],
+    "beauty": ["salon", "hair", "nail", "spa", "cosmetic", "barber"],
+    "food": ["restaurant", "cafe", "kitchen", "menu", "dining", "catering"],
+    "health": ["medical", "clinic", "hospital", "doctor", "patient", "wellness"],
+    "fitness": ["gym", "workout", "exercise", "training", "sport"],
+    "money": ["finance", "accounting", "invoice", "payment", "billing", "banking"],
+    "learning": ["education", "school", "course", "student", "teacher", "training"],
+    "building": ["construction", "contractor", "renovation", "plumbing", "electrical"],
+    "car": ["automotive", "vehicle", "repair", "mechanic", "garage", "fleet"],
+    "home": ["real_estate", "property", "rental", "apartment", "housing"],
+    "travel": ["hotel", "booking", "tourism", "vacation", "resort", "flight"],
+    "law": ["legal", "attorney", "case", "court", "litigation", "contract"],
+    "child": ["daycare", "childcare", "nursery", "preschool", "babysitting"],
+    "tech": ["software", "saas", "startup", "platform", "app", "developer"],
+    "shop": ["retail", "store", "ecommerce", "product", "inventory", "merchandise"],
+    "event": ["party", "wedding", "conference", "festival", "concert", "exhibition"],
+    "clean": ["cleaning", "janitorial", "maid", "housekeeping", "pressure_washing"],
+    "photo": ["photography", "videography", "studio", "portrait", "editing"],
+    "music": ["audio", "recording", "studio", "band", "instrument", "DJ"],
+}
+
+
+def _expand_with_synonyms(keywords: list[str]) -> set[str]:
+    """Expand keywords with semantic synonyms."""
+    expanded = set(keywords)
+    for kw in keywords:
+        kw_lower = kw.lower()
+        for key, synonyms in SEMANTIC_SYNONYMS.items():
+            if kw_lower == key or kw_lower in synonyms:
+                expanded.add(key)
+                expanded.update(synonyms)
+    return expanded
+
+
 # ── Scoring ─────────────────────────────────────────────────────────
 
 def _extract_phrases(text: str, max_words: int = 3) -> list[str]:
@@ -389,6 +427,12 @@ def _score_spec(
     overlap = prompt_tokens & entry["keywords"]
     score += len(overlap) * 1.0
 
+    # Also check synonym-expanded keywords
+    prompt_expanded = _expand_with_synonyms(list(prompt_tokens))
+    spec_expanded = _expand_with_synonyms(list(entry["keywords"]))
+    synonym_overlap = len(prompt_expanded & spec_expanded) - len(prompt_tokens & entry["keywords"])
+    score += synonym_overlap * 0.3  # Partial credit for synonym matches
+
     # Quality bonus
     score += entry["entity_count"] * 0.5
 
@@ -414,6 +458,21 @@ def _score_spec(
         for phrase in prompt_phrases:
             if phrase in stem_lower or phrase in keywords_text:
                 score += 15.0
+
+    # Freshness bonus: newer files score higher
+    try:
+        spec_path = entry["path"]
+        file_mtime = os.path.getmtime(str(spec_path))
+        age_days = (_time.time() - file_mtime) / 86400
+        if age_days < 7:
+            score += 5  # Very fresh (created this week)
+        elif age_days < 30:
+            score += 3  # Recent (this month)
+        elif age_days < 90:
+            score += 1  # Somewhat recent
+        # Older files get no bonus
+    except Exception:
+        pass
 
     return score
 
