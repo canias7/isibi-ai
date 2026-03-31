@@ -15,7 +15,7 @@ async def test_signup_invalid_email(client):
     """POST /api/auth/signup with a malformed email should return 422."""
     response = await client.post("/api/auth/signup", json={
         "email": "not-an-email",
-        "password": "securepassword123",
+        "password": "Secure@password123",
         "first_name": "Test",
         "last_name": "User",
         "turnstile_token": "test-token",
@@ -29,7 +29,7 @@ async def test_signup_success(client):
     unique_email = f"test_{int(time.time())}_{id(client)}@example.com"
     response = await client.post("/api/auth/signup", json={
         "email": unique_email,
-        "password": "securepassword123",
+        "password": "Secure@password123",
         "first_name": "Test",
         "last_name": "User",
         "turnstile_token": "test-token",

@@ -48,7 +48,7 @@ export function SignupPage({ onSignup }: Props) {
     if (pw.length < 8) { setError("Password must be at least 8 characters."); return; }
     if (!/[A-Z]/.test(pw)) { setError("Password must contain at least one uppercase letter."); return; }
     if (!/[0-9]/.test(pw)) { setError("Password must contain at least one digit."); return; }
-    if (!/[!@#$%^&*()_+\-=\[\]{}|;:'",.<>?/~`]/.test(pw)) { setError("Password must contain at least one special character."); return; }
+    if (!/[!@#$%^&*()_+=[\]{}|;:'",.<>?/~`-]/.test(pw)) { setError("Password must contain at least one special character."); return; }
 
     setLoading(true);
 
