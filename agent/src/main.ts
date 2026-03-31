@@ -802,6 +802,196 @@ svg { display: block; }
 .btn-ghost:hover { color: #e2e8f0; }
 .btn-danger { background: rgba(239,68,68,0.1); color: #fca5a5; }
 .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+/* ── Sidebar Tabs ── */
+.sidebar-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+.sidebar-tab {
+  flex: 1;
+  padding: 7px 0;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: rgba(226,232,240,0.25);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.sidebar-tab:hover { background: rgba(255,255,255,0.03); color: rgba(226,232,240,0.4); }
+.sidebar-tab.active { background: rgba(236,72,153,0.08); color: #f9a8d4; }
+
+/* ── Control Center ── */
+.view { display: none; flex-direction: column; flex: 1; }
+.view.active { display: flex; }
+
+.control-center {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+.control-center::-webkit-scrollbar { width: 4px; }
+.control-center::-webkit-scrollbar-thumb { background: rgba(236,72,153,0.1); border-radius: 2px; }
+
+.cc-header {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.cc-sub {
+  font-size: 12px;
+  color: rgba(226,232,240,0.2);
+  margin-bottom: 24px;
+}
+
+.cc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.cc-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  transition: .2s;
+}
+.cc-card:hover {
+  border-color: rgba(236,72,153,0.12);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.cc-card.working {
+  border-color: rgba(139,92,246,0.2);
+  box-shadow: 0 0 20px rgba(139,92,246,0.05);
+}
+
+.cc-agent-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.cc-avatar {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: rgba(255,255,255,0.03);
+}
+.cc-name { font-size: 15px; font-weight: 600; color: #e2e8f0; }
+.cc-role { font-size: 11px; color: rgba(226,232,240,0.3); }
+.cc-status-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.cc-status-badge.idle { background: rgba(107,114,128,0.1); color: #9ca3af; }
+.cc-status-badge.active { background: rgba(34,197,94,0.1); color: #86efac; }
+.cc-status-badge.working { background: rgba(139,92,246,0.1); color: #c4b5fd; animation: badgePulse 2s ease-in-out infinite; }
+@keyframes badgePulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+
+/* ── Thought Bubble ── */
+.thought-bubble {
+  position: relative;
+  background: rgba(139,92,246,0.06);
+  border: 1px solid rgba(139,92,246,0.1);
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-top: 8px;
+  min-height: 52px;
+}
+.thought-bubble::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 24px;
+  width: 12px;
+  height: 12px;
+  background: rgba(139,92,246,0.06);
+  border: 1px solid rgba(139,92,246,0.1);
+  border-radius: 50%;
+}
+.thought-bubble::after {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: 20px;
+  width: 8px;
+  height: 8px;
+  background: rgba(139,92,246,0.04);
+  border: 1px solid rgba(139,92,246,0.08);
+  border-radius: 50%;
+}
+.thought-text {
+  font-size: 12px;
+  color: #c4b5fd;
+  line-height: 1.5;
+}
+.thought-text .step-label {
+  font-weight: 600;
+  color: #a78bfa;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.thought-idle {
+  font-size: 12px;
+  color: rgba(226,232,240,0.15);
+  font-style: italic;
+}
+
+.cc-task-log {
+  margin-top: 10px;
+  max-height: 80px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cc-task-log::-webkit-scrollbar { width: 2px; }
+.cc-task-log::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.1); }
+.cc-log-item {
+  font-size: 10px;
+  color: rgba(226,232,240,0.2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.cc-log-item .check { color: #22c55e; }
+
+.cc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 300px;
+  color: rgba(226,232,240,0.12);
+  gap: 12px;
+  font-size: 13px;
+}
 </style>
 </head>
 <body>
@@ -822,6 +1012,16 @@ svg { display: block; }
       <button class="new-chat-btn" onclick="openCreateAgent()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         New Agent
+      </button>
+    </div>
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" id="tabChat" onclick="switchView('chat')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat
+      </button>
+      <button class="sidebar-tab" id="tabCC" onclick="switchView('cc')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Control Center
       </button>
     </div>
     <div class="sidebar-section">
@@ -847,14 +1047,16 @@ svg { display: block; }
 
   <!-- Main Content -->
   <div class="main">
-    <div class="chat-area" id="chatArea">
-      <div class="chat-empty" id="chatEmpty">
-        <div class="orb"></div>
-        <div class="hint">What can I help you with?</div>
-        <div class="sub">Type a message, use voice, or say your wake word</div>
+    <!-- Chat View -->
+    <div class="view active" id="chatView">
+      <div class="chat-area" id="chatArea">
+        <div class="chat-empty" id="chatEmpty">
+          <div class="orb"></div>
+          <div class="hint">What can I help you with?</div>
+          <div class="sub">Type a message, use voice, or say your wake word</div>
+        </div>
       </div>
-    </div>
-    <div class="input-bar">
+      <div class="input-bar">
       <div class="input-wrap">
         <textarea id="input" placeholder="Message your agent..." rows="1"></textarea>
         <div class="voice-indicator" id="voiceIndicator"><div class="voice-dot"></div>Listening...</div>
@@ -865,6 +1067,16 @@ svg { display: block; }
       <button class="ib send-btn" id="sendBtn" title="Send">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
       </button>
+    </div>
+    </div>
+
+    <!-- Control Center View -->
+    <div class="view" id="ccView">
+      <div class="control-center" id="controlCenter">
+        <div class="cc-header">Control Center</div>
+        <div class="cc-sub">Watch your agents work in real-time</div>
+        <div class="cc-grid" id="ccGrid"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -1264,6 +1476,112 @@ async function deleteCurrentAgent() {
   await ipcRenderer.invoke('agents-delete', editingAgentId);
   closeModal();
   loadAgents();
+}
+
+// ── View Switching ──
+let currentView = 'chat';
+let ccPollTimer = null;
+let agentLogs = {}; // per-agent log of completed steps
+
+function switchView(view) {
+  currentView = view;
+  document.getElementById('chatView').classList.toggle('active', view === 'chat');
+  document.getElementById('ccView').classList.toggle('active', view === 'cc');
+  document.getElementById('tabChat').classList.toggle('active', view === 'chat');
+  document.getElementById('tabCC').classList.toggle('active', view === 'cc');
+
+  if (view === 'cc') {
+    renderControlCenter();
+    startCCPolling();
+  } else {
+    stopCCPolling();
+  }
+}
+
+function startCCPolling() {
+  stopCCPolling();
+  pollCC();
+  ccPollTimer = setInterval(pollCC, 800);
+}
+
+function stopCCPolling() {
+  if (ccPollTimer) { clearInterval(ccPollTimer); ccPollTimer = null; }
+}
+
+async function pollCC() {
+  const statuses = await ipcRenderer.invoke('agents-statuses');
+  const taskStatus = await ipcRenderer.invoke('ghost-status');
+  renderControlCenter(statuses, taskStatus);
+}
+
+function renderControlCenter(statuses, taskStatus) {
+  const grid = document.getElementById('ccGrid');
+  const activeAgents = agents.filter(a => a.isActive);
+
+  if (activeAgents.length === 0) {
+    grid.innerHTML = '<div class="cc-empty"><div>No active agents</div><div style="font-size:11px">Create and activate agents to see them here</div></div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  activeAgents.forEach(a => {
+    const s = statuses ? statuses[a.id] : null;
+    const isWorking = s && s.isRunning;
+    const card = document.createElement('div');
+    card.className = 'cc-card' + (isWorking ? ' working' : '');
+
+    // Status badge
+    let badgeCls = 'idle';
+    let badgeText = 'Idle';
+    if (isWorking) { badgeCls = 'working'; badgeText = 'Working'; }
+    else if (s && s.taskCount > 0) { badgeCls = 'active'; badgeText = s.taskCount + ' tasks done'; }
+
+    // Thought bubble content
+    let thoughtHtml = '';
+    if (isWorking && taskStatus && taskStatus.active) {
+      // Track logs per agent
+      if (!agentLogs[a.id]) agentLogs[a.id] = [];
+      const step = taskStatus.active;
+      thoughtHtml =
+        '<div class="thought-bubble"><div class="thought-text">' +
+        '<div class="step-label"><div class="spin"></div> Step ' + step.step + '/' + step.totalSteps + '</div>' +
+        escHtml(step.currentAction) +
+        '</div></div>';
+
+      // Log completed steps
+      const logKey = step.command + '-' + step.step;
+      if (step.step > 1 && !agentLogs[a.id].find(l => l.key === logKey)) {
+        agentLogs[a.id].push({ key: logKey, text: 'Step ' + (step.step - 1) + ': Done' });
+        if (agentLogs[a.id].length > 8) agentLogs[a.id].shift();
+      }
+    } else if (s && s.lastCommand) {
+      thoughtHtml =
+        '<div class="thought-bubble"><div class="thought-idle">Last: "' + escHtml(s.lastCommand) + '"</div></div>';
+    } else {
+      thoughtHtml =
+        '<div class="thought-bubble"><div class="thought-idle">Waiting for commands...</div></div>';
+    }
+
+    // Task log
+    let logHtml = '';
+    if (agentLogs[a.id] && agentLogs[a.id].length > 0) {
+      logHtml = '<div class="cc-task-log">';
+      agentLogs[a.id].forEach(l => {
+        logHtml += '<div class="cc-log-item"><span class="check">\\u2713</span> ' + escHtml(l.text) + '</div>';
+      });
+      logHtml += '</div>';
+    }
+
+    card.innerHTML =
+      '<div class="cc-status-badge ' + badgeCls + '">' + badgeText + '</div>' +
+      '<div class="cc-agent-header">' +
+        '<div class="cc-avatar">' + a.emoji + '</div>' +
+        '<div><div class="cc-name">' + a.name + '</div><div class="cc-role">' + a.role + '</div></div>' +
+      '</div>' +
+      thoughtHtml + logHtml;
+
+    grid.appendChild(card);
+  });
 }
 
 // ── Boot ──
