@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from starlette.responses import Response, RedirectResponse
 from starlette.requests import Request as StarletteRequest
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from db import engine, Base, async_session
 from middleware.rate_limiter import RateLimiterMiddleware
 from middleware.request_logger import RequestLoggerMiddleware
@@ -474,8 +474,34 @@ async def serve_live_app_by_subdomain(subdomain: str):
     return HTMLResponse(content=data["index_html"])
 
 
+@app.get("/live/{project_id}/{path:path}")
+async def serve_live_app_assets(project_id: str, path: str):
+    """Serve React build static assets (JS, CSS, images)."""
+    from worker.react_builder import get_react_build_path
+    react_dir = get_react_build_path(project_id)
+    if react_dir:
+        asset_path = react_dir / path
+        if asset_path.exists() and asset_path.is_file():
+            import mimetypes
+            content_type = mimetypes.guess_type(str(asset_path))[0] or "application/octet-stream"
+            return Response(content=asset_path.read_bytes(), media_type=content_type)
+    # Fall through to 404 for unknown assets
+    return Response(status_code=404)
+
+
 @app.get("/live/{project_id}", response_class=HTMLResponse)
 async def serve_live_app(project_id: str):
+    # Try React build first (better quality)
+    try:
+        from worker.react_builder import get_react_build_path
+        react_dir = get_react_build_path(project_id)
+        if react_dir:
+            index_html = (react_dir / "index.html").read_text(encoding="utf-8")
+            return HTMLResponse(content=index_html)
+    except Exception:
+        pass
+
+    # Fallback to deployer HTML
     data = await _get_build_data(project_id)
     if not data or "index_html" not in data:
         return HTMLResponse(

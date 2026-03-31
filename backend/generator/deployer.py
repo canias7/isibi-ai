@@ -212,6 +212,14 @@ self.addEventListener('fetch', (e) => {{
     except Exception as e:
         logger.warning("Failed to auto-create owner app_user for project %s: %s", project_id, e)
 
+    # Trigger React project build in background (HTML version serves immediately)
+    try:
+        from worker.react_builder import trigger_react_build
+        trigger_react_build(str(project_id))
+        logger.info("React background build triggered for project %s", project_id)
+    except Exception as e:
+        logger.debug("React build trigger failed (non-fatal): %s", e)
+
     result_info = {
         "project_id": str(project_id),
         "status": "deployed",
