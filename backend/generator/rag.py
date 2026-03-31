@@ -97,6 +97,8 @@ _project_root = os.path.dirname(_backend_dir)
 
 DEFAULT_SPEC_DIRS = [
     os.path.join(_project_root, "spec"),
+    os.path.join(_project_root, "generator", "examples"),  # Built-in diverse examples
+    os.path.join(_project_root, "user_specs"),  # Learned from user deployments
     os.path.expanduser("~/Desktop"),
     os.path.expanduser("~/Desktop/isibi.ai/specs"),
 ]
@@ -115,6 +117,11 @@ def discover_spec_files(extra_dirs: list[str] | None = None) -> list[Path]:
             continue
         for f in p.glob("*_spec.json"):
             found.append(f)
+        # Also match plain .json files in examples/ and user_specs/
+        if "examples" in str(p) or "user_specs" in str(p):
+            for f in p.glob("*.json"):
+                if f not in found:
+                    found.append(f)
         for f in p.glob("specs/*_spec.json"):
             found.append(f)
 
@@ -126,6 +133,51 @@ def discover_spec_files(extra_dirs: list[str] | None = None) -> list[Path]:
             seen.add(resolved)
             unique.append(f)
     return unique
+
+
+def save_user_spec_for_rag(spec: dict, project_id: str) -> bool:
+    """Save a deployed user spec as a RAG example for future generations.
+
+    Called when a user deploys an app — the system learns from real usage.
+    Only saves specs with quality score >70 and >4 entities.
+    """
+    try:
+        from .spec_validator import score_spec_quality
+        quality = score_spec_quality(spec)
+        if quality["score"] < 70:
+            return False
+
+        entities = spec.get("entities", [])
+        if len(entities) < 4:
+            return False
+
+        # Save to user_specs directory
+        user_specs_dir = Path(_project_root) / "user_specs"
+        user_specs_dir.mkdir(parents=True, exist_ok=True)
+
+        # Use app_name as filename
+        app_name = spec.get("app_name", spec.get("name", "app")).lower()
+        safe_name = "".join(c if c.isalnum() or c in "-_" else "_" for c in app_name).strip("_")[:50]
+        filepath = user_specs_dir / f"{safe_name}_{project_id[:8]}.json"
+
+        # Don't overwrite if already saved
+        if filepath.exists():
+            return False
+
+        # Strip internal metadata before saving
+        clean_spec = {k: v for k, v in spec.items() if not k.startswith("_")}
+        filepath.write_text(json.dumps(clean_spec, indent=2))
+
+        # Clear spec cache so new file is discovered
+        global _spec_index
+        _spec_index = None
+
+        logger.info("Saved user spec as RAG example: %s (%d entities, quality=%d)",
+                     filepath.name, len(entities), quality["score"])
+        return True
+    except Exception as e:
+        logger.debug("Failed to save user spec for RAG: %s", e)
+        return False
 
 
 def _load_spec(path: Path) -> dict:

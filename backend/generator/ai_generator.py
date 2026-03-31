@@ -75,22 +75,57 @@ When the user mentions spreadsheet, excel, sheet, grid, workbook, tracker, ledge
 ## DOMAIN EXPERTISE — think like a consultant for this specific business
 - Understand the SPECIFIC type of business (food truck vs fine dining, CrossFit gym vs yoga studio, family clinic vs hospital)
 - Include fields that THIS business actually needs (allergens for restaurant, insurance_provider for medical, membership_tier for gym)
-- Add status workflows that match the industry (lead→qualified→converted for sales, pending→confirmed→seated→completed for reservations)
+- Add status workflows that match the industry with 4-7 specific stages, NOT just ["active","inactive"]
 - Dashboard should show KPIs that matter: revenue for ecommerce, occupancy for hotels, no-show rate for appointments
 - Think about what reports the business owner needs and include the fields to support them
 
+## COMPUTED FIELDS — add these where obvious
+- total_price = quantity * unit_price (on order items)
+- full_name = first_name + " " + last_name (on people entities)
+- profit_margin = (price - cost) / price * 100 (on products)
+- days_until_due = DAYS_UNTIL(due_date) (on tasks/assignments)
+- age = DAYS_SINCE(birth_date) / 365 (on people)
+Always set computed fields to editable:false, show_in_table:true, show_in_form:false
+
+## RELATIONSHIP DEPTH — don't stop at 1 level
+Create 2-3 levels of FK relationships:
+- Order → OrderItem → MenuItem → MenuCategory
+- Project → Task → TimeEntry, Task → Assignee
+- Student → Enrollment → Course → Teacher
+Every FK field: name ends in "_id", fk_entity set, input_component:null, display_component:null
+
+## UI VARIETY — not everything is a table
+Choose the best layout for each entity:
+- Status-based entities (tasks, orders, leads) → use "kanban" layout with kanban_columns matching enum_values
+- Date-based entities (appointments, events, schedules) → use "calendar" layout
+- People entities (contacts, members, staff) → use "cards" layout
+- Everything else → use "table" layout
+Set layout in ui_config.list_view.layout
+
 ## SEED DATA — include sample records
-Add a "_seed_data" key to each entity with 3-5 realistic sample records. This makes the app feel alive on first load.
+Add a "_seed_data" key to each entity with 3-5 realistic sample records with proper field values.
 Example: {{"_seed_data": [{{"name": "John Smith", "email": "john@example.com", "status": "active"}}, ...]}}
 
+## WHAT NOT TO DO — common mistakes to avoid
+- DON'T use generic field names: "name", "status", "description" on every entity. Be specific: "dish_name", "order_status", "treatment_notes"
+- DON'T generate the same enum values everywhere. ["active","inactive"] is lazy. Use industry-specific statuses
+- DON'T create orphan entities that nothing links to
+- DON'T forget validation: email fields need email rule, phone needs pattern, prices need min:0, required fields need required rule
+- DON'T make every entity a table view. Use kanban for workflows, calendar for dates
+- DON'T duplicate fields: if you have "customer_name" don't also have "client_name" in the same entity
+- DON'T generate fewer than 8 business fields per entity (excluding system fields)
+
 ## RULES
-1. Generate 4-8 entities with 8-12 fields each. Include domain-specific fields, not just generic ones.
-2. Every enum field needs enum_values[] AND badge_colors{}.
-3. Create FK relationships between logically connected entities.
-4. Dashboard stat_cards: 3-5 key metrics relevant to the industry. Every module needs a Lucide icon.
+1. Generate 4-8 entities with 8-12 BUSINESS fields each (not counting system fields). Every field must be domain-specific.
+2. Every enum field needs enum_values[] (4-7 industry-specific values) AND badge_colors{{}}.
+3. Create 2-3 levels of FK relationships. Every entity should connect to at least one other.
+4. Dashboard stat_cards: 3-5 key metrics relevant to the industry. Include at least one revenue/money metric if applicable.
 5. Use RAG reference specs as structural templates — match their field format exactly.
 6. Always build immediately. Never ask questions. Make reasonable assumptions.
-7. NEVER generate a generic CRM. Tailor every entity, field, and workflow to the specific business described."""
+7. NEVER generate a generic CRM. Tailor every entity, field, and workflow to the specific business described.
+8. Include computed fields where math relationships are obvious (total = qty * price).
+9. Choose appropriate list_view layout per entity: table, kanban, calendar, or cards.
+10. Every entity MUST have proper validation rules on key fields."""
 
 
 async def generate_spec(user_prompt: str, conversation_history: list[dict] | None = None) -> dict:
@@ -575,7 +610,61 @@ def _apply_smart_defaults(spec: dict) -> None:
             if not field.get("nullable", True) and not field.get("validation"):
                 field["validation"] = {"rule": "required", "message": f"{field.get('name', 'Field')} is required"}
 
-    logger.info("Smart defaults applied to all entities")
+    # ── Entity validation: check FK integrity ──
+    entity_names = {e.get("name", "") for e in spec.get("entities", []) if isinstance(e, dict)}
+    for entity in spec.get("entities", []):
+        if not isinstance(entity, dict):
+            continue
+        for field in entity.get("fields", []):
+            if not isinstance(field, dict):
+                continue
+            fk = field.get("fk_entity", "")
+            if fk and fk not in entity_names:
+                logger.warning("FK '%s' in %s.%s points to non-existent entity — removing fk_entity",
+                               fk, entity.get("name"), field.get("name"))
+                field.pop("fk_entity", None)
+
+    # ── Field deduplication: remove duplicate field names within each entity ──
+    for entity in spec.get("entities", []):
+        if not isinstance(entity, dict):
+            continue
+        seen = set()
+        unique_fields = []
+        for field in entity.get("fields", []):
+            if not isinstance(field, dict):
+                continue
+            name = field.get("name", "")
+            if name in seen:
+                logger.warning("Duplicate field '%s' in %s — removing", name, entity.get("name"))
+                continue
+            seen.add(name)
+            unique_fields.append(field)
+        entity["fields"] = unique_fields
+
+    # ── Add computed fields where obvious ──
+    for entity in spec.get("entities", []):
+        if not isinstance(entity, dict):
+            continue
+        field_names = {f.get("name", "") for f in entity.get("fields", []) if isinstance(f, dict)}
+
+        # total_price = quantity * unit_price
+        if "quantity" in field_names and "unit_price" in field_names and "total_price" not in field_names:
+            # Insert before system fields
+            fields = entity["fields"]
+            idx = len(fields)
+            for i, f in enumerate(fields):
+                if isinstance(f, dict) and f.get("name") in ("created_at", "updated_at", "deleted_at", "version"):
+                    idx = i
+                    break
+            fields.insert(idx, {
+                "name": "total_price", "db_type": "NUMERIC(12,2)", "ts_type": "number",
+                "nullable": False, "editable": False, "show_in_table": True, "show_in_form": False,
+                "input_component": None, "display_component": "Currency",
+                "computed": "quantity * unit_price",
+            })
+            logger.info("Added computed field total_price to %s", entity.get("name"))
+
+    logger.info("Smart defaults, validation, deduplication applied")
 
 
 async def refine_spec(

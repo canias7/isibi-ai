@@ -171,6 +171,14 @@ async def trigger_deploy(
             detail="Deployment failed. Please try building again.",
         )
 
+    # Save spec as RAG example (learns from user deployments)
+    try:
+        from generator.rag import save_user_spec_for_rag
+        if isinstance(project.spec, dict):
+            save_user_spec_for_rag(project.spec, str(project.id))
+    except Exception as e:
+        logger.debug("RAG learning save failed (non-fatal): %s", e)
+
     # Record deploy history in spec._deploy_history
     try:
         spec = project.spec if isinstance(project.spec, dict) else {}
