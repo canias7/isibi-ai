@@ -1035,6 +1035,66 @@ svg { display: block; }
   gap: 12px;
   font-size: 13px;
 }
+
+/* ── Voice Bar (full-width bottom overlay) ── */
+.voice-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: linear-gradient(135deg, #1a0a1e, #0f0a1a);
+  border-top: 1px solid rgba(236,72,153,0.25);
+  box-shadow: 0 -4px 24px rgba(236,72,153,0.1);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 0 24px;
+}
+.voice-bar.active { display: flex; animation: vbarIn 0.2s ease; }
+@keyframes vbarIn { from{transform:translateY(100%);opacity:0} to{transform:translateY(0);opacity:1} }
+
+.voice-bar .vb-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #ec4899;
+  box-shadow: 0 0 8px rgba(236,72,153,0.5);
+  animation: vbPulse 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes vbPulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.8)} }
+
+.voice-bar .vb-wave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 28px;
+}
+.voice-bar .vb-wave .bar {
+  width: 3px;
+  border-radius: 2px;
+  background: linear-gradient(to top, #ec4899, #a855f7);
+  animation: waveBar 0.6s ease-in-out infinite alternate;
+}
+@keyframes waveBar { 0%{height:4px} 100%{height:24px} }
+
+.voice-bar .vb-label {
+  font-size: 12px;
+  color: rgba(226,232,240,0.6);
+  flex-shrink: 0;
+}
+.voice-bar .vb-label kbd {
+  display: inline-block;
+  background: rgba(236,72,153,0.1);
+  border: 1px solid rgba(236,72,153,0.2);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: inherit;
+  color: #f9a8d4;
+  margin: 0 2px;
+}
 </style>
 </head>
 <body>
@@ -1122,6 +1182,13 @@ svg { display: block; }
       </div>
     </div>
   </div>
+</div>
+
+<!-- Voice Bar -->
+<div class="voice-bar" id="voiceBar">
+  <div class="vb-dot"></div>
+  <div class="vb-wave" id="vbWave"></div>
+  <div class="vb-label"><kbd>F9</kbd> to stop</div>
 </div>
 
 <!-- Agent Create/Edit Modal -->
@@ -1412,14 +1479,40 @@ async function initVoice() {
   }
 }
 
+const voiceBar = document.getElementById('voiceBar');
+const vbWave = document.getElementById('vbWave');
+
+function buildWaveBars() {
+  vbWave.innerHTML = '';
+  for (let i = 0; i < 40; i++) {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.animationDelay = (Math.random() * 0.8).toFixed(2) + 's';
+    bar.style.animationDuration = (0.3 + Math.random() * 0.5).toFixed(2) + 's';
+    vbWave.appendChild(bar);
+  }
+}
+
+function showVoiceBar() {
+  buildWaveBars();
+  voiceBar.classList.add('active');
+  micBtn.classList.add('on');
+  voiceIndicator.classList.add('on');
+}
+
+function hideVoiceBar() {
+  voiceBar.classList.remove('active');
+  micBtn.classList.remove('on');
+  voiceIndicator.classList.remove('on');
+}
+
 function startMic() {
   if (!voiceReady || !rec) {
     console.log('[Voice] Not ready, trying to reinit...');
     initVoice().then(() => {
       if (voiceReady && rec) {
         listening = true;
-        micBtn.classList.add('on');
-        voiceIndicator.classList.add('on');
+        showVoiceBar();
         try { rec.start(); } catch (e) { console.error('[Voice] start failed:', e); }
       } else {
         chatMessages.push({ type: 'system', content: 'Microphone not available. Check System Settings > Privacy > Microphone, make sure ISIBI is allowed, then restart the app.' });
@@ -1429,15 +1522,13 @@ function startMic() {
     return;
   }
   listening = true;
-  micBtn.classList.add('on');
-  voiceIndicator.classList.add('on');
+  showVoiceBar();
   try { rec.start(); } catch (e) { console.error('[Voice] start failed:', e); }
 }
 
 function stopMic() {
   listening = false;
-  micBtn.classList.remove('on');
-  voiceIndicator.classList.remove('on');
+  hideVoiceBar();
   try { rec && rec.stop(); } catch (e) {}
 }
 
