@@ -42,6 +42,17 @@ PROJECTS_DIR = os.getenv(
     os.path.expanduser("~/Desktop/isibi.ai/generated")
 )
 
+# In-memory generation progress: project_id → {step, message, pct}
+_generation_progress: dict[str, dict] = {}
+
+
+def get_generation_progress(project_id: str) -> dict:
+    return _generation_progress.get(project_id, {"step": "idle", "message": "", "pct": 0})
+
+
+def _update_progress(project_id: str, step: str, message: str, pct: int):
+    _generation_progress[project_id] = {"step": step, "message": message, "pct": pct}
+
 
 async def create_project(
     db: AsyncSession,
@@ -68,6 +79,7 @@ async def create_project(
 
     try:
         # 2. Generate spec via AI + RAG
+        _update_progress(str(project.id), "planning", "Planning architecture...", 10)
         logger.info("Generating spec for project %s with prompt: %s", project.id, prompt[:100])
         spec = await generate_spec(prompt)
 
@@ -81,6 +93,7 @@ async def create_project(
         spec = _sanitize_spec(spec)
 
         # Validate and auto-repair the spec before building
+        _update_progress(str(project.id), "validating", "Validating spec...", 40)
         spec = validate_and_repair(spec)
 
         # Inject project metadata into spec
@@ -94,15 +107,18 @@ async def create_project(
         project.status = "ready"
 
         # 4. Build backend code
+        _update_progress(str(project.id), "building", "Building backend code...", 50)
         build_dir = os.path.join(PROJECTS_DIR, str(project.id), "backend")
         build_backend(spec, build_dir)
         project.build_path = build_dir
 
         # 4a. Build React frontend
+        _update_progress(str(project.id), "frontend", "Generating frontend...", 70)
         frontend_dir = os.path.join(PROJECTS_DIR, str(project.id), "frontend")
         build_frontend(spec, frontend_dir)
 
         # 4b. Create isolated database schema + tables for the app
+        _update_progress(str(project.id), "database", "Creating database schema...", 85)
         try:
             app_schema = await create_app_schema(
                 project_id=str(project.id),
@@ -115,12 +131,22 @@ async def create_project(
             logger.warning("Schema creation failed for project %s: %s", project.id, schema_err)
             # Non-fatal: the app can still work, schema can be retried later
 
+        # 4c. Compute spec complexity score
+        try:
+            from generator.complexity_scorer import score_complexity
+            complexity = score_complexity(spec)
+            spec["_complexity"] = complexity
+            logger.info("Spec complexity: %s (grade: %s)", complexity["overall"], complexity["grade"])
+        except Exception as e:
+            logger.debug("Complexity scoring failed: %s", e)
+
         # 5. Also save spec.json for the frontend to load
         spec_dir = os.path.join(PROJECTS_DIR, str(project.id))
         Path(spec_dir).mkdir(parents=True, exist_ok=True)
         with open(os.path.join(spec_dir, "spec.json"), "w") as f:
             json.dump(spec, f, indent=2)
 
+        _update_progress(str(project.id), "done", "App ready!", 100)
         project.status = "ready"
         project.conversation_history = [
             {"role": "user", "content": prompt},
@@ -160,6 +186,10 @@ async def refine_project(
 
     if not project.spec:
         raise ValueError("Project has no spec to refine")
+
+    # Save a copy of the old spec for feedback learning
+    import copy
+    _old_spec = copy.deepcopy(project.spec) if project.spec else {}
 
     try:
         project.status = "generating"
@@ -218,6 +248,13 @@ async def refine_project(
         project.status = "ready"
         project.updated_at = datetime.now(timezone.utc)
         project.version += 1
+
+        # Record user corrections for feedback learning
+        try:
+            from generator.feedback_learner import record_correction
+            record_correction(str(project.id), _old_spec, updated_spec, "refine")
+        except Exception:
+            pass
 
         await db.commit()
         await db.refresh(project)

@@ -123,6 +123,31 @@ BAD: All enum values are ["active","inactive"] — Generic! Use industry-specifi
 BAD: Dashboard with only "Total X" stat cards — Boring! Include revenue, trends, averages, rates.
 BAD: Every entity uses table layout — Monotonous! Use kanban for status workflows, calendar for dates, cards for people.
 
+## WORKFLOW AUTOMATIONS — generate _automations for each entity
+Add a "_automations" key to entities that have status workflows:
+{{"_automations": [
+  {{"trigger": "status_changed_to", "value": "delivered", "action": "send_notification", "message": "Order {{order_number}} has been delivered"}},
+  {{"trigger": "field_below", "field": "stock_quantity", "value": 10, "action": "send_alert", "message": "Low stock alert: {{name}}"}},
+  {{"trigger": "date_approaching", "field": "due_date", "days_before": 1, "action": "send_reminder", "message": "{{title}} is due tomorrow"}}
+]}}
+
+## REPORT DEFINITIONS — generate _reports for the app
+Add a "_reports" key to the root spec:
+{{"_reports": [
+  {{"name": "Monthly Revenue", "entity": "Order", "metric": "sum", "field": "total_amount", "group_by": "month", "chart_type": "line"}},
+  {{"name": "Top Products", "entity": "OrderItem", "metric": "count", "group_by": "product_name", "chart_type": "bar", "limit": 10}},
+  {{"name": "Customer Distribution", "entity": "Customer", "metric": "count", "group_by": "status", "chart_type": "pie"}}
+]}}
+Generate 3-5 industry-relevant reports per app.
+
+## NOTIFICATION RULES — generate _notifications
+Add a "_notifications" key to the root spec:
+{{"_notifications": [
+  {{"event": "record_created", "entity": "Order", "channel": "toast", "message": "New order #{{order_number}} received"}},
+  {{"event": "field_threshold", "entity": "Inventory", "field": "quantity", "condition": "below", "value": 10, "channel": "email", "message": "Low stock: {{name}} ({{quantity}} remaining)"}},
+  {{"event": "date_reminder", "entity": "Appointment", "field": "appointment_date", "before_hours": 24, "channel": "sms", "message": "Reminder: {{client_name}} appointment tomorrow at {{appointment_time}}"}}
+]}}
+
 ## RULES
 1. Generate 4-8 entities with 8-12 BUSINESS fields each (not counting system fields). Every field must be domain-specific.
 2. Every enum field needs enum_values[] (4-7 industry-specific values) AND badge_colors{{}}.
@@ -174,6 +199,22 @@ async def generate_spec(user_prompt: str, conversation_history: list[dict] | Non
     except ImportError:
         pass
 
+    # Competitor context
+    _competitor_ctx = ""
+    try:
+        from generator.competitor_knowledge import get_competitor_context
+        _competitor_ctx = get_competitor_context(user_prompt)
+    except ImportError:
+        pass
+
+    # Compliance context
+    _compliance_ctx = ""
+    try:
+        from generator.compliance_fields import get_compliance_context
+        _compliance_ctx = get_compliance_context(user_prompt)
+    except ImportError:
+        pass
+
     THINKING_EXAMPLE = """Example of good planning for a pizza restaurant:
 - Business type: Pizza delivery & dine-in restaurant
 - Core processes: Customer orders (phone/online/walk-in) → Kitchen prepares → Delivery dispatched OR served at table → Payment collected → Customer reviews
@@ -188,11 +229,18 @@ Think like a domain expert consultant for THIS specific business.
 
 Business: {user_prompt}
 
+## APP NAMING
+If the user mentions a business name (like "Joe's Pizza" or "FitLife Gym"), use that as the app_name.
+Otherwise, create a catchy specific name (not generic like "Restaurant Management System").
+Good: "Joe's Pizza Manager", "FitLife Pro", "Coastal Realty Hub"
+Bad: "Restaurant Management System", "CRM Application", "Business Tool"
+
 ## Example of good planning
 {THINKING_EXAMPLE}
 
 Return ONLY a JSON object:
 {{
+  "app_name": "catchy name for the app based on the business",
   "business_type": "specific type (e.g. 'fine dining restaurant' not just 'restaurant')",
   "entities": [
     {{
@@ -213,6 +261,14 @@ Generate 4-8 entities. Think about:
 - What relationships exist between data?
 - What KPIs does the owner care about?
 {_industry_context}"""
+
+    # Inject competitor context into plan prompt
+    if _competitor_ctx:
+        plan_prompt += f"\n\n## Competitor Reference\n{_competitor_ctx}"
+
+    # Inject compliance context into plan prompt
+    if _compliance_ctx:
+        plan_prompt += f"\n\n## Required Compliance Fields\n{_compliance_ctx}"
 
     try:
         plan_response = client.messages.create(
@@ -412,8 +468,34 @@ If everything looks good, return: {{"add_relationships": [], "add_validations": 
                 logger.info("Re-gen score: %d/100 (was %d)", retry_quality["score"], quality["score"])
                 if retry_quality["score"] > quality["score"]:
                     spec = retry_spec
+                    quality = retry_quality
         except Exception as e:
             logger.warning("Quality re-gen failed: %s — using original", e)
+
+    # A/B Generation: if quality is borderline (60-75), generate a second spec and pick the better one
+    AB_THRESHOLD = int(os.getenv("AB_QUALITY_THRESHOLD", "75"))
+    if quality["score"] < AB_THRESHOLD and quality["score"] >= 60:
+        logger.info("Quality score %d < %d — trying A/B generation for better result", quality["score"], AB_THRESHOLD)
+        try:
+            # Generate alternative with slightly different instruction
+            ab_messages = messages.copy()
+            ab_messages[-1] = {"role": "user", "content": ab_messages[-1]["content"] + "\n\nIMPORTANT: Generate a DIFFERENT approach than your first attempt. Use different entity names, more fields, and richer relationships."}
+            ab_response = client.messages.create(model=MODEL, max_tokens=64000, system=_final_prompt, messages=ab_messages)
+            ab_text = ab_response.content[0].text.strip()
+            ab_spec = _robust_json_parse(ab_text)
+            if isinstance(ab_spec, dict):
+                ab_spec = _ensure_required_fields(ab_spec)
+                ab_spec = _enforce_format(ab_spec)
+                _validate_spec(ab_spec)
+                _apply_smart_defaults(ab_spec)
+                ab_quality = score_spec_quality(ab_spec)
+                logger.info("A/B spec quality: %d vs original %d", ab_quality["score"], quality["score"])
+                if ab_quality["score"] > quality["score"]:
+                    spec = ab_spec
+                    quality = ab_quality
+                    logger.info("A/B winner: alternative spec (score %d)", ab_quality["score"])
+        except Exception as e:
+            logger.debug("A/B generation failed: %s", e)
 
     return spec
 
