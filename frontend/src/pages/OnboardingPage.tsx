@@ -1,4 +1,3 @@
-/* eslint-disable no-empty */
 import { useState, useRef, useEffect, useCallback, useMemo, memo } from "react";
 import {
   ArrowUp,

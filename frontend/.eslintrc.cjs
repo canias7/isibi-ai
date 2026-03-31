@@ -25,5 +25,7 @@ module.exports = {
     "react-hooks/exhaustive-deps": "warn",
     // No console.log in production
     "no-console": ["warn", { allow: ["warn", "error"] }],
+    // Allow empty catch blocks (common pattern for optional error handling)
+    "no-empty": ["error", { allowEmptyCatch: true }],
   },
 };

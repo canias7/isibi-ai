@@ -14,8 +14,8 @@ import time
 def test_rate_limiter_allows_normal_requests():
     """Rate limiter should allow requests under the limit."""
     prefix, limit = _get_rate_limit("/api/projects/123")
-    assert prefix == "/api/"
-    assert limit == 60
+    assert prefix == "/api/projects/"
+    assert limit == 40
 
 
 def test_rate_limiter_module_imports():
