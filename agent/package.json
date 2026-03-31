@@ -1,0 +1,49 @@
+{
+  "name": "isibi-ghost-mode",
+  "productName": "ISIBI Ghost Mode",
+  "version": "0.1.0",
+  "description": "AI agent that controls your computer with a futuristic ghost orb",
+  "author": "isibi.ai",
+  "main": "dist/main.js",
+  "scripts": {
+    "start": "electron dist/main.js",
+    "build": "tsc && electron-builder",
+    "build-mac": "tsc && electron-builder --mac",
+    "build-win": "tsc && electron-builder --win",
+    "build-linux": "tsc && electron-builder --linux",
+    "dev": "tsc -w"
+  },
+  "build": {
+    "appId": "ai.isibi.ghost-mode",
+    "productName": "ISIBI Ghost Mode",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "assets/**/*"],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [{ "target": "zip", "arch": ["x64"] }],
+      "artifactName": "ISIBI-Ghost-Mode-macOS.${ext}",
+      "extendInfo": {
+        "NSAppleEventsUsageDescription": "Ghost Mode needs accessibility access to control your computer.",
+        "NSScreenCaptureUsageDescription": "Ghost Mode needs screen capture to see what's on your screen."
+      }
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "artifactName": "ISIBI-Ghost-Mode-Setup.${ext}"
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "artifactName": "ISIBI-Ghost-Mode.${ext}"
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "@nut-tree-fork/nut-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.0.0",
+    "typescript": "^5.5.0"
+  }
+}
