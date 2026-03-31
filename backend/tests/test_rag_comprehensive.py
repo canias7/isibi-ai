@@ -63,6 +63,6 @@ def test_unknown_domain_still_returns_context():
 
 
 def test_rag_context_under_token_limit():
-    """build_rag_context should stay under ~15000 chars (~5000 tokens)."""
+    """build_rag_context should stay under ~45000 chars (~15000 tokens)."""
     ctx = build_rag_context("build a comprehensive CRM with invoicing, HR, inventory, and project management")
-    assert len(ctx) <= 20000  # Allow some buffer above the 15000 target
+    assert len(ctx) <= 60000  # Allow buffer above the 45000 target (expanded for richer context)
