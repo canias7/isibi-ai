@@ -692,20 +692,18 @@ def get_best_few_shot_example(user_prompt: str) -> str | None:
 
 # ── Main public function ────────────────────────────────────────────
 
-def build_rag_context(user_prompt: str, max_specs: int = 3) -> str:
-    """Build optimized RAG context from user prompt.
+def build_rag_context(user_prompt: str, max_specs: int = 5) -> str:
+    """Build rich RAG context from user prompt.
 
-    Returns a string under 5000 tokens (~15000 chars) containing:
+    Returns a string under 45000 chars (~15000 tokens) containing:
     1. Universal patterns (always included)
-    2. Best matching spec structures (smart count based on match quality)
+    2. Best matching spec structures (3-5 specs for diverse reference)
     3. Field pattern examples
 
-    Smart spec limiting:
-    - If top spec scores > 30 (strong match), return only that one
-    - If top 2 are within 5 points, return both
-    - Only return 3 for truly composite/multi-concept requests
+    Expanded context: Claude can handle 200k tokens, so we send more
+    complete specs to give better structural references.
     """
-    MAX_CHARS = 15000  # ~5000 tokens at 3 chars/token
+    MAX_CHARS = 45000  # ~15000 tokens — much richer context
 
     # 1. Universal patterns — always included
     context_parts: list[str] = [
@@ -718,26 +716,14 @@ def build_rag_context(user_prompt: str, max_specs: int = 3) -> str:
     # 2. Find matching specs (composite or standard)
     matches = _find_composite_specs(user_prompt)
 
-    # Smart limiting: reduce context for strong single-domain matches
-    if matches and len(matches) > 1:
-        top_score = matches[0][2]
-        if top_score > 30:
-            # Strong match — check if second spec is close
-            second_score = matches[1][2] if len(matches) > 1 else 0
-            if top_score - second_score > 5:
-                # Clear winner — only use top spec to save prompt budget
-                logger.info(
-                    "Strong single match (score=%.1f vs %.1f) — limiting to 1 spec",
-                    top_score, second_score,
-                )
-                matches = matches[:1]
-            else:
-                # Top 2 are close — use both
-                logger.info(
-                    "Two close matches (scores=%.1f, %.1f) — using 2 specs",
-                    top_score, second_score,
-                )
-                matches = matches[:2]
+    # Use top 3-5 specs for richer context (we have the token budget now)
+    if matches:
+        # Always include top match + 2 diverse alternatives for variety
+        matches = matches[:max_specs]
+        logger.info(
+            "Using %d reference specs (top score=%.1f)",
+            len(matches), matches[0][2] if matches else 0,
+        )
 
     if matches:
         context_parts.append("=== REFERENCE SPECS (use as STRUCTURAL TEMPLATES) ===")

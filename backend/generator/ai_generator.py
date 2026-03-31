@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 MODEL = os.getenv("AI_MODEL", "claude-sonnet-4-20250514")
+PLAN_MODEL = os.getenv("AI_PLAN_MODEL", "claude-sonnet-4-20250514")  # Use smarter model for planning
+REVIEW_MODEL = os.getenv("AI_REVIEW_MODEL", "claude-sonnet-4-20250514")  # Use smarter model for review
 
 MAX_JSON_RETRIES = 2
 
@@ -119,6 +121,16 @@ async def generate_spec(user_prompt: str, conversation_history: list[dict] | Non
     # ── PASS 1: PLAN — design the architecture ──────────────────────────
     logger.info("Pass 1: Planning entity architecture for: %s", user_prompt[:80])
 
+    # Get industry sub-template context if available
+    _industry_context = ""
+    try:
+        from generator.industry_templates import get_required_fields_context
+        _industry_context = get_required_fields_context(user_prompt)
+        if _industry_context:
+            _industry_context = f"\n\n## Industry-Specific Requirements\n{_industry_context}"
+    except ImportError:
+        pass
+
     plan_prompt = f"""Given this business description, plan the app architecture.
 Think like a domain expert consultant for THIS specific business.
 
@@ -144,11 +156,12 @@ Generate 4-8 entities. Think about:
 - What data does this specific business ACTUALLY track daily?
 - What are the core business processes (not generic CRUD)?
 - What relationships exist between data?
-- What KPIs does the owner care about?"""
+- What KPIs does the owner care about?
+{_industry_context}"""
 
     try:
         plan_response = client.messages.create(
-            model=MODEL,
+            model=PLAN_MODEL,
             max_tokens=2000,
             system="You are a business domain expert. Plan app architectures. Output ONLY valid JSON.",
             messages=[{"role": "user", "content": plan_prompt}],
@@ -293,7 +306,7 @@ Return ONLY a JSON object with fixes:
 If everything looks good, return: {{"add_relationships": [], "add_validations": [], "add_fields": [], "fix_dashboard": []}}"""
 
         review_response = client.messages.create(
-            model=MODEL,
+            model=REVIEW_MODEL,
             max_tokens=4000,
             system="You are a QA reviewer for app specs. Find missing relationships, validations, and fields. Output ONLY JSON.",
             messages=[{"role": "user", "content": review_prompt}],
@@ -346,6 +359,90 @@ If everything looks good, return: {{"add_relationships": [], "add_validations": 
             logger.warning("Quality re-gen failed: %s — using original", e)
 
     return spec
+
+
+def _apply_spec_patch(spec: dict, patch: dict) -> None:
+    """Apply a diff-based patch to an existing spec."""
+    entities = spec.get("entities", [])
+    entity_map = {e.get("name", ""): i for i, e in enumerate(entities) if isinstance(e, dict)}
+
+    # Add new entities
+    for new_entity in patch.get("add_entities", []):
+        if isinstance(new_entity, dict) and new_entity.get("name"):
+            entities.append(new_entity)
+            # Add corresponding module
+            modules = spec.get("modules", [])
+            mod_name = new_entity["name"]
+            if not any(m.get("entity") == mod_name for m in modules if isinstance(m, dict)):
+                modules.append({
+                    "name": mod_name,
+                    "route": f"/{mod_name.lower().replace(' ', '-')}",
+                    "component": "ResourcePage",
+                    "layout": "sidebar",
+                    "sidebar_order": len(modules) + 1,
+                    "sidebar_icon": "FileText",
+                    "entity": mod_name,
+                })
+
+    # Remove entities
+    for name in patch.get("remove_entities", []):
+        if name in entity_map:
+            idx = entity_map[name]
+            entities.pop(idx)
+            # Also remove module
+            modules = spec.get("modules", [])
+            spec["modules"] = [m for m in modules if not (isinstance(m, dict) and m.get("entity") == name)]
+
+    # Modify entities
+    for entity_name, changes in patch.get("modify_entities", {}).items():
+        if entity_name not in entity_map:
+            continue
+        entity = entities[entity_map[entity_name]]
+        fields = entity.get("fields", [])
+
+        # Add fields
+        for new_field in changes.get("add_fields", []):
+            if isinstance(new_field, dict) and new_field.get("name"):
+                if not any(f.get("name") == new_field["name"] for f in fields if isinstance(f, dict)):
+                    # Insert before system timestamp fields
+                    idx = len(fields)
+                    for i, f in enumerate(fields):
+                        if isinstance(f, dict) and f.get("name") in ("created_at", "updated_at", "deleted_at", "version"):
+                            idx = i
+                            break
+                    fields.insert(idx, new_field)
+
+        # Remove fields
+        for field_name in changes.get("remove_fields", []):
+            entity["fields"] = [f for f in fields if not (isinstance(f, dict) and f.get("name") == field_name)]
+
+        # Update fields
+        for field_name, updates in changes.get("update_fields", {}).items():
+            for field in entity.get("fields", []):
+                if isinstance(field, dict) and field.get("name") == field_name:
+                    field.update(updates)
+
+    # Update design system
+    design_update = patch.get("update_design", {})
+    if design_update and isinstance(design_update, dict):
+        ds = spec.get("design_system", {})
+        for key, val in design_update.items():
+            if isinstance(val, dict) and isinstance(ds.get(key), dict):
+                ds[key].update(val)
+            else:
+                ds[key] = val
+
+    # Update dashboard
+    dash_update = patch.get("update_dashboard", {})
+    if dash_update and isinstance(dash_update, dict):
+        dashboard = spec.get("dashboard", {})
+        for key, val in dash_update.items():
+            dashboard[key] = val
+
+    logger.info("Spec patch applied: +%d entities, -%d entities, %d modified",
+                len(patch.get("add_entities", [])),
+                len(patch.get("remove_entities", [])),
+                len(patch.get("modify_entities", {})))
 
 
 def _apply_review_fixes(spec: dict, fixes: dict) -> None:
@@ -486,13 +583,73 @@ async def refine_spec(
     user_feedback: str,
 ) -> dict:
     """
-    Refine an existing spec based on user feedback.
+    Refine an existing spec based on user feedback using diff-based approach.
+
+    Instead of regenerating the entire spec (slow, risky), we ask Claude to
+    return ONLY the changes as a patch, then merge them into the existing spec.
+    Falls back to full regeneration for complex changes.
     """
     if not ANTHROPIC_API_KEY:
         raise ValueError("ANTHROPIC_API_KEY environment variable is required")
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
+    # First try diff-based approach (faster, safer)
+    entity_summary = []
+    for e in current_spec.get("entities", []):
+        if isinstance(e, dict):
+            fields = [f.get("name", "") for f in e.get("fields", []) if isinstance(f, dict) and f.get("name") not in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version")]
+            entity_summary.append(f"  - {e.get('name')}: {', '.join(fields)}")
+
+    diff_prompt = f"""Current app: {current_spec.get('app_name', 'App')}
+Current entities:
+{chr(10).join(entity_summary)}
+
+User wants: {user_feedback}
+
+Return ONLY a JSON patch describing what to change:
+{{
+  "add_entities": [{{full entity objects to add}}],
+  "remove_entities": ["EntityName"],
+  "modify_entities": {{
+    "EntityName": {{
+      "add_fields": [{{field objects}}],
+      "remove_fields": ["field_name"],
+      "update_fields": {{"field_name": {{partial field update}}}}
+    }}
+  }},
+  "update_design": {{partial design_system update}},
+  "update_dashboard": {{partial dashboard update}},
+  "reply": "Brief description of what was changed"
+}}
+
+Only include sections that need changes. If adding a new entity, include full entity with all fields."""
+
+    try:
+        diff_response = client.messages.create(
+            model=REVIEW_MODEL,
+            max_tokens=16000,
+            system="You are a spec editor. Apply user changes as minimal JSON patches. Output ONLY valid JSON.",
+            messages=[{"role": "user", "content": diff_prompt}],
+        )
+        diff_text = diff_response.content[0].text.strip()
+        patch = _robust_json_parse(diff_text)
+
+        if isinstance(patch, dict) and any(patch.get(k) for k in ("add_entities", "remove_entities", "modify_entities", "update_design", "update_dashboard")):
+            # Apply the patch
+            _apply_spec_patch(current_spec, patch)
+            current_spec = _ensure_required_fields(current_spec)
+            current_spec = _enforce_format(current_spec)
+            _validate_spec(current_spec)
+            _apply_smart_defaults(current_spec)
+            logger.info("Spec refined via diff patch — changes applied successfully")
+            # Store the reply for the frontend
+            current_spec["_refine_reply"] = patch.get("reply", "Changes applied!")
+            return current_spec
+    except Exception as e:
+        logger.warning("Diff-based refine failed: %s — falling back to full regeneration", e)
+
+    # Fallback: full spec regeneration (original approach)
     messages = [
         {
             "role": "user",
