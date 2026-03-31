@@ -1,0 +1,156 @@
+{
+  "app_name": "ClearHealth Clinic Manager",
+  "entities": [
+    {
+      "name": "Patient",
+      "table": "patient",
+      "description": "Registered patients with personal and contact information",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "first_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "last_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "date_of_birth", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "gender", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "enum_values": [{"value": "male", "label": "Male", "badge_color": "blue"}, {"value": "female", "label": "Female", "badge_color": "pink"}, {"value": "other", "label": "Other", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "PhoneInput", "display_component": "Text", "validation": {"required": true, "pattern": "^\\+?[1-9]\\d{6,14}$"}},
+        {"name": "blood_type", "db_type": "VARCHAR(5)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "A+", "label": "A+", "badge_color": "red"}, {"value": "A-", "label": "A-", "badge_color": "red"}, {"value": "B+", "label": "B+", "badge_color": "blue"}, {"value": "B-", "label": "B-", "badge_color": "blue"}, {"value": "AB+", "label": "AB+", "badge_color": "purple"}, {"value": "AB-", "label": "AB-", "badge_color": "purple"}, {"value": "O+", "label": "O+", "badge_color": "green"}, {"value": "O-", "label": "O-", "badge_color": "green"}]},
+        {"name": "insurance_provider", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "insurance_number", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "allergies", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "last_name", "default_sort_order": "asc", "page_size": 25, "columns": ["first_name", "last_name", "date_of_birth", "gender", "phone", "email", "insurance_provider", "created_at"], "filters": ["gender", "blood_type", "insurance_provider"], "empty_state": {"icon": "heart-pulse", "heading": "No patients registered", "subtext": "Register your first patient to get started", "action_label": "Add Patient"}},
+        "create_form": {"type": "SlideOverForm", "title": "Register Patient", "required_fields": ["first_name", "last_name", "date_of_birth", "gender", "phone"], "field_order": ["first_name", "last_name", "date_of_birth", "gender", "email", "phone", "blood_type", "insurance_provider", "insurance_number", "allergies"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Doctor",
+      "table": "doctor",
+      "description": "Physicians and medical professionals on staff",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "full_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true, "pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "PhoneInput", "display_component": "Text", "validation": {"required": true, "pattern": "^\\+?[1-9]\\d{6,14}$"}},
+        {"name": "specialty", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "general", "label": "General Practice", "badge_color": "blue"}, {"value": "pediatrics", "label": "Pediatrics", "badge_color": "green"}, {"value": "cardiology", "label": "Cardiology", "badge_color": "red"}, {"value": "dermatology", "label": "Dermatology", "badge_color": "yellow"}, {"value": "orthopedics", "label": "Orthopedics", "badge_color": "purple"}, {"value": "neurology", "label": "Neurology", "badge_color": "indigo"}, {"value": "gynecology", "label": "Gynecology", "badge_color": "pink"}], "validation": {"required": true}},
+        {"name": "license_number", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "consultation_fee", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "is_available", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Available", "badge_color": "green"}, {"value": false, "label": "Unavailable", "badge_color": "gray"}]},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "full_name", "default_sort_order": "asc", "page_size": 25, "columns": ["full_name", "email", "phone", "specialty", "consultation_fee", "is_available", "created_at"], "filters": ["specialty", "is_available"], "empty_state": {"icon": "stethoscope", "heading": "No doctors registered", "subtext": "Add your clinic's medical professionals", "action_label": "Add Doctor"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Doctor", "required_fields": ["full_name", "email", "phone", "specialty", "license_number", "consultation_fee"], "field_order": ["full_name", "email", "phone", "specialty", "license_number", "consultation_fee", "is_available"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Appointment",
+      "table": "appointment",
+      "description": "Scheduled appointments between patients and doctors",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "patient_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Patient", "validation": {"required": true}},
+        {"name": "doctor_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Doctor", "validation": {"required": true}},
+        {"name": "appointment_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "appointment_time", "db_type": "TIME", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "duration_minutes", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 30, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "Select", "display_component": "Text", "enum_values": [{"value": 15, "label": "15 min", "badge_color": "gray"}, {"value": 30, "label": "30 min", "badge_color": "blue"}, {"value": 45, "label": "45 min", "badge_color": "yellow"}, {"value": 60, "label": "60 min", "badge_color": "orange"}], "validation": {"required": true}},
+        {"name": "visit_type", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "new_patient", "label": "New Patient", "badge_color": "blue"}, {"value": "follow_up", "label": "Follow-up", "badge_color": "green"}, {"value": "urgent", "label": "Urgent", "badge_color": "red"}, {"value": "routine", "label": "Routine Checkup", "badge_color": "gray"}, {"value": "consultation", "label": "Consultation", "badge_color": "purple"}], "validation": {"required": true}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "scheduled", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "scheduled", "label": "Scheduled", "badge_color": "blue"}, {"value": "checked_in", "label": "Checked In", "badge_color": "yellow"}, {"value": "in_progress", "label": "In Progress", "badge_color": "orange"}, {"value": "completed", "label": "Completed", "badge_color": "green"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}, {"value": "no_show", "label": "No Show", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "appointment_date", "default_sort_order": "desc", "page_size": 25, "columns": ["patient_id", "doctor_id", "appointment_date", "appointment_time", "duration_minutes", "visit_type", "status", "created_at"], "filters": ["doctor_id", "visit_type", "status", "appointment_date"], "empty_state": {"icon": "calendar-clock", "heading": "No appointments", "subtext": "Schedule your first patient appointment", "action_label": "Book Appointment"}},
+        "create_form": {"type": "SlideOverForm", "title": "Book Appointment", "required_fields": ["patient_id", "doctor_id", "appointment_date", "appointment_time", "visit_type"], "field_order": ["patient_id", "doctor_id", "appointment_date", "appointment_time", "duration_minutes", "visit_type", "status", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Prescription",
+      "table": "prescription",
+      "description": "Medications prescribed to patients by doctors",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "patient_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Patient", "validation": {"required": true}},
+        {"name": "doctor_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Doctor", "validation": {"required": true}},
+        {"name": "medication_name", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "dosage", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "frequency", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "Select", "display_component": "Text", "enum_values": [{"value": "once_daily", "label": "Once Daily", "badge_color": "green"}, {"value": "twice_daily", "label": "Twice Daily", "badge_color": "blue"}, {"value": "three_daily", "label": "Three Times Daily", "badge_color": "yellow"}, {"value": "as_needed", "label": "As Needed", "badge_color": "gray"}, {"value": "weekly", "label": "Weekly", "badge_color": "purple"}], "validation": {"required": true}},
+        {"name": "start_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "end_date", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime"},
+        {"name": "instructions", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["patient_id", "doctor_id", "medication_name", "dosage", "frequency", "start_date", "end_date", "created_at"], "filters": ["patient_id", "doctor_id"], "empty_state": {"icon": "pill", "heading": "No prescriptions", "subtext": "Prescriptions will appear here after doctor visits", "action_label": "Add Prescription"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Prescription", "required_fields": ["patient_id", "doctor_id", "medication_name", "dosage", "frequency", "start_date"], "field_order": ["patient_id", "doctor_id", "medication_name", "dosage", "frequency", "start_date", "end_date", "instructions"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Billing",
+      "table": "billing",
+      "description": "Invoice and payment records for patient services",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "invoice_number", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": true, "input_component": null, "display_component": "Text"},
+        {"name": "patient_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Patient", "validation": {"required": true}},
+        {"name": "appointment_id", "db_type": "UUID", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "Select", "display_component": "Text", "fk_entity": "Appointment"},
+        {"name": "service_description", "db_type": "VARCHAR(300)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "amount", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "insurance_covered", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"min": 0}},
+        {"name": "patient_owes", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "default": 0, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "Currency"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "pending", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "pending", "label": "Pending", "badge_color": "yellow"}, {"value": "sent", "label": "Sent", "badge_color": "blue"}, {"value": "paid", "label": "Paid", "badge_color": "green"}, {"value": "overdue", "label": "Overdue", "badge_color": "red"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "due_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["invoice_number", "patient_id", "service_description", "amount", "insurance_covered", "patient_owes", "status", "due_date", "created_at"], "filters": ["status", "patient_id"], "empty_state": {"icon": "credit-card", "heading": "No billing records", "subtext": "Invoices will be generated after appointments", "action_label": "Create Invoice"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Invoice", "required_fields": ["patient_id", "service_description", "amount", "due_date"], "field_order": ["patient_id", "appointment_id", "service_description", "amount", "insurance_covered", "status", "due_date"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Patients", "route": "/patients", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "HeartPulse", "entity": "Patient"},
+    {"name": "Doctors", "route": "/doctors", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "Stethoscope", "entity": "Doctor"},
+    {"name": "Appointments", "route": "/appointments", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "CalendarClock", "entity": "Appointment"},
+    {"name": "Prescriptions", "route": "/prescriptions", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "Pill", "entity": "Prescription"},
+    {"name": "Billing", "route": "/billing", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "CreditCard", "entity": "Billing"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Total Patients", "entity": "Patient", "icon": "HeartPulse", "color": "blue"},
+      {"label": "Doctors on Staff", "entity": "Doctor", "icon": "Stethoscope", "color": "green"},
+      {"label": "Today's Appointments", "entity": "Appointment", "icon": "CalendarClock", "color": "sky"},
+      {"label": "Pending Invoices", "entity": "Billing", "icon": "CreditCard", "color": "yellow"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#0EA5E9", "secondary": "#38BDF8", "sidebar_bg": "#F0F9FF", "sidebar_text": "#0C4A6E"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#0EA5E9", "primary_text": "white"},
+    "table": {"striped": true, "hover": true},
+    "typography": {"font": "DM Sans"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}

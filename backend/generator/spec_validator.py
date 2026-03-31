@@ -1318,15 +1318,25 @@ def _generate_stat_cards(entities: list) -> list[dict]:
 
 
 def _ensure_design_system(spec: dict) -> None:
-    """Fill in design system defaults for missing sub-keys."""
+    """Fill in design system defaults for missing sub-keys.
+
+    Only fills truly MISSING values — never overwrites what the AI chose.
+    This preserves custom palettes from domain-aware generation.
+    """
     ds = spec["design_system"]
     for key, default_val in DEFAULT_DESIGN_SYSTEM.items():
         if key not in ds or not isinstance(ds[key], dict):
             ds[key] = dict(default_val)
         else:
-            # Fill in missing sub-keys within each section
             for sub_key, sub_val in default_val.items():
                 ds[key].setdefault(sub_key, sub_val)
+
+    # Sync button color with primary if AI didn't specify a custom button color
+    primary = ds.get("colors", {}).get("primary", "#2563eb")
+    buttons = ds.get("buttons", {})
+    if buttons.get("primary_bg") == "blue-600" and primary != "#2563eb":
+        # AI chose a custom primary but buttons still have the default — sync them
+        buttons["primary_bg"] = primary
 
 
 def _validate_visible_when(field: dict, entity: dict) -> None:

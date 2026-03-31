@@ -253,6 +253,12 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
     colors = design.get("colors") or {}
     primary_color = colors.get("primary") or "#6366f1"
     secondary_color = colors.get("secondary") or "#8b5cf6"
+    sidebar_bg = colors.get("sidebar_bg") or "#0f172a"
+    sidebar_text = colors.get("sidebar_text") or "#e2e8f0"
+    typography = design.get("typography") or {}
+    app_font = typography.get("font") or "Inter"
+    # URL-safe font name for Google Fonts
+    font_url_name = app_font.replace(" ", "+")
 
     # Build entity field maps for JS (include fk_entity for FK dropdowns)
     entity_fields_js = _build_entity_fields_js(entities)
@@ -297,10 +303,10 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
 <link rel="apple-touch-icon" href="/live/{project_id}/icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family={font_url_name}:wght@400;500;600;700&display=swap" rel="stylesheet">
 <title>{app_name}</title>
 <style>
-*,*::before,*::after {{ margin:0;padding:0;box-sizing:border-box; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; }}
+*,*::before,*::after {{ margin:0;padding:0;box-sizing:border-box; font-family:'{app_font}',-apple-system,BlinkMacSystemFont,sans-serif; }}
 :root {{
   --primary: {primary_color};
   --primary-hover: color-mix(in srgb, {primary_color} 85%, black);
@@ -320,7 +326,9 @@ def generate_full_app_html(spec: dict, api_base_url: str, project_id: str = "") 
   --gray-900: #111827;
   --bg: #f9fafb;
   --bg-card: #ffffff;
-  --sidebar-bg: #fbfbfc;
+  --sidebar-bg: {sidebar_bg};
+  --sidebar-text: {sidebar_text};
+  --sidebar-text-muted: color-mix(in srgb, {sidebar_text} 60%, transparent);
   --sidebar-width: 208px;
   --sidebar-collapsed-width: 0px;
   --border: #e5e7eb;
@@ -527,14 +535,14 @@ body {{
   border:none;background:none;
   border-radius:8px;
   font-size:11px;font-weight:500;
-  color:var(--gray-500);
+  color:var(--sidebar-text-muted);
   cursor:pointer;
   margin:0;
   transition:all 0.15s ease;
   position:relative;
   font-family:inherit;
 }}
-.sidebar-item:hover {{ background:rgba(243,244,246,0.8);color:var(--gray-800); }}
+.sidebar-item:hover {{ background:color-mix(in srgb, var(--sidebar-text) 10%, transparent);color:var(--sidebar-text); }}
 .sidebar-item.active {{
   background:linear-gradient(135deg, {primary_color}, {primary_color}cc);
   color:#ffffff;

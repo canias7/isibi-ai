@@ -28,7 +28,15 @@ SYSTEM_PROMPT = """You are Anias, an expert app architect for isibi.ai. You prod
 Output ONLY valid JSON. No markdown fences, no explanation, no comments.
 
 ## SPEC STRUCTURE
-{"app_name":"...","entities":[...],"modules":[...],"dashboard":{"stat_cards":[...]},"design_system":{"colors":{"primary":"#2563eb","secondary":"#64748b","sidebar_bg":"#0f172a","sidebar_text":"#e2e8f0"},"spacing":{"page_padding":"24px","card_padding":"16px","gap":"16px"},"buttons":{"primary_bg":"blue-600","primary_text":"white"},"table":{"striped":false,"hover":true},"typography":{"font":"Inter"}},"pagination":{"type":"cursor","default_page_size":25}}
+{"app_name":"...","entities":[...],"modules":[...],"dashboard":{"stat_cards":[...]},"design_system":{"colors":{"primary":"...","secondary":"...","sidebar_bg":"...","sidebar_text":"..."},"spacing":{"page_padding":"24px","card_padding":"16px","gap":"16px"},"buttons":{"primary_bg":"...","primary_text":"white"},"table":{"striped":false,"hover":true},"typography":{"font":"..."}},"pagination":{"type":"cursor","default_page_size":25}}
+
+## DESIGN SYSTEM — MAKE EACH APP UNIQUE
+Choose colors, fonts, and style based on the SPECIFIC business/industry:
+- Pick a primary color that matches the vibe (warm reds for food, clean blues for medical, bold dark for fitness, etc.)
+- Pick a font that fits: Playfair Display (luxury), Poppins (modern), Oswald (bold), Nunito (friendly), DM Sans (clean), Lora (elegant), Space Grotesk (tech), Montserrat (professional), Quicksand (soft), Outfit (minimal)
+- Choose sidebar style: dark (sidebar_bg: dark color, sidebar_text: light) or light (sidebar_bg: white/light, sidebar_text: dark)
+- NEVER use the same colors for different types of businesses. A restaurant should look NOTHING like a medical clinic.
+{design_context}
 
 ## ENTITY STRUCTURE
 {"name":"Lead","table":"leads","description":"Sales lead tracking","fields":[...system+business fields...],"ui_config":{...}}
@@ -125,6 +133,11 @@ Now generate the COMPLETE JSON spec for what the user requested.
 
     messages.append({"role": "user", "content": user_message})
 
+    # Inject domain-aware design palette into system prompt
+    from generator.design_palettes import get_palette_context
+    _design_ctx = get_palette_context(user_prompt)
+    _final_prompt = SYSTEM_PROMPT.replace("{design_context}", _design_ctx)
+
     # First attempt
     spec = None
     last_error = None
@@ -136,7 +149,7 @@ Now generate the COMPLETE JSON spec for what the user requested.
                 response = client.messages.create(
                     model=MODEL,
                     max_tokens=64000,
-                    system=SYSTEM_PROMPT,
+                    system=_final_prompt,
                     messages=messages,
                 )
             else:
