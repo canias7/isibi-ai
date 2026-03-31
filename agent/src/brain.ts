@@ -151,9 +151,21 @@ Action types:
 - screenshot: take a screenshot to see what's on screen
 - search_spotlight: use Spotlight/Start menu to find and open something
 
-Use find_and_click for UI elements (buttons, links, inputs) — the vision system will locate them.
+PREFER keyboard shortcuts over find_and_click when possible — they are more reliable:
+- YouTube search: click the URL bar (press_key Cmd+L), type the search URL directly: open_url "https://www.youtube.com/results?search_query=TERM"
+- Google search: just use open_url "https://www.google.com/search?q=TERM"
+- Browser address bar: press_key Cmd+L (macOS) or Ctrl+L (Windows/Linux)
+- Browser search on page: press_key Cmd+F
+- Copy: press_key Cmd+C, Paste: press_key Cmd+V
+- New tab: press_key Cmd+T
+- Close tab: press_key Cmd+W
+
+For searching on a website (YouTube, Google, Amazon, etc.), ALWAYS prefer using the URL with query parameters instead of trying to find and click a search box. Example: open_url "https://www.youtube.com/results?search_query=ksi" instead of navigating to youtube then trying to click the search box.
+
+Use find_and_click ONLY for UI elements that cannot be accessed via keyboard shortcuts or URLs (like specific buttons in desktop apps).
 Use open_app for launching known applications.
-Keep actions minimal — don't add unnecessary waits or screenshots unless needed.`,
+Keep actions minimal — don't add unnecessary waits or screenshots unless needed.
+Add a wait of 1500ms after open_url to let the page load before interacting with it.`,
     messages: [{
       role: 'user',
       content: command,

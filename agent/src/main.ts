@@ -78,6 +78,9 @@ function createListenerWindow() {
   listenerWindow.webContents.session.setPermissionRequestHandler(
     (_wc, permission, callback) => { callback(true); }
   );
+  listenerWindow.webContents.session.setPermissionCheckHandler(
+    () => true
+  );
 
   listenerWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(WAKE_LISTENER_HTML)}`);
   listenerWindow.on('closed', () => { listenerWindow = null; });
@@ -1162,6 +1165,7 @@ const { ipcRenderer } = require('electron');
 let agents = [];
 let selectedAgentId = null;
 let chatMessages = [];
+let chatHistoryByAgent = {}; // per-agent chat history
 let listening = false;
 let rec = null;
 let voiceReady = false;
@@ -1220,7 +1224,7 @@ function renderAgentList() {
         else if (act === 'delete') deleteAgentById(a.id);
         return;
       }
-      selectedAgentId = a.id; renderAgentList(); updatePlaceholder();
+      switchAgent(a.id);
     };
     agentListEl.appendChild(el);
   });
@@ -1241,6 +1245,19 @@ async function deleteAgentById(id) {
 function updatePlaceholder() {
   const a = agents.find(x => x.id === selectedAgentId);
   input.placeholder = a ? 'Message ' + a.name + '...' : 'Message your agent...';
+}
+
+function switchAgent(newId) {
+  // Save current chat
+  if (selectedAgentId) {
+    chatHistoryByAgent[selectedAgentId] = [...chatMessages];
+  }
+  selectedAgentId = newId;
+  // Restore or start fresh
+  chatMessages = chatHistoryByAgent[newId] ? [...chatHistoryByAgent[newId]] : [];
+  renderAgentList();
+  renderChat();
+  updatePlaceholder();
 }
 
 ipcRenderer.on('agents-updated', () => loadAgents());
@@ -1344,11 +1361,29 @@ async function poll() {
 }
 
 // ── Voice Recognition ──
+let micStream = null;
 async function initVoice() {
   try {
-    await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Request mic permission explicitly and keep the stream alive
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    console.log('[Voice] Mic stream obtained:', micStream.active);
+  } catch (err) {
+    console.error('[Voice] getUserMedia failed:', err);
+    // Try again after a short delay (Electron sometimes needs a moment)
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('[Voice] Mic stream obtained on retry:', micStream.active);
+    } catch (err2) {
+      console.error('[Voice] getUserMedia retry failed:', err2);
+      voiceReady = false;
+      return;
+    }
+  }
+
+  try {
     const S = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!S) return;
+    if (!S) { console.error('[Voice] SpeechRecognition API not available'); return; }
     rec = new S();
     rec.continuous = false;
     rec.interimResults = true;
@@ -1362,23 +1397,41 @@ async function initVoice() {
     };
     rec.onend = () => { if (listening) stopMic(); };
     rec.onerror = e => {
+      console.log('[Voice] Error:', e.error);
       stopMic();
-      if (e.error === 'no-speech') { /* silent, no big deal */ }
-      else if (e.error === 'not-allowed') { console.error('Mic not allowed'); }
+      if (e.error === 'not-allowed') {
+        console.error('[Voice] Mic not allowed — try restarting the app');
+        voiceReady = false;
+      }
     };
     voiceReady = true;
+    console.log('[Voice] Ready!');
   } catch (err) {
-    console.error('Voice init failed:', err);
+    console.error('[Voice] SpeechRecognition init failed:', err);
     voiceReady = false;
   }
 }
 
 function startMic() {
-  if (!rec || !voiceReady) return;
+  if (!voiceReady || !rec) {
+    console.log('[Voice] Not ready, trying to reinit...');
+    initVoice().then(() => {
+      if (voiceReady && rec) {
+        listening = true;
+        micBtn.classList.add('on');
+        voiceIndicator.classList.add('on');
+        try { rec.start(); } catch (e) { console.error('[Voice] start failed:', e); }
+      } else {
+        chatMessages.push({ type: 'system', content: 'Microphone not available. Check System Settings > Privacy > Microphone, make sure ISIBI is allowed, then restart the app.' });
+        renderChat();
+      }
+    });
+    return;
+  }
   listening = true;
   micBtn.classList.add('on');
   voiceIndicator.classList.add('on');
-  try { rec.start(); } catch (e) {}
+  try { rec.start(); } catch (e) { console.error('[Voice] start failed:', e); }
 }
 
 function stopMic() {
@@ -1645,6 +1698,17 @@ function renderControlCenter(statuses, taskStatus) {
     grid.appendChild(card);
   });
 }
+
+// ── Focus management ──
+// Auto-focus textarea when window gets focus or view switches
+document.addEventListener('click', (e) => {
+  // If click is not on a button/input/modal, focus the textarea
+  const tag = e.target.tagName;
+  if (tag !== 'BUTTON' && tag !== 'INPUT' && tag !== 'TEXTAREA' && !e.target.closest('.modal-bg') && !e.target.closest('.sidebar')) {
+    input.focus();
+  }
+});
+window.addEventListener('focus', () => { if (currentView === 'chat') input.focus(); });
 
 // ── Boot ──
 init();
