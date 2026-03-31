@@ -70,13 +70,25 @@ validation: {"rule":"email","message":"Invalid email"} — rules: required|email
 ## SPREADSHEET APPS
 When the user mentions spreadsheet, excel, sheet, grid, workbook, tracker, ledger, or data table, add "app_type":"spreadsheet" to the root of the spec. For spreadsheet apps: prefer more columns per entity (8-15 fields), include several numeric fields, and use data-entry-friendly field types.
 
+## DOMAIN EXPERTISE — think like a consultant for this specific business
+- Understand the SPECIFIC type of business (food truck vs fine dining, CrossFit gym vs yoga studio, family clinic vs hospital)
+- Include fields that THIS business actually needs (allergens for restaurant, insurance_provider for medical, membership_tier for gym)
+- Add status workflows that match the industry (lead→qualified→converted for sales, pending→confirmed→seated→completed for reservations)
+- Dashboard should show KPIs that matter: revenue for ecommerce, occupancy for hotels, no-show rate for appointments
+- Think about what reports the business owner needs and include the fields to support them
+
+## SEED DATA — include sample records
+Add a "_seed_data" key to each entity with 3-5 realistic sample records. This makes the app feel alive on first load.
+Example: {{"_seed_data": [{{"name": "John Smith", "email": "john@example.com", "status": "active"}}, ...]}}
+
 ## RULES
-1. Generate 4-8 entities with full fields. Fill smart defaults for anything unspecified.
+1. Generate 4-8 entities with 8-12 fields each. Include domain-specific fields, not just generic ones.
 2. Every enum field needs enum_values[] AND badge_colors{}.
 3. Create FK relationships between logically connected entities.
-4. Dashboard stat_cards: 3-5 key metrics. Every module needs a Lucide icon.
+4. Dashboard stat_cards: 3-5 key metrics relevant to the industry. Every module needs a Lucide icon.
 5. Use RAG reference specs as structural templates — match their field format exactly.
-6. Always build immediately. Never ask questions. Make reasonable assumptions."""
+6. Always build immediately. Never ask questions. Make reasonable assumptions.
+7. NEVER generate a generic CRM. Tailor every entity, field, and workflow to the specific business described."""
 
 
 async def generate_spec(user_prompt: str, conversation_history: list[dict] | None = None) -> dict:

@@ -113,6 +113,47 @@ async def trigger_deploy(
     except Exception as e:
         logger.warning("Schema creation during deploy (non-fatal): %s", e)
 
+    # Insert seed data if available (first deploy only)
+    try:
+        from generator.app_db import _get_raw_connection, get_schema_name
+        spec_data = project.spec if isinstance(project.spec, dict) else {}
+        entities = spec_data.get("entities", [])
+        schema_name = get_schema_name(str(project.id))
+        project_org = str(project.org_id) if project.org_id else None
+
+        for entity in entities:
+            seed = entity.get("_seed_data", [])
+            if not seed or not isinstance(seed, list):
+                continue
+            table = entity.get("table", entity.get("name", "").lower().replace(" ", "_"))
+            try:
+                conn = await _get_raw_connection(os.getenv("DATABASE_URL", ""))
+                try:
+                    # Check if table already has data
+                    count = await conn.fetchval(f'SELECT COUNT(*) FROM "{schema_name}"."{table}" WHERE "deleted_at" IS NULL')
+                    if count and count > 0:
+                        continue  # Already has data, skip seed
+
+                    for row in seed[:10]:
+                        if not isinstance(row, dict):
+                            continue
+                        if project_org:
+                            row["org_id"] = project_org
+                        cols = ", ".join(f'"{k}"' for k in row.keys())
+                        placeholders = ", ".join(f"${i+1}" for i in range(len(row)))
+                        values = [str(v) for v in row.values()]
+                        await conn.execute(
+                            f'INSERT INTO "{schema_name}"."{table}" ({cols}) VALUES ({placeholders})',
+                            *values,
+                        )
+                    logger.info("Inserted %d seed records into %s.%s", len(seed), schema_name, table)
+                finally:
+                    await conn.close()
+            except Exception as e:
+                logger.debug("Seed data insert for %s failed (non-fatal): %s", table, e)
+    except Exception as e:
+        logger.debug("Seed data phase failed (non-fatal): %s", e)
+
     # Deploy
     try:
         deploy_info = await deploy_app(
