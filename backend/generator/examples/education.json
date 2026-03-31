@@ -1,0 +1,146 @@
+{
+  "app_name": "BrightPath School Manager",
+  "entities": [
+    {
+      "name": "Student",
+      "table": "student",
+      "description": "Enrolled students with guardian contact information",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "first_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "last_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true, "pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "grade_level", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "enrollment_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "active", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "active", "label": "Active", "badge_color": "green"}, {"value": "graduated", "label": "Graduated", "badge_color": "blue"}, {"value": "suspended", "label": "Suspended", "badge_color": "red"}, {"value": "transferred", "label": "Transferred", "badge_color": "yellow"}], "validation": {"required": true}},
+        {"name": "guardian_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "guardian_phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "PhoneInput", "display_component": "Text", "validation": {"required": true, "pattern": "^\\+?[1-9]\\d{6,14}$"}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "last_name", "default_sort_order": "asc", "page_size": 25, "columns": ["first_name", "last_name", "email", "grade_level", "enrollment_date", "status", "guardian_name", "guardian_phone", "created_at"], "filters": ["grade_level", "status"], "empty_state": {"icon": "graduation-cap", "heading": "No students enrolled", "subtext": "Enroll your first student to get started", "action_label": "Enroll Student"}},
+        "create_form": {"type": "SlideOverForm", "title": "Enroll Student", "required_fields": ["first_name", "last_name", "email", "grade_level", "enrollment_date", "guardian_name", "guardian_phone"], "field_order": ["first_name", "last_name", "email", "grade_level", "enrollment_date", "status", "guardian_name", "guardian_phone"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Course",
+      "table": "course",
+      "description": "Academic courses offered each semester",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 200}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "teacher_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Teacher", "validation": {"required": true}},
+        {"name": "credits", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1, "max": 12}},
+        {"name": "max_students", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1, "max": 500}},
+        {"name": "schedule", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "room_number", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "teacher_id", "credits", "max_students", "schedule", "room_number", "created_at"], "filters": ["teacher_id", "room_number"], "empty_state": {"icon": "book-open", "heading": "No courses available", "subtext": "Create your first course offering", "action_label": "Add Course"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Course", "required_fields": ["name", "teacher_id", "credits", "max_students", "schedule", "room_number"], "field_order": ["name", "description", "teacher_id", "credits", "max_students", "schedule", "room_number"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Teacher",
+      "table": "teacher",
+      "description": "Faculty members and their departments",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "first_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "last_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1, "max_length": 100}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true, "pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "department", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "math", "label": "Mathematics", "badge_color": "blue"}, {"value": "science", "label": "Science", "badge_color": "green"}, {"value": "english", "label": "English", "badge_color": "purple"}, {"value": "history", "label": "History", "badge_color": "yellow"}, {"value": "art", "label": "Art", "badge_color": "pink"}, {"value": "pe", "label": "Physical Education", "badge_color": "orange"}], "validation": {"required": true}},
+        {"name": "hire_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "active", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "active", "label": "Active", "badge_color": "green"}, {"value": "on_leave", "label": "On Leave", "badge_color": "yellow"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "last_name", "default_sort_order": "asc", "page_size": 25, "columns": ["first_name", "last_name", "email", "department", "hire_date", "status", "created_at"], "filters": ["department", "status"], "empty_state": {"icon": "user-pen", "heading": "No teachers on staff", "subtext": "Add your first faculty member", "action_label": "Add Teacher"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Teacher", "required_fields": ["first_name", "last_name", "email", "department", "hire_date"], "field_order": ["first_name", "last_name", "email", "department", "hire_date", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Enrollment",
+      "table": "enrollment",
+      "description": "Student enrollments in specific courses each semester",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "student_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Student", "validation": {"required": true}},
+        {"name": "course_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Course", "validation": {"required": true}},
+        {"name": "semester", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "grade", "db_type": "VARCHAR(5)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "enrolled", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "enrolled", "label": "Enrolled", "badge_color": "blue"}, {"value": "completed", "label": "Completed", "badge_color": "green"}, {"value": "dropped", "label": "Dropped", "badge_color": "gray"}, {"value": "failed", "label": "Failed", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["student_id", "course_id", "semester", "grade", "status", "created_at"], "filters": ["student_id", "course_id", "semester", "status"], "empty_state": {"icon": "clipboard-list", "heading": "No enrollments", "subtext": "Enroll students in courses to get started", "action_label": "Enroll Student"}},
+        "create_form": {"type": "SlideOverForm", "title": "Enroll in Course", "required_fields": ["student_id", "course_id", "semester"], "field_order": ["student_id", "course_id", "semester", "grade", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Assignment",
+      "table": "assignment",
+      "description": "Homework, exams, projects, and quizzes for courses",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "title", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 200}},
+        {"name": "course_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Course", "validation": {"required": true}},
+        {"name": "due_date", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "max_points", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1, "max": 1000}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "type", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "homework", "label": "Homework", "badge_color": "blue"}, {"value": "exam", "label": "Exam", "badge_color": "red"}, {"value": "project", "label": "Project", "badge_color": "purple"}, {"value": "quiz", "label": "Quiz", "badge_color": "yellow"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "due_date", "default_sort_order": "asc", "page_size": 25, "columns": ["title", "course_id", "due_date", "max_points", "type", "created_at"], "filters": ["course_id", "type", "due_date"], "empty_state": {"icon": "file-text", "heading": "No assignments created", "subtext": "Create assignments for your courses", "action_label": "Add Assignment"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Assignment", "required_fields": ["title", "course_id", "due_date", "max_points", "type"], "field_order": ["title", "course_id", "due_date", "max_points", "type", "description"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Students", "route": "/students", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "GraduationCap", "entity": "Student"},
+    {"name": "Courses", "route": "/courses", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "BookOpen", "entity": "Course"},
+    {"name": "Teachers", "route": "/teachers", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "UserPen", "entity": "Teacher"},
+    {"name": "Enrollments", "route": "/enrollments", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "ClipboardList", "entity": "Enrollment"},
+    {"name": "Assignments", "route": "/assignments", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "FileText", "entity": "Assignment"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Total Students", "entity": "Student", "icon": "GraduationCap", "color": "blue"},
+      {"label": "Courses Offered", "entity": "Course", "icon": "BookOpen", "color": "green"},
+      {"label": "Faculty Members", "entity": "Teacher", "icon": "UserPen", "color": "purple"},
+      {"label": "Active Enrollments", "entity": "Enrollment", "icon": "ClipboardList", "color": "sky"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#1e3a5f", "secondary": "#2563eb", "sidebar_bg": "#f1f5f9", "sidebar_text": "#0f172a"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#1e3a5f", "primary_text": "white"},
+    "table": {"striped": true, "hover": true},
+    "typography": {"font": "Merriweather"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}
