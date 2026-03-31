@@ -96,11 +96,10 @@ _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _project_root = os.path.dirname(_backend_dir)
 
 DEFAULT_SPEC_DIRS = [
-    os.path.join(_project_root, "spec"),
-    os.path.join(_project_root, "generator", "examples"),  # Built-in diverse examples
-    os.path.join(_project_root, "user_specs"),  # Learned from user deployments
-    os.path.expanduser("~/Desktop"),
-    os.path.expanduser("~/Desktop/isibi.ai/specs"),
+    os.path.join(_project_root, "spec"),                     # 1005 built-in specs!
+    os.path.join(_backend_dir, "generator", "examples"),     # Curated diverse examples
+    os.path.join(_backend_dir, "user_specs"),                # Learned from user deployments
+    os.path.join(_project_root, "user_specs"),               # Alt location
 ]
 
 _spec_cache: dict[str, dict] = {}
