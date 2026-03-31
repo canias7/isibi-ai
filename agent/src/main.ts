@@ -2,7 +2,7 @@
  * ISIBI Ghost Mode — Main Entry Point
  *
  * A futuristic AI agent that controls your computer.
- * You speak or type a command, and the ghost orb does it for you.
+ * Claude-like desktop app with sidebar, chat, and voice.
  */
 
 import { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, systemPreferences } from 'electron';
@@ -17,66 +17,43 @@ import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent
 import { dispatchCommand, getAllAgentStatuses } from './agent-manager';
 
 let mainWindow: BrowserWindow | null = null;
-let hubWindow: BrowserWindow | null = null;
 let listenerWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let systemIndex: SystemIndex | null = null;
 
-// ── Main Window (Ghost Mode UI) ─────────────────────────────────────────
+// ── Main App Window ────────────────────────────────────────────────────
 
-function createWindow() {
-  mainWindow = new BrowserWindow({
-    width: 480,
-    height: 140,
-    title: 'ISIBI Ghost Mode',
-    frame: false,
-    transparent: true,
-    resizable: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    center: true,
-    show: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-    backgroundColor: '#00000000',
-    vibrancy: 'under-window',
-    visualEffectState: 'active',
-  });
-
-  // Load the Ghost Mode UI
-  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(GHOST_MODE_HTML)}`);
-
-  mainWindow.on('closed', () => { mainWindow = null; });
-  mainWindow.on('blur', () => { /* Don't hide — keep accessible */ });
-}
-
-// ── Agent Hub Window ───────────────────────────────────────────────────
-
-function createHubWindow() {
-  if (hubWindow) {
-    hubWindow.show();
-    hubWindow.focus();
+function createMainWindow() {
+  if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
     return;
   }
 
-  hubWindow = new BrowserWindow({
-    width: 720,
-    height: 560,
-    title: 'ISIBI Ghost Mode — Agents',
+  mainWindow = new BrowserWindow({
+    width: 1100,
+    height: 750,
+    minWidth: 800,
+    minHeight: 600,
+    title: 'ISIBI Ghost Mode',
     frame: false,
-    resizable: false,
+    resizable: true,
     center: true,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
-    backgroundColor: '#0a0015',
+    backgroundColor: '#0f0f1a',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
   });
 
-  hubWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(AGENT_HUB_HTML)}`);
-  hubWindow.on('closed', () => { hubWindow = null; });
+  // Auto-grant microphone permission in renderer
+  mainWindow.webContents.session.setPermissionRequestHandler(
+    (_wc, permission, callback) => { callback(true); }
+  );
+
+  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(APP_HTML)}`);
+  mainWindow.on('closed', () => { mainWindow = null; });
 }
 
 // ── Wake Word Listener (always-on, hidden window) ─────────────────────
@@ -95,11 +72,15 @@ function createListenerWindow() {
     },
   });
 
+  listenerWindow.webContents.session.setPermissionRequestHandler(
+    (_wc, permission, callback) => { callback(true); }
+  );
+
   listenerWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(WAKE_LISTENER_HTML)}`);
   listenerWindow.on('closed', () => { listenerWindow = null; });
 }
 
-// ── System Tray ─────────────────────────────────────────────────────────
+// ── System Tray ────────────────────────────────────────────────────────
 
 function createTray() {
   const icon = nativeImage.createEmpty();
@@ -107,111 +88,83 @@ function createTray() {
   tray.setToolTip('ISIBI Ghost Mode');
 
   const menu = Menu.buildFromTemplate([
-    { label: 'Ghost Mode (F9)', click: () => {
-      mainWindow?.center();
+    { label: 'Show ISIBI', click: () => {
       mainWindow?.show();
       mainWindow?.focus();
-      mainWindow?.webContents.send('bar-opened');
     }},
-    { label: 'Agent Hub', click: () => createHubWindow() },
+    { label: 'Voice (F9)', click: () => {
+      mainWindow?.show();
+      mainWindow?.focus();
+      mainWindow?.webContents.send('toggle-voice');
+    }},
     { type: 'separator' },
     { label: 'Quit', click: () => { (app as any).isQuitting = true; app.quit(); } },
   ]);
   tray.setContextMenu(menu);
 
   tray.on('click', () => {
-    mainWindow?.center();
     mainWindow?.show();
     mainWindow?.focus();
   });
 }
 
-// ── IPC Handlers ────────────────────────────────────────────────────────
+// ── IPC Handlers ───────────────────────────────────────────────────────
 
-ipcMain.handle('ghost-resize', (_, height: number) => {
-  if (mainWindow) {
-    const [w] = mainWindow.getSize();
-    mainWindow.setSize(w, height);
-    mainWindow.center();
-  }
-});
-
-ipcMain.handle('ghost-hide', () => {
-  mainWindow?.hide();
-});
-
-// ── Wake Word & Settings IPC ──────────────────────────────────────────
-
+// Wake Word & Settings
 ipcMain.handle('get-wake-word', () => getWakeWord());
 ipcMain.handle('get-assistant-name', () => getAssistantName());
 
 ipcMain.handle('wake-word-detected', () => {
-  // Wake word heard — show the voice bar
-  if (mainWindow && !mainWindow.isVisible()) {
-    mainWindow.center();
-    mainWindow.show();
-    mainWindow.focus();
-    mainWindow.webContents.send('bar-opened');
-  }
+  mainWindow?.show();
+  mainWindow?.focus();
+  mainWindow?.webContents.send('start-voice');
 });
 
 ipcMain.handle('update-assistant-profile', (_, name: string) => {
   const wakeWord = 'hey ' + name.toLowerCase().trim();
   saveConfig({ assistantName: name.trim(), assistantWakeWord: wakeWord });
-  // Notify listener to use new wake word
   listenerWindow?.webContents.send('wake-word-changed', wakeWord);
-  hubWindow?.webContents.send('profile-updated', { name: name.trim(), wakeWord });
+  mainWindow?.webContents.send('profile-updated', { name: name.trim(), wakeWord });
   return { name: name.trim(), wakeWord };
 });
 
-// ── Agent CRUD IPC ─────────────────────────────────────────────────────
-
+// Agent CRUD
 ipcMain.handle('agents-list', () => getAgents());
 
 ipcMain.handle('agents-create', (_, data: { name: string; emoji: string; role: string; instructions: string; color: string }) => {
   const agent = createAgent(data);
-  // Notify hub if open
-  hubWindow?.webContents.send('agents-updated');
   mainWindow?.webContents.send('agents-updated');
   return agent;
 });
 
 ipcMain.handle('agents-update', (_, id: string, data: any) => {
   const agent = updateAgent(id, data);
-  hubWindow?.webContents.send('agents-updated');
   mainWindow?.webContents.send('agents-updated');
   return agent;
 });
 
 ipcMain.handle('agents-delete', (_, id: string) => {
   const ok = deleteAgent(id);
-  hubWindow?.webContents.send('agents-updated');
   mainWindow?.webContents.send('agents-updated');
   return ok;
 });
 
 ipcMain.handle('agents-toggle', (_, id: string) => {
   const agent = toggleAgent(id);
-  hubWindow?.webContents.send('agents-updated');
   mainWindow?.webContents.send('agents-updated');
   return agent;
 });
 
 ipcMain.handle('agents-statuses', () => getAllAgentStatuses());
 
-ipcMain.handle('open-hub', () => createHubWindow());
-
-// ── Command & Status IPC ───────────────────────────────────────────────
-
+// Command & Status
 ipcMain.handle('ghost-command', async (_, command: string, agentId?: string) => {
   if (!systemIndex) {
     return { error: 'System not indexed yet. Please wait...' };
   }
-
   try {
-    // If agentId provided, dispatch to specific agent; otherwise use first active
     const targetId = agentId || getActiveAgents()[0]?.id;
-    if (!targetId) return { error: 'No active agents. Open Agent Hub to create one.' };
+    if (!targetId) return { error: 'No active agents. Create one in the sidebar.' };
 
     const plans = await dispatchCommand(targetId, command, systemIndex);
     const agent = getAgent(targetId);
@@ -263,24 +216,19 @@ ipcMain.handle('ghost-reindex', async () => {
   return { status: 'done', apps: systemIndex.apps.length };
 });
 
-// ── App Lifecycle ───────────────────────────────────────────────────────
+// ── App Lifecycle ──────────────────────────────────────────────────────
 
 function launchGhostMode() {
-  createWindow();
+  createMainWindow();
   createTray();
 
-  // Show Agent Hub as the main app window on launch
-  createHubWindow();
-
-  // Ensure microphone permission before starting listener
+  // Microphone + wake word listener
   if (process.platform === 'darwin') {
     systemPreferences.askForMediaAccess('microphone').then((granted) => {
-      console.log('[Ghost Mode] Microphone access:', granted ? 'granted' : 'denied');
+      console.log('[Ghost Mode] Microphone:', granted ? 'granted' : 'denied');
       if (granted) {
         createListenerWindow();
         console.log('[Ghost Mode] Wake word listener started — say "' + getWakeWord() + '"');
-      } else {
-        console.error('[Ghost Mode] Microphone denied — wake word won\'t work. F9 still available.');
       }
     });
   } else {
@@ -288,45 +236,32 @@ function launchGhostMode() {
     console.log('[Ghost Mode] Wake word listener started — say "' + getWakeWord() + '"');
   }
 
-  // Keyboard shortcuts as backup
-  const toggleBar = () => {
-    if (mainWindow?.isVisible()) {
-      mainWindow.hide();
-    } else {
-      mainWindow?.center();
-      mainWindow?.show();
-      mainWindow?.focus();
-      mainWindow?.webContents.send('bar-opened');
-    }
+  // Keyboard shortcuts
+  const toggleVoice = () => {
+    mainWindow?.show();
+    mainWindow?.focus();
+    mainWindow?.webContents.send('toggle-voice');
   };
 
-  // Try F9 first
-  const f9 = globalShortcut.register('F9', toggleBar);
-  console.log('[Ghost Mode] F9 shortcut:', f9 ? 'registered' : 'FAILED');
+  const f9 = globalShortcut.register('F9', toggleVoice);
+  console.log('[Ghost Mode] F9:', f9 ? 'registered' : 'FAILED');
+  const cmdG = globalShortcut.register('CommandOrControl+Shift+G', toggleVoice);
+  console.log('[Ghost Mode] Cmd+Shift+G:', cmdG ? 'registered' : 'FAILED');
 
-  // Also register Cmd+Shift+G as reliable backup
-  const cmdG = globalShortcut.register('CommandOrControl+Shift+G', toggleBar);
-  console.log('[Ghost Mode] Cmd+Shift+G shortcut:', cmdG ? 'registered' : 'FAILED');
-
-  // Index the system on first launch
+  // Index the system
   console.log('[Ghost Mode] Starting system index...');
   systemIndex = loadIndex();
   if (!systemIndex) {
-    // First time — full scan
     systemIndex = buildIndex();
   } else {
-    // Quick refresh
     systemIndex = refreshIndex();
   }
   console.log(`[Ghost Mode] Index ready: ${systemIndex.apps.length} apps, ${systemIndex.recentFiles.length} files`);
 
-  // Notify the UI
-  if (mainWindow) {
-    mainWindow.webContents.send('index-ready', {
-      apps: systemIndex.apps.length,
-      files: systemIndex.recentFiles.length,
-    });
-  }
+  mainWindow?.webContents.send('index-ready', {
+    apps: systemIndex.apps.length,
+    files: systemIndex.recentFiles.length,
+  });
 }
 
 app.whenReady().then(async () => {
@@ -346,7 +281,7 @@ app.on('window-all-closed', () => {
 });
 
 app.on('activate', () => {
-  if (!mainWindow) createWindow();
+  if (!mainWindow) createMainWindow();
   else mainWindow.show();
 });
 
@@ -355,118 +290,7 @@ app.on('will-quit', () => {
   destroyOverlay();
 });
 
-// ── Ghost Mode UI (inline HTML) ─────────────────────────────────────────
-
-const GHOST_MODE_HTML = `<!DOCTYPE html><html><head><style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,system-ui,sans-serif;background:transparent;color:#f0e6ff;overflow:hidden}
-.bar{background:rgba(10,0,21,.95);backdrop-filter:blur(40px) saturate(1.5);border:1px solid rgba(236,72,153,.2);border-radius:20px;margin:8px;box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 20px rgba(236,72,153,.1);display:flex;flex-direction:column;align-items:center;padding:14px 20px;gap:8px}
-.orb{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#f472b6,#ec4899 40%,#a855f7 70%,#6366f1);box-shadow:0 0 16px rgba(236,72,153,.5);animation:idle 3s ease-in-out infinite;cursor:pointer;flex-shrink:0}
-.orb.mic{animation:listen 1s ease-in-out infinite;background:radial-gradient(circle at 38% 38%,#f472b6,#ef4444 40%,#ec4899 70%,#a855f7);box-shadow:0 0 24px rgba(239,68,68,.6)}
-.orb.go{animation:pulse .8s ease-in-out infinite;box-shadow:0 0 20px rgba(236,72,153,.7)}
-@keyframes idle{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
-@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.14)}}
-@keyframes listen{0%,100%{transform:scale(1);box-shadow:0 0 16px rgba(239,68,68,.5)}50%{transform:scale(1.2);box-shadow:0 0 32px rgba(239,68,68,.7)}}
-.label{font-size:12px;color:rgba(240,230,255,.35);text-align:center;min-height:16px;transition:.2s}
-.label.active{color:#f9a8d4}
-.label.error{color:#fca5a5}
-.label.done{color:#86efac}
-.transcript{font-size:14px;color:#f0e6ff;text-align:center;min-height:18px;font-weight:500;max-width:400px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.status{display:none;align-items:center;gap:6px;font-size:12px;color:#c4b5fd;padding:4px 12px;border-radius:8px;background:rgba(139,92,246,.06)}
-.status.vis{display:flex}
-.spin{width:10px;height:10px;border-radius:50%;border:2px solid rgba(139,92,246,.15);border-top-color:#a855f7;animation:sp .6s linear infinite;flex-shrink:0}
-@keyframes sp{to{transform:rotate(360deg)}}
-.hint{font-size:9px;color:rgba(240,230,255,.15);margin-top:2px}
-</style></head><body>
-<div class="bar">
-<div class="orb" id="orb"></div>
-<div class="transcript" id="transcript"></div>
-<div class="label" id="label">Press to speak or say a command</div>
-<div class="status" id="status"><div class="spin"></div><span id="statusText"></span></div>
-<div class="hint">F9 to toggle</div>
-</div>
-<script>
-const{ipcRenderer}=require('electron');
-const orb=document.getElementById('orb'),label=document.getElementById('label'),transcript=document.getElementById('transcript'),status=document.getElementById('status'),statusText=document.getElementById('statusText');
-let listening=false,rec=null,agents=[],selAgent=null;
-
-async function loadAgents(){agents=await ipcRenderer.invoke('agents-list');const a=agents.filter(x=>x.isActive);if(a.length)selAgent=a[0].id}
-ipcRenderer.on('agents-updated',()=>loadAgents());loadAgents();
-
-// Voice recognition setup
-(function(){
-  const S=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!S){label.textContent='Voice not supported in this browser';return}
-  rec=new S();rec.continuous=false;rec.interimResults=true;rec.lang='en-US';
-  rec.onresult=e=>{
-    let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;
-    transcript.textContent=t;
-    if(e.results[e.results.length-1].isFinal){stopMic();sendCommand(t.trim())}
-  };
-  rec.onend=()=>{if(listening)stopMic()};
-  rec.onerror=e=>{stopMic();label.textContent='Could not hear you. Try again.';label.className='label error'}
-})();
-
-function startMic(){
-  if(!rec)return;listening=true;orb.classList.add('mic');
-  label.textContent='Listening...';label.className='label active';
-  transcript.textContent='';
-  try{rec.start()}catch(e){}
-}
-function stopMic(){
-  listening=false;orb.classList.remove('mic');
-  label.textContent='Press to speak or say a command';label.className='label';
-  try{rec&&rec.stop()}catch(e){}
-}
-
-// Click orb to toggle mic
-orb.onclick=()=>listening?stopMic():startMic();
-
-// Auto-start mic when bar opens
-ipcRenderer.on('bar-opened',async()=>{
-  transcript.textContent='';status.className='status';
-  await loadAgents();
-  ipcRenderer.invoke('ghost-resize',140);
-  setTimeout(()=>startMic(),300)
-});
-
-// Send voice command
-async function sendCommand(cmd){
-  if(!cmd)return;
-  orb.classList.add('go');
-  label.textContent='Working on it...';label.className='label active';
-  status.className='status vis';statusText.textContent='Processing...';
-  ipcRenderer.invoke('ghost-resize',160);
-
-  const r=await ipcRenderer.invoke('ghost-command',cmd,selAgent);
-  if(r.error){
-    orb.classList.remove('go');status.className='status';
-    label.textContent=r.error;label.className='label error';
-    setTimeout(()=>{ipcRenderer.invoke('ghost-hide');ipcRenderer.invoke('ghost-resize',140)},3000);
-    return
-  }
-  statusText.textContent=r.tasks.map(t=>t.steps+' steps').join(', ');
-  poll()
-}
-
-async function poll(){
-  const r=await ipcRenderer.invoke('ghost-status');
-  if(r.active){
-    statusText.textContent='Step '+r.active.step+'/'+r.active.totalSteps+': '+r.active.currentAction;
-    setTimeout(poll,500)
-  }else{
-    orb.classList.remove('go');status.className='status';
-    label.textContent='Done!';label.className='label done';
-    transcript.textContent='';
-    setTimeout(()=>{ipcRenderer.invoke('ghost-hide');ipcRenderer.invoke('ghost-resize',140)},2000)
-  }
-}
-
-// Escape to hide
-document.onkeydown=e=>{if(e.key==='Escape'){stopMic();ipcRenderer.invoke('ghost-hide')}}
-</script></body></html>`;
-
-// ── Wake Word Listener (inline HTML, hidden window) ───────────────────
+// ── Wake Word Listener HTML ───────────────────────────────────────────
 
 const WAKE_LISTENER_HTML = `<!DOCTYPE html><html><head></head><body>
 <script>
@@ -478,6 +302,7 @@ let active=true;
 async function init(){
   wakeWord=await ipcRenderer.invoke('get-wake-word');
   console.log('[Listener] Wake word:',wakeWord);
+  try{await navigator.mediaDevices.getUserMedia({audio:true})}catch(e){console.error('[Listener] Mic denied');active=false;return}
   setupRec();
   startListening();
 }
@@ -496,16 +321,12 @@ function setupRec(){
         console.log('[Listener] Wake word detected!');
         rec.stop();
         ipcRenderer.invoke('wake-word-detected');
-        // Restart after a delay to let the command bar handle speech
         setTimeout(()=>startListening(),5000);
         return;
       }
     }
   };
-  rec.onend=()=>{
-    // Auto-restart unless we just detected the wake word
-    if(active)setTimeout(()=>startListening(),500);
-  };
+  rec.onend=()=>{if(active)setTimeout(()=>startListening(),500)};
   rec.onerror=e=>{
     console.log('[Listener] Error:',e.error);
     if(e.error==='not-allowed'){active=false;return}
@@ -526,146 +347,397 @@ ipcRenderer.on('wake-word-changed',(_,newWord)=>{
 init();
 </script></body></html>`;
 
-// ── Agent Hub UI (inline HTML) ─────────────────────────────────────────
+// ── Main App HTML (Claude-like UI) ────────────────────────────────────
 
-const AGENT_HUB_HTML = `<!DOCTYPE html>
+const APP_HTML = `<!DOCTYPE html>
 <html>
 <head>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: -apple-system, system-ui, sans-serif;
-  background: #0a0015;
-  color: #f0e6ff;
+  font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  background: #0f0f1a;
+  color: #e2e8f0;
   height: 100vh;
   overflow: hidden;
-  -webkit-app-region: drag;
 }
 
-.hub {
-  height: 100%; display: flex; flex-direction: column;
+/* ── Layout Grid ── */
+.app {
+  display: grid;
+  grid-template-rows: 38px 1fr;
+  grid-template-columns: 260px 1fr;
+  height: 100vh;
 }
 
-/* ── Title bar ── */
+/* ── Titlebar ── */
 .titlebar {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 14px 20px;
+  grid-column: 1 / -1;
+  background: #0a0a14;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  -webkit-app-region: drag;
+  gap: 12px;
 }
-.titlebar .dots { display: flex; gap: 6px; }
-.dot { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; -webkit-app-region: no-drag; }
+.titlebar .dots { display: flex; gap: 7px; -webkit-app-region: no-drag; }
+.dot { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; }
 .dot.close { background: #ef4444; }
 .dot.close:hover { background: #dc2626; }
 .dot.min { background: #eab308; }
 .dot.max { background: #22c55e; }
-.titlebar h1 {
-  font-size: 16px; font-weight: 700;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+.titlebar .title {
+  font-size: 13px; font-weight: 600; color: rgba(226,232,240,0.5);
+  margin-left: 60px;
 }
-.titlebar .spacer { width: 60px; }
-.titlebar .settings-btn {
-  width: 28px; height: 28px; border-radius: 8px; border: none;
-  background: rgba(255,255,255,.04); color: rgba(240,230,255,.3);
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  -webkit-app-region: no-drag; transition: .15s;
-}
-.titlebar .settings-btn:hover { background: rgba(255,255,255,.08); color: #f0e6ff; }
 
-/* ── Profile Bar ── */
-.profile-bar {
-  display: none; padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,.04);
-  -webkit-app-region: no-drag; animation: slideDown .2s ease;
-}
-.profile-bar.visible { display: block; }
-@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-.profile-row { display: flex; align-items: center; gap: 10px; }
-.profile-row label { font-size: 11px; color: rgba(240,230,255,.4); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-.profile-row input {
-  flex: 1; padding: 8px 12px; background: rgba(255,255,255,.04);
-  border: 1px solid rgba(255,255,255,.08); border-radius: 8px;
-  color: #f0e6ff; font-size: 13px; outline: none; font-family: inherit;
-}
-.profile-row input:focus { border-color: rgba(236,72,153,.3); }
-.profile-row .wake-preview {
-  font-size: 11px; color: #f9a8d4; background: rgba(236,72,153,.06);
-  padding: 6px 12px; border-radius: 8px; white-space: nowrap;
-}
-.profile-row .save-btn {
-  padding: 6px 14px; border-radius: 8px; border: none;
-  background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;
-  font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
-}
-.profile-row .save-btn:hover { box-shadow: 0 0 12px rgba(236,72,153,.3); }
-
-/* ── Agent Grid ── */
-.grid-container {
-  flex: 1; overflow-y: auto; padding: 8px 20px 20px;
+/* ── Sidebar ── */
+.sidebar {
+  grid-row: 2;
+  background: #0a0a14;
+  border-right: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   -webkit-app-region: no-drag;
 }
-.grid-container::-webkit-scrollbar { width: 4px; }
-.grid-container::-webkit-scrollbar-thumb { background: rgba(236,72,153,.2); border-radius: 2px; }
+.sidebar-top {
+  padding: 16px;
+}
+.new-chat-btn {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.03);
+  color: #e2e8f0;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: .15s;
+}
+.new-chat-btn:hover { background: rgba(255,255,255,0.06); }
+.new-chat-btn svg { opacity: 0.5; }
 
-.grid {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+.sidebar-section {
+  padding: 0 12px;
+  margin-top: 8px;
+}
+.sidebar-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: rgba(226,232,240,0.25);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 8px 6px;
 }
 
-.agent-card {
-  background: rgba(255,255,255,.03);
-  border: 1px solid rgba(255,255,255,.06);
-  border-radius: 16px; padding: 20px; cursor: pointer;
-  transition: all 0.2s; position: relative;
+/* ── Agent List ── */
+.agent-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 12px;
 }
-.agent-card:hover {
-  background: rgba(255,255,255,.06);
-  border-color: rgba(236,72,153,.2);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,.3);
-}
-.agent-card .emoji { font-size: 32px; margin-bottom: 8px; }
-.agent-card .name { font-size: 14px; font-weight: 600; color: #f0e6ff; margin-bottom: 4px; }
-.agent-card .role { font-size: 11px; color: rgba(240,230,255,.35); line-height: 1.4; }
-.agent-card .status-dot {
-  position: absolute; top: 14px; right: 14px;
-  width: 8px; height: 8px; border-radius: 50%;
-}
-.agent-card .toggle {
-  position: absolute; bottom: 12px; right: 14px;
-  font-size: 10px; padding: 3px 8px; border-radius: 6px;
-  border: none; cursor: pointer; -webkit-app-region: no-drag;
-  transition: all 0.15s;
-}
-.toggle.on { background: rgba(34,197,94,.15); color: #86efac; }
-.toggle.off { background: rgba(239,68,68,.1); color: #fca5a5; }
-.toggle:hover { filter: brightness(1.2); }
+.agent-list::-webkit-scrollbar { width: 3px; }
+.agent-list::-webkit-scrollbar-thumb { background: rgba(236,72,153,0.15); border-radius: 2px; }
 
-/* ── Create Card ── */
-.create-card {
-  background: rgba(255,255,255,.02);
-  border: 2px dashed rgba(255,255,255,.08);
-  border-radius: 16px; padding: 20px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  cursor: pointer; transition: all 0.2s; min-height: 140px;
+.agent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: .15s;
+  margin-bottom: 2px;
 }
-.create-card:hover {
-  border-color: rgba(236,72,153,.3);
-  background: rgba(236,72,153,.04);
+.agent-item:hover { background: rgba(255,255,255,0.04); }
+.agent-item.selected { background: rgba(236,72,153,0.08); }
+.agent-item .emoji { font-size: 18px; flex-shrink: 0; }
+.agent-item .info { flex: 1; min-width: 0; }
+.agent-item .name { font-size: 13px; font-weight: 500; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-item .role { font-size: 10px; color: rgba(226,232,240,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-item .dot-status { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+.add-agent-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: rgba(226,232,240,0.25);
+  font-size: 12px;
+  transition: .15s;
+  margin: 4px 12px;
 }
-.create-card .plus { font-size: 28px; color: rgba(240,230,255,.2); margin-bottom: 6px; }
-.create-card .label { font-size: 13px; color: rgba(240,230,255,.3); }
+.add-agent-btn:hover { background: rgba(255,255,255,0.04); color: rgba(226,232,240,0.5); }
+
+/* ── Sidebar Bottom ── */
+.sidebar-bottom {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: .15s;
+  font-size: 12px;
+  color: rgba(226,232,240,0.3);
+}
+.settings-row:hover { background: rgba(255,255,255,0.04); color: rgba(226,232,240,0.5); }
+.settings-panel {
+  display: none;
+  margin-top: 8px;
+  padding: 10px;
+  background: rgba(255,255,255,0.02);
+  border-radius: 8px;
+}
+.settings-panel.visible { display: block; }
+.settings-panel input {
+  width: 100%;
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 12px;
+  outline: none;
+  margin-bottom: 6px;
+}
+.settings-panel input:focus { border-color: rgba(236,72,153,0.3); }
+.settings-panel .wake-hint { font-size: 10px; color: rgba(236,72,153,0.5); }
+.settings-panel .save-profile-btn {
+  margin-top: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: none;
+  background: rgba(236,72,153,0.15);
+  color: #f9a8d4;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* ── Main Content ── */
+.main {
+  grid-row: 2;
+  display: flex;
+  flex-direction: column;
+  background: #0f0f1a;
+  min-width: 0;
+}
+
+/* ── Chat Area ── */
+.chat-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 32px;
+}
+.chat-area::-webkit-scrollbar { width: 4px; }
+.chat-area::-webkit-scrollbar-thumb { background: rgba(236,72,153,0.1); border-radius: 2px; }
+
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 16px;
+  color: rgba(226,232,240,0.15);
+}
+.chat-empty .orb {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 38%, #f472b6, #ec4899 40%, #a855f7 70%, #6366f1);
+  box-shadow: 0 0 24px rgba(236,72,153,0.3);
+  animation: orbFloat 3s ease-in-out infinite;
+}
+@keyframes orbFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+.chat-empty .hint { font-size: 14px; }
+.chat-empty .sub { font-size: 12px; color: rgba(226,232,240,0.1); }
+
+/* ── Messages ── */
+.msg {
+  margin-bottom: 16px;
+  animation: msgIn 0.2s ease;
+}
+@keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+.msg-user {
+  display: flex;
+  justify-content: flex-end;
+}
+.msg-user .bubble {
+  max-width: 70%;
+  padding: 10px 16px;
+  border-radius: 16px 16px 4px 16px;
+  background: rgba(236,72,153,0.1);
+  border: 1px solid rgba(236,72,153,0.08);
+  color: #f0e6ff;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.msg-agent {
+  display: flex;
+  gap: 10px;
+}
+.msg-agent .avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.03);
+}
+.msg-agent .body {
+  flex: 1;
+  min-width: 0;
+}
+.msg-agent .agent-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(226,232,240,0.4);
+  margin-bottom: 4px;
+}
+.msg-agent .content {
+  padding: 12px 16px;
+  border-radius: 4px 16px 16px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  font-size: 14px;
+  line-height: 1.5;
+  color: #e2e8f0;
+}
+
+/* ── Task Progress ── */
+.task-card {
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(139,92,246,0.04);
+  border: 1px solid rgba(139,92,246,0.08);
+  font-size: 12px;
+}
+.task-card .task-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #c4b5fd;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.task-card .task-step {
+  color: rgba(196,181,253,0.5);
+  font-size: 11px;
+}
+.task-card.done { background: rgba(34,197,94,0.04); border-color: rgba(34,197,94,0.08); }
+.task-card.done .task-header { color: #86efac; }
+.task-card.error { background: rgba(239,68,68,0.04); border-color: rgba(239,68,68,0.08); }
+.task-card.error .task-header { color: #fca5a5; }
+
+.spin {
+  width: 10px; height: 10px; border-radius: 50%;
+  border: 2px solid rgba(139,92,246,0.15); border-top-color: #a855f7;
+  animation: sp 0.6s linear infinite; flex-shrink: 0;
+}
+@keyframes sp { to{transform:rotate(360deg)} }
+
+.msg-system {
+  text-align: center;
+  padding: 8px;
+  font-size: 11px;
+  color: rgba(226,232,240,0.15);
+}
+
+/* ── Input Bar ── */
+.input-bar {
+  padding: 16px 32px 20px;
+  border-top: 1px solid rgba(255,255,255,0.04);
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.input-wrap {
+  flex: 1;
+  position: relative;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
+  transition: .2s;
+}
+.input-wrap:focus-within {
+  border-color: rgba(236,72,153,0.2);
+  box-shadow: 0 0 12px rgba(236,72,153,0.05);
+}
+.input-wrap textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: #e2e8f0;
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  min-height: 44px;
+  max-height: 160px;
+  line-height: 1.5;
+}
+.input-wrap textarea::placeholder { color: rgba(226,232,240,0.2); }
+.input-wrap .voice-indicator {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px 8px;
+  font-size: 11px;
+  color: #ef4444;
+}
+.input-wrap .voice-indicator.on { display: flex; }
+.voice-dot { width: 6px; height: 6px; border-radius: 50%; background: #ef4444; animation: vPulse 1s ease-in-out infinite; }
+@keyframes vPulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+.ib {
+  width: 40px; height: 40px; border-radius: 12px; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: .15s;
+}
+.ib.mic-btn {
+  background: rgba(255,255,255,0.04);
+  color: rgba(226,232,240,0.35);
+}
+.ib.mic-btn:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+.ib.mic-btn.on { background: rgba(239,68,68,0.12); color: #ef4444; }
+.ib.send-btn {
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  color: white;
+}
+.ib.send-btn:hover { box-shadow: 0 0 16px rgba(236,72,153,0.3); }
+.ib.send-btn:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
+
+svg { display: block; }
 
 /* ── Modal ── */
 .modal-bg {
   display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.6); backdrop-filter: blur(4px);
+  background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
   z-index: 100; align-items: center; justify-content: center;
-  -webkit-app-region: no-drag;
 }
 .modal-bg.visible { display: flex; }
 .modal {
-  background: #120826; border: 1px solid rgba(236,72,153,.15);
-  border-radius: 20px; padding: 28px; width: 420px;
-  box-shadow: 0 16px 48px rgba(0,0,0,.5);
+  background: #12122a; border: 1px solid rgba(236,72,153,0.1);
+  border-radius: 20px; padding: 28px; width: 440px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5);
 }
 .modal h2 {
   font-size: 18px; font-weight: 600; margin-bottom: 20px;
@@ -673,84 +745,113 @@ body {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 .field { margin-bottom: 14px; }
-.field label { display: block; font-size: 11px; color: rgba(240,230,255,.4); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field label { display: block; font-size: 10px; color: rgba(226,232,240,0.35); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 .field input, .field textarea {
   width: 100%; padding: 10px 14px;
-  background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
-  border-radius: 10px; color: #f0e6ff; font-size: 13px; outline: none;
-  font-family: inherit;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px; color: #e2e8f0; font-size: 13px; outline: none; font-family: inherit;
 }
-.field input:focus, .field textarea:focus {
-  border-color: rgba(236,72,153,.3); box-shadow: 0 0 12px rgba(236,72,153,.1);
-}
+.field input:focus, .field textarea:focus { border-color: rgba(236,72,153,0.3); }
 .field textarea { height: 70px; resize: none; }
-.field input::placeholder, .field textarea::placeholder { color: rgba(240,230,255,.2); }
+.field input::placeholder, .field textarea::placeholder { color: rgba(226,232,240,0.2); }
 
-.emoji-picker {
-  display: flex; gap: 6px; flex-wrap: wrap;
-}
+.emoji-picker { display: flex; gap: 5px; flex-wrap: wrap; }
 .emoji-opt {
-  width: 36px; height: 36px; border-radius: 8px;
+  width: 34px; height: 34px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 18px; cursor: pointer; border: 2px solid transparent;
-  background: rgba(255,255,255,.03); transition: all 0.15s;
+  font-size: 16px; cursor: pointer; border: 2px solid transparent;
+  background: rgba(255,255,255,0.03); transition: .15s;
 }
-.emoji-opt:hover { background: rgba(255,255,255,.08); }
-.emoji-opt.selected { border-color: #ec4899; background: rgba(236,72,153,.1); }
+.emoji-opt:hover { background: rgba(255,255,255,0.08); }
+.emoji-opt.selected { border-color: #ec4899; background: rgba(236,72,153,0.1); }
 
-.color-picker { display: flex; gap: 6px; }
+.color-picker { display: flex; gap: 5px; }
 .color-opt {
-  width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
-  border: 2px solid transparent; transition: all 0.15s;
+  width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+  border: 2px solid transparent; transition: .15s;
 }
 .color-opt:hover { transform: scale(1.15); }
 .color-opt.selected { border-color: white; }
 
-.modal-btns {
-  display: flex; justify-content: space-between; margin-top: 20px;
-}
+.modal-btns { display: flex; justify-content: space-between; margin-top: 20px; }
 .btn {
-  padding: 10px 24px; border-radius: 10px; border: none;
-  font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  padding: 10px 22px; border-radius: 10px; border: none;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: .15s;
 }
-.btn-primary {
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
-  color: white; box-shadow: 0 0 16px rgba(236,72,153,.25);
-}
-.btn-primary:hover { box-shadow: 0 0 24px rgba(236,72,153,.4); }
-.btn-ghost { background: transparent; color: rgba(240,230,255,.4); }
-.btn-ghost:hover { color: #f0e6ff; }
-.btn-danger { background: rgba(239,68,68,.1); color: #fca5a5; }
-.btn-danger:hover { background: rgba(239,68,68,.2); }
+.btn-primary { background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; }
+.btn-primary:hover { box-shadow: 0 0 20px rgba(236,72,153,0.3); }
+.btn-ghost { background: transparent; color: rgba(226,232,240,0.35); }
+.btn-ghost:hover { color: #e2e8f0; }
+.btn-danger { background: rgba(239,68,68,0.1); color: #fca5a5; }
+.btn-danger:hover { background: rgba(239,68,68,0.2); }
 </style>
 </head>
 <body>
-<div class="hub">
+<div class="app">
+  <!-- Titlebar -->
   <div class="titlebar">
     <div class="dots">
       <div class="dot close" onclick="window.close()"></div>
       <div class="dot min"></div>
       <div class="dot max"></div>
     </div>
-    <h1>Your Agents</h1>
-    <button class="settings-btn" onclick="toggleProfile()" title="Settings">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
+    <span class="title">ISIBI Ghost Mode</span>
   </div>
-  <div class="profile-bar" id="profileBar">
-    <div class="profile-row">
-      <label>Assistant Name</label>
-      <input id="profileNameInput" placeholder="e.g. Isibi" maxlength="20">
-      <span class="wake-preview" id="wakePreview">Say "Hey Isibi"</span>
-      <button class="save-btn" onclick="saveProfile()">Save</button>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <button class="new-chat-btn" onclick="newChat()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New Chat
+      </button>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Agents</div>
+    </div>
+    <div class="agent-list" id="agentList"></div>
+    <div class="add-agent-btn" onclick="openCreateAgent()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add Agent
+    </div>
+    <div class="sidebar-bottom">
+      <div class="settings-row" onclick="toggleSettings()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </div>
+      <div class="settings-panel" id="settingsPanel">
+        <input id="profileNameInput" placeholder="Assistant name..." maxlength="20">
+        <div class="wake-hint" id="wakeHint">Say "Hey Isibi" to activate</div>
+        <button class="save-profile-btn" onclick="saveProfile()">Save</button>
+      </div>
     </div>
   </div>
-  <div class="grid-container">
-    <div class="grid" id="grid"></div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="chat-area" id="chatArea">
+      <div class="chat-empty" id="chatEmpty">
+        <div class="orb"></div>
+        <div class="hint">What can I help you with?</div>
+        <div class="sub">Type a message, use voice, or say your wake word</div>
+      </div>
+    </div>
+    <div class="input-bar">
+      <div class="input-wrap">
+        <textarea id="input" placeholder="Message your agent..." rows="1"></textarea>
+        <div class="voice-indicator" id="voiceIndicator"><div class="voice-dot"></div>Listening...</div>
+      </div>
+      <button class="ib mic-btn" id="micBtn" title="Voice (F9)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+      </button>
+      <button class="ib send-btn" id="sendBtn" title="Send">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- Create/Edit Modal -->
+<!-- Agent Create/Edit Modal -->
 <div class="modal-bg" id="modalBg">
   <div class="modal">
     <h2 id="modalTitle">Create Agent</h2>
@@ -760,25 +861,23 @@ body {
     </div>
     <div class="field">
       <label>Name</label>
-      <input id="nameInput" placeholder="e.g. Email Bot">
+      <input id="agentNameInput" placeholder="e.g. Email Bot">
     </div>
     <div class="field">
-      <label>Role (short)</label>
-      <input id="roleInput" placeholder="e.g. Handle all email tasks">
+      <label>Role</label>
+      <input id="agentRoleInput" placeholder="e.g. Handle all email tasks">
     </div>
     <div class="field">
-      <label>Instructions (detailed)</label>
-      <textarea id="instructionsInput" placeholder="e.g. You manage my Gmail. When I say send an email, open Gmail, compose a new email..."></textarea>
+      <label>Instructions</label>
+      <textarea id="agentInstructionsInput" placeholder="e.g. You manage my Gmail..."></textarea>
     </div>
     <div class="field">
       <label>Color</label>
       <div class="color-picker" id="colorPicker"></div>
     </div>
     <div class="modal-btns">
-      <div>
-        <button class="btn btn-danger" id="deleteBtn" style="display:none" onclick="deleteCurrentAgent()">Delete</button>
-      </div>
-      <div style="display:flex; gap:8px;">
+      <div><button class="btn btn-danger" id="deleteBtn" style="display:none" onclick="deleteCurrentAgent()">Delete</button></div>
+      <div style="display:flex;gap:8px;">
         <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
         <button class="btn btn-primary" onclick="saveAgent()">Save</button>
       </div>
@@ -789,68 +888,279 @@ body {
 <script>
 const { ipcRenderer } = require('electron');
 
+// ── State ──
+let agents = [];
+let selectedAgentId = null;
+let chatMessages = [];
+let listening = false;
+let rec = null;
+let voiceReady = false;
+let editingAgentId = null;
+let selectedEmoji = '';
+let selectedColor = '';
+
 const EMOJIS = ['\\ud83d\\udc7b','\\ud83d\\udce7','\\ud83d\\udcc5','\\ud83d\\udcca','\\ud83d\\uded2','\\ud83c\\udfaf','\\ud83d\\ude80','\\ud83d\\udd0d','\\ud83d\\udcdd','\\ud83e\\udd16','\\ud83c\\udf10','\\ud83d\\udcac','\\ud83d\\udcc1','\\ud83c\\udfe2','\\u2699\\ufe0f','\\ud83c\\udfa8'];
 const COLORS = ['#ec4899','#8b5cf6','#6366f1','#3b82f6','#22c55e','#eab308','#ef4444','#f97316','#14b8a6','#06b6d4'];
 
-let agents = [];
-let editingId = null;
-let selectedEmoji = EMOJIS[0];
-let selectedColor = COLORS[0];
+// ── DOM refs ──
+const chatArea = document.getElementById('chatArea');
+const chatEmpty = document.getElementById('chatEmpty');
+const input = document.getElementById('input');
+const micBtn = document.getElementById('micBtn');
+const sendBtn = document.getElementById('sendBtn');
+const voiceIndicator = document.getElementById('voiceIndicator');
+const agentListEl = document.getElementById('agentList');
 
-// ── Render ──
+// ── Init ──
+async function init() {
+  await loadAgents();
+  await loadProfile();
+  await initVoice();
+}
+
+// ── Agents ──
 async function loadAgents() {
   agents = await ipcRenderer.invoke('agents-list');
-  renderGrid();
+  const active = agents.filter(a => a.isActive);
+  if (!selectedAgentId && active.length) selectedAgentId = active[0].id;
+  renderAgentList();
 }
 
-function renderGrid() {
-  const grid = document.getElementById('grid');
-  grid.innerHTML = '';
-
+function renderAgentList() {
+  agentListEl.innerHTML = '';
   agents.forEach(a => {
-    const card = document.createElement('div');
-    card.className = 'agent-card';
-    card.onclick = () => openEdit(a);
-    card.innerHTML =
-      '<div class="status-dot" style="background:' + (a.isActive ? '#22c55e' : '#6b7280') + '"></div>' +
-      '<div class="emoji">' + a.emoji + '</div>' +
-      '<div class="name">' + a.name + '</div>' +
-      '<div class="role">' + a.role + '</div>' +
-      '<button class="toggle ' + (a.isActive ? 'on' : 'off') + '" onclick="event.stopPropagation(); toggleA(\\'' + a.id + '\\')">' +
-      (a.isActive ? 'Active' : 'Off') + '</button>';
-    grid.appendChild(card);
+    const el = document.createElement('div');
+    el.className = 'agent-item' + (a.id === selectedAgentId ? ' selected' : '');
+    el.innerHTML =
+      '<span class="emoji">' + a.emoji + '</span>' +
+      '<div class="info"><div class="name">' + a.name + '</div><div class="role">' + a.role + '</div></div>' +
+      '<div class="dot-status" style="background:' + (a.isActive ? '#22c55e' : '#6b7280') + '"></div>';
+    el.onclick = () => { selectedAgentId = a.id; renderAgentList(); updatePlaceholder(); };
+    el.ondblclick = () => openEditAgent(a);
+    agentListEl.appendChild(el);
+  });
+}
+
+function updatePlaceholder() {
+  const a = agents.find(x => x.id === selectedAgentId);
+  input.placeholder = a ? 'Message ' + a.name + '...' : 'Message your agent...';
+}
+
+ipcRenderer.on('agents-updated', () => loadAgents());
+
+// ── Chat ──
+function newChat() {
+  chatMessages = [];
+  renderChat();
+}
+
+function renderChat() {
+  if (chatMessages.length === 0) {
+    chatEmpty.style.display = 'flex';
+    // Remove all messages but keep empty
+    const msgs = chatArea.querySelectorAll('.msg');
+    msgs.forEach(m => m.remove());
+    return;
+  }
+  chatEmpty.style.display = 'none';
+
+  // Build messages
+  let html = '';
+  chatMessages.forEach((m, i) => {
+    if (m.type === 'user') {
+      html += '<div class="msg msg-user"><div class="bubble">' + escHtml(m.content) + '</div></div>';
+    } else if (m.type === 'agent') {
+      const a = agents.find(x => x.id === m.agentId) || { emoji: '\\ud83d\\udc7b', name: 'Ghost' };
+      let taskHtml = '';
+      if (m.tasks) {
+        m.tasks.forEach(t => {
+          const cls = t.status === 'done' ? 'done' : t.status === 'error' ? 'error' : '';
+          const icon = t.status === 'done' ? '\\u2713' : t.status === 'error' ? '\\u2717' : '<div class="spin"></div>';
+          taskHtml += '<div class="task-card ' + cls + '" data-task-id="' + t.id + '">' +
+            '<div class="task-header">' + icon + ' ' + escHtml(t.command) + '</div>' +
+            '<div class="task-step">' + (t.progress || t.steps + ' steps') + '</div></div>';
+        });
+      }
+      html += '<div class="msg msg-agent"><div class="avatar">' + a.emoji + '</div><div class="body">' +
+        '<div class="agent-name">' + a.name + '</div>' +
+        '<div class="content">' + escHtml(m.content) + '</div>' +
+        taskHtml + '</div></div>';
+    } else if (m.type === 'system') {
+      html += '<div class="msg msg-system">' + escHtml(m.content) + '</div>';
+    }
   });
 
-  // Create card
-  const create = document.createElement('div');
-  create.className = 'create-card';
-  create.onclick = () => openCreate();
-  create.innerHTML = '<div class="plus">+</div><div class="label">Create Agent</div>';
-  grid.appendChild(create);
+  // Only replace message area, not chatEmpty
+  const existing = chatArea.querySelectorAll('.msg');
+  existing.forEach(e => e.remove());
+  chatArea.insertAdjacentHTML('beforeend', html);
+  chatArea.scrollTop = chatArea.scrollHeight;
 }
 
-// ── Modal ──
-function openCreate() {
-  editingId = null;
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Send Command ──
+async function send() {
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  autoResize();
+
+  chatMessages.push({ type: 'user', content: text });
+  const a = agents.find(x => x.id === selectedAgentId);
+  const agentMsg = { type: 'agent', agentId: selectedAgentId, content: 'Thinking...', tasks: null };
+  chatMessages.push(agentMsg);
+  renderChat();
+
+  const r = await ipcRenderer.invoke('ghost-command', text, selectedAgentId);
+  if (r.error) {
+    agentMsg.content = r.error;
+    renderChat();
+    return;
+  }
+
+  agentMsg.content = 'Working on it...';
+  agentMsg.tasks = r.tasks.map(t => ({ ...t, progress: t.steps + ' steps' }));
+  renderChat();
+  poll();
+}
+
+async function poll() {
+  const r = await ipcRenderer.invoke('ghost-status');
+  if (r.active) {
+    // Update last agent message task progress
+    const lastAgent = [...chatMessages].reverse().find(m => m.type === 'agent');
+    if (lastAgent && lastAgent.tasks) {
+      const t = lastAgent.tasks[0];
+      if (t) t.progress = 'Step ' + r.active.step + '/' + r.active.totalSteps + ': ' + r.active.currentAction;
+      renderChat();
+    }
+    setTimeout(poll, 500);
+  } else {
+    const lastAgent = [...chatMessages].reverse().find(m => m.type === 'agent');
+    if (lastAgent) {
+      lastAgent.content = 'Done!';
+      if (lastAgent.tasks) lastAgent.tasks.forEach(t => t.status = 'done');
+      renderChat();
+    }
+  }
+}
+
+// ── Voice Recognition ──
+async function initVoice() {
+  try {
+    await navigator.mediaDevices.getUserMedia({ audio: true });
+    const S = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!S) return;
+    rec = new S();
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.lang = 'en-US';
+    rec.onresult = e => {
+      let t = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+      input.value = t;
+      autoResize();
+      if (e.results[e.results.length - 1].isFinal) { stopMic(); }
+    };
+    rec.onend = () => { if (listening) stopMic(); };
+    rec.onerror = e => {
+      stopMic();
+      if (e.error === 'no-speech') { /* silent, no big deal */ }
+      else if (e.error === 'not-allowed') { console.error('Mic not allowed'); }
+    };
+    voiceReady = true;
+  } catch (err) {
+    console.error('Voice init failed:', err);
+    voiceReady = false;
+  }
+}
+
+function startMic() {
+  if (!rec || !voiceReady) return;
+  listening = true;
+  micBtn.classList.add('on');
+  voiceIndicator.classList.add('on');
+  try { rec.start(); } catch (e) {}
+}
+
+function stopMic() {
+  listening = false;
+  micBtn.classList.remove('on');
+  voiceIndicator.classList.remove('on');
+  try { rec && rec.stop(); } catch (e) {}
+}
+
+micBtn.onclick = () => listening ? stopMic() : startMic();
+
+// IPC voice triggers
+ipcRenderer.on('toggle-voice', () => { listening ? stopMic() : startMic(); });
+ipcRenderer.on('start-voice', () => { if (!listening) startMic(); });
+
+// ── Input handling ──
+input.onkeydown = e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  if (e.key === 'Escape') { if (listening) stopMic(); closeModal(); }
+};
+sendBtn.onclick = () => send();
+
+function autoResize() {
+  input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 160) + 'px';
+}
+input.addEventListener('input', autoResize);
+
+// ── Settings ──
+let settingsVisible = false;
+function toggleSettings() {
+  settingsVisible = !settingsVisible;
+  document.getElementById('settingsPanel').classList.toggle('visible', settingsVisible);
+}
+
+async function loadProfile() {
+  const name = await ipcRenderer.invoke('get-assistant-name');
+  document.getElementById('profileNameInput').value = name;
+  document.getElementById('wakeHint').textContent = 'Say "Hey ' + name + '" to activate';
+}
+
+document.getElementById('profileNameInput').addEventListener('input', function() {
+  const v = this.value.trim() || 'Isibi';
+  document.getElementById('wakeHint').textContent = 'Say "Hey ' + v + '" to activate';
+});
+
+async function saveProfile() {
+  const name = document.getElementById('profileNameInput').value.trim() || 'Isibi';
+  await ipcRenderer.invoke('update-assistant-profile', name);
+  toggleSettings();
+}
+
+ipcRenderer.on('profile-updated', (_, data) => {
+  document.getElementById('profileNameInput').value = data.name;
+  document.getElementById('wakeHint').textContent = 'Say "Hey ' + data.name + '" to activate';
+});
+
+// ── Agent Modal ──
+function openCreateAgent() {
+  editingAgentId = null;
   selectedEmoji = EMOJIS[0];
   selectedColor = COLORS[0];
   document.getElementById('modalTitle').textContent = 'Create Agent';
-  document.getElementById('nameInput').value = '';
-  document.getElementById('roleInput').value = '';
-  document.getElementById('instructionsInput').value = '';
+  document.getElementById('agentNameInput').value = '';
+  document.getElementById('agentRoleInput').value = '';
+  document.getElementById('agentInstructionsInput').value = '';
   document.getElementById('deleteBtn').style.display = 'none';
   renderPickers();
   document.getElementById('modalBg').classList.add('visible');
 }
 
-function openEdit(agent) {
-  editingId = agent.id;
+function openEditAgent(agent) {
+  editingAgentId = agent.id;
   selectedEmoji = agent.emoji;
   selectedColor = agent.color;
   document.getElementById('modalTitle').textContent = 'Edit Agent';
-  document.getElementById('nameInput').value = agent.name;
-  document.getElementById('roleInput').value = agent.role;
-  document.getElementById('instructionsInput').value = agent.instructions;
+  document.getElementById('agentNameInput').value = agent.name;
+  document.getElementById('agentRoleInput').value = agent.role;
+  document.getElementById('agentInstructionsInput').value = agent.instructions;
   document.getElementById('deleteBtn').style.display = agents.length > 1 ? 'inline-block' : 'none';
   renderPickers();
   document.getElementById('modalBg').classList.add('visible');
@@ -883,77 +1193,36 @@ function renderPickers() {
 }
 
 async function saveAgent() {
-  const name = document.getElementById('nameInput').value.trim();
-  const role = document.getElementById('roleInput').value.trim();
-  const instructions = document.getElementById('instructionsInput').value.trim();
-
+  const name = document.getElementById('agentNameInput').value.trim();
+  const role = document.getElementById('agentRoleInput').value.trim();
+  const instructions = document.getElementById('agentInstructionsInput').value.trim();
   if (!name) return;
 
-  if (editingId) {
-    await ipcRenderer.invoke('agents-update', editingId, {
+  if (editingAgentId) {
+    await ipcRenderer.invoke('agents-update', editingAgentId, {
       name, emoji: selectedEmoji, role, instructions, color: selectedColor
     });
   } else {
     await ipcRenderer.invoke('agents-create', {
-      name, emoji: selectedEmoji, role: role || 'General assistant',
+      name, emoji: selectedEmoji,
+      role: role || 'General assistant',
       instructions: instructions || 'You are ' + name + ', a helpful AI agent.',
       color: selectedColor
     });
   }
-
   closeModal();
   loadAgents();
 }
 
 async function deleteCurrentAgent() {
-  if (!editingId) return;
-  await ipcRenderer.invoke('agents-delete', editingId);
+  if (!editingAgentId) return;
+  await ipcRenderer.invoke('agents-delete', editingAgentId);
   closeModal();
   loadAgents();
 }
 
-async function toggleA(id) {
-  await ipcRenderer.invoke('agents-toggle', id);
-  loadAgents();
-}
-
-ipcRenderer.on('agents-updated', () => loadAgents());
-
-// ── Profile / Settings ──
-let profileVisible = false;
-const profileNameInput = document.getElementById('profileNameInput');
-const wakePreview = document.getElementById('wakePreview');
-
-function toggleProfile() {
-  profileVisible = !profileVisible;
-  document.getElementById('profileBar').classList.toggle('visible', profileVisible);
-}
-
-async function loadProfile() {
-  const name = await ipcRenderer.invoke('get-assistant-name');
-  profileNameInput.value = name;
-  wakePreview.textContent = 'Say "Hey ' + name + '"';
-}
-
-profileNameInput.addEventListener('input', () => {
-  const v = profileNameInput.value.trim() || 'Isibi';
-  wakePreview.textContent = 'Say "Hey ' + v + '"';
-});
-
-async function saveProfile() {
-  const name = profileNameInput.value.trim() || 'Isibi';
-  await ipcRenderer.invoke('update-assistant-profile', name);
-  wakePreview.textContent = 'Say "Hey ' + name + '"';
-  toggleProfile();
-}
-
-ipcRenderer.on('profile-updated', (_, data) => {
-  profileNameInput.value = data.name;
-  wakePreview.textContent = 'Say "Hey ' + data.name + '"';
-});
-
-loadAgents();
-loadProfile();
+// ── Boot ──
+init();
 </script>
 </body>
 </html>`;
