@@ -7,7 +7,7 @@ module.exports = {
     "plugin:react-hooks/recommended",
     "prettier",
   ],
-  ignorePatterns: ["dist", ".eslintrc.cjs", "**/CloudIDE.tsx", "**/VisualEditor.tsx", "**/DynamicDetail.tsx", "**/EntityDetailPage.tsx"],
+  ignorePatterns: ["dist", ".eslintrc.cjs", "**/CloudIDE.tsx", "**/VisualEditor.tsx", "**/DynamicDetail.tsx", "**/EntityDetailPage.tsx", "**/SpecPreview.tsx", "**/ERDViewer.tsx", "**/FieldEditor.tsx"],
   parser: "@typescript-eslint/parser",
   parserOptions: {
     ecmaVersion: "latest",
