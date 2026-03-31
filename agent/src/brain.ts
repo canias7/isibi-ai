@@ -14,13 +14,15 @@ import * as controller from './controller';
 import * as overlay from './overlay';
 import * as vision from './vision';
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+import { getApiKey } from './config';
+import { AgentProfile } from './agents';
+
 const MODEL = 'claude-sonnet-4-20250514';
 
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (!client) {
-    client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    client = new Anthropic({ apiKey: getApiKey() });
   }
   return client;
 }
@@ -66,13 +68,14 @@ export function getActiveTask(): TaskPlan | null {
 export async function processCommand(
   command: string,
   systemIndex: SystemIndex,
+  agent?: AgentProfile,
 ): Promise<TaskPlan[]> {
   // Split multi-task commands: "do X AND do Y AND do Z"
   const tasks = splitIntoTasks(command);
   const plans: TaskPlan[] = [];
 
   for (const task of tasks) {
-    const plan = await planTask(task, systemIndex);
+    const plan = await planTask(task, systemIndex, agent);
     plans.push(plan);
     taskQueue.push(plan);
   }
@@ -104,19 +107,24 @@ function splitIntoTasks(command: string): string[] {
 
 // ── Action Planning with Claude ─────────────────────────────────────────
 
-async function planTask(command: string, index: SystemIndex): Promise<TaskPlan> {
+async function planTask(command: string, index: SystemIndex, agent?: AgentProfile): Promise<TaskPlan> {
   const taskId = Math.random().toString(36).slice(2, 8);
 
   // Build context from system index
   const appNames = index.apps.slice(0, 30).map(a => a.name).join(', ');
   const recentFiles = index.recentFiles.slice(0, 10).map(f => f.name).join(', ');
 
+  // Agent personality/role injection
+  const agentContext = agent
+    ? `\nYour name is "${agent.name}" ${agent.emoji}. Your role: ${agent.role}\nCustom instructions: ${agent.instructions}\n`
+    : '';
+
   const api = getClient();
 
   const response = await api.messages.create({
     model: MODEL,
     max_tokens: 1024,
-    system: `You are a computer control agent. Convert natural language commands into action steps.
+    system: `You are a computer control agent. Convert natural language commands into action steps.${agentContext}
 Available apps on this computer: ${appNames}
 Recent files: ${recentFiles}
 Platform: ${index.platform} (${index.platform === 'darwin' ? 'macOS' : index.platform === 'win32' ? 'Windows' : 'Linux'})

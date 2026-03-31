@@ -9,6 +9,8 @@ backend/.env
 
 # Build
 frontend/dist/
+agent/dist/
+agent/release/
 *.egg-info/
 
 # IDE

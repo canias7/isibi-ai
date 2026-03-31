@@ -10,15 +10,17 @@
 import { desktopCapturer, screen } from 'electron';
 import Anthropic from '@anthropic-ai/sdk';
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
+import { getApiKey } from './config';
+
 const MODEL = 'claude-sonnet-4-20250514';
 
 let client: Anthropic | null = null;
 
 function getClient(): Anthropic {
   if (!client) {
-    if (!ANTHROPIC_API_KEY) throw new Error('ANTHROPIC_API_KEY not set');
-    client = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
+    const key = getApiKey();
+    if (!key) throw new Error('Anthropic API key not set. Run onboarding or set ANTHROPIC_API_KEY.');
+    client = new Anthropic({ apiKey: key });
   }
   return client;
 }

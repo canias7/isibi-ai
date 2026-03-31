@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import { DownloadBanner } from "@/components/DownloadBanner";
+import { GhostModeDownload } from "@/components/GhostModeDownload";
 
 export function LandingPage() {
   const { isAuthenticated } = useAuthStore();
@@ -469,6 +470,9 @@ export function LandingPage() {
           <DownloadBanner />
         </div>
       </section>
+
+      {/* ──────────────── GHOST MODE DOWNLOAD ──────────────── */}
+      <GhostModeDownload />
 
       {/* ──────────────── HOW IT WORKS ──────────────── */}
       <section id="how-it-works" data-animate className={`py-24 ${fadeIn("how-it-works")}`}>
