@@ -113,6 +113,14 @@ async def api_delete_project(
     await delete_project(db, project_id, org_id)
 
 
+# ── Generation progress (polling endpoint) ─────────────────────────
+
+@router.get("/projects/{project_id}/generation-progress")
+async def generation_progress(project_id: str):
+    from generator.orchestrator import get_generation_progress
+    return get_generation_progress(project_id)
+
+
 # ── Serve spec for frontend ─────────────────────────────────────────
 
 @router.get("/spec")

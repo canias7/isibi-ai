@@ -48,13 +48,23 @@ System fields (always include): id (UUID PK), org_id (UUID NOT NULL), created_at
 ## FIELD FORMAT — every business field MUST have ALL 10 attributes:
 {"name":"status","db_type":"VARCHAR(50) NOT NULL DEFAULT 'new'","ts_type":"string","nullable":false,"editable":true,"show_in_table":true,"show_in_form":true,"input_component":"Select","display_component":"Badge","enum_values":["new","contacted","qualified","lost"],"badge_colors":{"new":"blue","contacted":"amber","qualified":"green","lost":"red"}}
 
-input_component: TextInput|TextArea|Select|DatePicker|NumberInput|Toggle|EmailInput|PhoneInput|CurrencyInput|FileUpload|none
-display_component: Text|Badge|Date|Currency|Email|Phone|Link|Avatar|Progress|none
+input_component: TextInput|TextArea|Select|DatePicker|NumberInput|Toggle|EmailInput|PhoneInput|CurrencyInput|FileUpload|StarRating|ColorPicker|SignatureField|LocationPicker|RichTextEditor|TimeInput|SliderInput|TagInput|none
+display_component: Text|Badge|Date|Currency|Email|Phone|Link|Avatar|Progress|StarRating|Color|Map|RichText|Tags|Time|none
 db_type: VARCHAR(255)|TEXT|INTEGER|BOOLEAN|NUMERIC(12,2)|DATE|TIMESTAMPTZ|UUID|JSONB
 ts_type: string|number|boolean|string[]|object
 
 Enum fields MUST have enum_values[] AND badge_colors{} (blue/green/red/amber/purple/indigo/orange/slate/emerald/rose/cyan/violet).
 FK fields: name="{entity}_id", db_type="UUID REFERENCES {table}(id)", add "fk_entity":"EntityName", input_component:"relation_select", display_component:"relation_link".
+
+## RICH FIELD TYPES — use these when appropriate
+- StarRating (1-5): Use for reviews, satisfaction scores, quality ratings. db_type: "INTEGER", validation: {rule: "min", value: 1}, {rule: "max", value: 5}
+- ColorPicker: Use for brand colors, category colors, theme settings. db_type: "VARCHAR(7)"
+- SignatureField: Use for contracts, consent forms, approvals. db_type: "TEXT"
+- LocationPicker: Use for addresses, delivery locations, property locations. db_type: "JSONB" (stores lat/lng/address)
+- RichTextEditor: Use for descriptions, notes, blog content. db_type: "TEXT"
+- TimeInput: Use for schedules, business hours, appointment times. db_type: "TIME"
+- SliderInput: Use for percentages, probability, satisfaction scores. db_type: "INTEGER"
+- TagInput: Use for skills, categories, labels. db_type: "VARCHAR(500)" (comma-separated)
 
 ## UI_CONFIG
 {"list_view":{"layout":"table","columns":["name","status"],"filters":["status"],"empty_state":{"icon":"Users","heading":"No items","subtext":"Add first","action_label":"Add"}},"create_form":{"type":"SlideOverForm","field_order":["name","status"],"required_fields":["name"]},"edit_form":{"type":"SlideOverForm","field_order":["name","status"],"required_fields":["name"],"prefilled":true},"detail_view":{"route":"/items/:id","layout":"tabbed","header":{"title_fields":["name"],"badge_fields":["status"]},"primary_fields":["name","status"],"tabs":[{"name":"Overview","fields":["name","status"]}]}}
@@ -148,6 +158,93 @@ Add a "_notifications" key to the root spec:
   {{"event": "date_reminder", "entity": "Appointment", "field": "appointment_date", "before_hours": 24, "channel": "sms", "message": "Reminder: {{client_name}} appointment tomorrow at {{appointment_time}}"}}
 ]}}
 
+## EMAIL TEMPLATES — generate _email_templates
+Add "_email_templates" to the root spec:
+{{"_email_templates": [
+  {{"name": "welcome", "subject": "Welcome to {{app_name}}!", "trigger": "user_created", "body_preview": "Thanks for signing up..."}},
+  {{"name": "order_confirmation", "subject": "Order #{{order_number}} Confirmed", "trigger": "order_created", "entity": "Order", "body_preview": "Your order has been received..."}},
+  {{"name": "appointment_reminder", "subject": "Reminder: {{service_name}} tomorrow", "trigger": "24h_before", "entity": "Appointment", "body_preview": "This is a reminder..."}},
+  {{"name": "payment_receipt", "subject": "Payment Receipt", "trigger": "payment_completed", "entity": "Payment", "body_preview": "Thank you for your payment..."}}
+]}}
+Generate 3-5 email templates relevant to the business type.
+
+## ROLE PERMISSIONS — generate _roles
+Add "_roles" to the root spec:
+{{"_roles": [
+  {{"name": "admin", "label": "Administrator", "permissions": ["*"], "description": "Full access to everything"}},
+  {{"name": "manager", "label": "Manager", "permissions": ["read:*", "create:*", "update:*", "delete:own"], "description": "Manage all records, delete own"}},
+  {{"name": "staff", "label": "Staff", "permissions": ["read:*", "create:*", "update:own"], "description": "View all, create and edit own records"}},
+  {{"name": "viewer", "label": "Viewer", "permissions": ["read:*"], "description": "Read-only access"}}
+]}}
+Customize role names and permissions for the industry (e.g. "chef", "server", "host" for restaurants).
+
+## WEBHOOK CONFIGS — generate _webhooks
+Add "_webhooks" to the root spec:
+{{"_webhooks": [
+  {{"event": "order.created", "description": "Notify kitchen system when new order arrives"}},
+  {{"event": "payment.completed", "description": "Send receipt and update accounting"}},
+  {{"event": "inventory.low", "description": "Alert supplier when stock is low"}}
+]}}
+Generate 2-4 webhook events relevant to the business.
+
+## ONBOARDING FLOW — generate _onboarding
+Add "_onboarding" to the root spec to define first-time user experience:
+{{"_onboarding": {{
+  "welcome_title": "Welcome to {{app_name}}!",
+  "welcome_subtitle": "Let's get your {{business_type}} set up in minutes",
+  "steps": [
+    {{"step": 1, "title": "Add your first {{main_entity}}", "entity": "MainEntity", "action": "create", "hint": "Start by adding..."}},
+    {{"step": 2, "title": "Set up your {{secondary}}", "entity": "SecondaryEntity", "action": "create", "hint": "Now configure..."}},
+    {{"step": 3, "title": "Customize your dashboard", "action": "view_dashboard", "hint": "Your data will appear here"}}
+  ]
+}}}}
+
+## DASHBOARD CHARTS — generate richer dashboards
+In addition to stat_cards, add a "charts" array to the dashboard:
+{{"dashboard": {{
+  "stat_cards": [...],
+  "charts": [
+    {{"type": "line", "title": "Revenue Trend", "entity": "Order", "metric": "sum", "field": "total_amount", "group_by": "month", "color": "primary"}},
+    {{"type": "bar", "title": "Orders by Status", "entity": "Order", "metric": "count", "group_by": "status", "color": "primary"}},
+    {{"type": "pie", "title": "Customers by Type", "entity": "Customer", "metric": "count", "group_by": "type", "color": "primary"}}
+  ]
+}}}}
+Generate 2-4 charts relevant to the business. Use types: line (trends), bar (comparisons), pie (distribution), area (volume).
+
+## MOBILE RESPONSIVE — add _mobile hints
+For each entity's ui_config, add a "mobile" key:
+{{"ui_config": {{
+  "list_view": {{...}},
+  "mobile": {{
+    "visible_columns": ["name", "status"],
+    "card_layout": true,
+    "stack_form_fields": true
+  }}
+}}}}
+On mobile, only show 2-3 key columns. Use card layout instead of table. Stack form fields vertically.
+
+## RECURRING ENTITIES — model time-based patterns
+When the business involves recurring events, add a "_recurrence" config to relevant entities:
+{{"_recurrence": {{
+  "type": "subscription",
+  "interval_field": "billing_cycle",
+  "intervals": ["monthly", "quarterly", "yearly"],
+  "next_date_field": "next_billing_date",
+  "auto_generate": true
+}}}}
+
+Common recurring patterns:
+- Subscriptions/Memberships: renew monthly/yearly, track next_billing_date
+- Recurring Appointments: weekly therapy sessions, monthly checkups
+- Scheduled Reports: auto-generate weekly/monthly summaries
+- Recurring Invoices: auto-create invoices on billing cycle
+
+When entities like Subscription, Membership, or RecurringAppointment are generated, include:
+- billing_cycle or recurrence_pattern field (enum: weekly/biweekly/monthly/quarterly/yearly)
+- next_date or next_occurrence field (DATE type)
+- auto_renew field (BOOLEAN, default true)
+- renewal_count field (INTEGER, tracks how many times renewed)
+
 ## RULES
 1. Generate 4-8 entities with 8-12 BUSINESS fields each (not counting system fields). Every field must be domain-specific.
 2. Every enum field needs enum_values[] (4-7 industry-specific values) AND badge_colors{{}}.
@@ -159,6 +256,68 @@ Add a "_notifications" key to the root spec:
 8. Include computed fields where math relationships are obvious (total = qty * price).
 9. Choose appropriate list_view layout per entity: table, kanban, calendar, or cards.
 10. Every entity MUST have proper validation rules on key fields."""
+
+
+def _expand_prompt(user_prompt: str) -> str:
+    """Expand short/vague prompts into richer descriptions.
+
+    'gym app' -> 'gym management system with member registration, class scheduling,
+    trainer assignments, membership billing, attendance tracking, workout logging'
+    """
+    EXPANSIONS = {
+        "gym": "gym management system with member registration, class scheduling, trainer assignments, membership billing, attendance tracking, and workout logging",
+        "restaurant": "restaurant management system with menu management, table reservations, order tracking, kitchen management, staff scheduling, and customer loyalty",
+        "salon": "beauty salon management with client profiles, appointment booking, stylist scheduling, service catalog, product inventory, and payment tracking",
+        "clinic": "medical clinic management with patient records, appointment scheduling, doctor assignments, prescription tracking, billing, and insurance management",
+        "hotel": "hotel management system with room booking, guest profiles, housekeeping scheduling, room service orders, billing, and review management",
+        "school": "school management system with student enrollment, course management, teacher assignments, grade tracking, attendance, and parent communication",
+        "store": "retail store management with product catalog, inventory tracking, customer orders, payment processing, supplier management, and sales reporting",
+        "crm": "customer relationship management with lead tracking, contact management, deal pipeline, task management, email tracking, and sales reporting",
+        "project": "project management tool with project tracking, task assignments, team collaboration, sprint planning, time tracking, and progress reporting",
+        "invoice": "invoicing and billing system with client management, invoice creation, payment tracking, expense management, tax calculation, and financial reporting",
+        "real estate": "real estate management with property listings, agent assignments, showing scheduling, offer tracking, client management, and commission calculation",
+        "delivery": "delivery management system with order tracking, driver assignments, route optimization, customer notifications, payment processing, and delivery scheduling",
+        "warehouse": "warehouse management with inventory tracking, location management, order fulfillment, shipping logistics, receiving, and stock alerts",
+        "fitness": "fitness studio management with member profiles, class scheduling, instructor management, subscription billing, attendance tracking, and workout plans",
+        "daycare": "daycare management with child profiles, parent communication, daily activities, attendance tracking, billing, and pickup authorization",
+        "auto": "auto repair shop management with vehicle tracking, service orders, parts inventory, technician assignments, billing, and customer communication",
+        "law": "law firm management with case tracking, client management, document management, billing, court date scheduling, and time tracking",
+        "dental": "dental practice management with patient records, appointment scheduling, treatment plans, x-ray tracking, billing, and insurance claims",
+        "pet": "pet care management with pet profiles, owner information, appointment booking, vaccination tracking, grooming services, and boarding management",
+        "construction": "construction project management with project phases, task tracking, subcontractor management, material orders, permit tracking, and budget management",
+    }
+
+    lower = user_prompt.lower().strip()
+
+    # Very short prompts (< 5 words) get expanded
+    if len(lower.split()) < 5:
+        for key, expansion in EXPANSIONS.items():
+            if key in lower:
+                expanded = user_prompt + f". This should be a full {expansion}."
+                logger.info("Expanded prompt: '%s' -> '%s'", user_prompt[:50], expanded[:80])
+                return expanded
+
+    # Detect vague prompts
+    vague_words = ["business app", "management app", "tool", "system", "software", "platform"]
+    if any(v in lower for v in vague_words) and len(lower.split()) < 8:
+        # Try to extract the domain
+        for key, expansion in EXPANSIONS.items():
+            if key in lower:
+                return user_prompt + f". Include features for: {expansion}."
+
+    return user_prompt
+
+
+def _parse_intents(user_prompt: str) -> list[str]:
+    """Parse multi-intent prompts into feature groups.
+
+    'restaurant with online ordering AND loyalty program AND reservations'
+    -> ['online ordering', 'loyalty program', 'reservations']
+    """
+    # Split on AND, with, plus, also, including (case insensitive)
+    parts = re.split(r'\b(?:and|with|plus|also|including|as well as)\b', user_prompt, flags=re.IGNORECASE)
+    intents = [p.strip() for p in parts if len(p.strip()) > 3]
+    return intents if len(intents) > 1 else [user_prompt]
 
 
 async def generate_spec(user_prompt: str, conversation_history: list[dict] | None = None) -> dict:
@@ -173,6 +332,8 @@ async def generate_spec(user_prompt: str, conversation_history: list[dict] | Non
     """
     if not ANTHROPIC_API_KEY:
         raise ValueError("ANTHROPIC_API_KEY environment variable is required")
+
+    user_prompt = _expand_prompt(user_prompt)
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
@@ -269,6 +430,11 @@ Generate 4-8 entities. Think about:
     # Inject compliance context into plan prompt
     if _compliance_ctx:
         plan_prompt += f"\n\n## Required Compliance Fields\n{_compliance_ctx}"
+
+    # Inject multi-intent context into plan prompt
+    intents = _parse_intents(user_prompt)
+    if len(intents) > 1:
+        plan_prompt += f"\n\nThe user wants MULTIPLE features: {', '.join(intents)}. Make sure ALL of these are covered with dedicated entities."
 
     try:
         plan_response = client.messages.create(
