@@ -285,424 +285,121 @@ app.on('will-quit', () => {
 
 // ── Ghost Mode UI (inline HTML) ─────────────────────────────────────────
 
-const GHOST_MODE_HTML = `<!DOCTYPE html>
-<html>
-<head>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-  font-family: -apple-system, system-ui, sans-serif;
-  background: transparent;
-  color: #f0e6ff;
-  overflow: hidden;
-}
-
-.bar {
-  background: rgba(10, 0, 21, 0.95);
-  backdrop-filter: blur(40px) saturate(1.5);
-  border: 1px solid rgba(236, 72, 153, 0.2);
-  border-radius: 16px;
-  margin: 8px;
-  overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,0,0,0.5), 0 0 20px rgba(236,72,153,0.1);
-}
-
-/* ── Agent Selector Row ── */
-.agent-row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 8px 16px 0; overflow-x: auto;
-}
-.agent-row::-webkit-scrollbar { display: none; }
-.agent-chip {
-  display: flex; align-items: center; gap: 4px;
-  padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 500;
-  background: rgba(255,255,255,.04); color: rgba(240,230,255,.4);
-  border: 1px solid transparent; cursor: pointer; white-space: nowrap;
-  transition: all 0.15s; flex-shrink: 0;
-}
-.agent-chip:hover { background: rgba(255,255,255,.08); color: #f0e6ff; }
-.agent-chip.selected {
-  background: rgba(236,72,153,.12); color: #f9a8d4;
-  border-color: rgba(236,72,153,.3);
-}
-.agent-chip .dot {
-  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
-}
-.hub-btn {
-  padding: 4px 8px; border-radius: 8px; font-size: 11px;
-  background: rgba(255,255,255,.04); color: rgba(240,230,255,.25);
-  border: 1px dashed rgba(255,255,255,.1); cursor: pointer;
-  white-space: nowrap; flex-shrink: 0; transition: all 0.15s;
-}
-.hub-btn:hover { background: rgba(255,255,255,.08); color: #f0e6ff; border-style: solid; }
-
-/* ── Input Row ── */
-.input-row {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 16px;
-  height: 48px;
-}
-
-.orb {
-  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
-  background: radial-gradient(circle at 40% 40%, #f472b6, #ec4899 40%, #a855f7 70%, #6366f1);
-  box-shadow: 0 0 14px rgba(236,72,153,.5);
-  animation: orb-idle 3s ease-in-out infinite;
-  cursor: pointer;
-}
-.orb.active {
-  animation: orb-pulse 0.8s ease-in-out infinite;
-  box-shadow: 0 0 20px rgba(236,72,153,.7);
-}
-.orb.listening {
-  animation: orb-listen 1s ease-in-out infinite;
-  background: radial-gradient(circle at 40% 40%, #f472b6, #ef4444 40%, #ec4899 70%, #a855f7);
-  box-shadow: 0 0 24px rgba(239,68,68,.6);
-}
-@keyframes orb-idle {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-@keyframes orb-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
-@keyframes orb-listen {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(239,68,68,.5); }
-  50% { transform: scale(1.2); box-shadow: 0 0 30px rgba(239,68,68,.7); }
-}
-
-.input-row input {
-  flex: 1; padding: 8px 0;
-  background: none; border: none; color: #f0e6ff;
-  font-size: 15px; font-weight: 400; outline: none;
-}
-.input-row input::placeholder { color: rgba(240,230,255,.3); }
-
-.mic-btn, .send-btn {
-  width: 32px; height: 32px; border-radius: 8px; border: none;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; flex-shrink: 0; transition: all 0.15s;
-}
-.mic-btn {
-  background: rgba(255,255,255,.05);
-  color: rgba(240,230,255,.4);
-}
-.mic-btn:hover { background: rgba(255,255,255,.1); color: #f0e6ff; }
-.mic-btn.active {
-  background: rgba(239,68,68,.2); color: #ef4444;
-}
-.send-btn {
-  background: linear-gradient(135deg, #ec4899, #8b5cf6);
-  color: white;
-}
-.send-btn:hover { box-shadow: 0 0 16px rgba(236,72,153,.4); }
-
-.shortcut-hint {
-  font-size: 10px; color: rgba(240,230,255,.2);
-  background: rgba(255,255,255,.04); padding: 2px 6px; border-radius: 4px;
-  flex-shrink: 0;
-}
-
-/* ── Results / Status area ── */
-.results {
-  display: none;
-  border-top: 1px solid rgba(236,72,153,.1);
-  padding: 12px 16px;
-  max-height: 300px; overflow-y: auto;
-}
-.results.visible { display: block; }
-.results::-webkit-scrollbar { width: 3px; }
-.results::-webkit-scrollbar-thumb { background: rgba(236,72,153,.2); border-radius: 2px; }
-
-.result-item {
-  padding: 8px 12px; border-radius: 10px; margin-bottom: 6px;
-  font-size: 13px; line-height: 1.4;
-  animation: slide-in 0.2s ease;
-}
-.result-item.status {
-  background: rgba(139,92,246,.08); color: #c4b5fd;
-  display: flex; align-items: center; gap: 8px;
-}
-.result-item.step {
-  background: rgba(236,72,153,.06); color: #f9a8d4;
-  font-size: 12px;
-}
-.result-item.error {
-  background: rgba(239,68,68,.1); color: #fca5a5;
-}
-.result-item.done {
-  background: rgba(34,197,94,.08); color: #86efac;
-}
-@keyframes slide-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
-
-.spinner {
-  width: 14px; height: 14px; border-radius: 50%;
-  border: 2px solid rgba(139,92,246,.2); border-top-color: #a855f7;
-  animation: spin 0.6s linear infinite; flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-svg { display: block; }
-</style>
-</head>
-<body>
+const GHOST_MODE_HTML = `<!DOCTYPE html><html><head><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,system-ui,sans-serif;background:transparent;color:#f0e6ff;overflow:hidden}
+.bar{background:rgba(10,0,21,.95);backdrop-filter:blur(40px) saturate(1.5);border:1px solid rgba(236,72,153,.2);border-radius:16px;margin:8px;box-shadow:0 8px 40px rgba(0,0,0,.5),0 0 20px rgba(236,72,153,.1);display:flex;flex-direction:column}
+.agents{display:flex;align-items:center;gap:5px;padding:8px 14px 0;overflow-x:auto;flex-shrink:0}
+.agents::-webkit-scrollbar{display:none}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:500;background:rgba(255,255,255,.04);color:rgba(240,230,255,.35);border:1px solid transparent;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.15s}
+.chip:hover{background:rgba(255,255,255,.08);color:#ddd}
+.chip.on{background:rgba(236,72,153,.1);color:#f9a8d4;border-color:rgba(236,72,153,.25)}
+.chip .cd{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.hub{padding:3px 7px;border-radius:6px;font-size:10px;background:rgba(255,255,255,.03);color:rgba(240,230,255,.2);border:1px dashed rgba(255,255,255,.08);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:.15s}
+.hub:hover{background:rgba(255,255,255,.07);color:#ccc;border-style:solid}
+.row{display:flex;align-items:center;gap:8px;padding:8px 14px 10px;flex-shrink:0}
+.orb{width:26px;height:26px;border-radius:50%;flex-shrink:0;background:radial-gradient(circle at 38% 38%,#f472b6,#ec4899 40%,#a855f7 70%,#6366f1);box-shadow:0 0 12px rgba(236,72,153,.5);animation:idle 3s ease-in-out infinite}
+.orb.go{animation:pulse .8s ease-in-out infinite;box-shadow:0 0 18px rgba(236,72,153,.7)}
+.orb.mic{animation:listen 1s ease-in-out infinite;background:radial-gradient(circle at 38% 38%,#f472b6,#ef4444 40%,#ec4899 70%,#a855f7);box-shadow:0 0 20px rgba(239,68,68,.6)}
+@keyframes idle{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes listen{0%,100%{transform:scale(1);box-shadow:0 0 14px rgba(239,68,68,.5)}50%{transform:scale(1.18);box-shadow:0 0 28px rgba(239,68,68,.7)}}
+.row input{flex:1;padding:6px 0;background:none;border:none;color:#f0e6ff;font-size:15px;outline:none}
+.row input::placeholder{color:rgba(240,230,255,.25)}
+.ib{width:30px;height:30px;border-radius:8px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:.15s}
+.ib.m{background:rgba(255,255,255,.05);color:rgba(240,230,255,.35)}
+.ib.m:hover{background:rgba(255,255,255,.1);color:#f0e6ff}
+.ib.m.on{background:rgba(239,68,68,.15);color:#ef4444}
+.ib.s{background:linear-gradient(135deg,#ec4899,#8b5cf6);color:#fff}
+.ib.s:hover{box-shadow:0 0 14px rgba(236,72,153,.4)}
+.tag{font-size:9px;color:rgba(240,230,255,.18);background:rgba(255,255,255,.03);padding:2px 5px;border-radius:3px;flex-shrink:0}
+.out{display:none;border-top:1px solid rgba(236,72,153,.08);padding:10px 14px;max-height:260px;overflow-y:auto;flex-shrink:0}
+.out.vis{display:block}
+.out::-webkit-scrollbar{width:3px}
+.out::-webkit-scrollbar-thumb{background:rgba(236,72,153,.15);border-radius:2px}
+.ri{padding:7px 10px;border-radius:8px;margin-bottom:4px;font-size:12px;line-height:1.4;animation:si .15s ease}
+.ri.st{background:rgba(139,92,246,.06);color:#c4b5fd;display:flex;align-items:center;gap:6px}
+.ri.sp{background:rgba(236,72,153,.05);color:#f9a8d4;font-size:11px}
+.ri.er{background:rgba(239,68,68,.08);color:#fca5a5}
+.ri.dn{background:rgba(34,197,94,.06);color:#86efac}
+@keyframes si{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+.spin{width:12px;height:12px;border-radius:50%;border:2px solid rgba(139,92,246,.15);border-top-color:#a855f7;animation:sp .6s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+svg{display:block}
+</style></head><body>
 <div class="bar">
-  <div class="agent-row" id="agentRow"></div>
-  <div class="input-row">
-    <div class="orb" id="orb"></div>
-    <input type="text" id="input" placeholder="What do you need?" autofocus>
-    <button class="mic-btn" id="mic" title="Voice command">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-        <line x1="12" y1="19" x2="12" y2="23"/>
-        <line x1="8" y1="23" x2="16" y2="23"/>
-      </svg>
-    </button>
-    <button class="send-btn" id="send" title="Send">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="5" y1="12" x2="19" y2="12"/>
-        <polyline points="12 5 19 12 12 19"/>
-      </svg>
-    </button>
-    <span class="shortcut-hint">F9</span>
-  </div>
-  <div class="results" id="results"></div>
+<div class="agents" id="ag"></div>
+<div class="row">
+<div class="orb" id="orb"></div>
+<input type="text" id="inp" placeholder="What do you need?" autofocus>
+<button class="ib m" id="mic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></button>
+<button class="ib s" id="go"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
+<span class="tag">F9</span>
 </div>
-
+<div class="out" id="out"></div>
+</div>
 <script>
-const { ipcRenderer } = require('electron');
-const input = document.getElementById('input');
-const orb = document.getElementById('orb');
-const results = document.getElementById('results');
-const micBtn = document.getElementById('mic');
-const sendBtn = document.getElementById('send');
-const agentRow = document.getElementById('agentRow');
+const{ipcRenderer}=require('electron');
+const inp=document.getElementById('inp'),orb=document.getElementById('orb'),out=document.getElementById('out'),mic=document.getElementById('mic'),go=document.getElementById('go'),ag=document.getElementById('ag');
+let listening=false,rec=null,selAgent=null,agents=[];
 
-let isListening = false;
-let recognition = null;
-let selectedAgentId = null;
-let agents = [];
-
-// ── Load Agents ──
-async function loadAgents() {
-  agents = await ipcRenderer.invoke('agents-list');
-  renderAgentChips();
-}
-
-function renderAgentChips() {
-  agentRow.innerHTML = '';
-  const activeAgents = agents.filter(a => a.isActive);
-
-  // Auto-select first if none selected
-  if (!selectedAgentId && activeAgents.length > 0) {
-    selectedAgentId = activeAgents[0].id;
-  }
-
-  activeAgents.forEach(a => {
-    const chip = document.createElement('div');
-    chip.className = 'agent-chip' + (a.id === selectedAgentId ? ' selected' : '');
-    chip.innerHTML = '<span class="dot" style="background:' + a.color + '"></span>' + a.emoji + ' ' + a.name;
-    chip.onclick = () => {
-      selectedAgentId = a.id;
-      renderAgentChips();
-      // Update orb color
-      const selected = agents.find(x => x.id === selectedAgentId);
-      if (selected) {
-        orb.style.boxShadow = '0 0 14px ' + selected.color + '80';
-      }
-      input.focus();
-    };
-    agentRow.appendChild(chip);
+async function loadAgents(){agents=await ipcRenderer.invoke('agents-list');drawChips()}
+function drawChips(){
+  ag.innerHTML='';
+  const active=agents.filter(a=>a.isActive);
+  if(!selAgent&&active.length)selAgent=active[0].id;
+  active.forEach(a=>{
+    const c=document.createElement('div');c.className='chip'+(a.id===selAgent?' on':'');
+    c.innerHTML='<span class="cd" style="background:'+a.color+'"></span>'+a.emoji+' '+a.name;
+    c.onclick=()=>{selAgent=a.id;drawChips();inp.focus()};ag.appendChild(c)
   });
-
-  // Hub button
-  const hub = document.createElement('div');
-  hub.className = 'hub-btn';
-  hub.textContent = '+ Agents';
-  hub.onclick = () => ipcRenderer.invoke('open-hub');
-  agentRow.appendChild(hub);
+  const h=document.createElement('div');h.className='hub';h.textContent='+ Agents';
+  h.onclick=()=>ipcRenderer.invoke('open-hub');ag.appendChild(h)
 }
+ipcRenderer.on('agents-updated',()=>loadAgents());loadAgents();
 
-ipcRenderer.on('agents-updated', () => loadAgents());
-loadAgents();
+// Voice
+(function(){const S=window.SpeechRecognition||window.webkitSpeechRecognition;if(!S)return;rec=new S();rec.continuous=false;rec.interimResults=true;rec.lang='en-US';
+rec.onresult=e=>{let t='';for(let i=e.resultIndex;i<e.results.length;i++)t+=e.results[i][0].transcript;inp.value=t;if(e.results[e.results.length-1].isFinal){stopMic();send()}};
+rec.onend=()=>stopMic();rec.onerror=()=>stopMic()})();
+function startMic(){if(!rec)return;listening=true;mic.classList.add('on');orb.classList.add('mic');inp.placeholder='Listening...';rec.start()}
+function stopMic(){listening=false;mic.classList.remove('on');orb.classList.remove('mic');const s=agents.find(a=>a.id===selAgent);inp.placeholder=s?'Ask '+s.name+'...':'What do you need?';try{rec&&rec.stop()}catch(e){}}
+mic.onclick=()=>listening?stopMic():startMic();
 
-// ── Voice Recognition ──
-function setupVoice() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  recognition = new SR();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
+inp.onkeydown=e=>{if(e.key==='Enter')send();if(e.key==='Escape')ipcRenderer.invoke('ghost-hide');
+if(e.key==='Tab'){e.preventDefault();const a=agents.filter(x=>x.isActive);if(a.length>1){const i=a.findIndex(x=>x.id===selAgent);selAgent=a[(i+1)%a.length].id;drawChips()}}};
+go.onclick=()=>send();
 
-  recognition.onresult = (e) => {
-    let transcript = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
-    }
-    input.value = transcript;
-    if (e.results[e.results.length - 1].isFinal) {
-      stopListening();
-      sendCommand();
-    }
-  };
+ipcRenderer.on('bar-opened',async()=>{inp.value='';inp.focus();hide();await loadAgents();ipcRenderer.invoke('ghost-resize',84)});
 
-  recognition.onend = () => stopListening();
-  recognition.onerror = () => stopListening();
+function show(){out.classList.add('vis');ipcRenderer.invoke('ghost-resize',Math.min(out.scrollHeight+84+14,360))}
+function hide(){out.classList.remove('vis');out.innerHTML=''}
+function add(cls,txt){const d=document.createElement('div');d.className='ri '+cls;
+if(cls==='st')d.innerHTML='<div class="spin"></div>'+txt;else d.textContent=txt;
+out.appendChild(d);show();out.scrollTop=out.scrollHeight}
+
+async function send(){
+  const raw=inp.value.trim();if(!raw)return;inp.value='';
+  let tid=selAgent,cmd=raw;
+  const m=raw.match(/^@(\\S+)\\s+(.+)/);
+  if(m){const f=agents.find(a=>a.name.toLowerCase()===m[1].toLowerCase());if(f){tid=f.id;cmd=m[2]}}
+  const s=agents.find(a=>a.id===tid);
+  hide();add('st',(s?s.emoji+' ':'')+'Working on it...');orb.classList.add('go');
+  const r=await ipcRenderer.invoke('ghost-command',cmd,tid);
+  if(r.error){out.innerHTML='';add('er',r.error);orb.classList.remove('go');return}
+  out.innerHTML='';const lbl=r.agentEmoji?r.agentEmoji+' ':'';
+  r.tasks.forEach(t=>add('sp',lbl+t.command+' \\u2014 '+t.steps+' steps'));poll()
 }
-
-function startListening() {
-  if (!recognition) return;
-  isListening = true;
-  micBtn.classList.add('active');
-  orb.classList.add('listening');
-  input.placeholder = 'Listening...';
-  recognition.start();
+async function poll(){
+  const r=await ipcRenderer.invoke('ghost-status');
+  if(r.active){const it=out.querySelectorAll('.ri'),l=it[it.length-1];
+  if(l){l.className='ri st';l.innerHTML='<div class="spin"></div>Step '+r.active.step+'/'+r.active.totalSteps+': '+r.active.currentAction}
+  show();setTimeout(poll,500)}else{orb.classList.remove('go');
+  const it=out.querySelectorAll('.ri'),l=it[it.length-1];
+  if(l){l.className='ri dn';l.textContent='\\u2713 Done!'}show();
+  setTimeout(()=>{ipcRenderer.invoke('ghost-hide');ipcRenderer.invoke('ghost-resize',84)},2000)}
 }
-
-function stopListening() {
-  isListening = false;
-  micBtn.classList.remove('active');
-  orb.classList.remove('listening');
-  const selected = agents.find(a => a.id === selectedAgentId);
-  input.placeholder = selected ? 'Ask ' + selected.name + '...' : 'What do you need?';
-  try { recognition?.stop(); } catch(e) {}
-}
-
-micBtn.addEventListener('click', () => {
-  if (isListening) stopListening();
-  else startListening();
-});
-
-setupVoice();
-
-// ── Input Handlers ──
-input.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') sendCommand();
-  if (e.key === 'Escape') ipcRenderer.invoke('ghost-hide');
-  // Tab to switch agents
-  if (e.key === 'Tab') {
-    e.preventDefault();
-    const activeAgents = agents.filter(a => a.isActive);
-    if (activeAgents.length > 1) {
-      const idx = activeAgents.findIndex(a => a.id === selectedAgentId);
-      selectedAgentId = activeAgents[(idx + 1) % activeAgents.length].id;
-      renderAgentChips();
-    }
-  }
-});
-
-sendBtn.addEventListener('click', () => sendCommand());
-
-// When bar opens, focus input
-ipcRenderer.on('bar-opened', async () => {
-  input.value = '';
-  input.focus();
-  hideResults();
-  await loadAgents();
-  ipcRenderer.invoke('ghost-resize', 92);
-});
-
-// ── Results ──
-function showResults() {
-  results.classList.add('visible');
-  const h = Math.min(results.scrollHeight + 92 + 16, 400);
-  ipcRenderer.invoke('ghost-resize', h);
-}
-
-function hideResults() {
-  results.classList.remove('visible');
-  results.innerHTML = '';
-}
-
-function addResult(type, text) {
-  const div = document.createElement('div');
-  div.className = 'result-item ' + type;
-  if (type === 'status') {
-    div.innerHTML = '<div class="spinner"></div>' + text;
-  } else {
-    div.textContent = text;
-  }
-  results.appendChild(div);
-  showResults();
-  results.scrollTop = results.scrollHeight;
-}
-
-// ── Send Command ──
-async function sendCommand() {
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = '';
-
-  // Check for @agent syntax: "@EmailBot do something"
-  let targetAgent = selectedAgentId;
-  const atMatch = text.match(/^@(\\S+)\\s+(.+)/);
-  if (atMatch) {
-    const name = atMatch[1].toLowerCase();
-    const found = agents.find(a => a.name.toLowerCase() === name);
-    if (found) {
-      targetAgent = found.id;
-      // Use the rest as the command
-      var cmd = atMatch[2];
-    }
-  }
-  const command = cmd || text;
-
-  const selected = agents.find(a => a.id === targetAgent);
-  hideResults();
-  addResult('status', (selected ? selected.emoji + ' ' + selected.name + ': ' : '') + 'Working on it...');
-  orb.classList.add('active');
-
-  const result = await ipcRenderer.invoke('ghost-command', command, targetAgent);
-
-  if (result.error) {
-    results.innerHTML = '';
-    addResult('error', result.error);
-    orb.classList.remove('active');
-    return;
-  }
-
-  results.innerHTML = '';
-  const label = result.agentEmoji ? result.agentEmoji + ' ' : '';
-  for (const task of result.tasks) {
-    addResult('step', label + task.command + ' \\u2014 ' + task.steps + ' steps');
-  }
-
-  pollStatus();
-}
-
-async function pollStatus() {
-  const result = await ipcRenderer.invoke('ghost-status');
-
-  if (result.active) {
-    const items = results.querySelectorAll('.result-item');
-    const last = items[items.length - 1];
-    if (last) {
-      last.className = 'result-item status';
-      last.innerHTML = '<div class="spinner"></div>Step ' + result.active.step + '/' + result.active.totalSteps + ': ' + result.active.currentAction;
-    }
-    showResults();
-    setTimeout(pollStatus, 500);
-  } else {
-    orb.classList.remove('active');
-    const items = results.querySelectorAll('.result-item');
-    const last = items[items.length - 1];
-    if (last) {
-      last.className = 'result-item done';
-      last.textContent = '\\u2713 Done!';
-    }
-    showResults();
-    setTimeout(() => {
-      ipcRenderer.invoke('ghost-hide');
-      ipcRenderer.invoke('ghost-resize', 92);
-    }, 2000);
-  }
-}
-</script>
-</body>
-</html>`;
+</script></body></html>`;
 
 // ── Agent Hub UI (inline HTML) ─────────────────────────────────────────
 

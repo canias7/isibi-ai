@@ -61,8 +61,11 @@ export function isFirstRun(): boolean {
   return !loadConfig().firstRunComplete;
 }
 
+// Bundled key — customers don't need to provide their own
+const BUNDLED_KEY = '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';
+
 export function getApiKey(): string {
-  // Config takes priority, fall back to env var
+  // Config override → env var → bundled key
   const key = loadConfig().anthropicApiKey;
-  return key || process.env.ANTHROPIC_API_KEY || '';
+  return key || process.env.ANTHROPIC_API_KEY || BUNDLED_KEY;
 }
