@@ -25,6 +25,8 @@ export interface GhostModeConfig {
   anthropicApiKey: string;
   accessibilityGranted: boolean;
   screenRecordingGranted: boolean;
+  assistantName: string;
+  assistantWakeWord: string;
   agents: AgentProfileData[];
 }
 
@@ -33,6 +35,8 @@ const DEFAULTS: GhostModeConfig = {
   anthropicApiKey: '',
   accessibilityGranted: false,
   screenRecordingGranted: false,
+  assistantName: 'Isibi',
+  assistantWakeWord: 'hey isibi',
   agents: [],
 };
 
@@ -63,6 +67,14 @@ export function isFirstRun(): boolean {
 
 // Bundled key — customers don't need to provide their own
 const BUNDLED_KEY = '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';
+
+export function getAssistantName(): string {
+  return loadConfig().assistantName || 'Isibi';
+}
+
+export function getWakeWord(): string {
+  return loadConfig().assistantWakeWord || 'hey isibi';
+}
 
 export function getApiKey(): string {
   // Config override → env var → bundled key

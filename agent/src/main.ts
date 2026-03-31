@@ -11,13 +11,14 @@ import * as fs from 'fs';
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName } from './config';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
 import { dispatchCommand, getAllAgentStatuses } from './agent-manager';
 
 let mainWindow: BrowserWindow | null = null;
 let hubWindow: BrowserWindow | null = null;
+let listenerWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let systemIndex: SystemIndex | null = null;
 
@@ -78,6 +79,26 @@ function createHubWindow() {
   hubWindow.on('closed', () => { hubWindow = null; });
 }
 
+// ── Wake Word Listener (always-on, hidden window) ─────────────────────
+
+function createListenerWindow() {
+  if (listenerWindow) return;
+
+  listenerWindow = new BrowserWindow({
+    width: 1,
+    height: 1,
+    show: false,
+    skipTaskbar: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+  });
+
+  listenerWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(WAKE_LISTENER_HTML)}`);
+  listenerWindow.on('closed', () => { listenerWindow = null; });
+}
+
 // ── System Tray ─────────────────────────────────────────────────────────
 
 function createTray() {
@@ -117,6 +138,30 @@ ipcMain.handle('ghost-resize', (_, height: number) => {
 
 ipcMain.handle('ghost-hide', () => {
   mainWindow?.hide();
+});
+
+// ── Wake Word & Settings IPC ──────────────────────────────────────────
+
+ipcMain.handle('get-wake-word', () => getWakeWord());
+ipcMain.handle('get-assistant-name', () => getAssistantName());
+
+ipcMain.handle('wake-word-detected', () => {
+  // Wake word heard — show the voice bar
+  if (mainWindow && !mainWindow.isVisible()) {
+    mainWindow.center();
+    mainWindow.show();
+    mainWindow.focus();
+    mainWindow.webContents.send('bar-opened');
+  }
+});
+
+ipcMain.handle('update-assistant-profile', (_, name: string) => {
+  const wakeWord = 'hey ' + name.toLowerCase().trim();
+  saveConfig({ assistantName: name.trim(), assistantWakeWord: wakeWord });
+  // Notify listener to use new wake word
+  listenerWindow?.webContents.send('wake-word-changed', wakeWord);
+  hubWindow?.webContents.send('profile-updated', { name: name.trim(), wakeWord });
+  return { name: name.trim(), wakeWord };
 });
 
 // ── Agent CRUD IPC ─────────────────────────────────────────────────────
@@ -227,7 +272,11 @@ function launchGhostMode() {
   // Show Agent Hub as the main app window on launch
   createHubWindow();
 
-  // Register global shortcut to toggle Ghost Mode voice bar
+  // Start always-on wake word listener
+  createListenerWindow();
+  console.log('[Ghost Mode] Wake word listener started — say "' + getWakeWord() + '"');
+
+  // Keep F9 as backup shortcut
   const registered = globalShortcut.register('F9', () => {
     if (mainWindow?.isVisible()) {
       mainWindow.hide();
@@ -238,8 +287,8 @@ function launchGhostMode() {
       mainWindow?.webContents.send('bar-opened');
     }
   });
-  if (!registered) console.error('[Ghost Mode] Failed to register F9 shortcut');
-  else console.log('[Ghost Mode] F9 shortcut registered');
+  if (!registered) console.error('[Ghost Mode] Failed to register F9 shortcut (backup)');
+  else console.log('[Ghost Mode] F9 backup shortcut registered');
 
   // Index the system on first launch
   console.log('[Ghost Mode] Starting system index...');
@@ -399,6 +448,66 @@ async function poll(){
 document.onkeydown=e=>{if(e.key==='Escape'){stopMic();ipcRenderer.invoke('ghost-hide')}}
 </script></body></html>`;
 
+// ── Wake Word Listener (inline HTML, hidden window) ───────────────────
+
+const WAKE_LISTENER_HTML = `<!DOCTYPE html><html><head></head><body>
+<script>
+const{ipcRenderer}=require('electron');
+let wakeWord='';
+let rec=null;
+let active=true;
+
+async function init(){
+  wakeWord=await ipcRenderer.invoke('get-wake-word');
+  console.log('[Listener] Wake word:',wakeWord);
+  setupRec();
+  startListening();
+}
+
+function setupRec(){
+  const S=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!S){console.error('[Listener] SpeechRecognition not available');return}
+  rec=new S();
+  rec.continuous=true;
+  rec.interimResults=true;
+  rec.lang='en-US';
+  rec.onresult=e=>{
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      const t=e.results[i][0].transcript.toLowerCase().trim();
+      if(t.includes(wakeWord)){
+        console.log('[Listener] Wake word detected!');
+        rec.stop();
+        ipcRenderer.invoke('wake-word-detected');
+        // Restart after a delay to let the command bar handle speech
+        setTimeout(()=>startListening(),5000);
+        return;
+      }
+    }
+  };
+  rec.onend=()=>{
+    // Auto-restart unless we just detected the wake word
+    if(active)setTimeout(()=>startListening(),500);
+  };
+  rec.onerror=e=>{
+    console.log('[Listener] Error:',e.error);
+    if(e.error==='not-allowed'){active=false;return}
+    setTimeout(()=>startListening(),2000);
+  };
+}
+
+function startListening(){
+  if(!rec||!active)return;
+  try{rec.start();console.log('[Listener] Listening...')}catch(e){}
+}
+
+ipcRenderer.on('wake-word-changed',(_,newWord)=>{
+  wakeWord=newWord;
+  console.log('[Listener] Wake word updated to:',wakeWord);
+});
+
+init();
+</script></body></html>`;
+
 // ── Agent Hub UI (inline HTML) ─────────────────────────────────────────
 
 const AGENT_HUB_HTML = `<!DOCTYPE html>
@@ -436,6 +545,39 @@ body {
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 .titlebar .spacer { width: 60px; }
+.titlebar .settings-btn {
+  width: 28px; height: 28px; border-radius: 8px; border: none;
+  background: rgba(255,255,255,.04); color: rgba(240,230,255,.3);
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  -webkit-app-region: no-drag; transition: .15s;
+}
+.titlebar .settings-btn:hover { background: rgba(255,255,255,.08); color: #f0e6ff; }
+
+/* ── Profile Bar ── */
+.profile-bar {
+  display: none; padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,.04);
+  -webkit-app-region: no-drag; animation: slideDown .2s ease;
+}
+.profile-bar.visible { display: block; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.profile-row { display: flex; align-items: center; gap: 10px; }
+.profile-row label { font-size: 11px; color: rgba(240,230,255,.4); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
+.profile-row input {
+  flex: 1; padding: 8px 12px; background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.08); border-radius: 8px;
+  color: #f0e6ff; font-size: 13px; outline: none; font-family: inherit;
+}
+.profile-row input:focus { border-color: rgba(236,72,153,.3); }
+.profile-row .wake-preview {
+  font-size: 11px; color: #f9a8d4; background: rgba(236,72,153,.06);
+  padding: 6px 12px; border-radius: 8px; white-space: nowrap;
+}
+.profile-row .save-btn {
+  padding: 6px 14px; border-radius: 8px; border: none;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white;
+  font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.profile-row .save-btn:hover { box-shadow: 0 0 12px rgba(236,72,153,.3); }
 
 /* ── Agent Grid ── */
 .grid-container {
@@ -573,7 +715,17 @@ body {
       <div class="dot max"></div>
     </div>
     <h1>Your Agents</h1>
-    <div class="spacer"></div>
+    <button class="settings-btn" onclick="toggleProfile()" title="Settings">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+  </div>
+  <div class="profile-bar" id="profileBar">
+    <div class="profile-row">
+      <label>Assistant Name</label>
+      <input id="profileNameInput" placeholder="e.g. Isibi" maxlength="20">
+      <span class="wake-preview" id="wakePreview">Say "Hey Isibi"</span>
+      <button class="save-btn" onclick="saveProfile()">Save</button>
+    </div>
   </div>
   <div class="grid-container">
     <div class="grid" id="grid"></div>
@@ -748,7 +900,42 @@ async function toggleA(id) {
 }
 
 ipcRenderer.on('agents-updated', () => loadAgents());
+
+// ── Profile / Settings ──
+let profileVisible = false;
+const profileNameInput = document.getElementById('profileNameInput');
+const wakePreview = document.getElementById('wakePreview');
+
+function toggleProfile() {
+  profileVisible = !profileVisible;
+  document.getElementById('profileBar').classList.toggle('visible', profileVisible);
+}
+
+async function loadProfile() {
+  const name = await ipcRenderer.invoke('get-assistant-name');
+  profileNameInput.value = name;
+  wakePreview.textContent = 'Say "Hey ' + name + '"';
+}
+
+profileNameInput.addEventListener('input', () => {
+  const v = profileNameInput.value.trim() || 'Isibi';
+  wakePreview.textContent = 'Say "Hey ' + v + '"';
+});
+
+async function saveProfile() {
+  const name = profileNameInput.value.trim() || 'Isibi';
+  await ipcRenderer.invoke('update-assistant-profile', name);
+  wakePreview.textContent = 'Say "Hey ' + name + '"';
+  toggleProfile();
+}
+
+ipcRenderer.on('profile-updated', (_, data) => {
+  profileNameInput.value = data.name;
+  wakePreview.textContent = 'Say "Hey ' + data.name + '"';
+});
+
 loadAgents();
+loadProfile();
 </script>
 </body>
 </html>`;
