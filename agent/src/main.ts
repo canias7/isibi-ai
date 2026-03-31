@@ -462,6 +462,24 @@ body {
 .agent-item .name { font-size: 13px; font-weight: 500; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .agent-item .role { font-size: 10px; color: rgba(226,232,240,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .agent-item .dot-status { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.agent-item .controls {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.agent-item:hover .controls { display: flex; }
+.agent-item:hover .dot-status { display: none; }
+.ctrl-btn {
+  width: 22px; height: 22px; border-radius: 5px; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; background: transparent; color: rgba(226,232,240,0.25);
+  font-size: 10px; transition: .1s;
+}
+.ctrl-btn:hover { background: rgba(255,255,255,0.06); color: rgba(226,232,240,0.6); }
+.ctrl-btn.toggle-on { color: #22c55e; }
+.ctrl-btn.toggle-off { color: #6b7280; }
+.ctrl-btn.del:hover { color: #ef4444; }
 
 .add-agent-btn {
   display: flex;
@@ -801,9 +819,9 @@ svg { display: block; }
   <!-- Sidebar -->
   <div class="sidebar">
     <div class="sidebar-top">
-      <button class="new-chat-btn" onclick="newChat()">
+      <button class="new-chat-btn" onclick="openCreateAgent()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        New Chat
+        New Agent
       </button>
     </div>
     <div class="sidebar-section">
@@ -868,8 +886,8 @@ svg { display: block; }
       <input id="agentRoleInput" placeholder="e.g. Handle all email tasks">
     </div>
     <div class="field">
-      <label>Instructions</label>
-      <textarea id="agentInstructionsInput" placeholder="e.g. You manage my Gmail..."></textarea>
+      <label>System Prompt</label>
+      <textarea id="agentInstructionsInput" placeholder="e.g. You are an email assistant. When I say send an email, open Gmail, compose, and send it..."></textarea>
     </div>
     <div class="field">
       <label>Color</label>
@@ -934,11 +952,38 @@ function renderAgentList() {
     el.innerHTML =
       '<span class="emoji">' + a.emoji + '</span>' +
       '<div class="info"><div class="name">' + a.name + '</div><div class="role">' + a.role + '</div></div>' +
-      '<div class="dot-status" style="background:' + (a.isActive ? '#22c55e' : '#6b7280') + '"></div>';
-    el.onclick = () => { selectedAgentId = a.id; renderAgentList(); updatePlaceholder(); };
-    el.ondblclick = () => openEditAgent(a);
+      '<div class="dot-status" style="background:' + (a.isActive ? '#22c55e' : '#6b7280') + '"></div>' +
+      '<div class="controls">' +
+        '<button class="ctrl-btn" title="Edit" data-action="edit">\\u270f</button>' +
+        '<button class="ctrl-btn ' + (a.isActive ? 'toggle-on' : 'toggle-off') + '" title="' + (a.isActive ? 'Deactivate' : 'Activate') + '" data-action="toggle">' + (a.isActive ? '\\u25cf' : '\\u25cb') + '</button>' +
+        (agents.length > 1 ? '<button class="ctrl-btn del" title="Delete" data-action="delete">\\u2715</button>' : '') +
+      '</div>';
+    el.onclick = (e) => {
+      const action = e.target.closest('[data-action]');
+      if (action) {
+        e.stopPropagation();
+        const act = action.dataset.action;
+        if (act === 'edit') openEditAgent(a);
+        else if (act === 'toggle') toggleAgentById(a.id);
+        else if (act === 'delete') deleteAgentById(a.id);
+        return;
+      }
+      selectedAgentId = a.id; renderAgentList(); updatePlaceholder();
+    };
     agentListEl.appendChild(el);
   });
+}
+
+async function toggleAgentById(id) {
+  await ipcRenderer.invoke('agents-toggle', id);
+  loadAgents();
+}
+
+async function deleteAgentById(id) {
+  if (agents.length <= 1) return;
+  await ipcRenderer.invoke('agents-delete', id);
+  if (selectedAgentId === id) selectedAgentId = null;
+  loadAgents();
 }
 
 function updatePlaceholder() {
@@ -949,7 +994,7 @@ function updatePlaceholder() {
 ipcRenderer.on('agents-updated', () => loadAgents());
 
 // ── Chat ──
-function newChat() {
+function clearChat() {
   chatMessages = [];
   renderChat();
 }
