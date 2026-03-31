@@ -131,15 +131,17 @@ Platform: ${index.platform} (${index.platform === 'darwin' ? 'macOS' : index.pla
 
 Return ONLY a JSON array of actions:
 [
-  {"type": "open_app", "target": "Safari", "description": "Opening Safari"},
-  {"type": "find_and_click", "target": "URL bar", "description": "Clicking the URL bar"},
-  {"type": "type", "text": "youtube.com", "description": "Typing youtube.com"},
-  {"type": "press_key", "key": "Enter", "description": "Pressing Enter to navigate"}
+  {"type": "open_url", "target": "https://youtube.com", "description": "Opening YouTube"},
+  {"type": "find_and_click", "target": "search box", "description": "Clicking the search box"},
+  {"type": "type", "text": "search term", "description": "Typing search term"},
+  {"type": "press_key", "key": "Enter", "description": "Pressing Enter to search"}
 ]
 
+IMPORTANT: For opening websites, ALWAYS use open_url (not open_app with a browser name). The system will use the default browser.
+
 Action types:
-- open_app: launch an application by name
-- open_url: open a URL in default browser
+- open_app: launch a desktop application (NOT browsers — use open_url for web)
+- open_url: open a URL in the default browser
 - click: click at coordinates (x, y) — use find_and_click instead when possible
 - find_and_click: describe the element to click (AI will locate it on screen)
 - type: type text (types character by character)
