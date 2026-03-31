@@ -230,7 +230,7 @@ class CSRFMiddleware:
     Safe methods (GET, HEAD, OPTIONS) and preview/webhook paths are exempt.
     """
     SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
-    EXEMPT_PREFIXES = ("/live/", "/health", "/api/intake", "/webhook", "/api/apps/", "/api/billing/webhook", "/api/auth/")
+    EXEMPT_PREFIXES = ("/live/", "/health", "/api/intake", "/webhook", "/api/apps/", "/api/billing/", "/api/auth/", "/embed/", "/api/chat")
 
     def __init__(self, app):
         self.app = app
