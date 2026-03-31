@@ -93,10 +93,13 @@ Example: {{"_seed_data": [{{"name": "John Smith", "email": "john@example.com", "
 
 async def generate_spec(user_prompt: str, conversation_history: list[dict] | None = None) -> dict:
     """
-    Generate a complete app spec from a user's description.
+    Generate a complete app spec using multi-pass AI generation.
 
-    Includes retry logic: if the AI returns malformed JSON, we ask it to fix it
-    (up to MAX_JSON_RETRIES times).
+    Pass 1: PLAN — Claude designs the entity architecture
+    Pass 2: BUILD — Claude generates the full spec following the plan
+    Pass 3: REVIEW — Claude self-checks and fixes issues
+    Smart Defaults — auto-add validation, input types based on field names
+    Quality Check — re-generate if score < 70
     """
     if not ANTHROPIC_API_KEY:
         raise ValueError("ANTHROPIC_API_KEY environment variable is required")
@@ -106,51 +109,105 @@ async def generate_spec(user_prompt: str, conversation_history: list[dict] | Non
     # Build RAG context
     rag_context = build_rag_context(user_prompt)
     schema_reference = get_full_spec_as_schema_reference()
-
-    # Get best-matching spec as a few-shot example
     few_shot_example = get_best_few_shot_example(user_prompt)
 
-    # Build messages
-    messages: list[dict] = []
-
-    if conversation_history:
-        messages.extend(conversation_history)
-
-    # Build few-shot section if available
-    few_shot_section = ""
-    if few_shot_example:
-        few_shot_section = f"""
-## Example of a well-structured spec for a similar domain
-{few_shot_example}
-
-Now generate a spec for the user's request, following this exact structure.
-"""
-
-    user_message = f"""## User Request
-{user_prompt}
-
-## Reference Patterns (from existing specs — use as STRUCTURAL TEMPLATES)
-{rag_context}
-{few_shot_section}
-## JSON Schema Template (follow this exact structure)
-{schema_reference}
-
-Now generate the COMPLETE JSON spec for what the user requested.
-- Generate 4-8 entities with full field definitions
-- Include ALL field attributes (db_type, ts_type, nullable, editable, show_in_table, show_in_form, input_component, display_component)
-- Include ui_config for every entity
-- Include dashboard stat_cards
-- Include design_system
-- Output ONLY the JSON object, nothing else."""
-
-    messages.append({"role": "user", "content": user_message})
-
-    # Inject domain-aware design palette into system prompt
+    # Inject domain-aware design palette
     from generator.design_palettes import get_palette_context
     _design_ctx = get_palette_context(user_prompt)
     _final_prompt = SYSTEM_PROMPT.replace("{design_context}", _design_ctx)
 
-    # First attempt
+    # ── PASS 1: PLAN — design the architecture ──────────────────────────
+    logger.info("Pass 1: Planning entity architecture for: %s", user_prompt[:80])
+
+    plan_prompt = f"""Given this business description, plan the app architecture.
+Think like a domain expert consultant for THIS specific business.
+
+Business: {user_prompt}
+
+Return ONLY a JSON object:
+{{
+  "business_type": "specific type (e.g. 'fine dining restaurant' not just 'restaurant')",
+  "entities": [
+    {{
+      "name": "EntityName",
+      "description": "what this entity represents",
+      "key_fields": ["field1", "field2", "field3"],
+      "relationships": ["links to EntityName2 via field_id"]
+    }}
+  ],
+  "workflows": ["describe key business process 1", "describe key business process 2"],
+  "dashboard_kpis": ["metric 1", "metric 2", "metric 3"],
+  "design_vibe": "describe the visual feel (e.g. 'warm and rustic' or 'clean and clinical')"
+}}
+
+Generate 4-8 entities. Think about:
+- What data does this specific business ACTUALLY track daily?
+- What are the core business processes (not generic CRUD)?
+- What relationships exist between data?
+- What KPIs does the owner care about?"""
+
+    try:
+        plan_response = client.messages.create(
+            model=MODEL,
+            max_tokens=2000,
+            system="You are a business domain expert. Plan app architectures. Output ONLY valid JSON.",
+            messages=[{"role": "user", "content": plan_prompt}],
+        )
+        plan_text = plan_response.content[0].text.strip()
+        plan = _robust_json_parse(plan_text)
+        if not isinstance(plan, dict):
+            plan = {}
+        logger.info("Pass 1 complete: %d entities planned", len(plan.get("entities", [])))
+    except Exception as e:
+        logger.warning("Pass 1 (plan) failed: %s — proceeding without plan", e)
+        plan = {}
+
+    # ── PASS 2: BUILD — generate full spec with plan context ────────────
+    logger.info("Pass 2: Building full spec with plan context")
+
+    plan_context = ""
+    if plan:
+        plan_context = f"""
+## Architecture Plan (follow this structure)
+Business type: {plan.get('business_type', 'unknown')}
+Planned entities: {json.dumps(plan.get('entities', []), indent=2)}
+Key workflows: {json.dumps(plan.get('workflows', []))}
+Dashboard KPIs: {json.dumps(plan.get('dashboard_kpis', []))}
+Design vibe: {plan.get('design_vibe', '')}
+
+Follow this plan closely. Generate ALL planned entities with full field definitions.
+"""
+
+    messages: list[dict] = []
+    if conversation_history:
+        messages.extend(conversation_history)
+
+    few_shot_section = ""
+    if few_shot_example:
+        few_shot_section = f"\n## Example spec for reference\n{few_shot_example}\n"
+
+    user_message = f"""## User Request
+{user_prompt}
+{plan_context}
+## Reference Patterns
+{rag_context}
+{few_shot_section}
+## JSON Schema Template
+{schema_reference}
+
+Generate the COMPLETE JSON spec following the architecture plan above.
+- Generate ALL planned entities with 8-12 fields each
+- Include domain-specific fields (not just name/status/created_at)
+- Include ALL field attributes (db_type, ts_type, nullable, editable, show_in_table, show_in_form, input_component, display_component)
+- Include proper validation rules on fields (email, phone, required, min/max)
+- Include FK relationships between connected entities
+- Include ui_config, dashboard with planned KPIs, design_system
+- Include _seed_data with 3-5 realistic sample records per entity
+- Output ONLY the JSON object."""
+
+    messages.append({"role": "user", "content": user_message})
+
+    # Build pass with retry logic
     spec = None
     last_error = None
     raw_text = ""
@@ -165,150 +222,263 @@ Now generate the COMPLETE JSON spec for what the user requested.
                     messages=messages,
                 )
             else:
-                # Retry: ask Claude to fix the JSON
-                logger.warning(
-                    "JSON parse attempt %d failed: %s — asking AI to fix",
-                    attempt, last_error
-                )
+                logger.warning("JSON parse attempt %d failed: %s — asking AI to fix", attempt, last_error)
                 fix_messages = messages + [
                     {"role": "assistant", "content": raw_text},
-                    {
-                        "role": "user",
-                        "content": (
-                            f"Your JSON output had an error: {last_error}\n\n"
-                            "Please output the COMPLETE corrected JSON spec. "
-                            "Output ONLY valid JSON — no markdown, no explanation."
-                        ),
-                    },
+                    {"role": "user", "content": f"Your JSON had an error: {last_error}\n\nOutput the COMPLETE corrected JSON spec. ONLY valid JSON."},
                 ]
-                response = client.messages.create(
-                    model=MODEL,
-                    max_tokens=64000,
-                    system=SYSTEM_PROMPT,
-                    messages=fix_messages,
-                )
+                response = client.messages.create(model=MODEL, max_tokens=64000, system=_final_prompt, messages=fix_messages)
 
             raw_text = response.content[0].text.strip()
-
-            # If output was truncated, try to repair after stripping fences
             truncated = response.stop_reason == "max_tokens"
-
-            # Handle truncation: if response was cut off mid-JSON, ask for continuation
             if truncated:
-                logger.warning(
-                    "Response truncated at %d chars (stop_reason=max_tokens), attempting recovery",
-                    len(raw_text),
-                )
+                logger.warning("Response truncated at %d chars, attempting recovery", len(raw_text))
                 raw_text = _handle_truncated_response(client, messages, raw_text)
 
-            # Use robust JSON parsing with all recovery steps
             spec = _robust_json_parse(raw_text, truncated=truncated)
-
             if not isinstance(spec, dict):
-                raise ValueError(f"AI returned {type(spec).__name__} instead of a JSON object")
-
-            # Success — break out of retry loop
+                raise ValueError(f"AI returned {type(spec).__name__} instead of dict")
             break
 
         except (json.JSONDecodeError, ValueError) as e:
             last_error = str(e)
-
             if attempt >= MAX_JSON_RETRIES:
-                # Last resort: make one more API call asking for just JSON
-                logger.warning("All retries exhausted. Trying one final recovery API call.")
+                logger.warning("All retries exhausted. Trying final recovery.")
                 try:
-                    recovery_response = client.messages.create(
-                        model=MODEL,
-                        max_tokens=64000,
-                        system="You are a JSON repair assistant. Output ONLY valid JSON, nothing else.",
-                        messages=[{
-                            "role": "user",
-                            "content": (
-                                "Your previous response was not valid JSON. "
-                                f"Here's what you returned:\n\n{raw_text[:2000]}\n\n"
-                                "Please return ONLY the valid JSON spec, nothing else."
-                            ),
-                        }],
+                    recovery = client.messages.create(
+                        model=MODEL, max_tokens=64000,
+                        system="You are a JSON repair assistant. Output ONLY valid JSON.",
+                        messages=[{"role": "user", "content": f"Fix this JSON:\n\n{raw_text[:2000]}\n\nReturn ONLY the valid JSON."}],
                     )
-                    recovery_text = recovery_response.content[0].text.strip()
-                    spec = _robust_json_parse(recovery_text)
+                    spec = _robust_json_parse(recovery.content[0].text.strip())
                     if isinstance(spec, dict):
-                        logger.info("Recovery API call succeeded — got valid JSON")
                         break
-                except Exception as recovery_err:
-                    logger.error("Recovery API call also failed: %s", recovery_err)
-
-                logger.error(
-                    "All %d JSON parse attempts failed. Last error: %s. First 300 chars: %s",
-                    MAX_JSON_RETRIES + 1, last_error, raw_text[:300]
-                )
-                raise ValueError(
-                    f"AI returned invalid JSON after {MAX_JSON_RETRIES + 1} attempts: {last_error}"
-                )
+                except Exception:
+                    pass
+                raise ValueError(f"AI returned invalid JSON after {MAX_JSON_RETRIES + 1} attempts: {last_error}")
 
     if spec is None:
         raise ValueError("Failed to generate spec — no valid JSON returned")
 
-    # Validate, auto-fill, and enforce format
+    logger.info("Pass 2 complete: %d entities generated", len(spec.get("entities", [])))
+
+    # Validate and enforce format
     spec = _ensure_required_fields(spec)
     spec = _enforce_format(spec)
     _validate_spec(spec)
 
-    # Score spec quality and log it; re-generate if score is too low
+    # ── PASS 3: REVIEW — self-check and fix ─────────────────────────────
+    logger.info("Pass 3: AI self-review")
+
+    try:
+        entity_names = [e.get("name", "?") for e in spec.get("entities", []) if isinstance(e, dict)]
+        review_prompt = f"""Review this app spec for a "{plan.get('business_type', user_prompt[:50])}".
+
+Entities: {', '.join(entity_names)}
+
+Check for:
+1. Missing FK relationships (e.g. Order should link to Customer)
+2. Fields missing validation (email without email rule, phone without pattern, price without min:0)
+3. Missing domain-specific fields (e.g. restaurant should have allergens, medical should have insurance)
+4. Dashboard stat_cards not reflecting real KPIs
+
+Return ONLY a JSON object with fixes:
+{{
+  "add_relationships": [{{"entity": "Order", "field": "customer_id", "fk_entity": "Customer"}}],
+  "add_validations": [{{"entity": "Lead", "field": "email", "validation": {{"rule": "email", "message": "Invalid email"}}}}],
+  "add_fields": [{{"entity": "MenuItem", "field": "allergens", "db_type": "TEXT", "description": "comma-separated allergens"}}],
+  "fix_dashboard": [{{"label": "Revenue This Month", "entity": "Order", "icon": "DollarSign", "color": "green"}}]
+}}
+
+If everything looks good, return: {{"add_relationships": [], "add_validations": [], "add_fields": [], "fix_dashboard": []}}"""
+
+        review_response = client.messages.create(
+            model=MODEL,
+            max_tokens=4000,
+            system="You are a QA reviewer for app specs. Find missing relationships, validations, and fields. Output ONLY JSON.",
+            messages=[{"role": "user", "content": review_prompt}],
+        )
+        review_text = review_response.content[0].text.strip()
+        fixes = _robust_json_parse(review_text)
+
+        if isinstance(fixes, dict):
+            _apply_review_fixes(spec, fixes)
+            fix_count = sum(len(v) for v in fixes.values() if isinstance(v, list))
+            logger.info("Pass 3 complete: applied %d fixes from review", fix_count)
+    except Exception as e:
+        logger.warning("Pass 3 (review) failed: %s — continuing without review fixes", e)
+
+    # ── SMART DEFAULTS — auto-add validation and input types ────────────
+    _apply_smart_defaults(spec)
+
+    # ── QUALITY CHECK ───────────────────────────────────────────────────
     from .spec_validator import score_spec_quality
     quality = score_spec_quality(spec)
     logger.info(
-        "Spec quality score: %d/100 | Strengths: %s | Issues: %s",
+        "Final quality score: %d/100 | Strengths: %s | Issues: %s",
         quality["score"],
         "; ".join(quality["strengths"][:3]),
         "; ".join(quality["issues"][:3]),
     )
 
     if quality["score"] < 60:
-        logger.warning(
-            "Spec quality score %d < 60 — triggering re-generation with more specific prompt",
-            quality["score"],
-        )
-        # Build a more specific prompt with the issues as guidance
+        logger.warning("Quality score %d < 60 — triggering re-generation", quality["score"])
         issue_guidance = "\n".join(f"- Fix: {issue}" for issue in quality["issues"])
-        retry_messages = messages + [
-            {"role": "assistant", "content": raw_text},
-            {
-                "role": "user",
-                "content": (
-                    f"The spec you generated has quality issues (score: {quality['score']}/100):\n"
-                    f"{issue_guidance}\n\n"
-                    "Please regenerate the COMPLETE JSON spec addressing ALL of these issues. "
-                    "Ensure every entity has complete fields with all 10 attributes, "
-                    "FK relationships between related entities, ui_config, and 4+ dashboard stat cards. "
-                    "Output ONLY the JSON object."
-                ),
-            },
-        ]
         try:
             retry_response = client.messages.create(
-                model=MODEL,
-                max_tokens=64000,
-                system=SYSTEM_PROMPT,
-                messages=retry_messages,
+                model=MODEL, max_tokens=64000, system=_final_prompt,
+                messages=messages + [
+                    {"role": "assistant", "content": raw_text},
+                    {"role": "user", "content": f"Quality issues (score: {quality['score']}/100):\n{issue_guidance}\n\nRegenerate the COMPLETE JSON spec fixing ALL issues. Output ONLY JSON."},
+                ],
             )
-            retry_text = retry_response.content[0].text.strip()
-            retry_spec = _robust_json_parse(retry_text)
+            retry_spec = _robust_json_parse(retry_response.content[0].text.strip())
             if isinstance(retry_spec, dict):
                 retry_spec = _ensure_required_fields(retry_spec)
                 retry_spec = _enforce_format(retry_spec)
                 _validate_spec(retry_spec)
+                _apply_smart_defaults(retry_spec)
                 retry_quality = score_spec_quality(retry_spec)
-                logger.info(
-                    "Re-generated spec quality score: %d/100 (was %d)",
-                    retry_quality["score"], quality["score"],
-                )
+                logger.info("Re-gen score: %d/100 (was %d)", retry_quality["score"], quality["score"])
                 if retry_quality["score"] > quality["score"]:
                     spec = retry_spec
         except Exception as e:
-            logger.warning("Quality re-generation failed: %s — using original spec", e)
+            logger.warning("Quality re-gen failed: %s — using original", e)
 
     return spec
+
+
+def _apply_review_fixes(spec: dict, fixes: dict) -> None:
+    """Apply fixes from the AI review pass to the spec."""
+    entities = spec.get("entities", [])
+    entity_map = {e.get("name", ""): e for e in entities if isinstance(e, dict)}
+
+    # Add missing FK relationships
+    for rel in fixes.get("add_relationships", []):
+        entity_name = rel.get("entity", "")
+        if entity_name in entity_map:
+            fields = entity_map[entity_name].get("fields", [])
+            field_name = rel.get("field", "")
+            # Don't add if field already exists
+            if not any(f.get("name") == field_name for f in fields if isinstance(f, dict)):
+                fields.append({
+                    "name": field_name,
+                    "db_type": "UUID",
+                    "ts_type": "string",
+                    "nullable": True,
+                    "editable": True,
+                    "show_in_table": False,
+                    "show_in_form": True,
+                    "input_component": None,
+                    "display_component": None,
+                    "fk_entity": rel.get("fk_entity", ""),
+                })
+
+    # Add missing validations
+    for val in fixes.get("add_validations", []):
+        entity_name = val.get("entity", "")
+        if entity_name in entity_map:
+            for field in entity_map[entity_name].get("fields", []):
+                if isinstance(field, dict) and field.get("name") == val.get("field"):
+                    if "validation" not in field or not field["validation"]:
+                        field["validation"] = val.get("validation", {})
+
+    # Add missing fields
+    for new_field in fixes.get("add_fields", []):
+        entity_name = new_field.get("entity", "")
+        if entity_name in entity_map:
+            fields = entity_map[entity_name].get("fields", [])
+            field_name = new_field.get("field", "")
+            if not any(f.get("name") == field_name for f in fields if isinstance(f, dict)):
+                # Insert before system fields (created_at, etc.)
+                insert_idx = len(fields)
+                for i, f in enumerate(fields):
+                    if isinstance(f, dict) and f.get("name") in ("created_at", "updated_at", "deleted_at", "version"):
+                        insert_idx = i
+                        break
+                fields.insert(insert_idx, {
+                    "name": field_name,
+                    "db_type": new_field.get("db_type", "TEXT"),
+                    "ts_type": "string",
+                    "nullable": True,
+                    "editable": True,
+                    "show_in_table": True,
+                    "show_in_form": True,
+                    "input_component": "TextInput",
+                    "display_component": "Text",
+                })
+
+    # Fix dashboard
+    for card in fixes.get("fix_dashboard", []):
+        if card and isinstance(card, dict) and card.get("label"):
+            dashboard = spec.get("dashboard", {})
+            stat_cards = dashboard.get("stat_cards", [])
+            # Don't duplicate
+            if not any(c.get("label") == card["label"] for c in stat_cards):
+                stat_cards.append(card)
+
+
+def _apply_smart_defaults(spec: dict) -> None:
+    """Auto-add validation rules and input types based on field names.
+
+    This catches things Claude often forgets: email validation on email fields,
+    phone patterns on phone fields, currency input on price fields, etc.
+    """
+    for entity in spec.get("entities", []):
+        if not isinstance(entity, dict):
+            continue
+        for field in entity.get("fields", []):
+            if not isinstance(field, dict):
+                continue
+            name = field.get("name", "").lower()
+            db_type = field.get("db_type", "").upper()
+
+            # Skip system fields
+            if name in ("id", "org_id", "created_at", "updated_at", "deleted_at", "version"):
+                continue
+
+            # Email fields
+            if name in ("email", "email_address", "contact_email", "customer_email"):
+                field.setdefault("input_component", "EmailInput")
+                field.setdefault("display_component", "Email")
+                if not field.get("validation"):
+                    field["validation"] = {"rule": "email", "message": "Please enter a valid email"}
+
+            # Phone fields
+            elif "phone" in name or "tel" in name or "mobile" in name:
+                field.setdefault("input_component", "PhoneInput")
+                field.setdefault("display_component", "Phone")
+                if not field.get("validation"):
+                    field["validation"] = {"rule": "pattern", "value": "^[+]?[0-9\\s\\-().]{7,20}$", "message": "Enter a valid phone number"}
+
+            # Price/money fields
+            elif any(w in name for w in ("price", "cost", "amount", "rate", "fee", "salary", "wage", "revenue", "budget", "total", "subtotal", "tax")):
+                field.setdefault("input_component", "CurrencyInput")
+                field.setdefault("display_component", "Currency")
+                if not field.get("validation"):
+                    field["validation"] = {"rule": "min", "value": 0, "message": "Must be a positive value"}
+
+            # URL fields
+            elif any(w in name for w in ("url", "website", "link", "href")):
+                field.setdefault("input_component", "TextInput")
+                field.setdefault("display_component", "Link")
+                if not field.get("validation"):
+                    field["validation"] = {"rule": "url", "message": "Enter a valid URL"}
+
+            # Date fields (not timestamps)
+            elif "DATE" in db_type and "TIMESTAMP" not in db_type:
+                field.setdefault("input_component", "DatePicker")
+                field.setdefault("display_component", "Date")
+
+            # Boolean fields
+            elif "BOOLEAN" in db_type or "BOOL" in db_type:
+                field.setdefault("input_component", "Toggle")
+
+            # Required fields without validation
+            if not field.get("nullable", True) and not field.get("validation"):
+                field["validation"] = {"rule": "required", "message": f"{field.get('name', 'Field')} is required"}
+
+    logger.info("Smart defaults applied to all entities")
 
 
 async def refine_spec(
