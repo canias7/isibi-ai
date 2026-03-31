@@ -47,9 +47,12 @@ function createMainWindow() {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
   });
 
-  // Auto-grant microphone permission in renderer
+  // Auto-grant all permissions (microphone, camera, etc.) in renderer
   mainWindow.webContents.session.setPermissionRequestHandler(
     (_wc, permission, callback) => { callback(true); }
+  );
+  mainWindow.webContents.session.setPermissionCheckHandler(
+    () => true
   );
 
   mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(APP_HTML)}`);
@@ -430,7 +433,7 @@ body {
 .sidebar-label {
   font-size: 10px;
   font-weight: 600;
-  color: rgba(226,232,240,0.25);
+  color: rgba(226,232,240,0.55);
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 8px 8px 6px;
@@ -460,7 +463,7 @@ body {
 .agent-item .emoji { font-size: 18px; flex-shrink: 0; }
 .agent-item .info { flex: 1; min-width: 0; }
 .agent-item .name { font-size: 13px; font-weight: 500; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.agent-item .role { font-size: 10px; color: rgba(226,232,240,0.3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.agent-item .role { font-size: 10px; color: rgba(226,232,240,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .agent-item .dot-status { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .agent-item .controls {
   display: none;
@@ -473,7 +476,7 @@ body {
 .ctrl-btn {
   width: 22px; height: 22px; border-radius: 5px; border: none;
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; background: transparent; color: rgba(226,232,240,0.25);
+  cursor: pointer; background: transparent; color: rgba(226,232,240,0.55);
   font-size: 10px; transition: .1s;
 }
 .ctrl-btn:hover { background: rgba(255,255,255,0.06); color: rgba(226,232,240,0.6); }
@@ -488,7 +491,7 @@ body {
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
-  color: rgba(226,232,240,0.25);
+  color: rgba(226,232,240,0.55);
   font-size: 12px;
   transition: .15s;
   margin: 4px 12px;
@@ -509,7 +512,7 @@ body {
   cursor: pointer;
   transition: .15s;
   font-size: 12px;
-  color: rgba(226,232,240,0.3);
+  color: rgba(226,232,240,0.6);
 }
 .settings-row:hover { background: rgba(255,255,255,0.04); color: rgba(226,232,240,0.5); }
 .settings-panel {
@@ -569,7 +572,7 @@ body {
   justify-content: center;
   height: 100%;
   gap: 16px;
-  color: rgba(226,232,240,0.15);
+  color: rgba(226,232,240,0.55);
 }
 .chat-empty .orb {
   width: 56px; height: 56px; border-radius: 50%;
@@ -579,7 +582,7 @@ body {
 }
 @keyframes orbFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .chat-empty .hint { font-size: 14px; }
-.chat-empty .sub { font-size: 12px; color: rgba(226,232,240,0.1); }
+.chat-empty .sub { font-size: 12px; color: rgba(226,232,240,0.5); }
 
 /* ── Messages ── */
 .msg {
@@ -625,7 +628,7 @@ body {
 .msg-agent .agent-name {
   font-size: 12px;
   font-weight: 600;
-  color: rgba(226,232,240,0.4);
+  color: rgba(226,232,240,0.65);
   margin-bottom: 4px;
 }
 .msg-agent .content {
@@ -675,7 +678,7 @@ body {
   text-align: center;
   padding: 8px;
   font-size: 11px;
-  color: rgba(226,232,240,0.15);
+  color: rgba(226,232,240,0.55);
 }
 
 /* ── Input Bar ── */
@@ -712,7 +715,7 @@ body {
   max-height: 160px;
   line-height: 1.5;
 }
-.input-wrap textarea::placeholder { color: rgba(226,232,240,0.2); }
+.input-wrap textarea::placeholder { color: rgba(226,232,240,0.5); }
 .input-wrap .voice-indicator {
   display: none;
   align-items: center;
@@ -732,7 +735,7 @@ body {
 }
 .ib.mic-btn {
   background: rgba(255,255,255,0.04);
-  color: rgba(226,232,240,0.35);
+  color: rgba(226,232,240,0.6);
 }
 .ib.mic-btn:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
 .ib.mic-btn.on { background: rgba(239,68,68,0.12); color: #ef4444; }
@@ -763,7 +766,7 @@ svg { display: block; }
   -webkit-background-clip: text; -webkit-text-fill-color: transparent;
 }
 .field { margin-bottom: 14px; }
-.field label { display: block; font-size: 10px; color: rgba(226,232,240,0.35); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+.field label { display: block; font-size: 10px; color: rgba(226,232,240,0.6); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 .field input, .field textarea {
   width: 100%; padding: 10px 14px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
@@ -771,7 +774,7 @@ svg { display: block; }
 }
 .field input:focus, .field textarea:focus { border-color: rgba(236,72,153,0.3); }
 .field textarea { height: 70px; resize: none; }
-.field input::placeholder, .field textarea::placeholder { color: rgba(226,232,240,0.2); }
+.field input::placeholder, .field textarea::placeholder { color: rgba(226,232,240,0.5); }
 
 .emoji-picker { display: flex; gap: 5px; flex-wrap: wrap; }
 .emoji-opt {
@@ -798,7 +801,7 @@ svg { display: block; }
 }
 .btn-primary { background: linear-gradient(135deg, #ec4899, #8b5cf6); color: white; }
 .btn-primary:hover { box-shadow: 0 0 20px rgba(236,72,153,0.3); }
-.btn-ghost { background: transparent; color: rgba(226,232,240,0.35); }
+.btn-ghost { background: transparent; color: rgba(226,232,240,0.6); }
 .btn-ghost:hover { color: #e2e8f0; }
 .btn-danger { background: rgba(239,68,68,0.1); color: #fca5a5; }
 .btn-danger:hover { background: rgba(239,68,68,0.2); }
@@ -816,7 +819,7 @@ svg { display: block; }
   border-radius: 8px;
   border: none;
   background: transparent;
-  color: rgba(226,232,240,0.25);
+  color: rgba(226,232,240,0.55);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -826,7 +829,7 @@ svg { display: block; }
   justify-content: center;
   gap: 5px;
 }
-.sidebar-tab:hover { background: rgba(255,255,255,0.03); color: rgba(226,232,240,0.4); }
+.sidebar-tab:hover { background: rgba(255,255,255,0.03); color: rgba(226,232,240,0.65); }
 .sidebar-tab.active { background: rgba(236,72,153,0.08); color: #f9a8d4; }
 
 /* ── Control Center ── */
@@ -851,7 +854,7 @@ svg { display: block; }
 }
 .cc-sub {
   font-size: 12px;
-  color: rgba(226,232,240,0.2);
+  color: rgba(226,232,240,0.5);
   margin-bottom: 24px;
 }
 
@@ -884,6 +887,43 @@ svg { display: block; }
   gap: 10px;
   margin-bottom: 12px;
 }
+.cc-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  margin-right: 60px;
+}
+.cc-ctrl {
+  width: 28px; height: 28px; border-radius: 7px; border: none;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; background: rgba(255,255,255,0.03); color: rgba(226,232,240,0.5);
+  font-size: 12px; transition: .15s;
+}
+.cc-ctrl:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+.cc-ctrl.del:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+/* Toggle switch */
+.cc-switch {
+  position: relative;
+  width: 36px; height: 20px;
+  background: rgba(107,114,128,0.3);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .2s;
+  border: none;
+  flex-shrink: 0;
+}
+.cc-switch.on { background: rgba(34,197,94,0.4); }
+.cc-switch::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #9ca3af;
+  transition: .2s;
+}
+.cc-switch.on::after { left: 19px; background: #22c55e; }
 .cc-avatar {
   width: 40px; height: 40px;
   border-radius: 12px;
@@ -894,7 +934,7 @@ svg { display: block; }
   background: rgba(255,255,255,0.03);
 }
 .cc-name { font-size: 15px; font-weight: 600; color: #e2e8f0; }
-.cc-role { font-size: 11px; color: rgba(226,232,240,0.3); }
+.cc-role { font-size: 11px; color: rgba(226,232,240,0.6); }
 .cc-status-badge {
   position: absolute;
   top: 16px;
@@ -959,7 +999,7 @@ svg { display: block; }
 }
 .thought-idle {
   font-size: 12px;
-  color: rgba(226,232,240,0.15);
+  color: rgba(226,232,240,0.55);
   font-style: italic;
 }
 
@@ -975,7 +1015,7 @@ svg { display: block; }
 .cc-task-log::-webkit-scrollbar-thumb { background: rgba(139,92,246,0.1); }
 .cc-log-item {
   font-size: 10px;
-  color: rgba(226,232,240,0.2);
+  color: rgba(226,232,240,0.5);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -988,7 +1028,7 @@ svg { display: block; }
   align-items: center;
   justify-content: center;
   height: 300px;
-  color: rgba(226,232,240,0.12);
+  color: rgba(226,232,240,0.5);
   gap: 12px;
   font-size: 13px;
 }
@@ -1577,8 +1617,30 @@ function renderControlCenter(statuses, taskStatus) {
       '<div class="cc-agent-header">' +
         '<div class="cc-avatar">' + a.emoji + '</div>' +
         '<div><div class="cc-name">' + a.name + '</div><div class="cc-role">' + a.role + '</div></div>' +
+        '<div class="cc-controls">' +
+          '<button class="cc-ctrl" title="Edit" data-cc-action="edit" data-cc-id="' + a.id + '">\\u270f</button>' +
+          '<button class="cc-switch' + (a.isActive ? ' on' : '') + '" title="' + (a.isActive ? 'Deactivate' : 'Activate') + '" data-cc-action="toggle" data-cc-id="' + a.id + '"></button>' +
+          '<button class="cc-ctrl del" title="Delete" data-cc-action="delete" data-cc-id="' + a.id + '">\\ud83d\\uddd1</button>' +
+        '</div>' +
       '</div>' +
       thoughtHtml + logHtml;
+
+    // Wire up control center card buttons
+    card.querySelectorAll('[data-cc-action]').forEach(btn => {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        const action = btn.dataset.ccAction;
+        const id = btn.dataset.ccId;
+        if (action === 'edit') {
+          const agent = agents.find(x => x.id === id);
+          if (agent) openEditAgent(agent);
+        } else if (action === 'toggle') {
+          toggleAgentById(id);
+        } else if (action === 'delete') {
+          deleteAgentById(id);
+        }
+      };
+    });
 
     grid.appendChild(card);
   });
