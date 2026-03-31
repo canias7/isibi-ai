@@ -103,7 +103,7 @@ Choose the best layout for each entity:
 Set layout in ui_config.list_view.layout
 
 ## SEED DATA — include sample records
-Add a "_seed_data" key to each entity with 3-5 realistic sample records with proper field values.
+Add a "_seed_data" key to each entity with 10-20 realistic sample records with proper FK references between entities.
 Example: {{"_seed_data": [{{"name": "John Smith", "email": "john@example.com", "status": "active"}}, ...]}}
 
 ## WHAT NOT TO DO — common mistakes to avoid
@@ -114,6 +114,14 @@ Example: {{"_seed_data": [{{"name": "John Smith", "email": "john@example.com", "
 - DON'T make every entity a table view. Use kanban for workflows, calendar for dates
 - DON'T duplicate fields: if you have "customer_name" don't also have "client_name" in the same entity
 - DON'T generate fewer than 8 business fields per entity (excluding system fields)
+
+## ANTI-PATTERNS — examples of BAD specs to avoid
+BAD: Entity with only 3 fields (name, status, created_at) — Too few! Need 8-12 domain-specific fields.
+BAD: Every entity has fields "name", "description", "status" — Lazy! Use "dish_name", "treatment_notes", "order_status".
+BAD: No FK relationships between entities — Disconnected! An Order should link to Customer, MenuItem, etc.
+BAD: All enum values are ["active","inactive"] — Generic! Use industry-specific: ["pending","preparing","ready","delivered"].
+BAD: Dashboard with only "Total X" stat cards — Boring! Include revenue, trends, averages, rates.
+BAD: Every entity uses table layout — Monotonous! Use kanban for status workflows, calendar for dates, cards for people.
 
 ## RULES
 1. Generate 4-8 entities with 8-12 BUSINESS fields each (not counting system fields). Every field must be domain-specific.
@@ -166,10 +174,22 @@ async def generate_spec(user_prompt: str, conversation_history: list[dict] | Non
     except ImportError:
         pass
 
+    THINKING_EXAMPLE = """Example of good planning for a pizza restaurant:
+- Business type: Pizza delivery & dine-in restaurant
+- Core processes: Customer orders (phone/online/walk-in) → Kitchen prepares → Delivery dispatched OR served at table → Payment collected → Customer reviews
+- Must-have entities: MenuItem (with sizes, toppings, crust options), Order (with order_type: dine_in/delivery/pickup), Customer (with delivery addresses), DeliveryDriver (with current_location, availability), Table (for dine-in), Payment
+- Key relationships: Order → OrderItem → MenuItem, Order → Customer, Order → DeliveryDriver, Order → Table
+- Dashboard KPIs: Orders today, Revenue today, Avg delivery time, Top selling items, Active drivers
+- Workflows: order_placed → preparing → ready → out_for_delivery → delivered → paid
+"""
+
     plan_prompt = f"""Given this business description, plan the app architecture.
 Think like a domain expert consultant for THIS specific business.
 
 Business: {user_prompt}
+
+## Example of good planning
+{THINKING_EXAMPLE}
 
 Return ONLY a JSON object:
 {{
@@ -182,7 +202,7 @@ Return ONLY a JSON object:
       "relationships": ["links to EntityName2 via field_id"]
     }}
   ],
-  "workflows": ["describe key business process 1", "describe key business process 2"],
+  "workflows": [{{"name": "Order Fulfillment", "steps": ["order_placed", "confirmed", "preparing", "ready", "delivered", "paid"]}}],
   "dashboard_kpis": ["metric 1", "metric 2", "metric 3"],
   "design_vibe": "describe the visual feel (e.g. 'warm and rustic' or 'clean and clinical')"
 }}
@@ -250,7 +270,7 @@ Generate the COMPLETE JSON spec following the architecture plan above.
 - Include proper validation rules on fields (email, phone, required, min/max)
 - Include FK relationships between connected entities
 - Include ui_config, dashboard with planned KPIs, design_system
-- Include _seed_data with 3-5 realistic sample records per entity
+- Include _seed_data with 10-20 realistic sample records per entity with proper FK references
 - Output ONLY the JSON object."""
 
     messages.append({"role": "user", "content": user_message})
@@ -329,16 +349,18 @@ Check for:
 2. Fields missing validation (email without email rule, phone without pattern, price without min:0)
 3. Missing domain-specific fields (e.g. restaurant should have allergens, medical should have insurance)
 4. Dashboard stat_cards not reflecting real KPIs
+5. Many-to-many relationships that need junction tables (e.g. Student↔Course needs Enrollment)
 
 Return ONLY a JSON object with fixes:
 {{
   "add_relationships": [{{"entity": "Order", "field": "customer_id", "fk_entity": "Customer"}}],
   "add_validations": [{{"entity": "Lead", "field": "email", "validation": {{"rule": "email", "message": "Invalid email"}}}}],
   "add_fields": [{{"entity": "MenuItem", "field": "allergens", "db_type": "TEXT", "description": "comma-separated allergens"}}],
-  "fix_dashboard": [{{"label": "Revenue This Month", "entity": "Order", "icon": "DollarSign", "color": "green"}}]
+  "fix_dashboard": [{{"label": "Revenue This Month", "entity": "Order", "icon": "DollarSign", "color": "green"}}],
+  "add_junction_tables": [{{"entity1": "Student", "entity2": "Course", "junction": "Enrollment", "extra_fields": ["grade", "semester"]}}]
 }}
 
-If everything looks good, return: {{"add_relationships": [], "add_validations": [], "add_fields": [], "fix_dashboard": []}}"""
+If everything looks good, return: {{"add_relationships": [], "add_validations": [], "add_fields": [], "fix_dashboard": [], "add_junction_tables": []}}"""
 
         review_response = client.messages.create(
             model=REVIEW_MODEL,
@@ -549,6 +571,40 @@ def _apply_review_fixes(spec: dict, fixes: dict) -> None:
             if not any(c.get("label") == card["label"] for c in stat_cards):
                 stat_cards.append(card)
 
+    # Add junction tables for many-to-many relationships
+    for jt in fixes.get("add_junction_tables", []):
+        if not isinstance(jt, dict) or not jt.get("junction"):
+            continue
+        # Check if junction entity already exists
+        if jt["junction"] not in entity_map:
+            new_entity = {
+                "name": jt["junction"],
+                "table": jt["junction"].lower() + "s",
+                "description": f"Links {jt.get('entity1', '')} and {jt.get('entity2', '')}",
+                "fields": [
+                    {"name": "id", "db_type": "UUID DEFAULT gen_random_uuid() PRIMARY KEY", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "Text"},
+                    {"name": "org_id", "db_type": "UUID NOT NULL", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "Text"},
+                    {"name": f"{jt['entity1'].lower()}_id", "db_type": "UUID", "ts_type": "string", "nullable": False, "editable": True, "show_in_table": True, "show_in_form": True, "input_component": None, "display_component": None, "fk_entity": jt["entity1"]},
+                    {"name": f"{jt['entity2'].lower()}_id", "db_type": "UUID", "ts_type": "string", "nullable": False, "editable": True, "show_in_table": True, "show_in_form": True, "input_component": None, "display_component": None, "fk_entity": jt["entity2"]},
+                ],
+            }
+            # Add extra fields
+            for extra in jt.get("extra_fields", []):
+                new_entity["fields"].append({
+                    "name": extra, "db_type": "VARCHAR(255)", "ts_type": "string",
+                    "nullable": True, "editable": True, "show_in_table": True,
+                    "show_in_form": True, "input_component": "TextInput", "display_component": "Text",
+                })
+            # Add system timestamp fields
+            new_entity["fields"].extend([
+                {"name": "created_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": True, "show_in_form": False, "input_component": "none", "display_component": "Date"},
+                {"name": "updated_at", "db_type": "TIMESTAMPTZ NOT NULL DEFAULT NOW()", "ts_type": "string", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "Date"},
+                {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": True, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "Date"},
+                {"name": "version", "db_type": "INTEGER NOT NULL DEFAULT 1", "ts_type": "number", "nullable": False, "editable": False, "show_in_table": False, "show_in_form": False, "input_component": "none", "display_component": "Text"},
+            ])
+            entities.append(new_entity)
+            logger.info("Added junction entity '%s' linking %s and %s", jt["junction"], jt.get("entity1", ""), jt.get("entity2", ""))
+
 
 def _apply_smart_defaults(spec: dict) -> None:
     """Auto-add validation rules and input types based on field names.
@@ -610,6 +666,49 @@ def _apply_smart_defaults(spec: dict) -> None:
             if not field.get("nullable", True) and not field.get("validation"):
                 field["validation"] = {"rule": "required", "message": f"{field.get('name', 'Field')} is required"}
 
+            # ── Conditional visibility: delivery_address only when order_type = delivery ──
+            if name in ("delivery_address", "shipping_address", "delivery_notes", "tracking_number"):
+                for other_field in entity.get("fields", []):
+                    if isinstance(other_field, dict) and other_field.get("name") in ("order_type", "shipping_method"):
+                        field.setdefault("visible_when", {
+                            "field": other_field["name"],
+                            "operator": "in",
+                            "value": ["delivery", "shipped", "shipping"]
+                        })
+                        break
+
+            # ── Conditional: payment fields only when status = completed/paid ──
+            if name in ("payment_method", "payment_date", "payment_reference", "receipt_number"):
+                field.setdefault("visible_when", {
+                    "field": "status",
+                    "operator": "in",
+                    "value": ["completed", "paid", "closed"]
+                })
+
+            # ── Smart default values ──
+            if "status" in name and field.get("enum_values"):
+                enums = field["enum_values"]
+                if enums and not field.get("default"):
+                    field["default"] = enums[0]  # Default to first status
+
+            if name in ("is_active", "is_enabled", "is_visible", "is_published"):
+                field.setdefault("default", True)
+
+            if "date" in name.lower() and "birth" not in name.lower() and "expir" not in name.lower():
+                if "created" in name or "start" in name or "joined" in name or "registered" in name:
+                    field.setdefault("auto_set", "NOW")
+
+            # ── Search configuration: make key fields searchable/filterable ──
+            if name in ("name", "title", "first_name", "last_name", "email", "phone",
+                        "customer_name", "company", "description"):
+                field.setdefault("filterable", True)
+                field.setdefault("sortable", True)
+
+            # Make status and type fields filterable
+            if field.get("enum_values"):
+                field.setdefault("filterable", True)
+                field.setdefault("filter_type", "select")
+
     # ── Entity validation: check FK integrity ──
     entity_names = {e.get("name", "") for e in spec.get("entities", []) if isinstance(e, dict)}
     for entity in spec.get("entities", []):
@@ -664,7 +763,49 @@ def _apply_smart_defaults(spec: dict) -> None:
             })
             logger.info("Added computed field total_price to %s", entity.get("name"))
 
+    # ── Column ordering: ensure most important fields first ──
+    for entity in spec.get("entities", []):
+        if isinstance(entity, dict):
+            _enforce_column_ordering(entity)
+
+    # ── Index suggestions for frequently filtered fields ──
+    for entity in spec.get("entities", []):
+        if not isinstance(entity, dict):
+            continue
+        indexes = entity.get("indexes", [])
+        for field in entity.get("fields", []):
+            if not isinstance(field, dict):
+                continue
+            fname = field.get("name", "")
+            if fname in ("status", "type", "category") or field.get("enum_values"):
+                idx = f"idx_{entity.get('table', '')}_{fname}"
+                if idx not in indexes:
+                    indexes.append(idx)
+            if "date" in fname.lower() or "TIMESTAMP" in field.get("db_type", ""):
+                idx = f"idx_{entity.get('table', '')}_{fname}"
+                if idx not in indexes:
+                    indexes.append(idx)
+        entity["indexes"] = indexes
+
     logger.info("Smart defaults, validation, deduplication applied")
+
+
+def _enforce_column_ordering(entity):
+    """Ensure most important fields are first in list_view columns."""
+    ui = entity.get("ui_config", {})
+    lv = ui.get("list_view", {})
+    columns = lv.get("columns", [])
+    if not columns:
+        return
+
+    # Priority order: name/title first, then status, then key fields, then dates last
+    priority = {"name": 0, "title": 0, "first_name": 0, "customer_name": 0,
+                "status": 1, "order_status": 1, "type": 2, "category": 2,
+                "email": 3, "phone": 3, "amount": 4, "price": 4, "total": 4,
+                "created_at": 99, "updated_at": 99}
+
+    columns.sort(key=lambda c: priority.get(c, 50))
+    lv["columns"] = columns
 
 
 async def refine_spec(
