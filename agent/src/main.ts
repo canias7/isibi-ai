@@ -5,7 +5,7 @@
  * You speak or type a command, and the ghost orb does it for you.
  */
 
-import { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, systemPreferences } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
@@ -272,12 +272,24 @@ function launchGhostMode() {
   // Show Agent Hub as the main app window on launch
   createHubWindow();
 
-  // Start always-on wake word listener
-  createListenerWindow();
-  console.log('[Ghost Mode] Wake word listener started — say "' + getWakeWord() + '"');
+  // Ensure microphone permission before starting listener
+  if (process.platform === 'darwin') {
+    systemPreferences.askForMediaAccess('microphone').then((granted) => {
+      console.log('[Ghost Mode] Microphone access:', granted ? 'granted' : 'denied');
+      if (granted) {
+        createListenerWindow();
+        console.log('[Ghost Mode] Wake word listener started — say "' + getWakeWord() + '"');
+      } else {
+        console.error('[Ghost Mode] Microphone denied — wake word won\'t work. F9 still available.');
+      }
+    });
+  } else {
+    createListenerWindow();
+    console.log('[Ghost Mode] Wake word listener started — say "' + getWakeWord() + '"');
+  }
 
-  // Keep F9 as backup shortcut
-  const registered = globalShortcut.register('F9', () => {
+  // Keyboard shortcuts as backup
+  const toggleBar = () => {
     if (mainWindow?.isVisible()) {
       mainWindow.hide();
     } else {
@@ -286,9 +298,15 @@ function launchGhostMode() {
       mainWindow?.focus();
       mainWindow?.webContents.send('bar-opened');
     }
-  });
-  if (!registered) console.error('[Ghost Mode] Failed to register F9 shortcut (backup)');
-  else console.log('[Ghost Mode] F9 backup shortcut registered');
+  };
+
+  // Try F9 first
+  const f9 = globalShortcut.register('F9', toggleBar);
+  console.log('[Ghost Mode] F9 shortcut:', f9 ? 'registered' : 'FAILED');
+
+  // Also register Cmd+Shift+G as reliable backup
+  const cmdG = globalShortcut.register('CommandOrControl+Shift+G', toggleBar);
+  console.log('[Ghost Mode] Cmd+Shift+G shortcut:', cmdG ? 'registered' : 'FAILED');
 
   // Index the system on first launch
   console.log('[Ghost Mode] Starting system index...');

@@ -5,7 +5,7 @@
  * No API key needed — bundled with the app.
  */
 
-import { BrowserWindow, ipcMain, shell, systemPreferences, desktopCapturer } from 'electron';
+import { BrowserWindow, ipcMain, shell, systemPreferences, desktopCapturer, session } from 'electron';
 import { saveConfig } from './config';
 
 let onboardingWindow: BrowserWindow | null = null;
@@ -55,6 +55,22 @@ export function registerOnboardingIPC(): void {
     if (process.platform === 'darwin') shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
   });
 
+  ipcMain.handle('onboarding-check-microphone', async () => {
+    if (process.platform === 'darwin') {
+      const status = systemPreferences.getMediaAccessStatus('microphone');
+      return status === 'granted';
+    }
+    return true;
+  });
+
+  ipcMain.handle('onboarding-request-microphone', async () => {
+    if (process.platform === 'darwin') {
+      const granted = await systemPreferences.askForMediaAccess('microphone');
+      return granted;
+    }
+    return true;
+  });
+
   ipcMain.handle('onboarding-save-profile', (_, name: string) => {
     const wakeWord = 'hey ' + name.toLowerCase().trim();
     saveConfig({ assistantName: name.trim(), assistantWakeWord: wakeWord });
@@ -88,7 +104,7 @@ h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,#ec4899,#8b5
 h2{font-size:17px;font-weight:600;color:#f0e6ff}
 p{font-size:13px;color:rgba(240,230,255,.45);line-height:1.5;max-width:380px}
 .ico{width:50px;height:50px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:26px}
-.ico.ac{background:rgba(236,72,153,.12)}.ico.sc{background:rgba(139,92,246,.12)}.ico.pr{background:rgba(99,102,241,.12)}
+.ico.ac{background:rgba(236,72,153,.12)}.ico.sc{background:rgba(139,92,246,.12)}.ico.pr{background:rgba(99,102,241,.12)}.ico.mc{background:rgba(239,68,68,.12)}
 .badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;font-size:11px;font-weight:600}
 .badge.ok{background:rgba(34,197,94,.1);color:#86efac}
 .badge.wait{background:rgba(234,179,8,.1);color:#fde047}
@@ -111,23 +127,25 @@ p{font-size:13px;color:rgba(240,230,255,.45);line-height:1.5;max-width:380px}
 .preview{padding:8px 16px;border-radius:10px;background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.1);font-size:13px;color:#f9a8d4;min-height:36px;transition:.2s}
 </style></head><body>
 <div class="wiz">
-<div class="tb"><div class="dots"><div class="dot c" onclick="window.close()"></div><div class="dot m"></div><div class="dot g"></div></div><span class="sl" id="sl">Step 1 of 5</span></div>
+<div class="tb"><div class="dots"><div class="dot c" onclick="window.close()"></div><div class="dot m"></div><div class="dot g"></div></div><span class="sl" id="sl">Step 1 of 6</span></div>
 
-<div class="s on" id="s1"><div class="orb"></div><h1>Ghost Mode</h1><p>Your AI agent that controls your computer. Let's set things up — takes 30 seconds.</p><button class="btn p" onclick="go(2)">Get Started</button></div>
+<div class="s on" id="s1"><div class="orb"></div><h1>Ghost Mode</h1><p>Your AI agent that controls your computer. Let's set things up — takes a minute.</p><button class="btn p" onclick="go(2)">Get Started</button></div>
 
 <div class="s" id="s2"><div class="ico pr">\ud83d\udc64</div><h2>Name Your Assistant</h2><p>Choose a name for your AI assistant. You'll summon it by saying "Hey [name]".</p><input class="name-input" id="nameInput" placeholder="e.g. Isibi" maxlength="20" value="Isibi"><div class="preview" id="namePreview">Say <b>"Hey Isibi"</b> to summon me</div><button class="btn p" onclick="saveProfile()">Continue</button></div>
 
-<div class="s" id="s3"><div class="ico ac">\ud83d\uddb1\ufe0f</div><h2>Accessibility Access</h2><p>Ghost Mode needs to control your mouse and keyboard to interact with apps for you.</p><div id="ab" class="badge wait">\u23f3 Not granted yet</div><div class="br"><button class="btn g" onclick="openAcc()">Open Settings</button><button class="btn p" onclick="nextAcc()">I've Enabled It</button></div><div class="hint">System Settings \u2192 Privacy & Security \u2192 Accessibility</div></div>
+<div class="s" id="s3"><div class="ico mc">\ud83c\udf99\ufe0f</div><h2>Microphone Access</h2><p>Ghost Mode needs your microphone to hear voice commands and your wake word.</p><div id="mb" class="badge wait">\u23f3 Not granted yet</div><div class="br"><button class="btn p" onclick="reqMic()">Allow Microphone</button></div><div class="hint">A system dialog will appear — click "OK" to allow</div></div>
 
-<div class="s" id="s4"><div class="ico sc">\ud83d\udda5\ufe0f</div><h2>Screen Recording</h2><p>Ghost Mode needs to see your screen to find buttons, read text, and navigate visually.</p><div id="sb" class="badge wait">\u23f3 Not granted yet</div><div class="br"><button class="btn g" onclick="openScr()">Open Settings</button><button class="btn p" onclick="nextScr()">I've Enabled It</button></div><div class="hint">System Settings \u2192 Privacy & Security \u2192 Screen Recording</div></div>
+<div class="s" id="s4"><div class="ico ac">\ud83d\uddb1\ufe0f</div><h2>Accessibility Access</h2><p>Ghost Mode needs to control your mouse and keyboard to interact with apps for you.</p><div id="ab" class="badge wait">\u23f3 Not granted yet</div><div class="br"><button class="btn g" onclick="openAcc()">Open Settings</button><button class="btn p" onclick="nextAcc()">I've Enabled It</button></div><div class="hint">System Settings \u2192 Privacy & Security \u2192 Accessibility</div></div>
 
-<div class="s" id="s5"><div class="orb cel"></div><h1>You're All Set!</h1><div class="cl"><div class="ci">\u2705 Assistant: <b id="doneNameLabel">Isibi</b></div><div class="ci">\u2705 Accessibility access</div><div class="ci">\u2705 Screen recording</div></div><p>Say <b>"Hey <span id="doneWakeLabel">Isibi</span>"</b> anytime to summon your assistant.</p><button class="btn p" onclick="finish()">Launch Ghost Mode</button></div>
+<div class="s" id="s5"><div class="ico sc">\ud83d\udda5\ufe0f</div><h2>Screen Recording</h2><p>Ghost Mode needs to see your screen to find buttons, read text, and navigate visually.</p><div id="sb" class="badge wait">\u23f3 Not granted yet</div><div class="br"><button class="btn g" onclick="openScr()">Open Settings</button><button class="btn p" onclick="nextScr()">I've Enabled It</button></div><div class="hint">System Settings \u2192 Privacy & Security \u2192 Screen Recording</div></div>
 
-<div class="pips" id="pips"><div class="pip on"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+<div class="s" id="s6"><div class="orb cel"></div><h1>You're All Set!</h1><div class="cl"><div class="ci">\u2705 Assistant: <b id="doneNameLabel">Isibi</b></div><div class="ci">\u2705 Microphone access</div><div class="ci">\u2705 Accessibility access</div><div class="ci">\u2705 Screen recording</div></div><p>Say <b>"Hey <span id="doneWakeLabel">Isibi</span>"</b> anytime to summon your assistant.</p><button class="btn p" onclick="finish()">Launch Ghost Mode</button></div>
+
+<div class="pips" id="pips"><div class="pip on"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
 </div>
 <script>
 const{ipcRenderer}=require('electron');
-const TOTAL=5;
+const TOTAL=6;
 let chosenName='Isibi';
 
 function go(n){
@@ -136,8 +154,9 @@ function go(n){
   document.getElementById('sl').textContent='Step '+n+' of '+TOTAL;
   document.querySelectorAll('.pip').forEach((p,i)=>{p.className='pip';if(i+1===n)p.classList.add('on');else if(i+1<n)p.classList.add('dn')});
   if(n===2){const ni=document.getElementById('nameInput');ni.focus();ni.select()}
-  if(n===3)chkAcc();if(n===4)chkScr();
-  if(n===5){document.getElementById('doneNameLabel').textContent=chosenName;document.getElementById('doneWakeLabel').textContent=chosenName}
+  if(n===3)chkMic();
+  if(n===4)chkAcc();if(n===5)chkScr();
+  if(n===6){document.getElementById('doneNameLabel').textContent=chosenName;document.getElementById('doneWakeLabel').textContent=chosenName}
 }
 
 // Profile name input — live preview
@@ -154,11 +173,21 @@ async function saveProfile(){
   go(3);
 }
 
+// Microphone
+async function chkMic(){const g=await ipcRenderer.invoke('onboarding-check-microphone');const b=document.getElementById('mb');b.className='badge '+(g?'ok':'wait');b.textContent=g?'\u2713 Granted':'\u23f3 Not granted yet';if(g)setTimeout(()=>go(4),500)}
+async function reqMic(){
+  const granted=await ipcRenderer.invoke('onboarding-request-microphone');
+  const b=document.getElementById('mb');
+  b.className='badge '+(granted?'ok':'wait');
+  b.textContent=granted?'\u2713 Granted':'\u23f3 Not granted yet';
+  if(granted)setTimeout(()=>go(4),600);
+}
+
 async function chkAcc(){const g=await ipcRenderer.invoke('onboarding-check-accessibility');const b=document.getElementById('ab');b.className='badge '+(g?'ok':'wait');b.textContent=g?'\u2713 Granted':'\u23f3 Not granted yet'}
 function openAcc(){ipcRenderer.invoke('onboarding-open-accessibility')}
-async function nextAcc(){await chkAcc();go(4)}
+async function nextAcc(){await chkAcc();go(5)}
 async function chkScr(){const g=await ipcRenderer.invoke('onboarding-check-screen-recording');const b=document.getElementById('sb');b.className='badge '+(g?'ok':'wait');b.textContent=g?'\u2713 Granted':'\u23f3 Not granted yet'}
 function openScr(){ipcRenderer.invoke('onboarding-open-screen-recording')}
-async function nextScr(){await chkScr();go(5)}
+async function nextScr(){await chkScr();go(6)}
 function finish(){ipcRenderer.invoke('onboarding-complete')}
 </script></body></html>`;
