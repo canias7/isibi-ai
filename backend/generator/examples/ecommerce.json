@@ -1,0 +1,144 @@
+{
+  "app_name": "NovaMart Store Manager",
+  "entities": [
+    {
+      "name": "Product",
+      "table": "product",
+      "description": "Products available for sale in the online store",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(200)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 200}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "price", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "cost", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "sku", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "max_length": 50}},
+        {"name": "category", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "electronics", "label": "Electronics", "badge_color": "blue"}, {"value": "clothing", "label": "Clothing", "badge_color": "pink"}, {"value": "home", "label": "Home", "badge_color": "green"}, {"value": "sports", "label": "Sports", "badge_color": "orange"}, {"value": "beauty", "label": "Beauty", "badge_color": "purple"}], "validation": {"required": true}},
+        {"name": "stock_quantity", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "draft", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "active", "label": "Active", "badge_color": "green"}, {"value": "draft", "label": "Draft", "badge_color": "gray"}, {"value": "out_of_stock", "label": "Out of Stock", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "image_url", "db_type": "VARCHAR(500)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"max_length": 500}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "sku", "price", "cost", "category", "stock_quantity", "status", "created_at"], "filters": ["category", "status"], "empty_state": {"icon": "package", "heading": "No products yet", "subtext": "Add your first product to start selling", "action_label": "Add Product"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Product", "required_fields": ["name", "price", "cost", "sku", "category", "stock_quantity"], "field_order": ["name", "description", "price", "cost", "sku", "category", "stock_quantity", "status", "image_url"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Category",
+      "table": "category",
+      "description": "Product categories for organizing the store catalog",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2, "max_length": 100}},
+        {"name": "description", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "display_order", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 0, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 0}},
+        {"name": "is_active", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Active", "badge_color": "green"}, {"value": false, "label": "Inactive", "badge_color": "gray"}]},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "display_order", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "description", "display_order", "is_active", "created_at"], "filters": ["is_active"], "empty_state": {"icon": "folder-tree", "heading": "No categories created", "subtext": "Organize your products by creating categories", "action_label": "Add Category"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Category", "required_fields": ["name", "display_order"], "field_order": ["name", "description", "display_order", "is_active"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Order",
+      "table": "order",
+      "description": "Customer orders with shipping and payment details",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "order_number", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": true, "input_component": null, "display_component": "Text"},
+        {"name": "customer_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "customer_email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true, "pattern": "^[^@]+@[^@]+\\.[^@]+$"}},
+        {"name": "total_amount", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "Currency"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "pending", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "pending", "label": "Pending", "badge_color": "yellow"}, {"value": "processing", "label": "Processing", "badge_color": "blue"}, {"value": "shipped", "label": "Shipped", "badge_color": "indigo"}, {"value": "delivered", "label": "Delivered", "badge_color": "green"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "shipping_address", "db_type": "TEXT", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text", "validation": {"required": true}},
+        {"name": "tracking_number", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["order_number", "customer_name", "customer_email", "total_amount", "status", "tracking_number", "created_at"], "filters": ["status"], "empty_state": {"icon": "shopping-cart", "heading": "No orders yet", "subtext": "Customer orders will appear here", "action_label": "Create Order"}},
+        "create_form": {"type": "SlideOverForm", "title": "Create Order", "required_fields": ["customer_name", "customer_email", "shipping_address"], "field_order": ["customer_name", "customer_email", "shipping_address", "status", "tracking_number"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "OrderItem",
+      "table": "order_item",
+      "description": "Individual line items within a customer order",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "order_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Order", "validation": {"required": true}},
+        {"name": "product_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Product", "validation": {"required": true}},
+        {"name": "quantity", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1}},
+        {"name": "unit_price", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "total_price", "db_type": "DECIMAL(10,2)", "ts_type": "number", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "Currency"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["order_id", "product_id", "quantity", "unit_price", "total_price", "created_at"], "filters": ["order_id", "product_id"], "empty_state": {"icon": "list-ordered", "heading": "No order items", "subtext": "Line items will appear as orders are placed", "action_label": "Add Item"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Order Item", "required_fields": ["order_id", "product_id", "quantity", "unit_price"], "field_order": ["order_id", "product_id", "quantity", "unit_price"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Review",
+      "table": "review",
+      "description": "Customer reviews and ratings for products",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "product_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Product", "validation": {"required": true}},
+        {"name": "customer_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "rating", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 1, "max": 5}},
+        {"name": "comment", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "pending", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "approved", "label": "Approved", "badge_color": "green"}, {"value": "pending", "label": "Pending", "badge_color": "yellow"}, {"value": "rejected", "label": "Rejected", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "created_at", "default_sort_order": "desc", "page_size": 25, "columns": ["product_id", "customer_name", "rating", "comment", "status", "created_at"], "filters": ["product_id", "status", "rating"], "empty_state": {"icon": "star", "heading": "No reviews yet", "subtext": "Customer reviews will appear here", "action_label": "Add Review"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Review", "required_fields": ["product_id", "customer_name", "rating"], "field_order": ["product_id", "customer_name", "rating", "comment", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Products", "route": "/products", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "Package", "entity": "Product"},
+    {"name": "Categories", "route": "/categories", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "FolderTree", "entity": "Category"},
+    {"name": "Orders", "route": "/orders", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "ShoppingCart", "entity": "Order"},
+    {"name": "Order Items", "route": "/order-items", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "ListOrdered", "entity": "OrderItem"},
+    {"name": "Reviews", "route": "/reviews", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "Star", "entity": "Review"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Total Products", "entity": "Product", "icon": "Package", "color": "purple"},
+      {"label": "Active Categories", "entity": "Category", "icon": "FolderTree", "color": "green"},
+      {"label": "Total Orders", "entity": "Order", "icon": "ShoppingCart", "color": "blue"},
+      {"label": "Pending Reviews", "entity": "Review", "icon": "Star", "color": "yellow"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#7c3aed", "secondary": "#8b5cf6", "sidebar_bg": "#faf5ff", "sidebar_text": "#4c1d95"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#7c3aed", "primary_text": "white"},
+    "table": {"striped": true, "hover": true},
+    "typography": {"font": "Inter"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}
