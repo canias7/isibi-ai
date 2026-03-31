@@ -49,7 +49,7 @@ async def test_live_route_exists(client):
 async def test_embed_route_exists(client):
     """GET /embed/nonexistent should return 404 (route registered, project not found)."""
     response = await client.get("/embed/nonexistent-id")
-    assert response.status_code in (404, 500)
+    assert response.status_code in (400, 404, 500)  # 400 for invalid UUID format
 
 
 @pytest.mark.asyncio
