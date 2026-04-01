@@ -16,6 +16,7 @@ import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
 import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId } from './config';
+import { loadAnalytics, getAnalytics } from './analytics';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
 import { dispatchCommand, getAllAgentStatuses } from './agent-manager';
@@ -231,6 +232,10 @@ ipcMain.handle('ghost-reindex', async () => {
   return { status: 'done', apps: systemIndex.apps.length };
 });
 
+// ── Analytics IPC ─────────────────────────────────────────────────────
+
+ipcMain.handle('get-analytics', () => getAnalytics());
+
 // ── ElevenLabs Voice IPC ──────────────────────────────────────────────
 
 import * as ctrl from './controller';
@@ -332,6 +337,7 @@ function launchGhostMode() {
 }
 
 app.whenReady().then(async () => {
+  loadAnalytics();
   registerOnboardingIPC();
 
   if (isFirstRun()) {
@@ -650,6 +656,17 @@ body {
 @keyframes orbFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .chat-empty .hint { font-size: 14px; }
 .chat-empty .sub { font-size: 12px; color: rgba(226,232,240,0.5); }
+.suggestion-chip {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1px solid rgba(236,72,153,0.15);
+  background: rgba(236,72,153,0.05);
+  color: #f9a8d4;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .15s;
+}
+.suggestion-chip:hover { background: rgba(236,72,153,0.12); border-color: rgba(236,72,153,0.3); }
 
 /* ── Messages ── */
 .msg {
@@ -1253,6 +1270,14 @@ svg { display: block; }
           <div class="orb"></div>
           <div class="hint">What can I help you with?</div>
           <div class="sub">Type a message, use voice, or say your wake word</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;max-width:500px;justify-content:center">
+            <div class="suggestion-chip" onclick="trySuggestion('open YouTube')">open YouTube</div>
+            <div class="suggestion-chip" onclick="trySuggestion('check my email')">check my email</div>
+            <div class="suggestion-chip" onclick="trySuggestion('what is the weather')">weather</div>
+            <div class="suggestion-chip" onclick="trySuggestion('take a screenshot')">screenshot</div>
+            <div class="suggestion-chip" onclick="trySuggestion('create a new note')">new note</div>
+            <div class="suggestion-chip" onclick="trySuggestion('set a timer for 5 minutes')">5 min timer</div>
+          </div>
         </div>
       </div>
       <div class="input-bar">
@@ -1459,6 +1484,15 @@ function switchAgent(newId) {
 }
 
 ipcRenderer.on('agents-updated', () => loadAgents());
+
+// Error handling — show error cards in chat
+ipcRenderer.on('action-error', (_, err) => {
+  chatMessages.push({
+    type: 'system',
+    content: 'Error at step ' + err.step + '/' + err.totalSteps + ': ' + err.action + ' — ' + err.error
+  });
+  renderChat();
+});
 
 // ── Chat ──
 function clearChat() {
@@ -1671,6 +1705,11 @@ input.onkeydown = e => {
   if (e.key === 'Escape') { if (listening) stopMic(); closeModal(); }
 };
 sendBtn.onclick = () => send();
+
+function trySuggestion(text) {
+  input.value = text;
+  send();
+}
 
 function autoResize() {
   input.style.height = 'auto';

@@ -141,47 +141,54 @@ Only include the most relevant UI elements (max 10). Coordinates should be appro
 
 // ── Find Specific Element ───────────────────────────────────────────────
 
-export async function findElement(description: string): Promise<{ x: number; y: number } | null> {
-  const screenshot = await captureScreenBase64();
-  const api = getClient();
+export async function findElement(description: string, maxRetries: number = 2): Promise<{ x: number; y: number } | null> {
+  const prompts = [
+    `Find this element on the screen: "${description}"\n\nReturn ONLY JSON: {"x": pixel_x, "y": pixel_y, "found": true}\nOr if not found: {"found": false}\n\nCoordinates should be the approximate center of the element.`,
+    `Look more carefully at the entire screen. Find: "${description}"\nIt might be partially hidden, in a menu, or use different wording.\n\nReturn ONLY JSON: {"x": pixel_x, "y": pixel_y, "found": true}\nOr if not found: {"found": false}`,
+    `Search every part of the screen for anything matching: "${description}"\nCheck buttons, links, text, icons, tabs, menus — anything clickable.\n\nReturn ONLY JSON: {"x": pixel_x, "y": pixel_y, "found": true}\nOr if not found: {"found": false}`,
+  ];
 
-  const response = await api.messages.create({
-    model: MODEL,
-    max_tokens: 256,
-    messages: [{
-      role: 'user',
-      content: [
-        {
-          type: 'image',
-          source: {
-            type: 'base64',
-            media_type: 'image/jpeg',
-            data: screenshot,
-          },
-        },
-        {
-          type: 'text',
-          text: `Find this element on the screen: "${description}"
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Take a fresh screenshot each attempt
+      const screenshot = await captureScreenBase64();
+      const api = getClient();
 
-Return ONLY JSON: {"x": pixel_x, "y": pixel_y, "found": true}
-Or if not found: {"found": false}
+      const response = await api.messages.create({
+        model: MODEL,
+        max_tokens: 256,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: screenshot } },
+            { type: 'text', text: prompts[attempt] || prompts[0] },
+          ],
+        }],
+      });
 
-Coordinates should be the approximate center of the element.`,
-        },
-      ],
-    }],
-  });
+      const text = response.content[0].type === 'text' ? response.content[0].text : '';
+      console.log(`[Vision] Attempt ${attempt + 1}: ${text.slice(0, 100)}`);
 
-  const text = response.content[0].type === 'text' ? response.content[0].text : '';
-
-  try {
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const result = JSON.parse(jsonMatch[0]);
-      if (result.found) return { x: result.x, y: result.y };
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const result = JSON.parse(jsonMatch[0]);
+        if (result.found && result.x && result.y) {
+          console.log(`[Vision] Found "${description}" at (${result.x}, ${result.y}) on attempt ${attempt + 1}`);
+          return { x: result.x, y: result.y };
+        }
+      }
+    } catch (err: any) {
+      console.error(`[Vision] Attempt ${attempt + 1} error:`, err.message);
     }
-  } catch { /* parse error */ }
 
+    // Wait before retrying
+    if (attempt < maxRetries) {
+      console.log(`[Vision] "${description}" not found, retrying in 1.5s...`);
+      await new Promise(r => setTimeout(r, 1500));
+    }
+  }
+
+  console.log(`[Vision] Could not find "${description}" after ${maxRetries + 1} attempts`);
   return null;
 }
 
