@@ -567,7 +567,36 @@ TEXT MANIPULATION:
 
 ACCESSIBILITY:
 - read_aloud: {"type":"read_aloud","text":"Hello","target":"Samantha"} — read with system voice
-- increase_text_size/decrease_text_size — zoom text system-wide`,
+- increase_text_size/decrease_text_size — zoom text system-wide
+
+MULTI-STEP WORKFLOWS (most powerful):
+- complete_task: {"type":"complete_task","text":"book a flight to NYC next Friday"} — AI breaks down complex goal into steps and executes them ALL
+- research_topic: {"type":"research_topic","target":"quantum computing"} — searches, reads results, compiles summary
+- monitor_and_alert: {"type":"monitor_and_alert","text":"price drops below $50","duration":5000,"count":60} — watches screen periodically, alerts when condition met
+- fill_application: {"type":"fill_application","text":"Name: John Smith, Email: john@email.com, Phone: 555-1234"} — AI reads form and fills it
+
+CROSS-APP DATA FLOW:
+- copy_between_apps: {"type":"copy_between_apps","target":"Safari to Notes"} — copy data between apps
+- screen_to_spreadsheet: {"type":"screen_to_spreadsheet","target":"/path/out.csv"} — read screen data into CSV
+- screen_to_email: {"type":"screen_to_email"} — read screen, prepare email content
+- screen_to_note: {"type":"screen_to_note"} — capture screen content as Apple Note
+- compare_screens: {"type":"compare_screens","duration":5000} — take two screenshots, report what changed
+
+CONTEXT-AWARE:
+- understand_context: {"type":"understand_context"} — AI analyzes what you're doing and suggests next steps
+- auto_complete_task: {"type":"auto_complete_task"} — AI sees your unfinished work and completes it
+- smart_reply: {"type":"smart_reply","text":"professional tone"} — reads message on screen, types a reply
+
+BUSINESS:
+- invoice_create: {"type":"invoice_create","target":"My Company to Client","text":"Web Design,1,500;Hosting,12,10"}
+- expense_track: {"type":"expense_track","target":"/path/receipt.jpg"} — read receipt, log to expenses.csv
+- report_generate: {"type":"report_generate","text":"Q1 sales performance"} — generate full HTML report
+
+ERROR RECOVERY:
+- retry_with_fix: {"type":"retry_with_fix","actions":[...]} — try actions, if fail AI fixes and retries
+- verify_result: {"type":"verify_result","text":"was the email sent?"} — AI checks if task worked
+- undo_last: {"type":"undo_last"} — Cmd+Z
+- rollback: {"type":"rollback","count":5} — multiple undos`,
     messages: [{
       role: 'user',
       content: command,
@@ -2121,6 +2150,313 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     }
     case 'increase_text_size': { controller.increaseTextSize(); break; }
     case 'decrease_text_size': { controller.decreaseTextSize(); break; }
+
+    // ── Multi-Step Workflows ──
+    case 'complete_task': {
+      // AI breaks down a complex goal into steps and executes them all
+      const goalApi = (await import('./config')).getApiKey();
+      const goalClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: goalApi });
+      const screenState = await vision.analyzeScreen('Describe what is currently on screen.');
+      const goalResp = await goalClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 2048,
+        messages: [{ role: 'user', content: `You are an AI agent controlling a computer. Current screen: ${screenState.description}
+
+The user wants to: "${action.text || action.target}"
+
+Break this into a JSON array of action steps I can execute. Use action types like open_url, find_and_click, type, press_key, wait, read_screen, ai_decide, etc.
+Return ONLY the JSON array.` }]
+      });
+      const goalText = goalResp.content[0].type === 'text' ? goalResp.content[0].text : '[]';
+      try {
+        const steps = JSON.parse(goalText.match(/\[[\s\S]*\]/)?.[0] || '[]');
+        for (const step of steps) {
+          overlay.showStatus(step.description || step.type, 0);
+          await executeAction(step, index);
+          await controller.sleep(500);
+        }
+      } catch (e: any) { console.log('[CompleteTask] Parse error:', e.message); }
+      break;
+    }
+
+    case 'research_topic': {
+      // Open multiple sources, read them, compile summary
+      const topic = action.target || action.text || '';
+      // Search Google
+      await executeAction({ type: 'open_url', target: `https://www.google.com/search?q=${encodeURIComponent(topic)}`, description: 'Searching' }, index);
+      await controller.sleep(2000);
+      // Read the page
+      const searchResults = await vision.analyzeScreen(`Read the search results for "${topic}". List the top 5 results with titles and brief descriptions.`);
+      addToHistory('system', 'Research results: ' + searchResults.description);
+      // Summarize
+      const resApi = (await import('./config')).getApiKey();
+      const resClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: resApi });
+      const resResp = await resClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Compile a brief research summary about "${topic}" based on these search results:\n${searchResults.description}` }]
+      });
+      const resSummary = resResp.content[0].type === 'text' ? resResp.content[0].text : '';
+      addToHistory('system', 'Research summary: ' + resSummary);
+      controller.showNotification('Research done', topic);
+      break;
+    }
+
+    case 'monitor_and_alert': {
+      // Watch screen periodically and alert when condition is met
+      const monitorCondition = action.text || 'something changed';
+      const monitorInterval = action.duration || 5000;
+      const monitorMax = action.count || 60; // max checks
+      let monitorCount = 0;
+      const monitorFn = async () => {
+        if (monitorCount >= monitorMax) return;
+        monitorCount++;
+        const check = await vision.analyzeScreen(`Check: ${monitorCondition}. Answer YES if the condition is met, NO if not.`);
+        if (check.description.toLowerCase().includes('yes')) {
+          controller.showNotification('Alert!', monitorCondition);
+          controller.speak('Alert: ' + monitorCondition);
+          addToHistory('system', 'Monitor triggered: ' + monitorCondition);
+        } else {
+          setTimeout(monitorFn, monitorInterval);
+        }
+      };
+      setTimeout(monitorFn, monitorInterval);
+      addToHistory('system', `Monitoring: "${monitorCondition}" every ${monitorInterval/1000}s`);
+      break;
+    }
+
+    // ── Cross-App Data Flow ──
+    case 'screen_to_spreadsheet': {
+      const screenData = await vision.analyzeScreen('Read ALL text and data visible on screen. Format as CSV rows.');
+      const csvPath = action.target || path.join(os.homedir(), 'Desktop', `screen-data-${Date.now()}.csv`);
+      controller.createFile(csvPath, screenData.description);
+      addToHistory('system', 'Screen data saved to: ' + csvPath);
+      controller.showNotification('Saved', csvPath);
+      break;
+    }
+
+    case 'screen_to_email': {
+      const screenForEmail = await vision.analyzeScreen('Read all important content on screen. Summarize it for an email.');
+      addToHistory('system', 'Screen summary for email: ' + screenForEmail.description);
+      // Can chain with send_email
+      break;
+    }
+
+    case 'screen_to_note': {
+      const screenForNote = await vision.analyzeScreen('Read all content on screen.');
+      controller.createNote('Screen Capture ' + new Date().toLocaleString(), screenForNote.description);
+      controller.showNotification('Note created', 'From screen content');
+      break;
+    }
+
+    case 'compare_screens': {
+      // Take first screenshot
+      const before = controller.captureScreenForComparison();
+      addToHistory('system', 'First screenshot captured. Waiting for changes...');
+      await controller.sleep(action.duration || 5000);
+      // Take second screenshot
+      const after = controller.captureScreenForComparison();
+      // Compare using Claude Vision
+      const fs2 = require('fs');
+      const beforeB64 = fs2.readFileSync(before).toString('base64');
+      const afterB64 = fs2.readFileSync(after).toString('base64');
+      const compApi = (await import('./config')).getApiKey();
+      const compClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: compApi });
+      const compResp = await compClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg' as any, data: beforeB64 } },
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg' as any, data: afterB64 } },
+          { type: 'text', text: 'Compare these two screenshots. What changed between them? Be specific.' }
+        ]}]
+      });
+      const changes = compResp.content[0].type === 'text' ? compResp.content[0].text : '';
+      addToHistory('system', 'Screen changes: ' + changes);
+      try { fs2.unlinkSync(before); fs2.unlinkSync(after); } catch {}
+      break;
+    }
+
+    case 'copy_between_apps': {
+      // Copy from source app, paste into target app
+      const [srcApp, destApp] = (action.target || 'Safari to Notes').split(' to ').map(s => s.trim());
+      const copiedData = controller.copyFromApp(srcApp);
+      controller.pasteIntoApp(destApp, copiedData);
+      addToHistory('system', `Copied from ${srcApp} to ${destApp}: ${copiedData.slice(0, 200)}`);
+      break;
+    }
+
+    // ── Context-Aware ──
+    case 'understand_context': {
+      const ctx = await vision.analyzeScreen('Analyze what the user is currently doing. What app are they in? What task are they working on? What would be helpful next?');
+      addToHistory('system', 'Context: ' + ctx.description);
+      if (ctx.suggestions && ctx.suggestions.length > 0) {
+        addToHistory('system', 'Suggestions: ' + ctx.suggestions.join(', '));
+      }
+      break;
+    }
+
+    case 'auto_complete_task': {
+      // Look at screen, understand partial work, finish it
+      const taskCtx = await vision.analyzeScreen('What task has the user started but not finished? Describe what needs to be done to complete it.');
+      const acApi = (await import('./config')).getApiKey();
+      const acClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: acApi });
+      const acResp = await acClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 2048,
+        messages: [{ role: 'user', content: `The user started a task on their computer. Current screen analysis: ${taskCtx.description}
+
+Generate a JSON array of actions to complete this task. Use types like find_and_click, type, press_key, open_url, etc.
+Return ONLY the JSON array.` }]
+      });
+      const acText = acResp.content[0].type === 'text' ? acResp.content[0].text : '[]';
+      try {
+        const acSteps = JSON.parse(acText.match(/\[[\s\S]*\]/)?.[0] || '[]');
+        for (const step of acSteps) {
+          await executeAction(step, index);
+          await controller.sleep(500);
+        }
+      } catch {}
+      break;
+    }
+
+    case 'smart_reply': {
+      // Read message on screen, generate and type a reply
+      const msgCtx = await vision.analyzeScreen('Read the most recent message or email on screen. What does it say? Who sent it?');
+      const srApi = (await import('./config')).getApiKey();
+      const srClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: srApi });
+      const srResp = await srClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 512,
+        messages: [{ role: 'user', content: `Generate a professional, friendly reply to this message:\n${msgCtx.description}\n\n${action.text ? 'Tone/style: ' + action.text : ''}\nReturn ONLY the reply text, nothing else.` }]
+      });
+      const reply = srResp.content[0].type === 'text' ? srResp.content[0].text : '';
+      addToHistory('system', 'Smart reply: ' + reply);
+      // Type the reply
+      await controller.typeText(reply, 20);
+      break;
+    }
+
+    // ── Business Automation ──
+    case 'invoice_create': {
+      // Parse items from text
+      const invoiceItems = (action.text || 'Service,1,100').split(';').map(line => {
+        const [desc, qty, price] = line.split(',').map(s => s.trim());
+        return { desc: desc || 'Item', qty: parseInt(qty) || 1, price: parseFloat(price) || 0 };
+      });
+      const [invFrom, invTo] = (action.target || 'Me to Client').split(' to ').map(s => s.trim());
+      const invPath = controller.createInvoice(invFrom, invTo, invoiceItems, action.key);
+      addToHistory('system', 'Invoice created: ' + invPath);
+      controller.showNotification('Invoice created', invPath);
+      // Open it
+      controller.openWith(invPath, 'Safari');
+      break;
+    }
+
+    case 'expense_track': {
+      // Read receipt from screen or image
+      let expenseData = '';
+      if (action.target) {
+        // From image file
+        const imgBuf = controller.analyzeImageFile(action.target);
+        if (imgBuf) {
+          const expApi = (await import('./config')).getApiKey();
+          const expClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: expApi });
+          const expResp = await expClient.messages.create({
+            model: 'claude-sonnet-4-20250514', max_tokens: 512,
+            messages: [{ role: 'user', content: [
+              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg' as any, data: imgBuf.toString('base64') } },
+              { type: 'text', text: 'Read this receipt. Return: store name, date, items with prices, total. Format as CSV.' }
+            ]}]
+          });
+          expenseData = expResp.content[0].type === 'text' ? expResp.content[0].text : '';
+        }
+      } else {
+        // From screen
+        const expScreen = await vision.analyzeScreen('Read the receipt or expense on screen. Extract: store, date, items, total.');
+        expenseData = expScreen.description;
+      }
+      addToHistory('system', 'Expense: ' + expenseData);
+      // Append to expenses CSV
+      const expFile = path.join(os.homedir(), 'Desktop', 'expenses.csv');
+      if (!require('fs').existsSync(expFile)) {
+        controller.createFile(expFile, 'Date,Store,Item,Amount\n');
+      }
+      controller.addToSpreadsheet(expFile, [new Date().toLocaleDateString(), expenseData]);
+      controller.showNotification('Expense tracked', 'Saved to expenses.csv');
+      break;
+    }
+
+    case 'report_generate': {
+      // Gather data and generate a report
+      const reportApi = (await import('./config')).getApiKey();
+      const reportClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: reportApi });
+      const reportResp = await reportClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 4096,
+        messages: [{ role: 'user', content: `Generate a professional report about: ${action.text || action.target || 'general summary'}
+
+Include: Executive Summary, Key Findings, Data, Recommendations, Conclusion.
+Format in clean HTML with tables if needed.` }]
+      });
+      const reportHtml = reportResp.content[0].type === 'text' ? reportResp.content[0].text : '';
+      const reportPath = action.target || path.join(os.homedir(), 'Desktop', `report-${Date.now()}.html`);
+      controller.createFile(reportPath, reportHtml);
+      controller.openWith(reportPath, 'Safari');
+      addToHistory('system', 'Report generated: ' + reportPath);
+      break;
+    }
+
+    // ── Error Recovery ──
+    case 'retry_with_fix': {
+      // Try the actions, if they fail, AI analyzes and tries different approach
+      if (action.actions && action.actions.length > 0) {
+        try {
+          for (const a of action.actions) { await executeAction(a, index); await controller.sleep(300); }
+        } catch (retryErr: any) {
+          console.log('[RetryWithFix] Failed:', retryErr.message);
+          const fixScreen = await vision.analyzeScreen(`The previous action failed with error: "${retryErr.message}". What went wrong? How should I fix it? Return a JSON array of corrected actions.`);
+          try {
+            const fixSteps = JSON.parse(fixScreen.description.match(/\[[\s\S]*\]/)?.[0] || '[]');
+            for (const step of fixSteps) { await executeAction(step, index); await controller.sleep(300); }
+          } catch {}
+        }
+      }
+      break;
+    }
+
+    case 'verify_result': {
+      // Check if the task actually worked
+      const verifyCheck = await vision.analyzeScreen(action.text || 'Did the previous action complete successfully? Answer YES with details or NO with what went wrong.');
+      const verified = verifyCheck.description.toLowerCase().includes('yes');
+      addToHistory('system', `Verification: ${verified ? 'SUCCESS' : 'FAILED'} — ${verifyCheck.description}`);
+      if (!verified) controller.showNotification('Task may have failed', verifyCheck.description.slice(0, 100));
+      break;
+    }
+
+    case 'undo_last': {
+      // Undo using Cmd+Z
+      await controller.pressKey(controller.Key.LeftCmd, controller.Key.Z);
+      addToHistory('system', 'Undo performed');
+      break;
+    }
+
+    case 'rollback': {
+      // Multiple undos
+      const undoCount = action.count || 5;
+      for (let i = 0; i < undoCount; i++) {
+        await controller.pressKey(controller.Key.LeftCmd, controller.Key.Z);
+        await controller.sleep(200);
+      }
+      addToHistory('system', `Rolled back ${undoCount} actions`);
+      break;
+    }
+
+    // ── Fill Application/Form ──
+    case 'fill_application': {
+      // AI reads the form, fills it with provided data
+      const formData = action.text || '';
+      const formScreen = await vision.analyzeScreen(`There is a form on screen. I need to fill it with this data: ${formData}. Identify each field and its location. Return a JSON array of actions: [{"type":"find_and_click","target":"field name"},{"type":"type","text":"value"}]`);
+      try {
+        const formSteps = JSON.parse(formScreen.description.match(/\[[\s\S]*\]/)?.[0] || '[]');
+        for (const step of formSteps) { await executeAction(step, index); await controller.sleep(300); }
+      } catch {}
+      break;
+    }
 
     default: {
       console.log('[Action] Unknown action type:', action.type);

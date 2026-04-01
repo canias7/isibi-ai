@@ -2161,6 +2161,49 @@ export function decreaseTextSize(): void {
   }
 }
 
+// ── Invoice / Business ──────────────────────────────────────────────────
+
+export function createInvoice(from: string, to: string, items: { desc: string; qty: number; price: number }[], outputPath?: string): string {
+  const fs = require('fs');
+  const path = require('path');
+  const out = outputPath || path.join(require('os').homedir(), 'Desktop', `invoice-${Date.now()}.html`);
+  const total = items.reduce((sum, i) => sum + i.qty * i.price, 0);
+  const rows = items.map(i => `<tr><td>${i.desc}</td><td>${i.qty}</td><td>$${i.price.toFixed(2)}</td><td>$${(i.qty * i.price).toFixed(2)}</td></tr>`).join('');
+  const html = `<!DOCTYPE html><html><head><style>body{font-family:system-ui;padding:40px}table{width:100%;border-collapse:collapse;margin:20px 0}td,th{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f5f5f5}.total{font-weight:bold;font-size:18px}</style></head><body>
+<h1>Invoice</h1><p><strong>From:</strong> ${from}</p><p><strong>To:</strong> ${to}</p><p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+<table><tr><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr>${rows}
+<tr><td colspan="3" style="text-align:right"><strong>Total:</strong></td><td class="total">$${total.toFixed(2)}</td></tr></table></body></html>`;
+  fs.writeFileSync(out, html, 'utf-8');
+  return out;
+}
+
+// ── Action History (for undo/rollback) ──────────────────────────────────
+
+const actionHistory: { type: string; description: string; timestamp: number; undoable: boolean }[] = [];
+
+export function logAction(type: string, description: string, undoable: boolean = false): void {
+  actionHistory.push({ type, description, timestamp: Date.now(), undoable });
+  if (actionHistory.length > 50) actionHistory.shift();
+}
+
+export function getActionHistory(): typeof actionHistory {
+  return [...actionHistory];
+}
+
+export function getLastAction(): typeof actionHistory[0] | null {
+  return actionHistory.length > 0 ? actionHistory[actionHistory.length - 1] : null;
+}
+
+// ── Screen Comparison ───────────────────────────────────────────────────
+
+export function captureScreenForComparison(): string {
+  const { execSync } = require('child_process');
+  const outPath = require('path').join(require('os').tmpdir(), `isibi-compare-${Date.now()}.jpg`);
+  execSync(`screencapture -x -C -t jpg ${outPath}`, { timeout: 5000 });
+  try { execSync(`sips --resampleWidth 1920 ${outPath} --setProperty formatOptions 60`, { timeout: 5000 }); } catch {}
+  return outPath;
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
