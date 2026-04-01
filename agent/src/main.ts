@@ -335,6 +335,77 @@ ipcMain.handle('chat-load', (_, agentId: string) => {
   return [];
 });
 
+// ── Ghost Auth IPC ────────────────────────────────────────────────────
+
+const GHOST_API = 'https://isibi-backend.onrender.com/api/ghost';
+
+ipcMain.handle('ghost-signup', async (_, email: string, name: string, password: string) => {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({ email, name, password });
+    const req = https.request({
+      hostname: 'isibi-backend.onrender.com', path: '/api/ghost/signup', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    }, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.token) {
+            saveConfig({ userEmail: json.email, userName: json.name, userLoggedIn: true, userCreatedAt: new Date().toISOString(), credits: json.credits });
+            (global as any).__ghostToken = json.token;
+          }
+          resolve(json);
+        } catch { resolve({ detail: 'Server error' }); }
+      });
+    });
+    req.on('error', (e: any) => resolve({ detail: e.message }));
+    req.write(postData); req.end();
+  });
+});
+
+ipcMain.handle('ghost-login', async (_, email: string, password: string) => {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({ email, password });
+    const req = https.request({
+      hostname: 'isibi-backend.onrender.com', path: '/api/ghost/login', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    }, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.token) {
+            saveConfig({ userEmail: json.email, userName: json.name, userLoggedIn: true, credits: json.credits });
+            (global as any).__ghostToken = json.token;
+          }
+          resolve(json);
+        } catch { resolve({ detail: 'Server error' }); }
+      });
+    });
+    req.on('error', (e: any) => resolve({ detail: e.message }));
+    req.write(postData); req.end();
+  });
+});
+
+ipcMain.handle('ghost-logout', () => {
+  saveConfig({ userEmail: '', userName: '', userLoggedIn: false });
+  (global as any).__ghostToken = null;
+  return true;
+});
+
+ipcMain.handle('ghost-is-logged-in', () => {
+  return loadConfig().userLoggedIn === true;
+});
+
+ipcMain.handle('ghost-get-user', () => {
+  const c = loadConfig();
+  return c.userLoggedIn ? { email: c.userEmail, name: c.userName } : null;
+});
+
 // ── Stripe Payment IPC ────────────────────────────────────────────────
 
 const CREDIT_PLANS = [
@@ -588,16 +659,117 @@ function launchGhostMode() {
   }, 60000); // Check every minute
 }
 
+function createLoginWindow(onSuccess: () => void) {
+  const loginWin = new BrowserWindow({
+    width: 420, height: 520, resizable: false, center: true, frame: false,
+    webPreferences: { nodeIntegration: true, contextIsolation: false },
+    backgroundColor: '#0f0f1a',
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
+  });
+
+  const LOGIN_HTML = `<!DOCTYPE html><html><head><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,system-ui,sans-serif;background:#0f0f1a;color:#e2e8f0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;-webkit-app-region:drag}
+.card{-webkit-app-region:no-drag;width:340px;text-align:center}
+.orb{width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 38% 38%,#f472b6,#ec4899 40%,#a855f7 70%,#6366f1);box-shadow:0 0 24px rgba(236,72,153,0.3);margin:0 auto 16px;animation:float 3s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,#ec4899,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.sub{font-size:12px;color:rgba(226,232,240,0.5);margin-bottom:24px}
+.tabs{display:flex;gap:2px;margin-bottom:16px;background:rgba(255,255,255,0.03);border-radius:10px;padding:3px}
+.tab{flex:1;padding:8px;border:none;border-radius:8px;background:transparent;color:rgba(226,232,240,0.5);font-size:12px;font-weight:600;cursor:pointer}
+.tab.active{background:rgba(236,72,153,0.1);color:#f9a8d4}
+input{width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:13px;outline:none;margin-bottom:10px;font-family:inherit}
+input:focus{border-color:rgba(236,72,153,0.3)}
+input::placeholder{color:rgba(226,232,240,0.3)}
+.btn{width:100%;padding:12px;border:none;border-radius:10px;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:white;font-size:14px;font-weight:600;cursor:pointer;margin-top:6px}
+.btn:hover{box-shadow:0 0 20px rgba(236,72,153,0.3)}
+.err{color:#ef4444;font-size:11px;margin-top:8px;min-height:16px}
+.skip{color:rgba(226,232,240,0.3);font-size:11px;cursor:pointer;margin-top:16px;text-decoration:underline}
+.skip:hover{color:rgba(226,232,240,0.5)}
+</style></head><body>
+<div class="card">
+  <div class="orb"></div>
+  <h1>ISIBI Ghost Mode</h1>
+  <div class="sub">AI agents that control your computer</div>
+  <div class="tabs">
+    <button class="tab active" id="tabLogin" onclick="switchTab('login')">Log In</button>
+    <button class="tab" id="tabSignup" onclick="switchTab('signup')">Sign Up</button>
+  </div>
+  <div id="loginForm">
+    <input id="loginEmail" placeholder="Email" type="email">
+    <input id="loginPassword" placeholder="Password" type="password">
+    <button class="btn" onclick="doLogin()">Log In</button>
+  </div>
+  <div id="signupForm" style="display:none">
+    <input id="signupName" placeholder="Full name">
+    <input id="signupEmail" placeholder="Email" type="email">
+    <input id="signupPassword" placeholder="Password (min 6 characters)" type="password">
+    <button class="btn" onclick="doSignup()">Create Account</button>
+  </div>
+  <div class="err" id="errMsg"></div>
+  <div class="skip" onclick="skipLogin()">Continue without account</div>
+</div>
+<script>
+const{ipcRenderer}=require('electron');
+function switchTab(t){
+  document.getElementById('loginForm').style.display=t==='login'?'block':'none';
+  document.getElementById('signupForm').style.display=t==='signup'?'block':'none';
+  document.getElementById('tabLogin').className='tab'+(t==='login'?' active':'');
+  document.getElementById('tabSignup').className='tab'+(t==='signup'?' active':'');
+  document.getElementById('errMsg').textContent='';
+}
+async function doLogin(){
+  const email=document.getElementById('loginEmail').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  if(!email||!pw){document.getElementById('errMsg').textContent='Please fill in all fields';return}
+  document.querySelector('.btn').textContent='Logging in...';
+  const r=await ipcRenderer.invoke('ghost-login',email,pw);
+  if(r.token){ipcRenderer.invoke('login-success')}
+  else{document.getElementById('errMsg').textContent=r.detail||'Login failed';document.querySelector('.btn').textContent='Log In'}
+}
+async function doSignup(){
+  const name=document.getElementById('signupName').value.trim();
+  const email=document.getElementById('signupEmail').value.trim();
+  const pw=document.getElementById('signupPassword').value;
+  if(!name||!email||!pw){document.getElementById('errMsg').textContent='Please fill in all fields';return}
+  if(pw.length<6){document.getElementById('errMsg').textContent='Password must be at least 6 characters';return}
+  document.querySelectorAll('.btn')[1].textContent='Creating account...';
+  const r=await ipcRenderer.invoke('ghost-signup',email,name,pw);
+  if(r.token){ipcRenderer.invoke('login-success')}
+  else{document.getElementById('errMsg').textContent=r.detail||'Signup failed';document.querySelectorAll('.btn')[1].textContent='Create Account'}
+}
+function skipLogin(){ipcRenderer.invoke('login-success')}
+document.addEventListener('keydown',e=>{if(e.key==='Enter'){
+  if(document.getElementById('loginForm').style.display!=='none')doLogin();
+  else doSignup();
+}});
+</script></body></html>`;
+
+  loginWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(LOGIN_HTML)}`);
+
+  ipcMain.handleOnce('login-success', () => {
+    loginWin.close();
+    onSuccess();
+  });
+}
+
 app.whenReady().then(async () => {
   loadAnalytics();
   registerOnboardingIPC();
 
-  if (isFirstRun()) {
-    createOnboardingWindow(() => {
+  const startApp = () => {
+    if (isFirstRun()) {
+      createOnboardingWindow(() => { launchGhostMode(); });
+    } else {
       launchGhostMode();
-    });
+    }
+  };
+
+  // Show login if not logged in
+  if (!loadConfig().userLoggedIn) {
+    createLoginWindow(startApp);
   } else {
-    launchGhostMode();
+    startApp();
   }
 });
 
@@ -1585,6 +1757,10 @@ svg { display: block; }
           <button class="cc-switch" id="themeToggle" onclick="toggleTheme()" style="width:32px;height:18px"></button>
         </div>
         <button class="save-profile-btn" onclick="saveProfile()">Save</button>
+        <div id="userInfoSection" style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04)">
+          <div style="font-size:11px;color:rgba(226,232,240,0.4)" id="userEmailDisplay"></div>
+          <button onclick="doLogout()" style="margin-top:4px;padding:4px 10px;border-radius:6px;border:none;background:rgba(239,68,68,0.1);color:#fca5a5;font-size:10px;cursor:pointer">Log Out</button>
+        </div>
       </div>
     </div>
   </div>
@@ -2249,6 +2425,19 @@ input.onkeydown = e => {
   if (e.key === 'Escape') { if (listening) stopMic(); closeModal(); }
 };
 sendBtn.onclick = () => send();
+
+// Load user info
+ipcRenderer.invoke('ghost-get-user').then(user => {
+  if (user) {
+    const el = document.getElementById('userEmailDisplay');
+    if (el) el.textContent = user.email;
+  }
+});
+
+async function doLogout() {
+  await ipcRenderer.invoke('ghost-logout');
+  window.location.reload();
+}
 
 let lightTheme = localStorage.getItem('theme') === 'light';
 function toggleTheme() {

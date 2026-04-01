@@ -68,6 +68,10 @@ export interface GhostModeConfig {
   agents: AgentProfileData[];
   schedules: ScheduledTask[];
   openaiApiKey: string;
+  userEmail: string;
+  userName: string;
+  userLoggedIn: boolean;
+  userCreatedAt: string;
   credits: number;
   creditsUsed: number;
   plan: string;
@@ -86,6 +90,10 @@ const DEFAULTS: GhostModeConfig = {
   agents: [],
   schedules: [],
   openaiApiKey: '',
+  userEmail: '',
+  userName: '',
+  userLoggedIn: false,
+  userCreatedAt: '',
   credits: 1000,
   creditsUsed: 0,
   plan: 'free',
@@ -138,6 +146,24 @@ export function getWakeWord(): string {
 
 export function getLanguage(): string {
   return loadConfig().language || '';
+}
+
+export function isLoggedIn(): boolean {
+  return loadConfig().userLoggedIn === true;
+}
+
+export function getUser(): { email: string; name: string; createdAt: string } | null {
+  const c = loadConfig();
+  if (!c.userLoggedIn) return null;
+  return { email: c.userEmail, name: c.userName, createdAt: c.userCreatedAt };
+}
+
+export function loginUser(email: string, name: string): void {
+  saveConfig({ userEmail: email, userName: name, userLoggedIn: true, userCreatedAt: new Date().toISOString() });
+}
+
+export function logoutUser(): void {
+  saveConfig({ userEmail: '', userName: '', userLoggedIn: false });
 }
 
 export function getStripeKey(): string {
