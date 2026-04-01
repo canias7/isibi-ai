@@ -126,6 +126,7 @@ export function isFirstRun(): boolean {
 const BUNDLED_KEY = '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';
 const BUNDLED_ELEVEN_KEY = 'sk_66d8a0471797c1ab6cae2db1913df95f08749e1c9bef2489';
 const BUNDLED_OPENAI_KEY = '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';
+const BUNDLED_STRIPE_KEY = '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';
 
 export function getAssistantName(): string {
   return loadConfig().assistantName || 'Isibi';
@@ -137,6 +138,16 @@ export function getWakeWord(): string {
 
 export function getLanguage(): string {
   return loadConfig().language || '';
+}
+
+export function getStripeKey(): string {
+  return BUNDLED_STRIPE_KEY;
+}
+
+export function addCredits(amount: number): void {
+  const c = loadConfig();
+  c.credits = (c.credits || 0) + amount;
+  saveConfig({ credits: c.credits });
 }
 
 export function getOpenAIKey(): string {

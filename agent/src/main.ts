@@ -15,7 +15,7 @@ app.commandLine.appendSwitch('disable-usb-keyboard-detect');
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask, getCredits } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask, getCredits, getStripeKey, addCredits } from './config';
 import { loadAnalytics, getAnalytics } from './analytics';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
@@ -333,6 +333,71 @@ ipcMain.handle('chat-load', (_, agentId: string) => {
     if (require('fs').existsSync(fp)) return JSON.parse(require('fs').readFileSync(fp, 'utf-8'));
   } catch {}
   return [];
+});
+
+// ── Stripe Payment IPC ────────────────────────────────────────────────
+
+const CREDIT_PLANS = [
+  { id: 'credits_500', name: '500 Credits', credits: 500, priceInCents: 999, description: 'Good for light use' },
+  { id: 'credits_2000', name: '2,000 Credits', credits: 2000, priceInCents: 2999, description: 'Most popular' },
+  { id: 'credits_5000', name: '5,000 Credits', credits: 5000, priceInCents: 5999, description: 'Best value' },
+  { id: 'credits_20000', name: '20,000 Credits', credits: 20000, priceInCents: 19999, description: 'Power user' },
+];
+
+ipcMain.handle('stripe-plans', () => CREDIT_PLANS);
+
+ipcMain.handle('stripe-checkout', async (_, planId: string) => {
+  const plan = CREDIT_PLANS.find(p => p.id === planId);
+  if (!plan) return { error: 'Plan not found' };
+
+  const https = require('https');
+  const stripeKey = getStripeKey();
+
+  return new Promise((resolve) => {
+    const postData = new URLSearchParams({
+      'line_items[0][price_data][currency]': 'usd',
+      'line_items[0][price_data][product_data][name]': plan.name + ' — ISIBI Ghost Mode',
+      'line_items[0][price_data][unit_amount]': String(plan.priceInCents),
+      'line_items[0][quantity]': '1',
+      'mode': 'payment',
+      'success_url': 'https://isibi.ai/payment-success?credits=' + plan.credits,
+      'cancel_url': 'https://isibi.ai/payment-cancel',
+      'metadata[credits]': String(plan.credits),
+      'metadata[plan_id]': plan.id,
+    }).toString();
+
+    const req = https.request({
+      hostname: 'api.stripe.com',
+      path: '/v1/checkout/sessions',
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + stripeKey,
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(postData),
+      }
+    }, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.url) {
+            // Open checkout in browser
+            require('electron').shell.openExternal(json.url);
+            // Optimistically add credits (in production, verify via webhook)
+            addCredits(plan.credits);
+            saveConfig({ plan: plan.credits >= 5000 ? 'pro' : plan.credits >= 2000 ? 'standard' : 'starter' });
+            resolve({ success: true, url: json.url, credits: plan.credits });
+          } else {
+            resolve({ error: json.error?.message || 'Checkout failed' });
+          }
+        } catch (e: any) { resolve({ error: e.message }); }
+      });
+    });
+    req.on('error', (e: any) => resolve({ error: e.message }));
+    req.write(postData);
+    req.end();
+  });
 });
 
 // ── Usage & Credits IPC ───────────────────────────────────────────────
@@ -1652,6 +1717,10 @@ svg { display: block; }
           <div style="color:rgba(226,232,240,0.5);font-size:13px">Loading...</div>
         </div>
 
+        <!-- Buy Credits -->
+        <h3 style="font-size:14px;font-weight:600;color:#e2e8f0;margin-bottom:12px;margin-top:24px">Buy Credits</h3>
+        <div id="creditPlans" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px"></div>
+
         <!-- Credit Costs -->
         <div style="margin-top:24px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:16px">
           <h4 style="font-size:12px;font-weight:600;color:rgba(226,232,240,0.6);margin-bottom:8px">Credit Costs</h4>
@@ -2358,6 +2427,7 @@ function switchView(view) {
   }
   if (view === 'usage') {
     loadUsage();
+    loadCreditPlans();
   }
   if (view === 'scheduled') {
     loadSchedules();
@@ -2553,6 +2623,37 @@ ipcRenderer.on('schedule-ran', (_, data) => {
 });
 
 // ── Usage View ──
+async function loadCreditPlans() {
+  const plans = await ipcRenderer.invoke('stripe-plans');
+  const container = document.getElementById('creditPlans');
+  if (!container) return;
+  container.innerHTML = '';
+  plans.forEach((p, i) => {
+    const popular = i === 1;
+    const el = document.createElement('div');
+    el.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid ' + (popular ? 'rgba(236,72,153,0.3)' : 'rgba(255,255,255,0.06)') + ';border-radius:14px;padding:16px;position:relative;cursor:pointer;transition:.2s';
+    if (popular) el.innerHTML = '<div style="position:absolute;top:-8px;right:12px;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:white;font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px">POPULAR</div>';
+    el.innerHTML += '<div style="font-size:18px;font-weight:700;color:#e2e8f0">' + (p.priceInCents / 100).toFixed(2) + '</div>' +
+      '<div style="font-size:10px;color:rgba(226,232,240,0.4);margin-bottom:6px">USD</div>' +
+      '<div style="font-size:13px;font-weight:600;color:#f9a8d4">' + p.name + '</div>' +
+      '<div style="font-size:11px;color:rgba(226,232,240,0.4);margin-top:2px">' + p.description + '</div>' +
+      '<button onclick="buyCredits(\'' + p.id + '\')" style="margin-top:10px;width:100%;padding:8px;border-radius:8px;border:none;background:' + (popular ? 'linear-gradient(135deg,#ec4899,#8b5cf6)' : 'rgba(255,255,255,0.06)') + ';color:' + (popular ? 'white' : '#e2e8f0') + ';font-size:12px;font-weight:600;cursor:pointer">Buy</button>';
+    el.onmouseover = () => { el.style.borderColor = 'rgba(236,72,153,0.3)'; };
+    el.onmouseout = () => { if (!popular) el.style.borderColor = 'rgba(255,255,255,0.06)'; };
+    container.appendChild(el);
+  });
+}
+
+async function buyCredits(planId) {
+  const result = await ipcRenderer.invoke('stripe-checkout', planId);
+  if (result.success) {
+    addNotif('Credits Purchased', result.credits + ' credits added to your account', 'success');
+    loadUsage(); // Refresh
+  } else {
+    addNotif('Payment Error', result.error || 'Something went wrong', 'error');
+  }
+}
+
 async function loadUsage() {
   const credits = await ipcRenderer.invoke('get-credits');
   const agentUsage = await ipcRenderer.invoke('get-agent-usage');
