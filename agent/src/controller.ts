@@ -3000,6 +3000,199 @@ export function pricePerUnit(price: number, quantity: number, unit: string = 'un
   return `$${price} / ${quantity} ${unit} = $${(price / quantity).toFixed(4)} per ${unit}`;
 }
 
+// ── Math: Trigonometry (1-12) ────────────────────────────────────────────
+
+export function mathSin(x: number): number { return Math.sin(x); }
+export function mathCos(x: number): number { return Math.cos(x); }
+export function mathTan(x: number): number { return Math.tan(x); }
+export function mathAsin(x: number): number { return Math.asin(x); }
+export function mathAcos(x: number): number { return Math.acos(x); }
+export function mathAtan(x: number): number { return Math.atan(x); }
+export function degreesToRadians(deg: number): number { return deg * Math.PI / 180; }
+export function radiansToDegrees(rad: number): number { return rad * 180 / Math.PI; }
+export function lawOfCosines(a: number, b: number, C: number): string {
+  const cRad = degreesToRadians(C);
+  const c = Math.sqrt(a * a + b * b - 2 * a * b * Math.cos(cRad));
+  return `a=${a}, b=${b}, C=${C}° → c = ${c.toFixed(4)}`;
+}
+export function lawOfSines(a: number, A: number, B: number): string {
+  const aRad = degreesToRadians(A); const bRad = degreesToRadians(B);
+  const b = a * Math.sin(bRad) / Math.sin(aRad);
+  return `a=${a}, A=${A}°, B=${B}° → b = ${b.toFixed(4)}`;
+}
+
+// ── Math: Algebra (13-22) ───────────────────────────────────────────────
+
+export function solveLinear(a: number, b: number): string {
+  if (a === 0) return b === 0 ? 'Infinite solutions' : 'No solution';
+  return `${a}x + ${b} = 0 → x = ${(-b / a).toFixed(6)}`;
+}
+export function solveQuadratic(a: number, b: number, c: number): string {
+  const disc = b * b - 4 * a * c;
+  if (disc < 0) return `${a}x² + ${b}x + ${c} = 0 → No real solutions (discriminant = ${disc})`;
+  const x1 = (-b + Math.sqrt(disc)) / (2 * a);
+  const x2 = (-b - Math.sqrt(disc)) / (2 * a);
+  return disc === 0 ? `x = ${x1.toFixed(6)}` : `x₁ = ${x1.toFixed(6)}, x₂ = ${x2.toFixed(6)}`;
+}
+export function solveSystem(a1: number, b1: number, c1: number, a2: number, b2: number, c2: number): string {
+  const det = a1 * b2 - a2 * b1;
+  if (det === 0) return 'No unique solution';
+  const x = (c1 * b2 - c2 * b1) / det;
+  const y = (a1 * c2 - a2 * c1) / det;
+  return `x = ${x.toFixed(6)}, y = ${y.toFixed(6)}`;
+}
+export function simplifyFraction(num: number, den: number): string {
+  const g = gcd(Math.abs(num), Math.abs(den));
+  return `${num}/${den} = ${num / g}/${den / g}`;
+}
+export function mathLog(x: number, base: number = 10): number { return Math.log(x) / Math.log(base); }
+export function mathLn(x: number): number { return Math.log(x); }
+export function mathExp(x: number): number { return Math.exp(x); }
+
+// ── Math: Number Theory (23-30) ─────────────────────────────────────────
+
+export function primeFactors(n: number): number[] {
+  const factors: number[] = []; let d = 2;
+  let num = Math.abs(n);
+  while (num > 1) { while (num % d === 0) { factors.push(d); num /= d; } d++; }
+  return factors;
+}
+export function isEven(n: number): boolean { return n % 2 === 0; }
+export function isOdd(n: number): boolean { return n % 2 !== 0; }
+export function decimalToBinary(n: number): string { return n.toString(2); }
+export function binaryToDecimal(b: string): number { return parseInt(b, 2); }
+export function decimalToHex(n: number): string { return n.toString(16).toUpperCase(); }
+export function hexToDecimal(h: string): number { return parseInt(h, 16); }
+export function decimalToOctal(n: number): string { return n.toString(8); }
+export function octalToDecimal(o: string): number { return parseInt(o, 8); }
+export function toRomanNumeral(n: number): string {
+  const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+  const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+  let result = ''; let num = n;
+  for (let i = 0; i < vals.length; i++) { while (num >= vals[i]) { result += syms[i]; num -= vals[i]; } }
+  return result;
+}
+export function fromRomanNumeral(s: string): number {
+  const map: Record<string, number> = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+  let result = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (i + 1 < s.length && map[s[i]] < map[s[i + 1]]) { result -= map[s[i]]; } else { result += map[s[i]]; }
+  }
+  return result;
+}
+
+// ── Math: Advanced Financial (31-40) ────────────────────────────────────
+
+export function depreciationStraight(cost: number, salvage: number, life: number): string {
+  const annual = (cost - salvage) / life;
+  return `Cost: $${cost}, Salvage: $${salvage}, Life: ${life}yr → Annual depreciation: $${annual.toFixed(2)}`;
+}
+export function depreciationDeclining(cost: number, rate: number, years: number): string {
+  let value = cost; const schedule: string[] = [];
+  for (let y = 1; y <= years; y++) {
+    const dep = value * rate / 100;
+    value -= dep;
+    schedule.push(`Year ${y}: -$${dep.toFixed(2)} → $${value.toFixed(2)}`);
+  }
+  return schedule.join('\n');
+}
+export function bondPrice(faceValue: number, couponRate: number, yield2: number, years: number): string {
+  const c = faceValue * couponRate; let pv = 0;
+  for (let t = 1; t <= years; t++) pv += c / Math.pow(1 + yield2, t);
+  pv += faceValue / Math.pow(1 + yield2, years);
+  return `Face: $${faceValue}, Coupon: ${(couponRate * 100).toFixed(1)}%, Yield: ${(yield2 * 100).toFixed(1)}%, ${years}yr → Price: $${pv.toFixed(2)}`;
+}
+export function dividendYield(annualDiv: number, stockPrice: number): string {
+  return `Yield: $${annualDiv} / $${stockPrice} = ${(annualDiv / stockPrice * 100).toFixed(2)}%`;
+}
+export function peRatio(price: number, eps: number): string {
+  return `P/E: $${price} / $${eps} = ${(price / eps).toFixed(2)}`;
+}
+export function marketCap(price: number, shares: number): string {
+  const cap = price * shares;
+  const fmt = cap >= 1e9 ? `$${(cap / 1e9).toFixed(2)}B` : cap >= 1e6 ? `$${(cap / 1e6).toFixed(2)}M` : `$${cap.toFixed(2)}`;
+  return `Market Cap: $${price} × ${shares.toLocaleString()} shares = ${fmt}`;
+}
+export function grossMargin(revenue: number, cogs: number): string {
+  return `Gross Margin: ($${revenue} - $${cogs}) / $${revenue} = ${((revenue - cogs) / revenue * 100).toFixed(2)}%`;
+}
+export function operatingMargin(opIncome: number, revenue: number): string {
+  return `Operating Margin: $${opIncome} / $${revenue} = ${(opIncome / revenue * 100).toFixed(2)}%`;
+}
+export function quickRatio(currentAssets: number, inventory: number, currentLiabilities: number): string {
+  const ratio = (currentAssets - inventory) / currentLiabilities;
+  return `Quick Ratio: ($${currentAssets} - $${inventory}) / $${currentLiabilities} = ${ratio.toFixed(2)}`;
+}
+export function workingCapital(currentAssets: number, currentLiabilities: number): string {
+  return `Working Capital: $${currentAssets} - $${currentLiabilities} = $${(currentAssets - currentLiabilities).toFixed(2)}`;
+}
+
+// ── Math: Date Math (41-50) ─────────────────────────────────────────────
+
+export function daysBetween(date1: string, date2: string): number {
+  return Math.round(Math.abs(new Date(date2).getTime() - new Date(date1).getTime()) / 86400000);
+}
+export function addDays(dateStr: string, days: number): string {
+  const d = new Date(dateStr); d.setDate(d.getDate() + days);
+  return d.toLocaleDateString();
+}
+export function businessDays(date1: string, date2: string): number {
+  const start = new Date(date1); const end = new Date(date2);
+  let count = 0; const d = new Date(start);
+  while (d <= end) { const day = d.getDay(); if (day !== 0 && day !== 6) count++; d.setDate(d.getDate() + 1); }
+  return count;
+}
+export function ageCalculator(birthdate: string): string {
+  const birth = new Date(birthdate); const now = new Date();
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  let days = now.getDate() - birth.getDate();
+  if (days < 0) { months--; days += 30; }
+  if (months < 0) { years--; months += 12; }
+  return `${years} years, ${months} months, ${days} days`;
+}
+export function dayOfWeek(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long' });
+}
+export function quarterOfYear(dateStr: string): number {
+  return Math.ceil((new Date(dateStr).getMonth() + 1) / 3);
+}
+export function isLeapYear(year: number): boolean {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+}
+
+// ── Math: Physics (51-60) ───────────────────────────────────────────────
+
+export function speedDistanceTime(known: { speed?: number; distance?: number; time?: number }): string {
+  if (known.speed && known.time) return `Distance = ${known.speed} × ${known.time} = ${(known.speed * known.time).toFixed(2)}`;
+  if (known.distance && known.time) return `Speed = ${known.distance} / ${known.time} = ${(known.distance / known.time).toFixed(2)}`;
+  if (known.speed && known.distance) return `Time = ${known.distance} / ${known.speed} = ${(known.distance / known.speed).toFixed(2)}`;
+  return 'Need at least 2 of: speed, distance, time';
+}
+export function force(mass: number, acceleration: number): string { return `F = ${mass} × ${acceleration} = ${(mass * acceleration).toFixed(2)} N`; }
+export function kineticEnergy(mass: number, velocity: number): string { return `KE = ½ × ${mass} × ${velocity}² = ${(0.5 * mass * velocity * velocity).toFixed(2)} J`; }
+export function potentialEnergy(mass: number, height: number, g: number = 9.81): string { return `PE = ${mass} × ${g} × ${height} = ${(mass * g * height).toFixed(2)} J`; }
+export function ohmsLaw(known: { v?: number; i?: number; r?: number }): string {
+  if (known.v && known.i) return `R = ${known.v} / ${known.i} = ${(known.v / known.i).toFixed(4)} Ω`;
+  if (known.v && known.r) return `I = ${known.v} / ${known.r} = ${(known.v / known.r).toFixed(4)} A`;
+  if (known.i && known.r) return `V = ${known.i} × ${known.r} = ${(known.i * known.r).toFixed(4)} V`;
+  return 'Need at least 2 of: voltage (v), current (i), resistance (r)';
+}
+export function bmiCalculator(weightKg: number, heightM: number): string {
+  const bmi = weightKg / (heightM * heightM);
+  const cat = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese';
+  return `BMI = ${weightKg}kg / ${heightM}m² = ${bmi.toFixed(1)} (${cat})`;
+}
+export function caloriesBurned(activity: string, minutes: number, weightKg: number = 70): string {
+  const mets: Record<string, number> = { walking: 3.5, running: 8, cycling: 6, swimming: 7, yoga: 2.5, lifting: 5, hiking: 6, dancing: 5, stretching: 2.3 };
+  const met = mets[activity.toLowerCase()] || 4;
+  const cal = met * weightKg * minutes / 60;
+  return `${activity} for ${minutes}min (${weightKg}kg): ~${Math.round(cal)} calories`;
+}
+export function wavelengthCalc(speed: number, frequency: number): string {
+  return `λ = ${speed} / ${frequency} = ${(speed / frequency).toFixed(6)}`;
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

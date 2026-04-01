@@ -3241,6 +3241,73 @@ Format in clean HTML with tables if needed.` }]
     case 'burn_rate_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.burnRate(n[0]||0,n[1]||1)); break; }
     case 'revenue_forecast': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.revenueForecast(n[0]||0,n[1]||10,n[2]||12)); break; }
 
+    // ── Trigonometry ──
+    case 'sin': case 'cos': case 'tan': case 'asin': case 'acos': case 'atan': {
+      const v = action.value || 0;
+      const fns: Record<string, (n: number) => number> = { sin: controller.mathSin, cos: controller.mathCos, tan: controller.mathTan, asin: controller.mathAsin, acos: controller.mathAcos, atan: controller.mathAtan };
+      const r = fns[action.type](v);
+      addToHistory('system', `${action.type}(${v}) = ${r.toFixed(6)}`); break;
+    }
+    case 'degrees_to_radians': { addToHistory('system', `${action.value}° = ${controller.degreesToRadians(action.value||0).toFixed(6)} rad`); break; }
+    case 'radians_to_degrees': { addToHistory('system', `${action.value} rad = ${controller.radiansToDegrees(action.value||0).toFixed(4)}°`); break; }
+    case 'law_of_cosines': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.lawOfCosines(n[0]||0,n[1]||0,n[2]||0)); break; }
+    case 'law_of_sines': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.lawOfSines(n[0]||0,n[1]||0,n[2]||0)); break; }
+
+    // ── Algebra ──
+    case 'solve_linear': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.solveLinear(n[0]||0,n[1]||0)); break; }
+    case 'solve_quadratic': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.solveQuadratic(n[0]||1,n[1]||0,n[2]||0)); break; }
+    case 'solve_system': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.solveSystem(n[0]||0,n[1]||0,n[2]||0,n[3]||0,n[4]||0,n[5]||0)); break; }
+    case 'simplify_fraction': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.simplifyFraction(n[0]||0,n[1]||1)); break; }
+    case 'logarithm': { addToHistory('system', `log_${action.count||10}(${action.value}) = ${controller.mathLog(action.value||1, action.count||10).toFixed(6)}`); break; }
+    case 'natural_log': { addToHistory('system', `ln(${action.value}) = ${controller.mathLn(action.value||1).toFixed(6)}`); break; }
+    case 'exponential': { addToHistory('system', `e^${action.value} = ${controller.mathExp(action.value||0).toFixed(6)}`); break; }
+
+    // ── Number Theory ──
+    case 'prime_factors': { addToHistory('system', `Prime factors of ${action.value}: ${controller.primeFactors(action.value||0).join(' × ')}`); break; }
+    case 'is_even': { addToHistory('system', `${action.value} is ${controller.isEven(action.value||0) ? 'even' : 'odd'}`); break; }
+    case 'is_odd': { addToHistory('system', `${action.value} is ${controller.isOdd(action.value||0) ? 'odd' : 'even'}`); break; }
+    case 'binary_convert': { addToHistory('system', action.text ? `Binary ${action.text} = ${controller.binaryToDecimal(action.text)}` : `${action.value} = ${controller.decimalToBinary(action.value||0)} binary`); break; }
+    case 'hex_convert': { addToHistory('system', action.text ? `Hex ${action.text} = ${controller.hexToDecimal(action.text)}` : `${action.value} = 0x${controller.decimalToHex(action.value||0)}`); break; }
+    case 'octal_convert': { addToHistory('system', action.text ? `Octal ${action.text} = ${controller.octalToDecimal(action.text)}` : `${action.value} = ${controller.decimalToOctal(action.value||0)} octal`); break; }
+    case 'roman_numeral': { addToHistory('system', action.text ? `${action.text} = ${controller.fromRomanNumeral(action.text)}` : `${action.value} = ${controller.toRomanNumeral(action.value||0)}`); break; }
+
+    // ── Advanced Financial ──
+    case 'depreciation_straight': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.depreciationStraight(n[0]||0,n[1]||0,n[2]||1)); break; }
+    case 'depreciation_declining': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.depreciationDeclining(n[0]||0,n[1]||20,n[2]||5)); break; }
+    case 'bond_price': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.bondPrice(n[0]||1000,n[1]||0.05,n[2]||0.06,n[3]||10)); break; }
+    case 'dividend_yield': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.dividendYield(n[0]||0,n[1]||1)); break; }
+    case 'pe_ratio': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.peRatio(n[0]||0,n[1]||1)); break; }
+    case 'market_cap': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.marketCap(n[0]||0,n[1]||0)); break; }
+    case 'gross_margin': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.grossMargin(n[0]||0,n[1]||0)); break; }
+    case 'operating_margin': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.operatingMargin(n[0]||0,n[1]||1)); break; }
+    case 'quick_ratio_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.quickRatio(n[0]||0,n[1]||0,n[2]||1)); break; }
+    case 'working_capital': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.workingCapital(n[0]||0,n[1]||0)); break; }
+
+    // ── Date Math ──
+    case 'days_between': { addToHistory('system', `${controller.daysBetween(action.text||'', action.target||'')} days`); break; }
+    case 'add_days': { addToHistory('system', controller.addDays(action.text||new Date().toISOString(), action.value||0)); break; }
+    case 'business_days': { addToHistory('system', `${controller.businessDays(action.text||'', action.target||'')} business days`); break; }
+    case 'age_calculator': { addToHistory('system', controller.ageCalculator(action.target||'')); break; }
+    case 'day_of_week': { addToHistory('system', controller.dayOfWeek(action.target||'')); break; }
+    case 'quarter_of_year': { addToHistory('system', `Q${controller.quarterOfYear(action.target||new Date().toISOString())}`); break; }
+    case 'leap_year_check': { addToHistory('system', `${action.value} is ${controller.isLeapYear(action.value||2024) ? '' : 'not '}a leap year`); break; }
+
+    // ── Physics ──
+    case 'speed_distance_time': {
+      const n=(action.text||'').split(',').map(Number);
+      addToHistory('system', controller.speedDistanceTime({ speed: n[0]||undefined, distance: n[1]||undefined, time: n[2]||undefined })); break;
+    }
+    case 'force_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.force(n[0]||0,n[1]||0)); break; }
+    case 'kinetic_energy': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.kineticEnergy(n[0]||0,n[1]||0)); break; }
+    case 'potential_energy': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.potentialEnergy(n[0]||0,n[1]||0)); break; }
+    case 'ohms_law': {
+      const n=(action.text||'').split(',').map(Number);
+      addToHistory('system', controller.ohmsLaw({ v: n[0]||undefined, i: n[1]||undefined, r: n[2]||undefined })); break;
+    }
+    case 'bmi_calculator': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.bmiCalculator(n[0]||70,n[1]||1.75)); break; }
+    case 'calories_burned': { addToHistory('system', controller.caloriesBurned(action.target||'walking', action.value||30, action.count||70)); break; }
+    case 'wavelength_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.wavelengthCalc(n[0]||0,n[1]||1)); break; }
+
     default: {
       console.log('[Action] Unknown action type:', action.type);
     }
