@@ -48,18 +48,14 @@ export interface ScreenAnalysis {
 export async function captureScreen(): Promise<Buffer> {
   // Use macOS screencapture CLI — doesn't trigger the Electron screen recording popup
   if (process.platform === 'darwin') {
-    try {
-      const tmpFile = path.join(os.tmpdir(), `isibi-screenshot-${Date.now()}.png`);
-      execSync(`screencapture -x -C ${tmpFile}`, { timeout: 5000 });
-      const buffer = fs.readFileSync(tmpFile);
-      try { fs.unlinkSync(tmpFile); } catch {}
-      return buffer;
-    } catch (e) {
-      console.log('[Vision] screencapture failed, falling back to desktopCapturer');
-    }
+    const tmpFile = path.join(os.tmpdir(), `isibi-screenshot-${Date.now()}.png`);
+    execSync(`screencapture -x -C ${tmpFile}`, { timeout: 5000 });
+    const buffer = fs.readFileSync(tmpFile);
+    try { fs.unlinkSync(tmpFile); } catch {}
+    return buffer;
   }
 
-  // Fallback: Electron desktopCapturer (may trigger popup on unsigned apps)
+  // Windows/Linux fallback: use Electron desktopCapturer
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
     thumbnailSize: {
@@ -67,10 +63,8 @@ export async function captureScreen(): Promise<Buffer> {
       height: screen.getPrimaryDisplay().workAreaSize.height,
     },
   });
-
   if (sources.length === 0) throw new Error('No screen source available');
-  const source = sources[0];
-  return source.thumbnail.toPNG();
+  return sources[0].thumbnail.toPNG();
 }
 
 export async function captureScreenBase64(): Promise<string> {

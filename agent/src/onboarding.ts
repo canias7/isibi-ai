@@ -5,7 +5,7 @@
  * No API key needed — bundled with the app.
  */
 
-import { BrowserWindow, ipcMain, shell, systemPreferences, desktopCapturer, session } from 'electron';
+import { BrowserWindow, ipcMain, shell, systemPreferences, session } from 'electron';
 import { saveConfig } from './config';
 
 let onboardingWindow: BrowserWindow | null = null;
