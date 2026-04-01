@@ -1210,7 +1210,7 @@ export function getDiskSpace(): string {
   try {
     const output = execSync(`df -h / | tail -1`, { encoding: 'utf-8', timeout: 3000 });
     const parts = output.trim().split(/\s+/);
-    return `Total: ${parts[1]}, Used: ${parts[2]}, Free: ${parts[3]}, ${parts[4]} used`;
+    return `Total: ${parts[1]}, Used: ${parts[2]}, Available: ${parts[3]} free, ${parts[4]} used`;
   } catch { return 'Unknown'; }
 }
 

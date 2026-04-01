@@ -1330,28 +1330,28 @@ svg { display: block; }
 /* ── Sidebar Tabs ── */
 .sidebar-tabs {
   display: flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 0 8px;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0 12px;
   margin-bottom: 8px;
 }
 .sidebar-tab {
-  flex: 1;
-  min-width: 0;
-  padding: 5px 2px;
-  border-radius: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
   border: none;
   background: transparent;
   color: rgba(226,232,240,0.55);
-  font-size: 9px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   transition: .15s;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
+  justify-content: flex-start;
+  gap: 8px;
   white-space: nowrap;
+  text-align: left;
 }
 .sidebar-tab:hover { background: rgba(255,255,255,0.03); color: rgba(226,232,240,0.65); }
 .sidebar-tab.active { background: rgba(236,72,153,0.08); color: #f9a8d4; }
@@ -1682,32 +1682,6 @@ svg { display: block; }
         New Agent
       </button>
     </div>
-    <div class="sidebar-tabs">
-      <button class="sidebar-tab active" id="tabChat" onclick="switchView('chat')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-        Chat
-      </button>
-      <button class="sidebar-tab" id="tabCC" onclick="switchView('cc')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        Control Center
-      </button>
-      <button class="sidebar-tab" id="tabVoices" onclick="switchView('voices')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-        Voices
-      </button>
-      <button class="sidebar-tab" id="tabScheduled" onclick="switchView('scheduled')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-        Scheduled
-      </button>
-      <button class="sidebar-tab" id="tabUsage" onclick="switchView('usage')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
-        Usage
-      </button>
-      <button class="sidebar-tab" id="tabHistory" onclick="switchView('history')">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-2-2-4 4"/></svg>
-        History
-      </button>
-    </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Agents</div>
     </div>
@@ -1715,6 +1689,32 @@ svg { display: block; }
     <div class="add-agent-btn" onclick="openCreateAgent()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       Add Agent
+    </div>
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" id="tabChat" onclick="switchView('chat')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        Chat
+      </button>
+      <button class="sidebar-tab" id="tabCC" onclick="switchView('cc')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Control Center
+      </button>
+      <button class="sidebar-tab" id="tabVoices" onclick="switchView('voices')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        My Voices
+      </button>
+      <button class="sidebar-tab" id="tabScheduled" onclick="switchView('scheduled')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Scheduled
+      </button>
+      <button class="sidebar-tab" id="tabUsage" onclick="switchView('usage')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+        Usage
+      </button>
+      <button class="sidebar-tab" id="tabHistory" onclick="switchView('history')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-2-2-4 4"/></svg>
+        History
+      </button>
     </div>
     <div class="sidebar-bottom">
       <div class="settings-row" onclick="toggleSettings()">
@@ -1784,12 +1784,12 @@ svg { display: block; }
           </div>
           <div style="margin-top:24px;display:flex;flex-direction:column;gap:8px;max-width:400px">
             <div style="font-size:11px;font-weight:600;color:rgba(226,232,240,0.4);text-transform:uppercase;letter-spacing:1px">Quick Tips</div>
-            <div style="font-size:12px;color:rgba(226,232,240,0.45);line-height:1.6">
-              \\ud83c\\udfaf <strong style="color:rgba(226,232,240,0.6)">Create agents</strong> for different tasks — YouTube bot, email manager, etc.<br>
-              \\ud83c\\udf99 Press <strong style="color:rgba(226,232,240,0.6)">F9</strong> to use voice commands<br>
-              \\u23f0 Use the <strong style="color:rgba(226,232,240,0.6)">Scheduled</strong> tab to run tasks automatically<br>
-              \\ud83c\\udfa8 Say "generate an image of..." for <strong style="color:rgba(226,232,240,0.6)">AI image creation</strong><br>
-              \\ud83d\\udcde Set up the <strong style="color:rgba(226,232,240,0.6)">AI Call Handler</strong> to answer phone calls for you
+            <div style="font-size:12px;color:rgba(226,232,240,0.45);line-height:1.8">
+              &#127919; <strong style="color:rgba(226,232,240,0.6)">Create agents</strong> for different tasks — YouTube bot, email manager, etc.<br>
+              &#127897; Press <strong style="color:rgba(226,232,240,0.6)">F9</strong> to use voice commands<br>
+              &#9200; Use the <strong style="color:rgba(226,232,240,0.6)">Scheduled</strong> tab to run tasks automatically<br>
+              &#127912; Say "generate an image of..." for <strong style="color:rgba(226,232,240,0.6)">AI image creation</strong><br>
+              &#128222; Set up the <strong style="color:rgba(226,232,240,0.6)">AI Call Handler</strong> to answer phone calls for you
             </div>
           </div>
         </div>
