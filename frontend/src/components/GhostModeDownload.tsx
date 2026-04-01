@@ -1,12 +1,11 @@
 import { Monitor, Apple, Terminal, Download, Mic, Eye, MousePointer } from "lucide-react";
 
-const GITHUB_RELEASE_BASE =
-  "https://github.com/canias7/isibi-ai/releases/latest/download";
+const API_BASE = "https://isibi-backend.onrender.com/api";
 
 const DOWNLOAD_LINKS = {
-  mac: `${GITHUB_RELEASE_BASE}/ISIBI-Ghost-Mode-macOS.zip`,
-  win: `${GITHUB_RELEASE_BASE}/ISIBI-Ghost-Mode-Setup.exe`,
-  linux: `${GITHUB_RELEASE_BASE}/ISIBI-Ghost-Mode.AppImage`,
+  mac: `${API_BASE}/ghost-mode/download/mac`,
+  win: `${API_BASE}/ghost-mode/download/win`,
+  linux: `${API_BASE}/ghost-mode/download/linux`,
 } as const;
 
 const PLATFORMS = [
