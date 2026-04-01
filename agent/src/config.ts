@@ -67,6 +67,7 @@ export interface GhostModeConfig {
   selectedVoiceId: string;
   agents: AgentProfileData[];
   schedules: ScheduledTask[];
+  openaiApiKey: string;
   credits: number;
   creditsUsed: number;
   plan: string;
@@ -84,6 +85,7 @@ const DEFAULTS: GhostModeConfig = {
   selectedVoiceId: '',
   agents: [],
   schedules: [],
+  openaiApiKey: '',
   credits: 1000,
   creditsUsed: 0,
   plan: 'free',
@@ -123,6 +125,7 @@ export function isFirstRun(): boolean {
 // Bundled keys — customers don't need to provide their own
 const BUNDLED_KEY = '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';
 const BUNDLED_ELEVEN_KEY = 'sk_66d8a0471797c1ab6cae2db1913df95f08749e1c9bef2489';
+const BUNDLED_OPENAI_KEY = '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';
 
 export function getAssistantName(): string {
   return loadConfig().assistantName || 'Isibi';
@@ -134,6 +137,11 @@ export function getWakeWord(): string {
 
 export function getLanguage(): string {
   return loadConfig().language || '';
+}
+
+export function getOpenAIKey(): string {
+  const key = loadConfig().openaiApiKey;
+  return key || BUNDLED_OPENAI_KEY;
 }
 
 export function getElevenLabsKey(): string {

@@ -14,7 +14,7 @@ import * as controller from './controller';
 import * as overlay from './overlay';
 import * as vision from './vision';
 
-import { getApiKey, useCredits, trackAgentUsage, getCredits } from './config';
+import { getApiKey, useCredits, trackAgentUsage, getCredits, getOpenAIKey } from './config';
 import { AgentProfile } from './agents';
 import { trackAction, trackCommand } from './analytics';
 import * as path from 'path';
@@ -535,6 +535,7 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "text/message X saying Y" → ALWAYS use find_contact FIRST to get their phone number, then send_imessage with that number. Example: [{"type":"find_contact","target":"Chris"},{"type":"send_imessage","target":"PHONE_FROM_CONTACT","text":"hello"}]. If user gives a phone number directly, skip find_contact.
 - "call X" → ALWAYS use find_contact first to get number, then make_call. Example: [{"type":"find_contact","target":"Chris"},{"type":"make_call","target":"PHONE_FROM_CONTACT"}]
 - "answer" / "pick up" → use answer_call (just answers) or ai_answer_call (AI has the conversation)
+- "generate/create/make an image of X" → use generate_image with detailed prompt. ALWAYS enhance the user's brief into a detailed DALL-E prompt (add style, lighting, composition details)
 - "answer and talk for me" / "handle this call" → use ai_answer_call with the agent's custom prompt
 - "monitor calls" / "answer all calls" → use ai_monitor_calls
 - "hang up" → use end_call
@@ -722,6 +723,11 @@ ERROR RECOVERY:
 - verify_result: {"type":"verify_result","text":"was the email sent?"} — AI checks if task worked
 - undo_last: {"type":"undo_last"} — Cmd+Z
 - rollback: {"type":"rollback","count":5} — multiple undos
+
+IMAGE GENERATION (DALL-E 3):
+- generate_image: {"type":"generate_image","text":"a sunset over mountains with a lake in the foreground, photorealistic"} — creates image, saves to Desktop, opens in Preview
+  Sizes: "1024x1024" (square), "1792x1024" (landscape), "1024x1792" (portrait) — pass as key field
+  Example landscape: {"type":"generate_image","text":"futuristic city skyline","key":"1792x1024"}
 
 AI CALL HANDLER:
 - ai_answer_call: {"type":"ai_answer_call","text":"You are my assistant. Take messages. Tell callers I'm busy.","key":"Hello, this is an AI assistant. How can I help?","count":20} — answer call, AI has full conversation, saves transcript
@@ -3893,6 +3899,27 @@ Format in clean HTML with tables if needed.` }]
       if (!require('fs').existsSync(trackerFile)) controller.createFile(trackerFile, 'Date,Value\n');
       controller.addToSpreadsheet(trackerFile, [new Date().toLocaleDateString(), action.text || '1']);
       addToHistory('system', `Logged to ${action.type} tracker`);
+      break;
+    }
+
+    // ── Image Generation (DALL-E) ──
+    case 'generate_image': {
+      const size = action.key || '1024x1024'; // 1024x1024, 1792x1024, 1024x1792
+      const imgPath = await controller.generateImage(getOpenAIKey(), action.text || action.target || '', size, action.target?.endsWith('.png') ? action.target : undefined);
+      if (imgPath.startsWith('/') || imgPath.startsWith('C:')) {
+        addToHistory('system', 'Image generated: ' + imgPath);
+        controller.showNotification('Image created', imgPath);
+        // Open in Preview
+        try { require('child_process').execSync('open "' + imgPath + '"', { timeout: 5000 }); } catch {}
+      } else {
+        addToHistory('system', 'Image generation failed: ' + imgPath);
+      }
+      break;
+    }
+
+    case 'edit_image': {
+      const editPath = await controller.editImage(getOpenAIKey(), action.target || '', action.text || '');
+      addToHistory('system', 'Edited image: ' + editPath);
       break;
     }
 

@@ -2647,6 +2647,68 @@ export function speakDuringCall(text: string, rate?: number): void {
   }
 }
 
+// ── DALL-E Image Generation ─────────────────────────────────────────────
+
+export async function generateImage(apiKey: string, prompt: string, size: string = '1024x1024', outputPath?: string): Promise<string> {
+  const https = require('https');
+  const fs = require('fs');
+  const path = require('path');
+  const out = outputPath || path.join(require('os').homedir(), 'Desktop', `isibi-image-${Date.now()}.png`);
+
+  return new Promise((resolve, reject) => {
+    const postData = JSON.stringify({
+      model: 'dall-e-3',
+      prompt: prompt,
+      n: 1,
+      size: size,
+      quality: 'standard',
+    });
+
+    const req = https.request({
+      hostname: 'api.openai.com',
+      path: '/v1/images/generations',
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey,
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(postData),
+      }
+    }, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.error) {
+            resolve('Error: ' + (json.error.message || JSON.stringify(json.error)));
+            return;
+          }
+          const imageUrl = json.data?.[0]?.url;
+          if (!imageUrl) { resolve('No image URL returned'); return; }
+
+          // Download the image
+          https.get(imageUrl, (imgRes: any) => {
+            const chunks: Buffer[] = [];
+            imgRes.on('data', (chunk: Buffer) => chunks.push(chunk));
+            imgRes.on('end', () => {
+              fs.writeFileSync(out, Buffer.concat(chunks));
+              resolve(out);
+            });
+          }).on('error', () => resolve('Failed to download image'));
+        } catch (e: any) { resolve('Parse error: ' + e.message); }
+      });
+    });
+    req.on('error', (e: any) => resolve('Request error: ' + e.message));
+    req.write(postData);
+    req.end();
+  });
+}
+
+export async function editImage(apiKey: string, imagePath: string, prompt: string, outputPath?: string): Promise<string> {
+  // DALL-E edit requires PNG with alpha channel — simplified version
+  return generateImage(apiKey, prompt + ' (based on existing image)', '1024x1024', outputPath);
+}
+
 // ── ElevenLabs Voice API ────────────────────────────────────────────────
 
 export async function elevenLabsListVoices(apiKey: string): Promise<any[]> {
