@@ -3649,6 +3649,335 @@ Format in clean HTML with tables if needed.` }]
     case 'standard_error': { const n=(action.text||'').split(',').map(Number); addToHistory('system', `SE = ${controller.standardError(n[0]||1,n[1]||30).toFixed(4)}`); break; }
     case 'confidence_interval': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.confidenceInterval(n[0]||0,n[1]||1,n[2]||30,n[3]||0.95)); break; }
 
+    // ── Smart Workflows (1-20) — AI-driven, use complete_task ──
+    case 'apply_to_job': case 'book_restaurant': case 'order_food':
+    case 'pay_bill': case 'check_bank_balance': case 'transfer_money':
+    case 'file_expense_report': case 'auto_format_resume':
+    case 'linkedin_connect': case 'linkedin_apply':
+    case 'update_all_passwords': case 'check_for_updates': {
+      await executeAction({ type: 'complete_task', text: action.type.replace(/_/g, ' ') + ': ' + (action.text || action.target || ''), description: action.description }, index);
+      break;
+    }
+    case 'compare_products': {
+      if (action.text) {
+        const [url1, url2] = action.text.split(',').map((u: string) => u.trim());
+        const page1 = await controller.fetchWebpage(url1);
+        const page2 = await controller.fetchWebpage(url2);
+        const cApi = (await import('./config')).getApiKey();
+        const cClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: cApi });
+        const cResp = await cClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+          messages: [{ role: 'user', content: `Compare these two products:\n\nProduct 1:\n${page1.slice(0,2000)}\n\nProduct 2:\n${page2.slice(0,2000)}\n\nSummarize key differences: price, features, ratings.` }] });
+        addToHistory('system', 'Comparison: ' + (cResp.content[0].type === 'text' ? cResp.content[0].text : ''));
+      }
+      break;
+    }
+    case 'create_presentation_from_doc': {
+      const docContent = controller.readFile(action.target || '');
+      const cApi2 = (await import('./config')).getApiKey();
+      const cClient2 = new (await import('@anthropic-ai/sdk')).default({ apiKey: cApi2 });
+      const cResp2 = await cClient2.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 2048,
+        messages: [{ role: 'user', content: `Convert this document into presentation slides. For each slide, give a title and 3-5 bullet points:\n\n${docContent.slice(0,4000)}` }] });
+      addToHistory('system', 'Slides: ' + (cResp2.content[0].type === 'text' ? cResp2.content[0].text : ''));
+      break;
+    }
+    case 'clear_all_notifications': {
+      if (process.platform === 'darwin') {
+        try { require('child_process').execSync(`osascript -e 'tell application "System Events" to tell process "NotificationCenter" to click button 1 of every window'`, { timeout: 5000 }); } catch {}
+      }
+      break;
+    }
+    case 'close_all_apps': {
+      const running = controller.listRunningApps().filter(a => a !== 'Finder' && a !== 'ISIBI Ghost Mode');
+      for (const app of running) { try { controller.killApp(app); } catch {} }
+      controller.showNotification('Done', `Closed ${running.length} apps`);
+      break;
+    }
+    case 'restart_wifi': {
+      controller.toggleWifi(false);
+      await controller.sleep(2000);
+      controller.toggleWifi(true);
+      controller.showNotification('WiFi', 'Restarted');
+      break;
+    }
+    case 'clear_ram': {
+      try { require('child_process').execSync('sudo purge 2>/dev/null || purge', { timeout: 10000 }); } catch {}
+      controller.showNotification('RAM', 'Memory purged');
+      break;
+    }
+    case 'optimize_storage': {
+      const large = controller.findLargeFiles(undefined, 50);
+      const disk = controller.getDiskSpace();
+      addToHistory('system', `Storage: ${disk}\nLarge files:\n${large.slice(0, 10).join('\n')}`);
+      break;
+    }
+
+    // ── Content Extraction (21-35) ──
+    case 'read_webpage_aloud': {
+      const pageText2 = await controller.fetchWebpage(action.target || '');
+      const sumApi = (await import('./config')).getApiKey();
+      const sumClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: sumApi });
+      const sumResp = await sumClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 512,
+        messages: [{ role: 'user', content: `Summarize this in 2-3 sentences for reading aloud:\n${pageText2.slice(0,3000)}` }] });
+      const summary2 = sumResp.content[0].type === 'text' ? sumResp.content[0].text : '';
+      const { getElevenLabsKey: gEL, getSelectedVoiceId: gSV } = await import('./config');
+      if (gSV()) await controller.elevenLabsSpeak(gEL(), gSV(), summary2);
+      else controller.speak(summary2);
+      break;
+    }
+    case 'screen_to_text': {
+      const scrAnalysis = await vision.analyzeScreen('Read ALL text visible on screen. Return only the text, nothing else.');
+      controller.writeClipboard(scrAnalysis.description);
+      addToHistory('system', 'Screen text copied to clipboard');
+      break;
+    }
+    case 'pdf_to_spreadsheet': {
+      const pdfText2 = controller.readPdf(action.target || '');
+      const csvOut = action.text || (action.target || '').replace(/\.pdf$/i, '.csv');
+      controller.createFile(csvOut, pdfText2);
+      addToHistory('system', 'PDF extracted to: ' + csvOut);
+      break;
+    }
+    case 'image_to_text': {
+      await executeAction({ type: 'analyze_image', target: action.target, text: 'Extract ALL text from this image. Return only the text.', description: 'OCR' }, index);
+      break;
+    }
+    case 'receipt_to_csv': case 'business_card_scan': case 'extract_invoice_data': {
+      const imgBuf2 = controller.analyzeImageFile(action.target || '');
+      if (imgBuf2) {
+        const ocrApi = (await import('./config')).getApiKey();
+        const ocrClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: ocrApi });
+        const prompts2: Record<string, string> = {
+          receipt_to_csv: 'Read this receipt. Extract items, quantities, prices. Return as CSV: Item,Qty,Price',
+          business_card_scan: 'Read this business card. Extract: Name, Title, Company, Phone, Email, Address',
+          extract_invoice_data: 'Read this invoice. Extract: Vendor, Invoice#, Date, Items, Total. Return as CSV',
+        };
+        const ocrResp = await ocrClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg' as any, data: imgBuf2.toString('base64') } },
+            { type: 'text', text: prompts2[action.type] || 'Extract all data' }
+          ]}] });
+        const extracted2 = ocrResp.content[0].type === 'text' ? ocrResp.content[0].text : '';
+        addToHistory('system', extracted2);
+        if (action.text) controller.createFile(action.text, extracted2);
+      }
+      break;
+    }
+    case 'screenshot_to_pdf': {
+      const ssPath = path.join(os.tmpdir(), `ss-${Date.now()}.png`);
+      require('child_process').execSync(`screencapture -x ${ssPath}`, { timeout: 5000 });
+      const pdfOut = action.target || path.join(os.homedir(), 'Desktop', `screenshot-${Date.now()}.pdf`);
+      controller.createPdf(`<img src="file://${ssPath}" style="max-width:100%">`, pdfOut);
+      break;
+    }
+    case 'webpage_to_pdf': {
+      const htmlContent = await controller.fetchWebpage(action.target || '');
+      const wpPdfOut = action.text || path.join(os.homedir(), 'Desktop', `page-${Date.now()}.pdf`);
+      controller.createPdf(htmlContent.slice(0, 10000), wpPdfOut);
+      break;
+    }
+    case 'summarize_pdf': {
+      const pdfContent = controller.readPdf(action.target || '');
+      const spApi = (await import('./config')).getApiKey();
+      const spClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: spApi });
+      const spResp = await spClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Summarize this PDF in bullet points:\n${pdfContent.slice(0,4000)}` }] });
+      addToHistory('system', 'PDF Summary: ' + (spResp.content[0].type === 'text' ? spResp.content[0].text : ''));
+      break;
+    }
+    case 'transcribe_audio': {
+      // Use macOS speech recognition on audio file
+      addToHistory('system', 'Audio transcription requires playing the file while SpeechRecognition listens. Use ai_answer_call pattern for this.');
+      break;
+    }
+    case 'extract_addresses': { addToHistory('system', 'Addresses: ' + controller.extractAddresses(action.text || '').join(' | ')); break; }
+    case 'extract_dates_text': { addToHistory('system', 'Dates: ' + controller.extractDates(action.text || '').join(' | ')); break; }
+    case 'extract_numbers_text': { addToHistory('system', 'Numbers: ' + controller.extractNumbers(action.text || '').join(' | ')); break; }
+    case 'extract_names_text': { addToHistory('system', 'Names: ' + controller.extractNames(action.text || '').join(' | ')); break; }
+
+    // ── Communication Automation (36-50) ──
+    case 'cold_email': case 'thank_you_email': case 'newsletter_draft':
+    case 'complaint_email': case 'recommendation_letter': {
+      const ceApi2 = (await import('./config')).getApiKey();
+      const ceClient2 = new (await import('@anthropic-ai/sdk')).default({ apiKey: ceApi2 });
+      const emailPrompts: Record<string, string> = {
+        cold_email: 'Write a professional cold outreach email',
+        thank_you_email: 'Write a thank you email after a meeting',
+        newsletter_draft: 'Write a newsletter',
+        complaint_email: 'Write a professional complaint/dispute email',
+        recommendation_letter: 'Write a recommendation letter',
+      };
+      const ceResp2 = await ceClient2.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `${emailPrompts[action.type]}. Context: ${action.text || ''}. Return ONLY the email body.` }] });
+      const emailBody2 = ceResp2.content[0].type === 'text' ? ceResp2.content[0].text : '';
+      addToHistory('system', action.type + ': ' + emailBody2.slice(0, 500));
+      controller.writeClipboard(emailBody2);
+      controller.showNotification('Email drafted', 'Copied to clipboard');
+      break;
+    }
+    case 'meeting_recap_email': {
+      const recapScreen = await vision.analyzeScreen('Read any meeting notes or content visible on screen.');
+      const mrApi = (await import('./config')).getApiKey();
+      const mrClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: mrApi });
+      const mrResp = await mrClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Write a professional meeting recap email from these notes:\n${recapScreen.description}\n\nAttendees: ${action.text || 'team'}` }] });
+      addToHistory('system', 'Recap: ' + (mrResp.content[0].type === 'text' ? mrResp.content[0].text : ''));
+      break;
+    }
+    case 'birthday_message': {
+      const contact2 = controller.findContact(action.target || '');
+      if (contact2) {
+        const msg = `Happy Birthday ${contact2.name}! Wishing you an amazing day! 🎂🎉`;
+        if (contact2.phone) controller.sendIMessage(contact2.phone, action.text || msg);
+        controller.showNotification('Birthday wish sent', contact2.name);
+      }
+      break;
+    }
+    case 'out_of_office': {
+      await executeAction({ type: 'complete_task', text: 'Set up out of office auto-reply in Mail: ' + (action.text || 'I am currently out of office'), description: 'Setting OOO' }, index);
+      break;
+    }
+    case 'follow_up_sequence': case 'email_signature': case 'social_dm':
+    case 'respond_to_review': case 'invitation_create': case 'rsvp_respond': case 'contact_merge': {
+      await executeAction({ type: 'complete_task', text: action.type.replace(/_/g, ' ') + ': ' + (action.text || action.target || ''), description: action.description }, index);
+      break;
+    }
+
+    // ── Data Intelligence (51-65) ──
+    case 'analyze_csv': {
+      const csvData = controller.readFile(action.target || '');
+      const acApi = (await import('./config')).getApiKey();
+      const acClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: acApi });
+      const acResp = await acClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Analyze this CSV data. Provide key insights, patterns, and recommendations:\n${csvData.slice(0,4000)}` }] });
+      addToHistory('system', 'Analysis: ' + (acResp.content[0].type === 'text' ? acResp.content[0].text : ''));
+      break;
+    }
+    case 'predict_trend': {
+      const data2 = (action.text || '').split(',').map(Number).filter(n => !isNaN(n));
+      const predictions = controller.predictTrend(data2, action.count || 3);
+      addToHistory('system', `Data: ${data2.join(',')} → Predicted: ${predictions.join(',')}`);
+      break;
+    }
+    case 'anomaly_detect': {
+      const data3 = (action.text || '').split(',').map(Number).filter(n => !isNaN(n));
+      const anomalies = controller.anomalyDetect(data3);
+      addToHistory('system', `Outliers: ${anomalies.outliers.join(',')} at indices ${anomalies.indices.join(',')}`);
+      break;
+    }
+    case 'sentiment_analysis': case 'keyword_extract': case 'categorize_data':
+    case 'swot_analysis': case 'risk_assessment': case 'market_research':
+    case 'competitor_check': case 'score_leads': case 'survey_analyze': {
+      const saApi = (await import('./config')).getApiKey();
+      const saClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: saApi });
+      const saPrompts: Record<string, string> = {
+        sentiment_analysis: 'Analyze the sentiment (positive/negative/neutral) and give a score:',
+        keyword_extract: 'Extract the most important keywords and phrases:',
+        categorize_data: 'Categorize each item in this list:',
+        swot_analysis: 'Generate a SWOT analysis (Strengths, Weaknesses, Opportunities, Threats):',
+        risk_assessment: 'Evaluate the risks of this decision/plan:',
+        market_research: 'Compile market research and insights about:',
+        competitor_check: 'Analyze this competitor and summarize their offerings:',
+        score_leads: 'Score these leads from 1-10 based on quality:',
+        survey_analyze: 'Analyze these survey responses and summarize findings:',
+      };
+      const saResp = await saClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `${saPrompts[action.type]}\n\n${action.text || action.target || ''}` }] });
+      addToHistory('system', action.type + ': ' + (saResp.content[0].type === 'text' ? saResp.content[0].text : ''));
+      break;
+    }
+    case 'ab_test_calculator': {
+      const n2 = (action.text || '').split(',').map(Number);
+      addToHistory('system', controller.abTestCalculator(n2[0]||1000, n2[1]||50, n2[2]||1000, n2[3]||65));
+      break;
+    }
+    case 'decision_matrix': {
+      const opts = (action.target || 'A,B,C').split(',');
+      const crit = (action.key || 'Cost,Quality').split(',');
+      const wts = (action.text || '').split('|')[0]?.split(',').map(Number) || [1, 1];
+      const scores2 = (action.text || '').split('|').slice(1).map((r: string) => r.split(',').map(Number));
+      addToHistory('system', 'Decision Matrix:\n' + controller.decisionMatrix(opts, crit, wts, scores2));
+      break;
+    }
+    case 'forecast_model': {
+      const data4 = (action.text || '').split(',').map(Number).filter(n => !isNaN(n));
+      const preds = controller.predictTrend(data4, action.count || 6);
+      addToHistory('system', `Historical: ${data4.join(',')} → Forecast: ${preds.join(',')}`);
+      break;
+    }
+
+    // ── Developer Power (66-80) ──
+    case 'create_api': case 'create_component': case 'write_test':
+    case 'debug_error': case 'explain_code': case 'refactor_code':
+    case 'generate_sql': case 'generate_regex': case 'api_documentation':
+    case 'database_schema': {
+      const devApi = (await import('./config')).getApiKey();
+      const devClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: devApi });
+      const devPrompts: Record<string, string> = {
+        create_api: 'Generate boilerplate API code (Express.js or FastAPI) for:',
+        create_component: 'Generate a React component for:',
+        write_test: 'Write test cases for this function/code:',
+        debug_error: 'Explain this error and suggest a fix:',
+        explain_code: 'Explain what this code does in simple terms:',
+        refactor_code: 'Refactor this code for better readability and performance:',
+        generate_sql: 'Convert this to a SQL query:',
+        generate_regex: 'Generate a regex pattern for:',
+        api_documentation: 'Generate API documentation for:',
+        database_schema: 'Generate a database schema for:',
+      };
+      const devResp = await devClient.messages.create({ model: 'claude-sonnet-4-20250514', max_tokens: 2048,
+        messages: [{ role: 'user', content: `${devPrompts[action.type]}\n\n${action.text || action.target || ''}` }] });
+      const devResult = devResp.content[0].type === 'text' ? devResp.content[0].text : '';
+      addToHistory('system', action.type + ':\n' + devResult);
+      controller.writeClipboard(devResult);
+      break;
+    }
+    case 'deploy_to_vercel': { const r = controller.runTerminalCommand('cd ' + (action.target || '.') + ' && vercel --yes'); addToHistory('system', r); break; }
+    case 'deploy_to_netlify': { const r = controller.runTerminalCommand('cd ' + (action.target || '.') + ' && netlify deploy --prod'); addToHistory('system', r); break; }
+    case 'check_build_status': case 'rollback_deploy': case 'monitor_logs': {
+      await executeAction({ type: 'complete_task', text: action.type.replace(/_/g, ' ') + ': ' + (action.text || action.target || ''), description: action.description }, index);
+      break;
+    }
+
+    // ── Personal Finance (81-90) ──
+    case 'savings_calculator': { const n2=(action.text||'').split(',').map(Number); addToHistory('system', controller.savingsCalculator(n2[0]||10000, n2[1]||12, n2[2]||0)); break; }
+    case 'retirement_calculator': { const n2=(action.text||'').split(',').map(Number); addToHistory('system', controller.retirementCalculator(n2[0]||30, n2[1]||65, n2[2]||10000, n2[3]||500)); break; }
+    case 'tax_bracket': { addToHistory('system', controller.taxBracket(action.value||50000)); break; }
+    case 'paycheck_calculator': { const n2=(action.text||'').split(',').map(Number); addToHistory('system', controller.paycheckCalculator(n2[0]||5000, n2[1]||22, n2[2]||5, n2[3]||7.65)); break; }
+    case 'net_worth_tracker': case 'subscription_audit': case 'mortgage_comparison':
+    case 'side_hustle_tracker': case 'investment_diversification': case 'credit_score_factors': {
+      await executeAction({ type: 'complete_task', text: action.type.replace(/_/g, ' ') + ': ' + (action.text || action.target || ''), description: action.description }, index);
+      break;
+    }
+
+    // ── Everyday Life (91-100) ──
+    case 'random_meal': { const m2 = controller.randomMeal(); addToHistory('system', 'Meal suggestion: ' + m2); controller.showNotification('Meal', m2); break; }
+    case 'random_workout': { const w2 = controller.randomWorkout(); addToHistory('system', 'Workout: ' + w2); controller.showNotification('Workout', w2); break; }
+    case 'random_movie': { const m3 = controller.randomMovie(); addToHistory('system', 'Movie: ' + m3); controller.showNotification('Movie', m3); break; }
+    case 'random_book': { const b2 = controller.randomBook(); addToHistory('system', 'Book: ' + b2); controller.showNotification('Book', b2); break; }
+    case 'daily_quote_action': { const q2 = controller.dailyQuote(); addToHistory('system', q2); controller.showNotification('Quote', q2); break; }
+    case 'sleep_calculator_action': { addToHistory('system', 'Sleep schedule for waking at ' + (action.target || '7:00') + ':\n' + controller.sleepCalculator(action.target || '7:00')); break; }
+    case 'count_down': {
+      const targetDate = new Date(action.target || '').getTime();
+      const diff2 = targetDate - Date.now();
+      if (diff2 > 0) {
+        const d = Math.floor(diff2/86400000); const h = Math.floor((diff2%86400000)/3600000); const m4 = Math.floor((diff2%3600000)/60000);
+        addToHistory('system', `Countdown: ${d}d ${h}h ${m4}m until ${action.target}`);
+      } else { addToHistory('system', 'Date already passed'); }
+      break;
+    }
+    case 'commute_time': {
+      controller.getDirections('current location', action.target || '');
+      break;
+    }
+    case 'habit_streak': case 'water_intake': {
+      // Log to a CSV tracker
+      const trackerFile = path.join(os.homedir(), 'Desktop', action.type + '-tracker.csv');
+      if (!require('fs').existsSync(trackerFile)) controller.createFile(trackerFile, 'Date,Value\n');
+      controller.addToSpreadsheet(trackerFile, [new Date().toLocaleDateString(), action.text || '1']);
+      addToHistory('system', `Logged to ${action.type} tracker`);
+      break;
+    }
+
     default: {
       console.log('[Action] Unknown action type:', action.type);
     }

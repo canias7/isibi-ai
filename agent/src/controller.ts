@@ -3396,6 +3396,180 @@ export function confidenceInterval(mean: number, stdDev: number, n: number, conf
   return `${(confidence*100).toFixed(0)}% CI: ${(mean - margin).toFixed(4)} to ${(mean + margin).toFixed(4)} (margin: ±${margin.toFixed(4)})`;
 }
 
+// ── Content Extraction Helpers ───────────────────────────────────────────
+
+export function extractAddresses(text: string): string[] {
+  return text.match(/\d+\s+[\w\s]+(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Drive|Dr|Lane|Ln|Way|Court|Ct|Place|Pl)[\s,]*(?:[\w\s]+,\s*)?[A-Z]{2}\s*\d{5}(?:-\d{4})?/gi) || [];
+}
+
+export function extractDates(text: string): string[] {
+  const patterns = [
+    /\d{1,2}\/\d{1,2}\/\d{2,4}/g,
+    /\d{4}-\d{2}-\d{2}/g,
+    /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s*\d{4}/gi,
+    /\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{4}/gi,
+  ];
+  const dates: string[] = [];
+  patterns.forEach(p => { const m = text.match(p); if (m) dates.push(...m); });
+  return dates;
+}
+
+export function extractNumbers(text: string): string[] {
+  return text.match(/(?:\$|€|£)?\d[\d,]*\.?\d*/g) || [];
+}
+
+export function extractNames(text: string): string[] {
+  // Simple heuristic: capitalized word pairs
+  return text.match(/[A-Z][a-z]+\s+[A-Z][a-z]+/g) || [];
+}
+
+// ── Personal Finance Helpers ────────────────────────────────────────────
+
+export function savingsCalculator(goal: number, months: number, currentSavings: number = 0, rate: number = 0): string {
+  const remaining = goal - currentSavings;
+  const monthly = remaining / months;
+  return `Goal: \$${goal}, Current: \$${currentSavings}, Need: \$${monthly.toFixed(2)}/mo for ${months} months`;
+}
+
+export function retirementCalculator(currentAge: number, retireAge: number, savings: number, monthlyContrib: number, rate: number = 0.07): string {
+  const years = retireAge - currentAge;
+  let total = savings;
+  for (let y = 0; y < years; y++) total = (total + monthlyContrib * 12) * (1 + rate);
+  return `Age ${currentAge}→${retireAge} (${years}yr), Current: \$${savings}, Contributing: \$${monthlyContrib}/mo at ${(rate*100).toFixed(0)}% → \$${total.toFixed(0)} at retirement`;
+}
+
+export function taxBracket(income: number): string {
+  // 2024 US federal brackets (single filer)
+  const brackets = [
+    { limit: 11600, rate: 10 }, { limit: 47150, rate: 12 }, { limit: 100525, rate: 22 },
+    { limit: 191950, rate: 24 }, { limit: 243725, rate: 32 }, { limit: 609350, rate: 35 }, { limit: Infinity, rate: 37 }
+  ];
+  let tax = 0, prev = 0;
+  for (const b of brackets) {
+    if (income <= b.limit) { tax += (income - prev) * b.rate / 100; break; }
+    tax += (b.limit - prev) * b.rate / 100; prev = b.limit;
+  }
+  const effective = (tax / income * 100).toFixed(1);
+  const marginal = brackets.find(b => income <= b.limit)?.rate || 37;
+  return `Income: \$${income}, Tax: \$${tax.toFixed(2)}, Effective: ${effective}%, Marginal: ${marginal}%`;
+}
+
+export function paycheckCalculator(gross: number, federalRate: number = 22, stateRate: number = 5, fica: number = 7.65): string {
+  const fedTax = gross * federalRate / 100;
+  const stateTax = gross * stateRate / 100;
+  const ficaTax = gross * fica / 100;
+  const net = gross - fedTax - stateTax - ficaTax;
+  return `Gross: \$${gross}, Federal: -\$${fedTax.toFixed(2)}, State: -\$${stateTax.toFixed(2)}, FICA: -\$${ficaTax.toFixed(2)}, Net: \$${net.toFixed(2)}`;
+}
+
+// ── Data Intelligence Helpers ───────────────────────────────────────────
+
+export function predictTrend(data: number[], futurePoints: number = 3): number[] {
+  const n = data.length;
+  if (n < 2) return [];
+  const x = Array.from({ length: n }, (_, i) => i);
+  const mx = x.reduce((a, b) => a + b, 0) / n;
+  const my = data.reduce((a, b) => a + b, 0) / n;
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { num += (x[i] - mx) * (data[i] - my); den += (x[i] - mx) ** 2; }
+  const slope = den ? num / den : 0;
+  const intercept = my - slope * mx;
+  const predictions: number[] = [];
+  for (let i = n; i < n + futurePoints; i++) predictions.push(parseFloat((slope * i + intercept).toFixed(2)));
+  return predictions;
+}
+
+export function anomalyDetect(data: number[]): { outliers: number[]; indices: number[] } {
+  const mean = data.reduce((a, b) => a + b, 0) / data.length;
+  const std = Math.sqrt(data.reduce((sum, v) => sum + (v - mean) ** 2, 0) / data.length);
+  const threshold = 2; // 2 standard deviations
+  const outliers: number[] = [];
+  const indices: number[] = [];
+  data.forEach((v, i) => {
+    if (Math.abs(v - mean) > threshold * std) { outliers.push(v); indices.push(i); }
+  });
+  return { outliers, indices };
+}
+
+export function abTestCalculator(visitorsA: number, conversionsA: number, visitorsB: number, conversionsB: number): string {
+  const rateA = conversionsA / visitorsA;
+  const rateB = conversionsB / visitorsB;
+  const seA = Math.sqrt(rateA * (1 - rateA) / visitorsA);
+  const seB = Math.sqrt(rateB * (1 - rateB) / visitorsB);
+  const z = (rateB - rateA) / Math.sqrt(seA * seA + seB * seB);
+  const significant = Math.abs(z) > 1.96;
+  const winner = rateB > rateA ? 'B' : 'A';
+  const lift = ((rateB - rateA) / rateA * 100).toFixed(1);
+  return `A: ${(rateA*100).toFixed(2)}% (${conversionsA}/${visitorsA}), B: ${(rateB*100).toFixed(2)}% (${conversionsB}/${visitorsB}), Lift: ${lift}%, Z-score: ${z.toFixed(3)}, ${significant ? 'SIGNIFICANT — ' + winner + ' wins' : 'NOT significant yet'}`;
+}
+
+export function decisionMatrix(options: string[], criteria: string[], weights: number[], scores: number[][]): string {
+  const results = options.map((opt, i) => {
+    const weighted = criteria.map((_, j) => (scores[i]?.[j] || 0) * (weights[j] || 1));
+    const total = weighted.reduce((a, b) => a + b, 0);
+    return { option: opt, total: parseFloat(total.toFixed(2)) };
+  });
+  results.sort((a, b) => b.total - a.total);
+  return results.map((r, i) => `${i + 1}. ${r.option}: ${r.total}`).join('\n');
+}
+
+// ── Everyday Life Helpers ───────────────────────────────────────────────
+
+export function sleepCalculator(wakeUpTime: string): string {
+  // Sleep cycles are ~90 min. Ideal: 5-6 cycles (7.5-9 hours)
+  const wake = new Date(`2000-01-02T${wakeUpTime}`);
+  const cycles = [6, 5, 4]; // preferred order
+  return cycles.map(c => {
+    const bedtime = new Date(wake.getTime() - c * 90 * 60000 - 15 * 60000); // 15 min to fall asleep
+    const h = bedtime.getHours(); const m = bedtime.getMinutes();
+    return `${c} cycles (${c * 1.5}hr): sleep at ${h > 12 ? h - 12 : h}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
+  }).join('\n');
+}
+
+export function randomMeal(): string {
+  const meals = ['Pasta Carbonara','Chicken Stir Fry','Tacos','Sushi Bowl','Caesar Salad','Grilled Salmon','Burger & Fries','Pad Thai','Pizza Margherita','Chicken Tikka Masala','Beef Stew','Fish Tacos','Ramen','Burrito Bowl','Greek Salad','BBQ Ribs','Shrimp Scampi','Veggie Curry','Pulled Pork Sandwich','Poke Bowl'];
+  return meals[Math.floor(Math.random() * meals.length)];
+}
+
+export function randomWorkout(): string {
+  const workouts = [
+    '3x12 Push-ups, 3x15 Squats, 3x10 Lunges, 1min Plank x3',
+    '5K Run, 3x20 Crunches, 3x15 Jumping Jacks',
+    '4x10 Dumbbell Press, 3x12 Rows, 3x15 Bicep Curls, 3x12 Tricep Dips',
+    '30min HIIT: 40s on/20s off — Burpees, Mountain Climbers, Jump Squats, High Knees',
+    '3x12 Deadlifts, 3x10 Bench Press, 3x15 Pull-ups, 2min Plank',
+    'Yoga Flow: 45min — Sun Salutations, Warrior Poses, Balance, Cool Down',
+    '20min Jump Rope, 3x15 Sit-ups, 3x20 Russian Twists, 3x15 Leg Raises',
+  ];
+  return workouts[Math.floor(Math.random() * workouts.length)];
+}
+
+export function randomMovie(): string {
+  const movies = ['The Shawshank Redemption','Inception','The Dark Knight','Pulp Fiction','Forrest Gump','The Matrix','Interstellar','Fight Club','The Godfather','Goodfellas','Parasite','Whiplash','The Prestige','Django Unchained','Mad Max Fury Road','Arrival','The Grand Budapest Hotel','No Country for Old Men','Blade Runner 2049','Everything Everywhere All at Once'];
+  return movies[Math.floor(Math.random() * movies.length)];
+}
+
+export function randomBook(): string {
+  const books = ['Atomic Habits','Sapiens','The Psychology of Money','Deep Work','Think and Grow Rich','The 48 Laws of Power','Thinking Fast and Slow','The Lean Startup','Zero to One','The 4-Hour Workweek','Cant Hurt Me','Outliers','Start with Why','Rich Dad Poor Dad','The Almanack of Naval Ravikant','The Art of War','Meditations','How to Win Friends','The Power of Now','Shoe Dog'];
+  return books[Math.floor(Math.random() * books.length)];
+}
+
+export function dailyQuote(): string {
+  const quotes = [
+    '"The only way to do great work is to love what you do." — Steve Jobs',
+    '"Innovation distinguishes between a leader and a follower." — Steve Jobs',
+    '"Stay hungry, stay foolish." — Steve Jobs',
+    '"The best time to plant a tree was 20 years ago. The second best time is now." — Chinese Proverb',
+    '"Success is not final, failure is not fatal: it is the courage to continue that counts." — Churchill',
+    '"The future belongs to those who believe in the beauty of their dreams." — Eleanor Roosevelt',
+    '"It does not matter how slowly you go as long as you do not stop." — Confucius',
+    '"The only impossible journey is the one you never begin." — Tony Robbins',
+    '"What you get by achieving your goals is not as important as what you become." — Zig Ziglar',
+    '"Believe you can and youre halfway there." — Theodore Roosevelt',
+  ];
+  return quotes[Math.floor(Math.random() * quotes.length)];
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
