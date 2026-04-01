@@ -60,7 +60,15 @@ function createMainWindow() {
     () => true
   );
 
-  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(APP_HTML)}`);
+  // Write HTML to temp file instead of data: URL (fixes CSP/onclick issues in Electron 28)
+  const appHtmlPath = require('path').join(app.getPath('userData'), 'app.html');
+  require('fs').writeFileSync(appHtmlPath, APP_HTML, 'utf-8');
+  mainWindow.loadFile(appHtmlPath);
+
+  // Log renderer console errors to main process
+  mainWindow.webContents.on('console-message', (_e, level, message) => {
+    if (level >= 2) console.log('[Renderer ERROR]', message);
+  });
   mainWindow.on('closed', () => { mainWindow = null; });
 }
 
@@ -745,7 +753,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'){
 }});
 </script></body></html>`;
 
-  loginWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(LOGIN_HTML)}`);
+  const loginHtmlPath = require('path').join(app.getPath('userData'), 'login.html');
+  require('fs').writeFileSync(loginHtmlPath, LOGIN_HTML, 'utf-8');
+  loginWin.loadFile(loginHtmlPath);
 
   ipcMain.handleOnce('login-success', () => {
     loginWin.close();
