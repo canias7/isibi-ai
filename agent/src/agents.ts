@@ -11,11 +11,14 @@ export interface AgentProfile {
   id: string;
   name: string;
   emoji: string;
-  role: string;           // Short description: "Handle all email tasks"
-  instructions: string;   // Detailed system prompt for Claude
+  role: string;
+  instructions: string;
   isActive: boolean;
-  color: string;          // Hex color for the orb/UI accent
+  color: string;
   createdAt: string;
+  creditsUsed: number;
+  commandCount: number;
+  actionCount: number;
 }
 
 /** Generate a short random ID */
@@ -34,6 +37,9 @@ export function createDefaultAgent(): AgentProfile {
     isActive: true,
     color: '#ec4899',
     createdAt: new Date().toISOString(),
+    creditsUsed: 0,
+    commandCount: 0,
+    actionCount: 0,
   };
 }
 
@@ -75,6 +81,9 @@ export function createAgent(data: {
     isActive: true,
     color: data.color,
     createdAt: new Date().toISOString(),
+    creditsUsed: 0,
+    commandCount: 0,
+    actionCount: 0,
   };
 
   const agents = getAgents();

@@ -14,7 +14,7 @@ import * as controller from './controller';
 import * as overlay from './overlay';
 import * as vision from './vision';
 
-import { getApiKey } from './config';
+import { getApiKey, useCredits, trackAgentUsage, getCredits } from './config';
 import { AgentProfile } from './agents';
 import { trackAction, trackCommand } from './analytics';
 import * as path from 'path';
@@ -208,6 +208,14 @@ async function planTask(command: string, index: SystemIndex, agent?: AgentProfil
   if (!checkRateLimit()) {
     return { taskId, command, actions: [{ type: 'notify', target: 'Rate Limited', text: 'Too many requests. Please wait a moment.', description: 'Rate limited' }], status: 'pending', currentStep: 0 };
   }
+
+  // Credit check — 5 credits per command (planning API call)
+  const creditCheck = getCredits();
+  if (creditCheck.remaining < 5) {
+    return { taskId, command, actions: [{ type: 'notify', target: 'Out of Credits', text: 'You have ' + creditCheck.remaining + ' credits remaining. Upgrade your plan for more.', description: 'No credits' }], status: 'pending', currentStep: 0 };
+  }
+  useCredits(5, agent?.id); // 5 credits for planning
+  if (agent) trackAgentUsage(agent.id, 1, 0);
 
   // Build context from system index
   const appNames = index.apps.slice(0, 30).map(a => a.name).join(', ');
@@ -769,11 +777,12 @@ async function executeQueue(index: SystemIndex): Promise<void> {
 
         const actionStart = Date.now();
         try {
+          useCredits(1); // 1 credit per action
           await executeAction(action, index);
           trackAction(action.type, true, Date.now() - actionStart);
         } catch (actionErr: any) {
           trackAction(action.type, false, Date.now() - actionStart);
-          throw actionErr; // Re-throw so task-level catch handles it
+          throw actionErr;
         }
 
         // Brief pause between actions

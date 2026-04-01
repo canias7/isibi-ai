@@ -40,6 +40,9 @@ export interface AgentProfileData {
   isActive: boolean;
   color: string;
   createdAt: string;
+  creditsUsed: number;
+  commandCount: number;
+  actionCount: number;
 }
 
 export interface ScheduledTask {
@@ -64,6 +67,9 @@ export interface GhostModeConfig {
   selectedVoiceId: string;
   agents: AgentProfileData[];
   schedules: ScheduledTask[];
+  credits: number;
+  creditsUsed: number;
+  plan: string;
 }
 
 const DEFAULTS: GhostModeConfig = {
@@ -78,6 +84,9 @@ const DEFAULTS: GhostModeConfig = {
   selectedVoiceId: '',
   agents: [],
   schedules: [],
+  credits: 1000,
+  creditsUsed: 0,
+  plan: 'free',
 };
 
 function configPath(): string {
@@ -134,6 +143,39 @@ export function getElevenLabsKey(): string {
 
 export function getSelectedVoiceId(): string {
   return loadConfig().selectedVoiceId || '';
+}
+
+export function getCredits(): { total: number; used: number; remaining: number; plan: string } {
+  const c = loadConfig();
+  return { total: c.credits || 1000, used: c.creditsUsed || 0, remaining: (c.credits || 1000) - (c.creditsUsed || 0), plan: c.plan || 'free' };
+}
+
+export function useCredits(amount: number, agentId?: string): boolean {
+  const c = loadConfig();
+  const remaining = (c.credits || 1000) - (c.creditsUsed || 0);
+  if (remaining < amount) return false; // Not enough credits
+  c.creditsUsed = (c.creditsUsed || 0) + amount;
+  // Track per agent
+  if (agentId && c.agents) {
+    const agent = c.agents.find(a => a.id === agentId);
+    if (agent) {
+      agent.creditsUsed = (agent.creditsUsed || 0) + amount;
+    }
+  }
+  saveConfig({ creditsUsed: c.creditsUsed, agents: c.agents });
+  return true;
+}
+
+export function trackAgentUsage(agentId: string, commands: number, actions: number): void {
+  const c = loadConfig();
+  if (c.agents) {
+    const agent = c.agents.find(a => a.id === agentId);
+    if (agent) {
+      agent.commandCount = (agent.commandCount || 0) + commands;
+      agent.actionCount = (agent.actionCount || 0) + actions;
+      saveConfig({ agents: c.agents });
+    }
+  }
 }
 
 export function getSchedules(): ScheduledTask[] {

@@ -15,7 +15,7 @@ app.commandLine.appendSwitch('disable-usb-keyboard-detect');
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask, getCredits } from './config';
 import { loadAnalytics, getAnalytics } from './analytics';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
@@ -333,6 +333,17 @@ ipcMain.handle('chat-load', (_, agentId: string) => {
     if (require('fs').existsSync(fp)) return JSON.parse(require('fs').readFileSync(fp, 'utf-8'));
   } catch {}
   return [];
+});
+
+// ── Usage & Credits IPC ───────────────────────────────────────────────
+
+ipcMain.handle('get-credits', () => getCredits());
+ipcMain.handle('get-agent-usage', () => {
+  const config = loadConfig();
+  return (config.agents || []).map(a => ({
+    id: a.id, name: a.name, emoji: a.emoji, color: a.color,
+    creditsUsed: a.creditsUsed || 0, commandCount: a.commandCount || 0, actionCount: a.actionCount || 0,
+  }));
 });
 
 // ── Analytics IPC ─────────────────────────────────────────────────────
@@ -1420,6 +1431,10 @@ svg { display: block; }
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Scheduled
       </button>
+      <button class="sidebar-tab" id="tabUsage" onclick="switchView('usage')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+        Usage
+      </button>
       <button class="sidebar-tab" id="tabHistory" onclick="switchView('history')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-2-2-4 4"/></svg>
         History
@@ -1556,6 +1571,59 @@ svg { display: block; }
     </div>
   </div>
 </div>
+
+    <!-- Usage View -->
+    <div class="view" id="usageView">
+      <div class="control-center">
+        <div class="cc-header">Usage & Credits</div>
+        <div class="cc-sub" style="margin-bottom:20px">Track how your agents use credits</div>
+
+        <!-- Credit Overview -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px">
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#e2e8f0" id="creditsRemaining">—</div>
+            <div style="font-size:11px;color:rgba(226,232,240,0.4);margin-top:4px">Credits Remaining</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#f9a8d4" id="creditsUsedTotal">—</div>
+            <div style="font-size:11px;color:rgba(226,232,240,0.4);margin-top:4px">Credits Used</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;text-align:center">
+            <div style="font-size:24px;font-weight:700;color:#c4b5fd" id="creditsPlan">—</div>
+            <div style="font-size:11px;color:rgba(226,232,240,0.4);margin-top:4px">Plan</div>
+          </div>
+        </div>
+
+        <!-- Credit Bar -->
+        <div style="margin-bottom:24px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(226,232,240,0.4);margin-bottom:6px">
+            <span>Usage</span>
+            <span id="creditsPercent">0%</span>
+          </div>
+          <div style="height:8px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden">
+            <div id="creditsBar" style="height:100%;border-radius:4px;background:linear-gradient(90deg,#ec4899,#8b5cf6);transition:width .3s;width:0%"></div>
+          </div>
+        </div>
+
+        <!-- Per Agent Usage -->
+        <h3 style="font-size:14px;font-weight:600;color:#e2e8f0;margin-bottom:12px">Usage by Agent</h3>
+        <div id="agentUsageList" style="display:flex;flex-direction:column;gap:8px">
+          <div style="color:rgba(226,232,240,0.5);font-size:13px">Loading...</div>
+        </div>
+
+        <!-- Credit Costs -->
+        <div style="margin-top:24px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:16px">
+          <h4 style="font-size:12px;font-weight:600;color:rgba(226,232,240,0.6);margin-bottom:8px">Credit Costs</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;color:rgba(226,232,240,0.4)">
+            <div>Command (planning)</div><div style="text-align:right;color:#f9a8d4">5 credits</div>
+            <div>Action (per step)</div><div style="text-align:right;color:#f9a8d4">1 credit</div>
+            <div>Vision (screenshot analysis)</div><div style="text-align:right;color:#f9a8d4">3 credits</div>
+            <div>AI text generation</div><div style="text-align:right;color:#f9a8d4">5 credits</div>
+            <div>Voice clone</div><div style="text-align:right;color:#f9a8d4">10 credits</div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Scheduled View -->
     <div class="view" id="scheduledView">
@@ -2194,11 +2262,13 @@ function switchView(view) {
   document.getElementById('chatView').classList.toggle('active', view === 'chat');
   document.getElementById('ccView').classList.toggle('active', view === 'cc');
   document.getElementById('voicesView').classList.toggle('active', view === 'voices');
+  document.getElementById('usageView').classList.toggle('active', view === 'usage');
   document.getElementById('scheduledView').classList.toggle('active', view === 'scheduled');
   document.getElementById('historyView').classList.toggle('active', view === 'history');
   document.getElementById('tabChat').classList.toggle('active', view === 'chat');
   document.getElementById('tabCC').classList.toggle('active', view === 'cc');
   document.getElementById('tabVoices').classList.toggle('active', view === 'voices');
+  document.getElementById('tabUsage').classList.toggle('active', view === 'usage');
   document.getElementById('tabScheduled').classList.toggle('active', view === 'scheduled');
   document.getElementById('tabHistory').classList.toggle('active', view === 'history');
 
@@ -2210,6 +2280,9 @@ function switchView(view) {
   }
   if (view === 'voices') {
     loadVoices();
+  }
+  if (view === 'usage') {
+    loadUsage();
   }
   if (view === 'scheduled') {
     loadSchedules();
@@ -2356,6 +2429,57 @@ document.addEventListener('click', (e) => {
   }
 });
 window.addEventListener('focus', () => { if (currentView === 'chat') input.focus(); });
+
+// ── Usage View ──
+async function loadUsage() {
+  const credits = await ipcRenderer.invoke('get-credits');
+  const agentUsage = await ipcRenderer.invoke('get-agent-usage');
+
+  // Update overview cards
+  document.getElementById('creditsRemaining').textContent = credits.remaining.toLocaleString();
+  document.getElementById('creditsUsedTotal').textContent = credits.used.toLocaleString();
+  document.getElementById('creditsPlan').textContent = credits.plan.charAt(0).toUpperCase() + credits.plan.slice(1);
+
+  // Update bar
+  const pct = credits.total > 0 ? Math.min((credits.used / credits.total) * 100, 100) : 0;
+  document.getElementById('creditsBar').style.width = pct.toFixed(1) + '%';
+  document.getElementById('creditsPercent').textContent = pct.toFixed(1) + '%';
+  // Change bar color if running low
+  if (pct > 80) document.getElementById('creditsBar').style.background = 'linear-gradient(90deg,#ef4444,#f97316)';
+
+  // Per agent usage
+  const container = document.getElementById('agentUsageList');
+  if (!container) return;
+  const sorted = [...agentUsage].sort((a, b) => (b.creditsUsed || 0) - (a.creditsUsed || 0));
+  if (sorted.length === 0 || sorted.every(a => !a.creditsUsed)) {
+    container.innerHTML = '<div style="color:rgba(226,232,240,0.5);font-size:13px;text-align:center;padding:20px 0">No usage yet. Start using your agents!</div>';
+    return;
+  }
+  const maxCredits = Math.max(...sorted.map(a => a.creditsUsed || 0), 1);
+  container.innerHTML = '';
+  sorted.forEach(a => {
+    if (!a.creditsUsed && !a.commandCount) return;
+    const barWidth = ((a.creditsUsed || 0) / maxCredits * 100).toFixed(1);
+    const el = document.createElement('div');
+    el.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:12px;padding:14px 16px';
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:16px">' + a.emoji + '</span>' +
+          '<span style="font-size:13px;font-weight:500;color:#e2e8f0">' + escHtml(a.name) + '</span>' +
+        '</div>' +
+        '<span style="font-size:14px;font-weight:600;color:#f9a8d4">' + (a.creditsUsed || 0).toLocaleString() + ' credits</span>' +
+      '</div>' +
+      '<div style="height:6px;background:rgba(255,255,255,0.04);border-radius:3px;overflow:hidden;margin-bottom:6px">' +
+        '<div style="height:100%;border-radius:3px;background:' + (a.color || '#ec4899') + ';width:' + barWidth + '%;transition:width .3s"></div>' +
+      '</div>' +
+      '<div style="display:flex;gap:16px;font-size:10px;color:rgba(226,232,240,0.4)">' +
+        '<span>' + (a.commandCount || 0) + ' commands</span>' +
+        '<span>' + (a.actionCount || 0) + ' actions</span>' +
+      '</div>';
+    container.appendChild(el);
+  });
+}
 
 // ── Scheduled Tasks View ──
 let editingScheduleId = null;
