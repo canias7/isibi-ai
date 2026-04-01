@@ -15,7 +15,7 @@ app.commandLine.appendSwitch('disable-usb-keyboard-detect');
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask } from './config';
 import { loadAnalytics, getAnalytics } from './analytics';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
@@ -232,6 +232,74 @@ ipcMain.handle('ghost-reindex', async () => {
   return { status: 'done', apps: systemIndex.apps.length };
 });
 
+// ── Schedule IPC ──────────────────────────────────────────────────────
+
+ipcMain.handle('schedules-list', () => getSchedules());
+
+ipcMain.handle('schedules-create', (_, data: { agentId: string; command: string; cron: string; label?: string }) => {
+  const schedule: ScheduledTask = {
+    id: Math.random().toString(36).slice(2, 8),
+    agentId: data.agentId,
+    command: data.command,
+    cron: data.cron,
+    enabled: true,
+    label: data.label,
+  };
+  saveSchedule(schedule);
+  return schedule;
+});
+
+ipcMain.handle('schedules-update', (_, id: string, data: Partial<ScheduledTask>) => {
+  const schedules = getSchedules();
+  const existing = schedules.find(s => s.id === id);
+  if (existing) {
+    Object.assign(existing, data);
+    saveSchedule(existing);
+    return existing;
+  }
+  return null;
+});
+
+ipcMain.handle('schedules-delete', (_, id: string) => {
+  deleteSchedule(id);
+  return true;
+});
+
+ipcMain.handle('schedules-toggle', (_, id: string) => {
+  const schedules = getSchedules();
+  const s = schedules.find(sc => sc.id === id);
+  if (s) { s.enabled = !s.enabled; saveSchedule(s); return s; }
+  return null;
+});
+
+// ── History IPC ──────────────────────────────────────────────────────
+
+const historyPath = () => require('path').join(app.getPath('userData'), 'command-history.json');
+
+ipcMain.handle('history-add', (_, entry: { command: string; agentName: string; status: string; steps: number; timestamp: string }) => {
+  try {
+    const fp = historyPath();
+    const history = require('fs').existsSync(fp) ? JSON.parse(require('fs').readFileSync(fp, 'utf-8')) : [];
+    history.push(entry);
+    if (history.length > 200) history.shift();
+    require('fs').writeFileSync(fp, JSON.stringify(history));
+  } catch {}
+  return true;
+});
+
+ipcMain.handle('history-list', () => {
+  try {
+    const fp = historyPath();
+    if (require('fs').existsSync(fp)) return JSON.parse(require('fs').readFileSync(fp, 'utf-8'));
+  } catch {}
+  return [];
+});
+
+ipcMain.handle('history-clear', () => {
+  try { require('fs').writeFileSync(historyPath(), '[]'); } catch {}
+  return true;
+});
+
 // ── Chat Persistence IPC ──────────────────────────────────────────────
 
 const chatDir = () => { const d = require('path').join(app.getPath('userData'), 'chats'); if (!require('fs').existsSync(d)) require('fs').mkdirSync(d, { recursive: true }); return d; };
@@ -354,6 +422,61 @@ function launchGhostMode() {
     apps: systemIndex.apps.length,
     files: systemIndex.recentFiles.length,
   });
+
+  // Start scheduler — check every 60 seconds
+  setInterval(() => {
+    const now = new Date();
+    const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const dayName = dayNames[now.getDay()];
+
+    const schedules = getSchedules();
+    for (const s of schedules) {
+      if (!s.enabled) continue;
+      let shouldRun = false;
+
+      if (s.cron.match(/^\d{2}:\d{2}$/)) {
+        // Daily at HH:MM
+        shouldRun = s.cron === hhmm;
+      } else if (s.cron.startsWith('interval:')) {
+        // Every N minutes
+        const mins = parseInt(s.cron.split(':')[1]);
+        if (mins > 0) {
+          const lastRun = s.lastRun ? new Date(s.lastRun).getTime() : 0;
+          shouldRun = (now.getTime() - lastRun) >= mins * 60000;
+        }
+      } else {
+        // "weekday HH:MM" format
+        const parts = s.cron.split(' ');
+        if (parts.length === 2 && parts[0].toLowerCase() === dayName && parts[1] === hhmm) {
+          shouldRun = true;
+        }
+        // "weekdays HH:MM" for Mon-Fri
+        if (parts[0] === 'weekdays' && parts[1] === hhmm && now.getDay() >= 1 && now.getDay() <= 5) {
+          shouldRun = true;
+        }
+      }
+
+      // Prevent running same schedule twice in same minute
+      if (shouldRun && s.lastRun) {
+        const lastRunMin = s.lastRun.slice(0, 16); // YYYY-MM-DDTHH:MM
+        const nowMin = now.toISOString().slice(0, 16);
+        if (lastRunMin === nowMin) shouldRun = false;
+      }
+
+      if (shouldRun && systemIndex) {
+        console.log('[Scheduler] Running:', s.label || s.command, 'for agent', s.agentId);
+        s.lastRun = now.toISOString();
+        saveSchedule(s);
+        // Dispatch the command
+        dispatchCommand(s.agentId, s.command, systemIndex).catch(e => {
+          console.error('[Scheduler] Error:', e.message);
+        });
+        // Notify user
+        mainWindow?.webContents.send('schedule-ran', { label: s.label || s.command, agentId: s.agentId });
+      }
+    }
+  }, 60000); // Check every minute
 }
 
 app.whenReady().then(async () => {
@@ -1235,7 +1358,11 @@ svg { display: block; }
       </button>
       <button class="sidebar-tab" id="tabVoices" onclick="switchView('voices')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
-        My Voices
+        Voices
+      </button>
+      <button class="sidebar-tab" id="tabHistory" onclick="switchView('history')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        History
       </button>
     </div>
     <div class="sidebar-section">
@@ -1364,6 +1491,24 @@ svg { display: block; }
         <h3 style="font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:12px">Available Voices</h3>
         <div id="voiceList" style="display:flex;flex-direction:column;gap:8px">
           <div style="color:rgba(226,232,240,0.5);font-size:13px">Loading voices...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    <!-- History View -->
+    <div class="view" id="historyView">
+      <div class="control-center">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div class="cc-header">History</div>
+            <div class="cc-sub">All past commands and results</div>
+          </div>
+          <button class="btn btn-ghost" onclick="clearHistory()" style="font-size:11px">Clear All</button>
+        </div>
+        <div id="historyList" style="display:flex;flex-direction:column;gap:6px">
+          <div style="color:rgba(226,232,240,0.5);font-size:13px">Loading...</div>
         </div>
       </div>
     </div>
@@ -1631,6 +1776,16 @@ async function poll() {
     if (lastAgent) {
       lastAgent.content = 'Done!';
       if (lastAgent.tasks) lastAgent.tasks.forEach(t => t.status = 'done');
+      // Log to history
+      const agent2 = agents.find(x => x.id === selectedAgentId);
+      const lastUserMsg = [...chatMessages].reverse().find(m => m.type === 'user');
+      ipcRenderer.invoke('history-add', {
+        command: lastUserMsg?.content || '',
+        agentName: agent2?.name || 'Agent',
+        status: 'done',
+        steps: lastAgent.tasks?.length || 1,
+        timestamp: new Date().toISOString(),
+      });
       // Add undo option
       chatMessages.push({ type: 'system', content: '\\u2713 Task complete \\u2022 <span style="color:#f9a8d4;cursor:pointer;text-decoration:underline" onclick="undoLast()">Undo</span>' });
       renderChat();
@@ -1908,9 +2063,11 @@ function switchView(view) {
   document.getElementById('chatView').classList.toggle('active', view === 'chat');
   document.getElementById('ccView').classList.toggle('active', view === 'cc');
   document.getElementById('voicesView').classList.toggle('active', view === 'voices');
+  document.getElementById('historyView').classList.toggle('active', view === 'history');
   document.getElementById('tabChat').classList.toggle('active', view === 'chat');
   document.getElementById('tabCC').classList.toggle('active', view === 'cc');
   document.getElementById('tabVoices').classList.toggle('active', view === 'voices');
+  document.getElementById('tabHistory').classList.toggle('active', view === 'history');
 
   if (view === 'cc') {
     renderControlCenter();
@@ -1920,6 +2077,9 @@ function switchView(view) {
   }
   if (view === 'voices') {
     loadVoices();
+  }
+  if (view === 'history') {
+    loadHistory();
   }
 }
 
@@ -2041,6 +2201,39 @@ document.addEventListener('click', (e) => {
   }
 });
 window.addEventListener('focus', () => { if (currentView === 'chat') input.focus(); });
+
+// ── History View ──
+async function loadHistory() {
+  const history = await ipcRenderer.invoke('history-list');
+  const container = document.getElementById('historyList');
+  if (!container) return;
+  if (history.length === 0) {
+    container.innerHTML = '<div style="color:rgba(226,232,240,0.5);font-size:13px;text-align:center;padding:40px 0">No commands yet. Start by messaging an agent.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  // Show newest first
+  [...history].reverse().forEach(h => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px';
+    const statusIcon = h.status === 'done' ? '\\u2713' : h.status === 'failed' ? '\\u2717' : '\\u25cf';
+    const statusColor = h.status === 'done' ? '#22c55e' : h.status === 'failed' ? '#ef4444' : '#eab308';
+    const time = new Date(h.timestamp).toLocaleString();
+    el.innerHTML =
+      '<span style="color:' + statusColor + ';font-size:14px">' + statusIcon + '</span>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(h.command) + '</div>' +
+        '<div style="font-size:10px;color:rgba(226,232,240,0.4)">' + escHtml(h.agentName || 'Agent') + ' \\u2022 ' + h.steps + ' steps \\u2022 ' + time + '</div>' +
+      '</div>' +
+      '<button class="ctrl-btn" title="Run again" onclick="trySuggestion(\'' + escHtml(h.command).replace(/'/g, "\\\\'") + '\')" style="font-size:12px">\\u21bb</button>';
+    container.appendChild(el);
+  });
+}
+
+async function clearHistory() {
+  await ipcRenderer.invoke('history-clear');
+  loadHistory();
+}
 
 // ── Voices View ──
 let voicesList = [];

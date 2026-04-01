@@ -42,6 +42,16 @@ export interface AgentProfileData {
   createdAt: string;
 }
 
+export interface ScheduledTask {
+  id: string;
+  agentId: string;
+  command: string;
+  cron: string; // "HH:MM" for daily, or "weekday HH:MM", or "interval:minutes"
+  enabled: boolean;
+  lastRun?: string;
+  label?: string;
+}
+
 export interface GhostModeConfig {
   firstRunComplete: boolean;
   anthropicApiKey: string;
@@ -53,6 +63,7 @@ export interface GhostModeConfig {
   elevenLabsApiKey: string;
   selectedVoiceId: string;
   agents: AgentProfileData[];
+  schedules: ScheduledTask[];
 }
 
 const DEFAULTS: GhostModeConfig = {
@@ -66,6 +77,7 @@ const DEFAULTS: GhostModeConfig = {
   elevenLabsApiKey: '',
   selectedVoiceId: '',
   agents: [],
+  schedules: [],
 };
 
 function configPath(): string {
@@ -122,6 +134,24 @@ export function getElevenLabsKey(): string {
 
 export function getSelectedVoiceId(): string {
   return loadConfig().selectedVoiceId || '';
+}
+
+export function getSchedules(): ScheduledTask[] {
+  return loadConfig().schedules || [];
+}
+
+export function saveSchedule(schedule: ScheduledTask): void {
+  const config = loadConfig();
+  const schedules = config.schedules || [];
+  const idx = schedules.findIndex(s => s.id === schedule.id);
+  if (idx >= 0) schedules[idx] = schedule;
+  else schedules.push(schedule);
+  saveConfig({ schedules });
+}
+
+export function deleteSchedule(id: string): void {
+  const config = loadConfig();
+  saveConfig({ schedules: (config.schedules || []).filter(s => s.id !== id) });
 }
 
 export function getApiKey(): string {
