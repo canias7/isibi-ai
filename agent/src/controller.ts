@@ -1055,6 +1055,294 @@ export function joinZoomMeeting(meetingId: string): void {
   execSync(`open "zoommtg://zoom.us/join?confno=${meetingId}"`, { timeout: 5000 });
 }
 
+// ── PDF & Documents ─────────────────────────────────────────────────────
+
+export function createPdf(content: string, outputPath?: string): string {
+  const { execSync } = require('child_process');
+  const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `document-${Date.now()}.pdf`);
+  if (process.platform === 'darwin') {
+    // Use cupsfilter or textutil to create PDF
+    const tmpHtml = require('path').join(require('os').tmpdir(), `isibi-pdf-${Date.now()}.html`);
+    require('fs').writeFileSync(tmpHtml, `<html><body style="font-family:system-ui;padding:40px;font-size:14px;line-height:1.6">${content.replace(/\n/g, '<br>')}</body></html>`);
+    execSync(`/usr/sbin/cupsfilter ${tmpHtml} > ${out} 2>/dev/null || textutil -convert pdf ${tmpHtml} -output ${out}`, { timeout: 15000 });
+    try { require('fs').unlinkSync(tmpHtml); } catch {}
+  }
+  return out;
+}
+
+export function readPdf(filePath: string): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      // mdimport extracts text from PDFs on macOS
+      return execSync(`mdimport -d2 "${filePath}" 2>&1 | head -200`, { encoding: 'utf-8', timeout: 10000 });
+    } catch {
+      try {
+        return execSync(`strings "${filePath}" | head -200`, { encoding: 'utf-8', timeout: 10000 });
+      } catch { return ''; }
+    }
+  }
+  return '';
+}
+
+export function mergePdfs(inputPaths: string[], outputPath: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const inputs = inputPaths.map(p => `"${p}"`).join(' ');
+    execSync(`"/System/Library/Automator/Combine PDF Pages.action/Contents/MacOS/join" -o "${outputPath}" ${inputs}`, { timeout: 15000 });
+  }
+}
+
+export function printDocument(filePath: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`lpr "${filePath}"`, { timeout: 10000 });
+  }
+}
+
+// ── Image Editing ───────────────────────────────────────────────────────
+
+export function resizeImage(filePath: string, width: number, height?: number): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    if (height) {
+      execSync(`sips --resampleHeightWidth ${height} ${width} "${filePath}"`, { timeout: 10000 });
+    } else {
+      execSync(`sips --resampleWidth ${width} "${filePath}"`, { timeout: 10000 });
+    }
+  }
+}
+
+export function cropImage(filePath: string, x: number, y: number, w: number, h: number): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`sips --cropToHeightWidth ${h} ${w} --cropOffset ${y} ${x} "${filePath}"`, { timeout: 10000 });
+  }
+}
+
+export function convertImage(filePath: string, format: string): string {
+  const { execSync } = require('child_process');
+  const outPath = filePath.replace(/\.[^.]+$/, `.${format}`);
+  if (process.platform === 'darwin') {
+    execSync(`sips -s format ${format} "${filePath}" --out "${outPath}"`, { timeout: 10000 });
+  }
+  return outPath;
+}
+
+export function compressImage(filePath: string, quality: number = 50): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`sips -s formatOptions ${quality} "${filePath}"`, { timeout: 10000 });
+  }
+}
+
+// ── Audio ────────────────────────────────────────────────────────────────
+
+export function recordAudio(outputPath?: string, seconds: number = 10): string {
+  const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `recording-${Date.now()}.m4a`);
+  if (process.platform === 'darwin') {
+    // Record in background, auto-stop after N seconds
+    require('child_process').exec(`afrecord -d ${seconds} -f caff "${out}"`);
+  }
+  return out;
+}
+
+export function playAudio(filePath: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    require('child_process').exec(`afplay "${filePath}"`);
+  }
+}
+
+export function textToAudioFile(text: string, outputPath?: string): string {
+  const { execSync } = require('child_process');
+  const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `speech-${Date.now()}.aiff`);
+  if (process.platform === 'darwin') {
+    execSync(`say "${text.replace(/"/g, '\\"')}" -o "${out}"`, { timeout: 30000 });
+  }
+  return out;
+}
+
+// ── Clipboard Intelligence ──────────────────────────────────────────────
+
+export function copyFromApp(appName: string): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "${appName}" to activate'`, { timeout: 5000 });
+    execSync(`osascript -e 'tell application "System Events" to keystroke "a" using command down'`, { timeout: 3000 });
+    execSync(`osascript -e 'tell application "System Events" to keystroke "c" using command down'`, { timeout: 3000 });
+    return execSync('pbpaste', { encoding: 'utf-8', timeout: 3000 });
+  }
+  return '';
+}
+
+export function pasteIntoApp(appName: string, text?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    if (text) execSync(`echo -n ${JSON.stringify(text)} | pbcopy`, { timeout: 3000 });
+    execSync(`osascript -e 'tell application "${appName}" to activate'`, { timeout: 5000 });
+    execSync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`, { timeout: 3000 });
+  }
+}
+
+// ── System Deep ─────────────────────────────────────────────────────────
+
+export function listRunningApps(): string[] {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'tell application "System Events" to get name of every process whose background only is false'`, { encoding: 'utf-8', timeout: 5000 });
+      return output.trim().split(', ');
+    } catch { return []; }
+  }
+  return [];
+}
+
+export function killApp(appName: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "${appName}" to quit'`, { timeout: 5000 });
+  }
+}
+
+export function getDiskSpace(): string {
+  const { execSync } = require('child_process');
+  try {
+    const output = execSync(`df -h / | tail -1`, { encoding: 'utf-8', timeout: 3000 });
+    const parts = output.trim().split(/\s+/);
+    return `Total: ${parts[1]}, Used: ${parts[2]}, Free: ${parts[3]}, ${parts[4]} used`;
+  } catch { return 'Unknown'; }
+}
+
+export function getCpuUsage(): string {
+  const { execSync } = require('child_process');
+  try {
+    const cpu = execSync(`top -l 1 -n 0 | grep "CPU usage"`, { encoding: 'utf-8', timeout: 5000 }).trim();
+    const mem = execSync(`top -l 1 -n 0 | grep "PhysMem"`, { encoding: 'utf-8', timeout: 5000 }).trim();
+    return `${cpu} | ${mem}`;
+  } catch { return 'Unknown'; }
+}
+
+export function changeWallpaper(imagePath: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to tell every desktop to set picture to "${imagePath}"'`, { timeout: 5000 });
+  }
+}
+
+export function toggleDoNotDisturb(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      execSync(`shortcuts run "Toggle Focus"`, { timeout: 5000 });
+    } catch {
+      // Fallback: use Control Center
+      execSync(`osascript -e 'tell application "System Events"
+  tell process "ControlCenter"
+    click menu bar item "Focus" of menu bar 1
+  end tell
+end tell'`, { timeout: 5000 });
+    }
+  }
+}
+
+// ── Network ─────────────────────────────────────────────────────────────
+
+export function getIpAddress(): { local: string; public: string } {
+  const { execSync } = require('child_process');
+  let local = '', pub = '';
+  try { local = execSync(`ipconfig getifaddr en0`, { encoding: 'utf-8', timeout: 3000 }).trim(); } catch {}
+  try { pub = execSync(`curl -s ifconfig.me`, { encoding: 'utf-8', timeout: 5000 }).trim(); } catch {}
+  return { local: local || 'Unknown', public: pub || 'Unknown' };
+}
+
+export function ping(host: string, count: number = 3): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`ping -c ${count} ${host}`, { encoding: 'utf-8', timeout: 15000 });
+  } catch (e: any) { return e.stdout || 'Ping failed'; }
+}
+
+export function checkInternet(): boolean {
+  const { execSync } = require('child_process');
+  try {
+    execSync(`ping -c 1 -W 3 8.8.8.8`, { timeout: 5000 });
+    return true;
+  } catch { return false; }
+}
+
+export function downloadFile(url: string, outputPath?: string): string {
+  const { execSync } = require('child_process');
+  const filename = url.split('/').pop() || `download-${Date.now()}`;
+  const out = outputPath || require('path').join(require('os').homedir(), 'Downloads', filename);
+  execSync(`curl -L -o "${out}" "${url}"`, { timeout: 60000 });
+  return out;
+}
+
+// ── QR Codes ────────────────────────────────────────────────────────────
+
+export function generateQr(text: string, outputPath?: string): string {
+  const { execSync } = require('child_process');
+  const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `qr-${Date.now()}.png`);
+  // Use Core Image filter via Python (built into macOS)
+  execSync(`python3 -c "
+import subprocess, sys
+try:
+    import qrcode
+    img = qrcode.make('${text.replace(/'/g, "\\'")}')
+    img.save('${out}')
+except ImportError:
+    # Fallback: use a simple SVG approach
+    import urllib.request
+    urllib.request.urlretrieve('https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(text)}', '${out}')
+"`, { timeout: 15000 });
+  return out;
+}
+
+// ── Text Processing ─────────────────────────────────────────────────────
+
+export function regexExtract(text: string, pattern: string): string[] {
+  try {
+    const re = new RegExp(pattern, 'g');
+    return text.match(re) || [];
+  } catch { return []; }
+}
+
+export function jsonParse(text: string, path?: string): string {
+  try {
+    const obj = JSON.parse(text);
+    if (path) {
+      const keys = path.split('.');
+      let val = obj;
+      for (const k of keys) { val = val?.[k]; }
+      return typeof val === 'object' ? JSON.stringify(val) : String(val);
+    }
+    return JSON.stringify(obj, null, 2);
+  } catch { return 'Invalid JSON'; }
+}
+
+export function countWords(text: string): { words: number; characters: number; lines: number } {
+  return {
+    words: text.split(/\s+/).filter(w => w.length > 0).length,
+    characters: text.length,
+    lines: text.split('\n').length,
+  };
+}
+
+export function diffText(text1: string, text2: string): string {
+  const lines1 = text1.split('\n');
+  const lines2 = text2.split('\n');
+  const diffs: string[] = [];
+  const maxLen = Math.max(lines1.length, lines2.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (lines1[i] !== lines2[i]) {
+      if (lines1[i]) diffs.push(`- ${lines1[i]}`);
+      if (lines2[i]) diffs.push(`+ ${lines2[i]}`);
+    }
+  }
+  return diffs.length > 0 ? diffs.join('\n') : 'No differences';
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

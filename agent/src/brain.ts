@@ -321,7 +321,51 @@ AI-POWERED:
 
 ZOOM:
 - create_zoom: {"type":"create_zoom"} — start a new Zoom meeting
-- join_zoom: {"type":"join_zoom","target":"123456789"} — join a Zoom meeting by ID
+- join_zoom: {"type":"join_zoom","target":"123456789"} — join by ID
+
+PDF & DOCUMENTS:
+- create_pdf: {"type":"create_pdf","text":"Report content here","target":"/path/out.pdf"}
+- read_pdf: {"type":"read_pdf","target":"/path/file.pdf"} — extract text
+- merge_pdfs: {"type":"merge_pdfs","text":"/path/a.pdf,/path/b.pdf","target":"/path/merged.pdf"}
+- print_document: {"type":"print_document","target":"/path/file.pdf"} — send to printer
+
+IMAGE EDITING:
+- resize_image: {"type":"resize_image","target":"/path/img.jpg","width":800,"height":600}
+- crop_image: {"type":"crop_image","target":"/path/img.jpg","x":0,"y":0,"width":500,"height":500}
+- convert_image: {"type":"convert_image","target":"/path/img.png","text":"jpeg"} — change format
+- compress_image: {"type":"compress_image","target":"/path/img.jpg","value":50} — quality 0-100
+
+AUDIO:
+- record_audio: {"type":"record_audio","duration":10} — record mic for N seconds
+- play_audio: {"type":"play_audio","target":"/path/audio.mp3"} — play audio file
+- text_to_audio: {"type":"text_to_audio","text":"Hello world","target":"/path/out.aiff"} — save speech to file
+
+CLIPBOARD INTELLIGENCE:
+- copy_from_app: {"type":"copy_from_app","target":"Safari"} — switch to app, select all, copy, return text
+- paste_into_app: {"type":"paste_into_app","target":"Notes","text":"content to paste"}
+
+SYSTEM DEEP:
+- list_running_apps: {"type":"list_running_apps"} — all running apps
+- kill_app: {"type":"kill_app","target":"Safari"} — force quit app
+- get_disk_space: {"type":"get_disk_space"} — check storage
+- get_cpu_usage: {"type":"get_cpu_usage"} — CPU and memory usage
+- change_wallpaper: {"type":"change_wallpaper","target":"/path/to/image.jpg"}
+- toggle_dnd: {"type":"toggle_dnd"} — toggle Do Not Disturb / Focus
+
+NETWORK:
+- get_ip: {"type":"get_ip"} — local + public IP
+- ping: {"type":"ping","target":"google.com","count":3}
+- check_internet: {"type":"check_internet"} — test connectivity
+- download_file: {"type":"download_file","target":"https://example.com/file.zip","text":"/path/save.zip"}
+
+QR CODES:
+- generate_qr: {"type":"generate_qr","text":"https://isibi.ai","target":"/path/qr.png"}
+
+TEXT PROCESSING:
+- regex_extract: {"type":"regex_extract","text":"Call 555-1234 or 555-5678","target":"\\\\d{3}-\\\\d{4}"}
+- json_parse: {"type":"json_parse","text":"{\\\"name\\\":\\\"John\\\"}","target":"name"} — extract field
+- count_words: {"type":"count_words","text":"Hello world"} — word/char/line count
+- diff_text: {"type":"diff_text","text":"old text","target":"new text"} — compare two texts
 
 === CORE RULES ===
 1. Websites → open_url (never open_app with browser name)
@@ -402,6 +446,27 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "join Zoom X" → use join_zoom
 - "check my notifications" → use check_notifications
 - "turn on the lights" → use control_homekit
+- "create a PDF" → use create_pdf
+- "read this PDF" → use read_pdf
+- "print this" → use print_document
+- "resize/crop/convert image" → use resize_image/crop_image/convert_image
+- "record audio" → use record_audio
+- "copy text from Safari" → use copy_from_app
+- "paste into Notes" → use paste_into_app
+- "what apps are running" → use list_running_apps
+- "quit/close Safari" → use kill_app
+- "how much storage" → use get_disk_space
+- "CPU usage" → use get_cpu_usage
+- "change wallpaper" → use change_wallpaper
+- "do not disturb" → use toggle_dnd
+- "what's my IP" → use get_ip
+- "ping google" → use ping
+- "am I online" → use check_internet
+- "download this file" → use download_file
+- "generate QR code" → use generate_qr
+- "extract emails from text" → use regex_extract
+- "count words" → use count_words
+- "compare these texts" → use diff_text
 - After completing a task, use speak or notify to confirm to the user`,
     messages: [{
       role: 'user',
@@ -1240,6 +1305,164 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
 
     case 'join_zoom': {
       controller.joinZoomMeeting(action.target || '');
+      break;
+    }
+
+    // ── PDF & Documents ──
+    case 'create_pdf': {
+      const pdfPath = controller.createPdf(action.text || '', action.target);
+      addToHistory('system', 'PDF created: ' + pdfPath);
+      controller.showNotification('PDF created', pdfPath);
+      break;
+    }
+    case 'read_pdf': {
+      const pdfText = controller.readPdf(action.target || '');
+      addToHistory('system', 'PDF contents: ' + pdfText.slice(0, 2000));
+      break;
+    }
+    case 'merge_pdfs': {
+      const inputs = (action.text || '').split(',').map((p: string) => p.trim());
+      controller.mergePdfs(inputs, action.target || path.join(os.homedir(), 'Desktop', 'merged.pdf'));
+      controller.showNotification('PDFs merged', action.target || '');
+      break;
+    }
+    case 'print_document': {
+      controller.printDocument(action.target || '');
+      controller.showNotification('Printing', action.target || '');
+      break;
+    }
+
+    // ── Image Editing ──
+    case 'resize_image': {
+      controller.resizeImage(action.target || '', action.width || 800, action.height);
+      break;
+    }
+    case 'crop_image': {
+      controller.cropImage(action.target || '', action.x || 0, action.y || 0, action.width || 100, action.height || 100);
+      break;
+    }
+    case 'convert_image': {
+      const newPath = controller.convertImage(action.target || '', action.text || 'jpeg');
+      addToHistory('system', 'Converted: ' + newPath);
+      break;
+    }
+    case 'compress_image': {
+      controller.compressImage(action.target || '', action.value || 50);
+      break;
+    }
+
+    // ── Audio ──
+    case 'record_audio': {
+      const audioPath = controller.recordAudio(action.target, action.duration || 10);
+      addToHistory('system', 'Recording to: ' + audioPath);
+      controller.showNotification('Recording', `${action.duration || 10}s audio`);
+      break;
+    }
+    case 'play_audio': {
+      controller.playAudio(action.target || '');
+      break;
+    }
+    case 'text_to_audio': {
+      const audioFile = controller.textToAudioFile(action.text || '', action.target);
+      addToHistory('system', 'Audio saved: ' + audioFile);
+      break;
+    }
+
+    // ── Clipboard Intelligence ──
+    case 'copy_from_app': {
+      const copied = controller.copyFromApp(action.target || '');
+      addToHistory('system', 'Copied from ' + action.target + ': ' + copied.slice(0, 1000));
+      break;
+    }
+    case 'paste_into_app': {
+      controller.pasteIntoApp(action.target || '', action.text);
+      break;
+    }
+
+    // ── System Deep ──
+    case 'list_running_apps': {
+      const apps = controller.listRunningApps();
+      addToHistory('system', 'Running apps: ' + apps.join(', '));
+      break;
+    }
+    case 'kill_app': {
+      controller.killApp(action.target || '');
+      controller.showNotification('Quit', action.target || '');
+      break;
+    }
+    case 'get_disk_space': {
+      const disk = controller.getDiskSpace();
+      addToHistory('system', 'Disk: ' + disk);
+      controller.showNotification('Disk Space', disk);
+      break;
+    }
+    case 'get_cpu_usage': {
+      const cpu = controller.getCpuUsage();
+      addToHistory('system', 'System: ' + cpu);
+      break;
+    }
+    case 'change_wallpaper': {
+      controller.changeWallpaper(action.target || '');
+      break;
+    }
+    case 'toggle_dnd': {
+      controller.toggleDoNotDisturb();
+      controller.showNotification('Focus', 'Toggled Do Not Disturb');
+      break;
+    }
+
+    // ── Network ──
+    case 'get_ip': {
+      const ip = controller.getIpAddress();
+      addToHistory('system', `IP — Local: ${ip.local}, Public: ${ip.public}`);
+      controller.showNotification('IP Address', `Local: ${ip.local}\nPublic: ${ip.public}`);
+      break;
+    }
+    case 'ping': {
+      const pingResult = controller.ping(action.target || '8.8.8.8', action.count || 3);
+      addToHistory('system', 'Ping: ' + pingResult.slice(0, 500));
+      break;
+    }
+    case 'check_internet': {
+      const online = controller.checkInternet();
+      addToHistory('system', 'Internet: ' + (online ? 'Connected' : 'No connection'));
+      controller.showNotification('Internet', online ? '✓ Connected' : '✗ No connection');
+      break;
+    }
+    case 'download_file': {
+      const dlPath = controller.downloadFile(action.target || '', action.text);
+      addToHistory('system', 'Downloaded to: ' + dlPath);
+      controller.showNotification('Download complete', dlPath);
+      break;
+    }
+
+    // ── QR Codes ──
+    case 'generate_qr': {
+      const qrPath = controller.generateQr(action.text || '', action.target);
+      addToHistory('system', 'QR code saved: ' + qrPath);
+      controller.showNotification('QR Code', 'Saved to ' + qrPath);
+      break;
+    }
+
+    // ── Text Processing ──
+    case 'regex_extract': {
+      const matches = controller.regexExtract(action.text || '', action.target || '');
+      addToHistory('system', 'Regex matches: ' + matches.join(', '));
+      break;
+    }
+    case 'json_parse': {
+      const parsed = controller.jsonParse(action.text || '', action.target);
+      addToHistory('system', 'JSON: ' + parsed);
+      break;
+    }
+    case 'count_words': {
+      const wc = controller.countWords(action.text || '');
+      addToHistory('system', `Words: ${wc.words}, Characters: ${wc.characters}, Lines: ${wc.lines}`);
+      break;
+    }
+    case 'diff_text': {
+      const diff = controller.diffText(action.text || '', action.target || '');
+      addToHistory('system', 'Diff:\n' + diff);
       break;
     }
 
