@@ -410,8 +410,8 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "set volume to 50" → use set_volume with value:50
 - "go to sleep" → use sleep_computer
 - When unsure, add more steps rather than too few
-- "text/message X" → use send_imessage with phone number or email
-- "call X" → use find_contact first to get number, then make_call
+- "text/message X saying Y" → ALWAYS use find_contact FIRST to get their phone number, then send_imessage with that number. Example: [{"type":"find_contact","target":"Chris"},{"type":"send_imessage","target":"PHONE_FROM_CONTACT","text":"hello"}]. If user gives a phone number directly, skip find_contact.
+- "call X" → ALWAYS use find_contact first to get number, then make_call. Example: [{"type":"find_contact","target":"Chris"},{"type":"make_call","target":"PHONE_FROM_CONTACT"}]
 - "answer" / "pick up" → use answer_call
 - "hang up" → use end_call
 - "create event" / "schedule meeting" → use create_event
@@ -1106,8 +1106,23 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
 
     // ── Messaging ──
     case 'send_imessage': {
-      controller.sendIMessage(action.target || '', action.text || '');
-      controller.showNotification('iMessage sent', `To: ${action.target}`);
+      let recipient = action.target || '';
+      // If target doesn't look like a phone number or email, look up in contacts
+      if (recipient && !/[\d+@]/.test(recipient)) {
+        const contact = controller.findContact(recipient);
+        if (contact && contact.phone) {
+          recipient = contact.phone;
+          console.log('[iMessage] Looked up', action.target, '→', recipient);
+        } else if (contact && contact.email) {
+          recipient = contact.email;
+        } else {
+          addToHistory('system', 'Contact not found: ' + action.target);
+          controller.showNotification('Contact not found', action.target || '');
+          break;
+        }
+      }
+      controller.sendIMessage(recipient, action.text || '');
+      controller.showNotification('iMessage sent', `To: ${action.target} (${recipient})`);
       break;
     }
 
@@ -1119,12 +1134,24 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
 
     // ── Calls ──
     case 'make_call': {
-      controller.makeFaceTimeCall(action.target || '', false);
+      let callTarget = action.target || '';
+      if (callTarget && !/[\d+@]/.test(callTarget)) {
+        const c = controller.findContact(callTarget);
+        if (c && c.phone) callTarget = c.phone;
+        else if (c && c.email) callTarget = c.email;
+      }
+      controller.makeFaceTimeCall(callTarget, false);
       break;
     }
 
     case 'make_audio_call': {
-      controller.makeFaceTimeCall(action.target || '', true);
+      let audioTarget = action.target || '';
+      if (audioTarget && !/[\d+@]/.test(audioTarget)) {
+        const c = controller.findContact(audioTarget);
+        if (c && c.phone) audioTarget = c.phone;
+        else if (c && c.email) audioTarget = c.email;
+      }
+      controller.makeFaceTimeCall(audioTarget, true);
       break;
     }
 
