@@ -412,7 +412,9 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - When unsure, add more steps rather than too few
 - "text/message X saying Y" → ALWAYS use find_contact FIRST to get their phone number, then send_imessage with that number. Example: [{"type":"find_contact","target":"Chris"},{"type":"send_imessage","target":"PHONE_FROM_CONTACT","text":"hello"}]. If user gives a phone number directly, skip find_contact.
 - "call X" → ALWAYS use find_contact first to get number, then make_call. Example: [{"type":"find_contact","target":"Chris"},{"type":"make_call","target":"PHONE_FROM_CONTACT"}]
-- "answer" / "pick up" → use answer_call
+- "answer" / "pick up" → use answer_call (just answers) or ai_answer_call (AI has the conversation)
+- "answer and talk for me" / "handle this call" → use ai_answer_call with the agent's custom prompt
+- "monitor calls" / "answer all calls" → use ai_monitor_calls
 - "hang up" → use end_call
 - "create event" / "schedule meeting" → use create_event
 - "what's on my calendar" → use list_events
@@ -596,7 +598,11 @@ ERROR RECOVERY:
 - retry_with_fix: {"type":"retry_with_fix","actions":[...]} — try actions, if fail AI fixes and retries
 - verify_result: {"type":"verify_result","text":"was the email sent?"} — AI checks if task worked
 - undo_last: {"type":"undo_last"} — Cmd+Z
-- rollback: {"type":"rollback","count":5} — multiple undos`,
+- rollback: {"type":"rollback","count":5} — multiple undos
+
+AI CALL HANDLER:
+- ai_answer_call: {"type":"ai_answer_call","text":"You are my assistant. Take messages. Tell callers I'm busy.","key":"Hello, this is an AI assistant. How can I help?","count":20} — answer call, AI has full conversation, saves transcript
+- ai_monitor_calls: {"type":"ai_monitor_calls","text":"Take messages politely","duration":3000} — monitor screen for incoming calls, auto-answer with AI`,
     messages: [{
       role: 'user',
       content: command,
@@ -2860,6 +2866,144 @@ Format in clean HTML with tables if needed.` }]
     }
     case 'update_apps': case 'startup_optimize': case 'force_restart': case 'shutdown_computer': case 'log_out': {
       await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}`, description: action.description }, index);
+      break;
+    }
+
+    // ── AI Call Handler ──
+    case 'ai_answer_call': {
+      // Answer incoming call and have AI conversation
+      controller.answerCall();
+      await controller.sleep(1500);
+      controller.enableSpeaker();
+      await controller.sleep(500);
+
+      // Get the agent's personality/prompt for the call
+      const callPrompt = action.text || 'You are a helpful AI assistant answering a phone call. Be conversational, friendly, and concise. Take messages if needed.';
+      const callGreeting = action.key || "Hello, this is an AI assistant. How can I help you?";
+
+      // Greet the caller
+      controller.speakDuringCall(callGreeting);
+      await controller.sleep(500);
+
+      // Conversation loop — uses the main window's SpeechRecognition via IPC
+      const callHistory: { role: string; content: string }[] = [
+        { role: 'system', content: callPrompt },
+        { role: 'assistant', content: callGreeting },
+      ];
+
+      const callApi = (await import('./config')).getApiKey();
+      const callClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: callApi });
+      const maxTurns = action.count || 20;
+
+      // Tell the main window to start listening and send transcriptions
+      if (typeof (global as any).__mainWindow !== 'undefined' && (global as any).__mainWindow) {
+        (global as any).__mainWindow.webContents.send('start-call-listen');
+      }
+
+      for (let turn = 0; turn < maxTurns; turn++) {
+        // Wait for caller to speak (listen via main window speech recognition)
+        // The main window will store the transcription in a global
+        await controller.sleep(5000); // Give caller time to speak
+
+        // Check if call is still active
+        if (!controller.isCallActive()) {
+          console.log('[AICall] Call ended');
+          addToHistory('system', 'Call ended after ' + turn + ' turns');
+          break;
+        }
+
+        // Get what the caller said (from the global transcription buffer)
+        const callerSaid = (global as any).__lastCallTranscription || '';
+        (global as any).__lastCallTranscription = '';
+
+        if (!callerSaid || callerSaid.trim().length === 0) {
+          // Caller hasn't said anything yet, wait more
+          await controller.sleep(3000);
+          continue;
+        }
+
+        console.log('[AICall] Caller said:', callerSaid);
+        callHistory.push({ role: 'user', content: callerSaid });
+
+        // Generate AI response
+        try {
+          const callResp = await callClient.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 256,
+            system: callPrompt,
+            messages: callHistory.filter(m => m.role !== 'system').map(m => ({
+              role: m.role as 'user' | 'assistant',
+              content: m.content,
+            })),
+          });
+
+          const aiResponse = callResp.content[0].type === 'text' ? callResp.content[0].text : '';
+          console.log('[AICall] AI says:', aiResponse);
+          callHistory.push({ role: 'assistant', content: aiResponse });
+
+          // Speak the response
+          controller.speakDuringCall(aiResponse, 180); // Slightly faster speech
+
+          // Check for goodbye/end signals
+          const lower = (callerSaid + ' ' + aiResponse).toLowerCase();
+          if (lower.includes('goodbye') || lower.includes('bye bye') || lower.includes('hang up') || lower.includes('that\'s all')) {
+            controller.speakDuringCall('Goodbye! Have a great day.');
+            await controller.sleep(2000);
+            controller.endCall();
+            break;
+          }
+        } catch (callErr: any) {
+          console.error('[AICall] Error:', callErr.message);
+          controller.speakDuringCall('Sorry, I had a brief issue. Could you repeat that?');
+        }
+
+        await controller.sleep(1000);
+      }
+
+      // Save call transcript
+      const transcript = callHistory.map(m => `${m.role}: ${m.content}`).join('\n');
+      addToHistory('system', 'Call transcript:\n' + transcript);
+      const transcriptPath = path.join(os.homedir(), 'Desktop', `call-transcript-${Date.now()}.txt`);
+      controller.createFile(transcriptPath, transcript);
+      controller.showNotification('Call ended', 'Transcript saved to Desktop');
+
+      // Stop listening
+      if (typeof (global as any).__mainWindow !== 'undefined' && (global as any).__mainWindow) {
+        (global as any).__mainWindow.webContents.send('stop-call-listen');
+      }
+      break;
+    }
+
+    case 'ai_monitor_calls': {
+      // Monitor for incoming calls and auto-answer with AI
+      const monCallPrompt = action.text || 'You are a helpful AI assistant. Take messages and be polite.';
+      const monGreeting = action.key || "Hello, this is an AI assistant. The person you're calling is unavailable. How can I help?";
+      const checkInterval = action.duration || 3000;
+
+      addToHistory('system', 'Monitoring for incoming calls...');
+      controller.showNotification('Call Monitor', 'AI will answer incoming calls');
+
+      const checkForCall = async () => {
+        // Check screen for incoming call notification
+        try {
+          const analysis = await vision.analyzeScreen('Is there an incoming phone call or FaceTime notification on screen? Answer YES or NO only.');
+          if (analysis.description.toLowerCase().includes('yes')) {
+            console.log('[CallMonitor] Incoming call detected!');
+            // Answer with AI
+            await executeAction({
+              type: 'ai_answer_call',
+              text: monCallPrompt,
+              key: monGreeting,
+              count: 20,
+              description: 'AI answering call',
+            }, index);
+          }
+        } catch {}
+        // Keep monitoring
+        setTimeout(checkForCall, checkInterval);
+      };
+
+      setTimeout(checkForCall, checkInterval);
       break;
     }
 

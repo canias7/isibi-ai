@@ -2616,6 +2616,37 @@ export function getUptime(): string {
   } catch { return 'Unknown'; }
 }
 
+// ── AI Call Handler ─────────────────────────────────────────────────────
+
+export function enableSpeaker(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    // Set output volume up to make sure speaker is audible
+    execSync(`osascript -e 'set volume output volume 80'`, { timeout: 3000 });
+  }
+}
+
+export function isCallActive(): boolean {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      // Check if FaceTime or Phone process is running with an active call
+      const procs = execSync(`ps aux | grep -i "facetime\\|callserviced\\|TelephonyUtilities" | grep -v grep`, { encoding: 'utf-8', timeout: 3000 });
+      return procs.trim().length > 0;
+    } catch { return false; }
+  }
+  return false;
+}
+
+export function speakDuringCall(text: string, rate?: number): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const rateStr = rate ? ` -r ${rate}` : '';
+    // Use system TTS — on speakerphone, the call picks this up
+    execSync(`say${rateStr} "${text.replace(/"/g, '\\"')}"`, { timeout: 30000 });
+  }
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

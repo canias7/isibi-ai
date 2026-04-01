@@ -231,10 +231,21 @@ ipcMain.handle('ghost-reindex', async () => {
   return { status: 'done', apps: systemIndex.apps.length };
 });
 
+// ── Call Transcription IPC ─────────────────────────────────────────────
+
+ipcMain.handle('call-transcription', (_, text: string) => {
+  // Store transcription for the AI call handler to read
+  (global as any).__lastCallTranscription = text;
+  console.log('[Call] Transcription received:', text);
+  return true;
+});
+
 // ── App Lifecycle ──────────────────────────────────────────────────────
 
 function launchGhostMode() {
   createMainWindow();
+  // Store global reference so brain.ts AI call handler can send IPC to renderer
+  (global as any).__mainWindow = mainWindow;
   createTray();
 
   // Microphone + wake word listener
@@ -1842,6 +1853,40 @@ document.addEventListener('click', (e) => {
   }
 });
 window.addEventListener('focus', () => { if (currentView === 'chat') input.focus(); });
+
+// ── Call Listening Mode ──
+let callRec = null;
+let callListening = false;
+
+ipcRenderer.on('start-call-listen', () => {
+  console.log('[CallListen] Starting...');
+  callListening = true;
+  const S = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!S) return;
+  callRec = new S();
+  callRec.continuous = true;
+  callRec.interimResults = false;
+  callRec.lang = document.getElementById('languageSelect')?.value || '';
+  callRec.onresult = (e) => {
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        const text = e.results[i][0].transcript;
+        console.log('[CallListen] Heard:', text);
+        ipcRenderer.invoke('call-transcription', text);
+      }
+    }
+  };
+  callRec.onend = () => { if (callListening) try { callRec.start(); } catch(e) {} };
+  callRec.onerror = (e) => { console.log('[CallListen] Error:', e.error); };
+  try { callRec.start(); } catch(e) {}
+});
+
+ipcRenderer.on('stop-call-listen', () => {
+  console.log('[CallListen] Stopping...');
+  callListening = false;
+  try { if (callRec) callRec.stop(); } catch(e) {}
+  callRec = null;
+});
 
 // ── Boot ──
 init();
