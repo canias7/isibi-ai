@@ -1460,35 +1460,26 @@ async function poll() {
 }
 
 // ── Voice Recognition ──
-let micStream = null;
 async function initVoice() {
-  try {
-    // Request mic permission explicitly and keep the stream alive
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    console.log('[Voice] Mic stream obtained:', micStream.active);
-  } catch (err) {
-    console.error('[Voice] getUserMedia failed:', err);
-    // Try again after a short delay (Electron sometimes needs a moment)
-    await new Promise(r => setTimeout(r, 2000));
-    try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('[Voice] Mic stream obtained on retry:', micStream.active);
-    } catch (err2) {
-      console.error('[Voice] getUserMedia retry failed:', err2);
-      voiceReady = false;
-      return;
-    }
-  }
-
   try {
     const S = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!S) { console.error('[Voice] SpeechRecognition API not available'); return; }
+
+    // Try getUserMedia first (some Electron versions need it), but don't fail if it doesn't work
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('[Voice] Mic stream obtained:', stream.active);
+      // Stop the stream — we just needed to trigger the permission
+      stream.getTracks().forEach(t => t.stop());
+    } catch (micErr) {
+      console.log('[Voice] getUserMedia skipped:', micErr.message, '— trying SpeechRecognition directly');
+    }
+
     rec = new S();
     rec.continuous = false;
     rec.interimResults = true;
     const savedLang = await ipcRenderer.invoke('get-language');
     if (savedLang) rec.lang = savedLang;
-    // If no language set, browser auto-detects from system locale
     rec.onresult = e => {
       let t = '';
       for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
@@ -1508,7 +1499,7 @@ async function initVoice() {
     voiceReady = true;
     console.log('[Voice] Ready!');
   } catch (err) {
-    console.error('[Voice] SpeechRecognition init failed:', err);
+    console.error('[Voice] Voice init failed:', err);
     voiceReady = false;
   }
 }
@@ -1540,15 +1531,18 @@ function hideVoiceBar() {
   voiceIndicator.classList.remove('on');
 }
 
+let micErrorShown = false;
 function startMic() {
   if (!voiceReady || !rec) {
+    if (micErrorShown) return; // Don't spam the error
     console.log('[Voice] Not ready, trying to reinit...');
     initVoice().then(() => {
       if (voiceReady && rec) {
         listening = true;
         showVoiceBar();
         try { rec.start(); } catch (e) { console.error('[Voice] start failed:', e); }
-      } else {
+      } else if (!micErrorShown) {
+        micErrorShown = true;
         chatMessages.push({ type: 'system', content: 'Microphone not available. Check System Settings > Privacy > Microphone, make sure ISIBI is allowed, then restart the app.' });
         renderChat();
       }
