@@ -667,7 +667,7 @@ function createLoginWindow(onSuccess: () => void) {
     titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : undefined,
   });
 
-  const LOGIN_HTML = `<!DOCTYPE html><html><head><style>
+  const LOGIN_HTML = `<!DOCTYPE html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https:;"><style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,system-ui,sans-serif;background:#0f0f1a;color:#e2e8f0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;-webkit-app-region:drag}
 .card{-webkit-app-region:no-drag;width:340px;text-align:center}
@@ -848,6 +848,7 @@ init();
 const APP_HTML = `<!DOCTYPE html>
 <html>
 <head>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https: http:; img-src 'self' data: blob: https: http: file:; media-src 'self' data: blob: https: http: file:;">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -3185,9 +3186,7 @@ ipcRenderer.on('stop-call-listen', () => {
   callRec = null;
 });
 
-// ── Boot ──
-init().catch(e => console.error('[Boot] Error:', e));
-// Ensure critical functions are always available
+// ── Expose ALL functions to window FIRST (before init) ──
 window.openCreateAgent = openCreateAgent;
 window.switchView = switchView;
 window.trySuggestion = trySuggestion;
@@ -3211,6 +3210,15 @@ window.buyCredits = buyCredits;
 window.clearHistory = clearHistory;
 window.deleteCurrentAgent = deleteCurrentAgent;
 window.openEditAgent = openEditAgent;
+window.renderPickers = renderPickers;
+window.loadCreditPlans = loadCreditPlans;
+window.loadUsage = loadUsage;
+window.loadSchedules = loadSchedules;
+window.loadHistory = loadHistory;
+window.loadVoices = loadVoices;
+
+// ── Boot ──
+init().catch(e => console.error('[Boot] Error:', e));
 </script>
 </body>
 </html>`;
