@@ -467,7 +467,34 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "extract emails from text" → use regex_extract
 - "count words" → use count_words
 - "compare these texts" → use diff_text
-- After completing a task, use speak or notify to confirm to the user`,
+- "generate password" → use generate_password
+- "calculate X" → use calculate
+- "convert X to Y" → use unit_convert
+- "what time in Tokyo" → use get_time or world_clock
+- "how long until X" → use time_until
+- "what tab am I on" → use get_page_title / get_page_url
+- "list all tabs" → use get_all_tabs
+- "zip these files" → use zip_files
+- "unzip this" → use unzip_file
+- "query database" → use sqlite_query
+- "encode/decode" → use base64_encode/decode or url_encode/decode
+- "hash this" → use hash_text
+- "random number" → use random_number
+- "flip a coin" → use coin_flip
+- "roll dice" → use dice_roll
+- After completing a task, use speak or notify to confirm to the user
+
+EXTRA ACTIONS:
+Passwords: generate_password (value=length), check_password_strength, open_keychain
+Math: calculate (text=expression), unit_convert (value=amount, target="km to mi"), percentage (value=amount, text=percent)
+DateTime: get_time (target=timezone), time_until (target=date), date_diff (text=date1, target=date2), world_clock (text="NYC,London,Tokyo")
+ClipboardHistory: clipboard_history, clipboard_search (text=query)
+Automation: watch_folder (target=path)
+Browser: get_page_title, get_page_url, save_page, get_all_tabs, clear_browser_cache
+Compression: zip_files (text=paths comma-separated, target=output.zip), unzip_file (target=zip, text=outdir), tar_files
+Database: sqlite_query (target=db, text=SQL), csv_query (target=file, text=filter)
+Encoding: base64_encode/decode (text), url_encode/decode (text), hash_text (text, target=sha256|md5)
+Fun: random_number (x=min, y=max), coin_flip, dice_roll (value=sides, count=N), lorem_ipsum (count=paragraphs)`,
     messages: [{
       role: 'user',
       content: command,
@@ -1463,6 +1490,188 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     case 'diff_text': {
       const diff = controller.diffText(action.text || '', action.target || '');
       addToHistory('system', 'Diff:\n' + diff);
+      break;
+    }
+
+    // ── Passwords ──
+    case 'generate_password': {
+      const pw = controller.generatePassword(action.value || 16);
+      addToHistory('system', 'Password: ' + pw);
+      controller.writeClipboard(pw);
+      controller.showNotification('Password generated', 'Copied to clipboard');
+      break;
+    }
+    case 'check_password_strength': {
+      const strength = controller.checkPasswordStrength(action.text || '');
+      addToHistory('system', `Password strength: ${strength.score}/6 — ${strength.feedback}`);
+      break;
+    }
+    case 'open_keychain': { controller.openKeychain(); break; }
+
+    // ── Math ──
+    case 'calculate': {
+      const calcResult = controller.calculate(action.text || '');
+      addToHistory('system', `${action.text} = ${calcResult}`);
+      controller.showNotification('Calculator', `${action.text} = ${calcResult}`);
+      break;
+    }
+    case 'unit_convert': {
+      const parts3 = (action.target || 'km to mi').split(' to ');
+      const ucResult = controller.unitConvert(action.value || 1, parts3[0]?.trim() || '', parts3[1]?.trim() || '');
+      addToHistory('system', ucResult);
+      controller.showNotification('Conversion', ucResult);
+      break;
+    }
+    case 'percentage': {
+      const pctResult = controller.percentage(action.value || 0, parseFloat(action.text || '0'));
+      addToHistory('system', pctResult);
+      break;
+    }
+
+    // ── Date & Time ──
+    case 'get_time': {
+      const t = controller.getTime(action.target);
+      addToHistory('system', 'Time: ' + t);
+      controller.showNotification('Time', t);
+      break;
+    }
+    case 'time_until': {
+      const tu = controller.timeUntil(action.target || '');
+      addToHistory('system', 'Time until: ' + tu);
+      break;
+    }
+    case 'date_diff': {
+      const dd = controller.dateDiff(action.text || '', action.target || '');
+      addToHistory('system', 'Date difference: ' + dd);
+      break;
+    }
+    case 'world_clock': {
+      const cities = (action.text || 'New York,London,Tokyo').split(',').map((c: string) => c.trim());
+      const times = controller.worldClock(cities);
+      addToHistory('system', 'World clock: ' + times.join(' | '));
+      break;
+    }
+
+    // ── Clipboard History ──
+    case 'clipboard_history': {
+      const hist = controller.getClipboardHistory();
+      addToHistory('system', 'Clipboard history: ' + (hist.length > 0 ? hist.map((h, i) => `${i+1}. ${h.slice(0,50)}`).join(' | ') : 'Empty'));
+      break;
+    }
+    case 'clipboard_search': {
+      const found = controller.searchClipboardHistory(action.text || '');
+      addToHistory('system', 'Clipboard search: ' + (found.length > 0 ? found.join(' | ') : 'No matches'));
+      break;
+    }
+
+    // ── System Automation ──
+    case 'watch_folder': {
+      controller.watchFolder(action.target || '');
+      controller.showNotification('Watching', action.target || '');
+      break;
+    }
+
+    // ── Browser ──
+    case 'get_page_title': {
+      const title = controller.getPageTitle();
+      addToHistory('system', 'Page title: ' + title);
+      break;
+    }
+    case 'get_page_url': {
+      const url = controller.getPageUrl();
+      addToHistory('system', 'Page URL: ' + url);
+      break;
+    }
+    case 'save_page': { controller.savePageAsPdf(action.target); break; }
+    case 'get_all_tabs': {
+      const tabs = controller.getAllTabs();
+      addToHistory('system', 'Tabs: ' + tabs.join(' | '));
+      break;
+    }
+    case 'clear_browser_cache': { controller.clearBrowserCache(); break; }
+
+    // ── Compression ──
+    case 'zip_files': {
+      const files = (action.text || '').split(',').map((f: string) => f.trim());
+      controller.zipFiles(files, action.target || path.join(os.homedir(), 'Desktop', `archive-${Date.now()}.zip`));
+      controller.showNotification('Zipped', action.target || '');
+      break;
+    }
+    case 'unzip_file': {
+      controller.unzipFile(action.target || '', action.text);
+      controller.showNotification('Unzipped', action.target || '');
+      break;
+    }
+    case 'tar_files': {
+      const tFiles = (action.text || '').split(',').map((f: string) => f.trim());
+      controller.tarFiles(tFiles, action.target || path.join(os.homedir(), 'Desktop', `archive-${Date.now()}.tar.gz`));
+      break;
+    }
+
+    // ── Database ──
+    case 'sqlite_query': {
+      const sqlResult = controller.sqliteQuery(action.target || '', action.text || '');
+      addToHistory('system', 'SQL result: ' + sqlResult.slice(0, 2000));
+      break;
+    }
+    case 'csv_query': {
+      const csvResult = controller.csvQuery(action.target || '', action.text);
+      addToHistory('system', 'CSV result: ' + csvResult.slice(0, 2000));
+      break;
+    }
+
+    // ── Encoding ──
+    case 'base64_encode': {
+      const enc = controller.base64Encode(action.text || '');
+      addToHistory('system', 'Base64: ' + enc);
+      controller.writeClipboard(enc);
+      break;
+    }
+    case 'base64_decode': {
+      const dec = controller.base64Decode(action.text || '');
+      addToHistory('system', 'Decoded: ' + dec);
+      break;
+    }
+    case 'url_encode': {
+      const ue = controller.urlEncode(action.text || '');
+      addToHistory('system', 'URL encoded: ' + ue);
+      controller.writeClipboard(ue);
+      break;
+    }
+    case 'url_decode': {
+      const ud = controller.urlDecode(action.text || '');
+      addToHistory('system', 'URL decoded: ' + ud);
+      break;
+    }
+    case 'hash_text': {
+      const hash = controller.hashText(action.text || '', action.target || 'sha256');
+      addToHistory('system', `Hash (${action.target || 'sha256'}): ${hash}`);
+      break;
+    }
+
+    // ── Fun ──
+    case 'random_number': {
+      const rn = controller.randomNumber(action.x || 1, action.y || 100);
+      addToHistory('system', 'Random number: ' + rn);
+      controller.showNotification('Random', String(rn));
+      break;
+    }
+    case 'coin_flip': {
+      const cf = controller.coinFlip();
+      addToHistory('system', 'Coin flip: ' + cf);
+      controller.showNotification('Coin Flip', cf);
+      break;
+    }
+    case 'dice_roll': {
+      const dr = controller.diceRoll(action.value || 6, action.count || 1);
+      addToHistory('system', dr);
+      controller.showNotification('Dice', dr);
+      break;
+    }
+    case 'lorem_ipsum': {
+      const li = controller.loremIpsum(action.count || 1);
+      addToHistory('system', li);
+      controller.writeClipboard(li);
       break;
     }
 

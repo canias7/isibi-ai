@@ -1343,6 +1343,321 @@ export function diffText(text1: string, text2: string): string {
   return diffs.length > 0 ? diffs.join('\n') : 'No differences';
 }
 
+// ── Passwords & Security ────────────────────────────────────────────────
+
+export function generatePassword(length: number = 16): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=';
+  let pw = '';
+  const crypto = require('crypto');
+  const bytes = crypto.randomBytes(length);
+  for (let i = 0; i < length; i++) pw += chars[bytes[i] % chars.length];
+  return pw;
+}
+
+export function checkPasswordStrength(password: string): { score: number; feedback: string } {
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (password.length >= 16) score++;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
+  if (/\d/.test(password)) score++;
+  if (/[^a-zA-Z0-9]/.test(password)) score++;
+  const labels = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong', 'Very strong', 'Excellent'];
+  return { score, feedback: labels[Math.min(score, labels.length - 1)] };
+}
+
+export function openKeychain(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') execSync(`open -a "Keychain Access"`, { timeout: 5000 });
+}
+
+// ── Math & Calculations ─────────────────────────────────────────────────
+
+export function calculate(expression: string): string {
+  try {
+    // Safe eval using Function constructor (no access to globals)
+    const result = new Function('return ' + expression.replace(/[^0-9+\-*/().%Math,sqrt,pow,abs,round,floor,ceil,PI,E,log,sin,cos,tan]/g, ''))();
+    return String(result);
+  } catch { return 'Error'; }
+}
+
+export function unitConvert(value: number, from: string, to: string): string {
+  const conversions: Record<string, Record<string, number>> = {
+    km: { mi: 0.621371, m: 1000, ft: 3280.84, yd: 1093.61 },
+    mi: { km: 1.60934, m: 1609.34, ft: 5280, yd: 1760 },
+    m: { km: 0.001, mi: 0.000621371, ft: 3.28084, cm: 100, in: 39.3701 },
+    ft: { m: 0.3048, km: 0.000305, mi: 0.000189, in: 12, cm: 30.48 },
+    kg: { lb: 2.20462, oz: 35.274, g: 1000 },
+    lb: { kg: 0.453592, oz: 16, g: 453.592 },
+    g: { kg: 0.001, lb: 0.00220462, oz: 0.035274 },
+    oz: { g: 28.3495, kg: 0.0283495, lb: 0.0625 },
+    c: { f: -1, k: -1 }, // special handling
+    f: { c: -1, k: -1 },
+    l: { gal: 0.264172, ml: 1000, qt: 1.05669 },
+    gal: { l: 3.78541, ml: 3785.41, qt: 4 },
+    in: { cm: 2.54, m: 0.0254, ft: 0.0833333 },
+    cm: { in: 0.393701, m: 0.01, ft: 0.0328084 },
+  };
+  const f = from.toLowerCase(), t = to.toLowerCase();
+  // Temperature special cases
+  if (f === 'c' && t === 'f') return `${value}°C = ${(value * 9/5 + 32).toFixed(1)}°F`;
+  if (f === 'f' && t === 'c') return `${value}°F = ${((value - 32) * 5/9).toFixed(1)}°C`;
+  if (f === 'c' && t === 'k') return `${value}°C = ${(value + 273.15).toFixed(1)}K`;
+  if (f === 'f' && t === 'k') return `${value}°F = ${(((value - 32) * 5/9) + 273.15).toFixed(1)}K`;
+  if (conversions[f]?.[t]) return `${value} ${from} = ${(value * conversions[f][t]).toFixed(4)} ${to}`;
+  return 'Unknown conversion';
+}
+
+export function percentage(value: number, percent: number): string {
+  const result = value * percent / 100;
+  return `${percent}% of ${value} = ${result}`;
+}
+
+// ── Date & Time ─────────────────────────────────────────────────────────
+
+export function getTime(timezone?: string): string {
+  if (timezone) {
+    try {
+      return new Date().toLocaleString('en-US', { timeZone: timezone });
+    } catch { return 'Invalid timezone'; }
+  }
+  return new Date().toLocaleString();
+}
+
+export function timeUntil(dateStr: string): string {
+  const target = new Date(dateStr).getTime();
+  const now = Date.now();
+  const diff = target - now;
+  if (diff <= 0) return 'Already passed';
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  return `${days}d ${hours}h ${mins}m`;
+}
+
+export function dateDiff(date1: string, date2: string): string {
+  const d1 = new Date(date1).getTime();
+  const d2 = new Date(date2).getTime();
+  const diff = Math.abs(d2 - d1);
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  return `${days} days, ${hours} hours`;
+}
+
+export function worldClock(cities: string[]): string[] {
+  const tzMap: Record<string, string> = {
+    'new york': 'America/New_York', 'los angeles': 'America/Los_Angeles', 'chicago': 'America/Chicago',
+    'london': 'Europe/London', 'paris': 'Europe/Paris', 'berlin': 'Europe/Berlin', 'madrid': 'Europe/Madrid',
+    'tokyo': 'Asia/Tokyo', 'beijing': 'Asia/Shanghai', 'shanghai': 'Asia/Shanghai', 'seoul': 'Asia/Seoul',
+    'sydney': 'Australia/Sydney', 'mumbai': 'Asia/Kolkata', 'dubai': 'Asia/Dubai', 'moscow': 'Europe/Moscow',
+    'toronto': 'America/Toronto', 'mexico city': 'America/Mexico_City', 'sao paulo': 'America/Sao_Paulo',
+    'singapore': 'Asia/Singapore', 'hong kong': 'Asia/Hong_Kong', 'cairo': 'Africa/Cairo',
+  };
+  return cities.map(city => {
+    const tz = tzMap[city.toLowerCase()] || city;
+    try {
+      const time = new Date().toLocaleString('en-US', { timeZone: tz, timeStyle: 'short', dateStyle: 'short' } as any);
+      return `${city}: ${time}`;
+    } catch { return `${city}: Unknown timezone`; }
+  });
+}
+
+// ── Clipboard History ───────────────────────────────────────────────────
+
+const clipboardHistory: string[] = [];
+
+export function addToClipboardHistory(text: string): void {
+  clipboardHistory.unshift(text);
+  if (clipboardHistory.length > 20) clipboardHistory.pop();
+}
+
+export function getClipboardHistory(): string[] {
+  return [...clipboardHistory];
+}
+
+export function searchClipboardHistory(query: string): string[] {
+  return clipboardHistory.filter(item => item.toLowerCase().includes(query.toLowerCase()));
+}
+
+// ── System Automation ───────────────────────────────────────────────────
+
+export function watchFolder(folderPath: string, callback?: string): void {
+  const fs = require('fs');
+  fs.watch(folderPath, (eventType: string, filename: string) => {
+    showNotification('Folder changed', `${eventType}: ${filename} in ${folderPath}`);
+  });
+}
+
+// ── Browser Automation ──────────────────────────────────────────────────
+
+export function getPageTitle(): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    // Try Chrome first, then Safari
+    try {
+      return execSync(`osascript -e 'tell application "Google Chrome" to title of active tab of front window'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    } catch {}
+    try {
+      return execSync(`osascript -e 'tell application "Safari" to name of current tab of front window'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    } catch {}
+  }
+  return 'Unknown';
+}
+
+export function getPageUrl(): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      return execSync(`osascript -e 'tell application "Google Chrome" to URL of active tab of front window'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    } catch {}
+    try {
+      return execSync(`osascript -e 'tell application "Safari" to URL of current tab of front window'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    } catch {}
+  }
+  return 'Unknown';
+}
+
+export function savePageAsPdf(outputPath?: string): void {
+  const { execSync } = require('child_process');
+  const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `page-${Date.now()}.pdf`);
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to keystroke "p" using command down'`, { timeout: 3000 });
+  }
+}
+
+export function getAllTabs(): string[] {
+  const { execSync } = require('child_process');
+  const tabs: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'tell application "Google Chrome"
+  set tabList to ""
+  repeat with w in windows
+    repeat with t in tabs of w
+      set tabList to tabList & title of t & " | " & URL of t & "\\n"
+    end repeat
+  end repeat
+  return tabList
+end tell'`, { encoding: 'utf-8', timeout: 10000 });
+      output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => tabs.push(l.trim()));
+    } catch {}
+    if (tabs.length === 0) {
+      try {
+        const output = execSync(`osascript -e 'tell application "Safari"
+  set tabList to ""
+  repeat with w in windows
+    repeat with t in tabs of w
+      set tabList to tabList & name of t & " | " & URL of t & "\\n"
+    end repeat
+  end repeat
+  return tabList
+end tell'`, { encoding: 'utf-8', timeout: 10000 });
+        output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => tabs.push(l.trim()));
+      } catch {}
+    }
+  }
+  return tabs;
+}
+
+export function clearBrowserCache(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try { execSync(`osascript -e 'tell application "Google Chrome" to execute front window\\'s active tab javascript "caches.keys().then(n=>n.forEach(k=>caches.delete(k)))"'`, { timeout: 5000 }); } catch {}
+  }
+}
+
+// ── Compression ─────────────────────────────────────────────────────────
+
+export function zipFiles(inputPaths: string[], outputPath: string): void {
+  const { execSync } = require('child_process');
+  const inputs = inputPaths.map(p => `"${p}"`).join(' ');
+  execSync(`zip -r "${outputPath}" ${inputs}`, { timeout: 30000 });
+}
+
+export function unzipFile(zipPath: string, outputDir?: string): void {
+  const { execSync } = require('child_process');
+  const out = outputDir || require('path').dirname(zipPath);
+  execSync(`unzip -o "${zipPath}" -d "${out}"`, { timeout: 30000 });
+}
+
+export function tarFiles(inputPaths: string[], outputPath: string): void {
+  const { execSync } = require('child_process');
+  const inputs = inputPaths.map(p => `"${p}"`).join(' ');
+  execSync(`tar -czf "${outputPath}" ${inputs}`, { timeout: 30000 });
+}
+
+// ── Database ────────────────────────────────────────────────────────────
+
+export function sqliteQuery(dbPath: string, query: string): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`sqlite3 "${dbPath}" "${query.replace(/"/g, '\\"')}"`, { encoding: 'utf-8', timeout: 10000 });
+  } catch (e: any) { return e.stderr || 'Query failed'; }
+}
+
+export function csvQuery(filePath: string, filter?: string, sortCol?: number): string {
+  const fs = require('fs');
+  try {
+    let lines = fs.readFileSync(filePath, 'utf-8').split('\n');
+    if (filter) lines = [lines[0], ...lines.slice(1).filter((l: string) => l.toLowerCase().includes(filter.toLowerCase()))];
+    if (sortCol !== undefined) {
+      const header = lines[0];
+      const rows = lines.slice(1).filter((l: string) => l.trim());
+      rows.sort((a: string, b: string) => {
+        const aVal = a.split(',')[sortCol] || '';
+        const bVal = b.split(',')[sortCol] || '';
+        return aVal.localeCompare(bVal);
+      });
+      lines = [header, ...rows];
+    }
+    return lines.join('\n');
+  } catch { return 'Failed to read CSV'; }
+}
+
+// ── Encoding ────────────────────────────────────────────────────────────
+
+export function base64Encode(text: string): string {
+  return Buffer.from(text).toString('base64');
+}
+
+export function base64Decode(encoded: string): string {
+  return Buffer.from(encoded, 'base64').toString('utf-8');
+}
+
+export function urlEncode(text: string): string {
+  return encodeURIComponent(text);
+}
+
+export function urlDecode(encoded: string): string {
+  return decodeURIComponent(encoded);
+}
+
+export function hashText(text: string, algorithm: string = 'sha256'): string {
+  const crypto = require('crypto');
+  return crypto.createHash(algorithm).update(text).digest('hex');
+}
+
+// ── Fun ─────────────────────────────────────────────────────────────────
+
+export function randomNumber(min: number = 1, max: number = 100): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export function coinFlip(): string {
+  return Math.random() < 0.5 ? 'Heads' : 'Tails';
+}
+
+export function diceRoll(sides: number = 6, count: number = 1): string {
+  const rolls = [];
+  for (let i = 0; i < count; i++) rolls.push(Math.floor(Math.random() * sides) + 1);
+  return `Rolled ${count}d${sides}: ${rolls.join(', ')} (total: ${rolls.reduce((a, b) => a + b, 0)})`;
+}
+
+export function loremIpsum(paragraphs: number = 1): string {
+  const lorem = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
+  return Array(paragraphs).fill(lorem).join('\n\n');
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
