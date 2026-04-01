@@ -232,6 +232,44 @@ MULTI-AGENT:
 - call_agent: {"type":"call_agent","target":"Email Bot","text":"send report to john"} — trigger another agent
 - pass_data: {"type":"pass_data","memoryKey":"report_data","text":"Q1 revenue: $50k"} — share data between agents
 
+MESSAGING:
+- send_imessage: {"type":"send_imessage","target":"+1234567890","text":"Hey, what's up?"} — send iMessage/SMS directly
+- read_imessages: {"type":"read_imessages","target":"John","count":5} — read recent messages from contact
+
+CALLS:
+- make_call: {"type":"make_call","target":"john@email.com"} — FaceTime video call
+- make_audio_call: {"type":"make_audio_call","target":"+1234567890"} — FaceTime audio call
+- answer_call: {"type":"answer_call"} — answer incoming call
+- decline_call: {"type":"decline_call"} — decline incoming call
+- end_call: {"type":"end_call"} — hang up current call
+
+CALENDAR:
+- create_event: {"type":"create_event","target":"Meeting with John","text":"April 1, 2026 2:00 PM","key":"April 1, 2026 3:00 PM"}
+- list_events: {"type":"list_events","count":3} — get upcoming events (count = days ahead)
+
+REMINDERS:
+- create_reminder: {"type":"create_reminder","target":"Buy groceries","text":"April 2, 2026 5:00 PM"}
+- list_reminders: {"type":"list_reminders"} — get pending reminders
+
+NOTES:
+- create_note: {"type":"create_note","target":"Meeting Notes","text":"Key points from today..."}
+- read_notes: {"type":"read_notes","target":"meeting","count":3} — search and read notes
+
+CONTACTS:
+- find_contact: {"type":"find_contact","target":"John Smith"} — get phone + email from Contacts
+
+WEATHER & STOCKS:
+- get_weather: {"type":"get_weather","target":"New York"} — current weather
+- get_stock: {"type":"get_stock","target":"AAPL"} — current stock price
+
+SCREEN RECORDING:
+- start_recording: {"type":"start_recording"} — start screen recording
+- stop_recording: {"type":"stop_recording"} — stop and save recording
+
+TERMINAL & SHORTCUTS:
+- run_terminal: {"type":"run_terminal","text":"ls -la ~/Desktop"} — run shell command, get output
+- run_shortcut: {"type":"run_shortcut","target":"My Shortcut Name"} — run Apple Shortcuts automation
+
 === CORE RULES ===
 1. Websites → open_url (never open_app with browser name)
 2. After every open_url → add wait 1500ms
@@ -275,6 +313,20 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "set volume to 50" → use set_volume with value:50
 - "go to sleep" → use sleep_computer
 - When unsure, add more steps rather than too few
+- "text/message X" → use send_imessage with phone number or email
+- "call X" → use find_contact first to get number, then make_call
+- "answer" / "pick up" → use answer_call
+- "hang up" → use end_call
+- "create event" / "schedule meeting" → use create_event
+- "what's on my calendar" → use list_events
+- "remind me to X" → use create_reminder
+- "my reminders" → use list_reminders
+- "make a note" → use create_note
+- "what's the weather" → use get_weather
+- "stock price of X" → use get_stock
+- "record my screen" → use start_recording / stop_recording
+- "run command X" → use run_terminal
+- "run shortcut X" → use run_shortcut
 - After completing a task, use speak or notify to confirm to the user`,
     messages: [{
       role: 'user',
@@ -780,6 +832,143 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
         agentMemory['shared_' + action.memoryKey] = action.text;
         console.log('[MultiAgent] Shared data:', action.memoryKey);
       }
+      break;
+    }
+
+    // ── Messaging ──
+    case 'send_imessage': {
+      controller.sendIMessage(action.target || '', action.text || '');
+      controller.showNotification('iMessage sent', `To: ${action.target}`);
+      break;
+    }
+
+    case 'read_imessages': {
+      const msgs = controller.readIMessages(action.target || '', action.count || 5);
+      addToHistory('system', `Recent messages from ${action.target}: ${msgs.join(' | ')}`);
+      break;
+    }
+
+    // ── Calls ──
+    case 'make_call': {
+      controller.makeFaceTimeCall(action.target || '', false);
+      break;
+    }
+
+    case 'make_audio_call': {
+      controller.makeFaceTimeCall(action.target || '', true);
+      break;
+    }
+
+    case 'answer_call': {
+      controller.answerCall();
+      break;
+    }
+
+    case 'decline_call': {
+      controller.declineCall();
+      break;
+    }
+
+    case 'end_call': {
+      controller.endCall();
+      break;
+    }
+
+    // ── Calendar ──
+    case 'create_event': {
+      controller.createCalendarEvent(
+        action.target || 'New Event',
+        action.text || new Date().toString(),
+        action.key || new Date(Date.now() + 3600000).toString()
+      );
+      controller.showNotification('Event created', action.target || 'New Event');
+      break;
+    }
+
+    case 'list_events': {
+      const events = controller.listCalendarEvents(action.count || 1);
+      const evtStr = events.length > 0 ? events.join('\n') : 'No upcoming events';
+      addToHistory('system', 'Calendar events: ' + evtStr);
+      controller.showNotification('Calendar', events.length + ' upcoming events');
+      break;
+    }
+
+    // ── Reminders ──
+    case 'create_reminder': {
+      controller.createReminder(action.target || 'Reminder', action.text);
+      controller.showNotification('Reminder created', action.target || '');
+      break;
+    }
+
+    case 'list_reminders': {
+      const reminders = controller.listReminders();
+      addToHistory('system', 'Reminders: ' + (reminders.length > 0 ? reminders.join(', ') : 'None'));
+      break;
+    }
+
+    // ── Notes ──
+    case 'create_note': {
+      controller.createNote(action.target || 'Untitled', action.text || '');
+      controller.showNotification('Note created', action.target || '');
+      break;
+    }
+
+    case 'read_notes': {
+      const notes = controller.readNotes(action.target || '', action.count || 5);
+      addToHistory('system', 'Notes: ' + (notes.length > 0 ? notes.join('\n---\n') : 'None found'));
+      break;
+    }
+
+    // ── Contacts ──
+    case 'find_contact': {
+      const contact = controller.findContact(action.target || '');
+      if (contact) {
+        addToHistory('system', `Contact: ${contact.name}, Phone: ${contact.phone}, Email: ${contact.email}`);
+      } else {
+        addToHistory('system', 'Contact not found: ' + action.target);
+      }
+      break;
+    }
+
+    // ── Weather ──
+    case 'get_weather': {
+      const weather = await controller.getWeather(action.target || 'auto');
+      addToHistory('system', 'Weather: ' + weather);
+      controller.showNotification('Weather', weather);
+      break;
+    }
+
+    // ── Stock ──
+    case 'get_stock': {
+      const price = await controller.getStockPrice(action.target || '');
+      addToHistory('system', 'Stock: ' + price);
+      controller.showNotification('Stock', price);
+      break;
+    }
+
+    // ── Screen Recording ──
+    case 'start_recording': {
+      controller.startScreenRecording(action.target);
+      controller.showNotification('Recording', 'Screen recording started');
+      break;
+    }
+
+    case 'stop_recording': {
+      controller.stopScreenRecording();
+      controller.showNotification('Recording', 'Screen recording saved');
+      break;
+    }
+
+    // ── Terminal & Shortcuts ──
+    case 'run_terminal': {
+      const output = controller.runTerminalCommand(action.text || '');
+      addToHistory('system', 'Terminal output: ' + output.slice(0, 2000));
+      break;
+    }
+
+    case 'run_shortcut': {
+      const output = controller.runShortcut(action.target || '', action.text);
+      addToHistory('system', 'Shortcut result: ' + output.slice(0, 2000));
       break;
     }
 

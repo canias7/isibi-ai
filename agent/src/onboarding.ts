@@ -41,8 +41,16 @@ export function registerOnboardingIPC(): void {
 
   ipcMain.handle('onboarding-check-screen-recording', async () => {
     if (process.platform === 'darwin') {
-      try { const s = await desktopCapturer.getSources({ types: ['screen'] }); return s.length > 0; }
-      catch { return false; }
+      // Use screencapture CLI to test — doesn't trigger the popup
+      try {
+        const { execSync } = require('child_process');
+        const tmpFile = require('path').join(require('os').tmpdir(), 'isibi-scrcheck.png');
+        execSync(`screencapture -x -C ${tmpFile}`, { timeout: 5000 });
+        const fs = require('fs');
+        const exists = fs.existsSync(tmpFile) && fs.statSync(tmpFile).size > 0;
+        try { fs.unlinkSync(tmpFile); } catch {}
+        return exists;
+      } catch { return false; }
     }
     return true;
   });

@@ -472,6 +472,268 @@ export async function selectTextRange(startX: number, startY: number, endX: numb
   await keyboard.releaseKey(Key.LeftShift);
 }
 
+// ── Messaging (macOS AppleScript) ───────────────────────────────────────
+
+export function sendIMessage(to: string, message: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Messages"
+  set targetService to 1st account whose service type = iMessage
+  set targetBuddy to participant "${to.replace(/"/g, '\\"')}" of targetService
+  send "${message.replace(/"/g, '\\"')}" to targetBuddy
+end tell'`, { timeout: 10000 });
+  }
+}
+
+export function readIMessages(from: string, count: number = 5): string[] {
+  const { execSync } = require('child_process');
+  const messages: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      // Read from Messages SQLite database
+      const db = require('path').join(require('os').homedir(), 'Library/Messages/chat.db');
+      const output = execSync(`sqlite3 "${db}" "SELECT text FROM message WHERE handle_id IN (SELECT ROWID FROM handle WHERE id LIKE '%${from.replace(/'/g, "''")}%') ORDER BY date DESC LIMIT ${count}"`, { encoding: 'utf-8', timeout: 5000 });
+      output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => messages.push(l.trim()));
+    } catch { /* db locked or not accessible */ }
+  }
+  return messages;
+}
+
+// ── Calls (macOS) ───────────────────────────────────────────────────────
+
+export function makeFaceTimeCall(contact: string, audioOnly: boolean = false): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const scheme = audioOnly ? 'facetime-audio' : 'facetime';
+    execSync(`open "${scheme}://${contact}"`, { timeout: 5000 });
+  }
+}
+
+export function answerCall(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    // Click the answer button via AppleScript
+    execSync(`osascript -e 'tell application "System Events" to tell process "NotificationCenter" to click button 1 of first window'`, { timeout: 5000 });
+  }
+}
+
+export function declineCall(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to tell process "NotificationCenter" to click button 2 of first window'`, { timeout: 5000 });
+  }
+}
+
+export function endCall(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "FaceTime" to activate' -e 'tell application "System Events" to tell process "FaceTime" to click button "End" of window 1'`, { timeout: 5000 });
+  }
+}
+
+// ── Calendar (macOS AppleScript) ────────────────────────────────────────
+
+export function createCalendarEvent(title: string, startDate: string, endDate: string, calendar: string = ''): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const calPart = calendar ? `of calendar "${calendar}"` : '';
+    execSync(`osascript -e 'tell application "Calendar"
+  tell (first calendar ${calPart.replace(/"/g, '\\"')})
+    make new event with properties {summary:"${title.replace(/"/g, '\\"')}", start date:date "${startDate}", end date:date "${endDate}"}
+  end tell
+end tell'`, { timeout: 10000 });
+  }
+}
+
+export function listCalendarEvents(daysAhead: number = 1): string[] {
+  const { execSync } = require('child_process');
+  const events: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'set output to ""
+tell application "Calendar"
+  set today to current date
+  set endDay to today + ${daysAhead} * days
+  repeat with cal in calendars
+    repeat with evt in (every event of cal whose start date >= today and start date <= endDay)
+      set output to output & summary of evt & " | " & start date of evt & "\\n"
+    end repeat
+  end repeat
+end tell
+return output'`, { encoding: 'utf-8', timeout: 15000 });
+      output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => events.push(l.trim()));
+    } catch { /* Calendar not accessible */ }
+  }
+  return events;
+}
+
+// ── Reminders (macOS AppleScript) ───────────────────────────────────────
+
+export function createReminder(title: string, dueDate?: string, list?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const listPart = list ? `of list "${list}"` : '';
+    const duePart = dueDate ? `, due date:date "${dueDate}"` : '';
+    execSync(`osascript -e 'tell application "Reminders"
+  make new reminder ${listPart} with properties {name:"${title.replace(/"/g, '\\"')}"${duePart}}
+end tell'`, { timeout: 10000 });
+  }
+}
+
+export function listReminders(): string[] {
+  const { execSync } = require('child_process');
+  const reminders: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'set output to ""
+tell application "Reminders"
+  repeat with r in (reminders whose completed is false)
+    set output to output & name of r & "\\n"
+  end repeat
+end tell
+return output'`, { encoding: 'utf-8', timeout: 10000 });
+      output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => reminders.push(l.trim()));
+    } catch { /* Reminders not accessible */ }
+  }
+  return reminders;
+}
+
+// ── Notes (macOS AppleScript) ───────────────────────────────────────────
+
+export function createNote(title: string, body: string, folder?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const folderPart = folder ? `in folder "${folder}"` : '';
+    execSync(`osascript -e 'tell application "Notes"
+  make new note ${folderPart} with properties {name:"${title.replace(/"/g, '\\"')}", body:"${body.replace(/"/g, '\\"')}"}
+end tell'`, { timeout: 10000 });
+  }
+}
+
+export function readNotes(search: string, count: number = 5): string[] {
+  const { execSync } = require('child_process');
+  const notes: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'set output to ""
+tell application "Notes"
+  set matchingNotes to every note whose name contains "${search.replace(/"/g, '\\"')}"
+  set maxCount to ${count}
+  set i to 0
+  repeat with n in matchingNotes
+    if i >= maxCount then exit repeat
+    set output to output & name of n & ": " & plaintext of n & "\\n---\\n"
+    set i to i + 1
+  end repeat
+end tell
+return output'`, { encoding: 'utf-8', timeout: 15000 });
+      output.split('\n---\n').filter((l: string) => l.trim()).forEach((l: string) => notes.push(l.trim()));
+    } catch { /* Notes not accessible */ }
+  }
+  return notes;
+}
+
+// ── Contacts (macOS) ────────────────────────────────────────────────────
+
+export function findContact(name: string): { name: string; phone: string; email: string } | null {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'tell application "Contacts"
+  set p to first person whose name contains "${name.replace(/"/g, '\\"')}"
+  set pName to name of p
+  set pPhone to ""
+  set pEmail to ""
+  if (count of phones of p) > 0 then set pPhone to value of first phone of p
+  if (count of emails of p) > 0 then set pEmail to value of first email of p
+  return pName & "|" & pPhone & "|" & pEmail
+end tell'`, { encoding: 'utf-8', timeout: 10000 });
+      const [n, phone, email] = output.trim().split('|');
+      return { name: n || name, phone: phone || '', email: email || '' };
+    } catch { return null; }
+  }
+  return null;
+}
+
+// ── Weather (free API) ──────────────────────────────────────────────────
+
+export async function getWeather(location: string): Promise<string> {
+  try {
+    const https = require('https');
+    return new Promise((resolve) => {
+      https.get(`https://wttr.in/${encodeURIComponent(location)}?format=3`, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: string) => { data += chunk; });
+        res.on('end', () => resolve(data.trim()));
+      }).on('error', () => resolve('Weather unavailable'));
+    });
+  } catch { return 'Weather unavailable'; }
+}
+
+// ── Screen Recording ────────────────────────────────────────────────────
+
+export function startScreenRecording(outputPath?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `recording-${Date.now()}.mov`);
+    // Start recording in background
+    require('child_process').exec(`screencapture -V 10 -v ${out}`);
+  }
+}
+
+export function stopScreenRecording(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try { execSync('killall screencapture', { timeout: 3000 }); } catch {}
+  }
+}
+
+// ── Terminal Command ────────────────────────────────────────────────────
+
+export function runTerminalCommand(command: string): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(command, { encoding: 'utf-8', timeout: 30000 });
+  } catch (e: any) {
+    return e.stderr || e.message || 'Command failed';
+  }
+}
+
+// ── Apple Shortcuts ─────────────────────────────────────────────────────
+
+export function runShortcut(name: string, input?: string): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const inputPart = input ? ` -i "${input.replace(/"/g, '\\"')}"` : '';
+      return execSync(`shortcuts run "${name.replace(/"/g, '\\"')}"${inputPart}`, { encoding: 'utf-8', timeout: 30000 });
+    } catch (e: any) { return e.message || 'Shortcut failed'; }
+  }
+  return 'Shortcuts only available on macOS';
+}
+
+// ── Stock Price (free API) ──────────────────────────────────────────────
+
+export async function getStockPrice(symbol: string): Promise<string> {
+  try {
+    const https = require('https');
+    return new Promise((resolve) => {
+      https.get(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol.toUpperCase())}?interval=1d&range=1d`, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: string) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            const price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+            const currency = json?.chart?.result?.[0]?.meta?.currency || 'USD';
+            resolve(price ? `${symbol.toUpperCase()}: $${price} ${currency}` : 'Price unavailable');
+          } catch { resolve('Price unavailable'); }
+        });
+      }).on('error', () => resolve('Price unavailable'));
+    });
+  } catch { return 'Price unavailable'; }
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

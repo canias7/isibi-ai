@@ -7,8 +7,12 @@
  * - Current state (which app is focused, what page is showing)
  */
 
-import { desktopCapturer, screen } from 'electron';
+import { desktopCapturer, screen, systemPreferences } from 'electron';
 import Anthropic from '@anthropic-ai/sdk';
+import { execSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 import { getApiKey } from './config';
 
@@ -42,6 +46,20 @@ export interface ScreenAnalysis {
 // ── Screenshot Capture ──────────────────────────────────────────────────
 
 export async function captureScreen(): Promise<Buffer> {
+  // Use macOS screencapture CLI — doesn't trigger the Electron screen recording popup
+  if (process.platform === 'darwin') {
+    try {
+      const tmpFile = path.join(os.tmpdir(), `isibi-screenshot-${Date.now()}.png`);
+      execSync(`screencapture -x -C ${tmpFile}`, { timeout: 5000 });
+      const buffer = fs.readFileSync(tmpFile);
+      try { fs.unlinkSync(tmpFile); } catch {}
+      return buffer;
+    } catch (e) {
+      console.log('[Vision] screencapture failed, falling back to desktopCapturer');
+    }
+  }
+
+  // Fallback: Electron desktopCapturer (may trigger popup on unsigned apps)
   const sources = await desktopCapturer.getSources({
     types: ['screen'],
     thumbnailSize: {
@@ -51,13 +69,8 @@ export async function captureScreen(): Promise<Buffer> {
   });
 
   if (sources.length === 0) throw new Error('No screen source available');
-
-  // Get the primary screen
   const source = sources[0];
-  const image = source.thumbnail;
-
-  // Convert to PNG buffer
-  return image.toPNG();
+  return source.thumbnail.toPNG();
 }
 
 export async function captureScreenBase64(): Promise<string> {
