@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage } from './config';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
 import { dispatchCommand, getAllAgentStatuses } from './agent-manager';
@@ -119,6 +119,11 @@ function createTray() {
 // Wake Word & Settings
 ipcMain.handle('get-wake-word', () => getWakeWord());
 ipcMain.handle('get-assistant-name', () => getAssistantName());
+ipcMain.handle('get-language', () => getLanguage());
+ipcMain.handle('save-language', (_, lang: string) => {
+  saveConfig({ language: lang });
+  return true;
+});
 
 ipcMain.handle('wake-word-detected', () => {
   mainWindow?.show();
@@ -319,7 +324,6 @@ function setupRec(){
   rec=new S();
   rec.continuous=true;
   rec.interimResults=true;
-  rec.lang='en-US';
   rec.onresult=e=>{
     for(let i=e.resultIndex;i<e.results.length;i++){
       const t=e.results[i][0].transcript.toLowerCase().trim();
@@ -1143,6 +1147,34 @@ svg { display: block; }
       <div class="settings-panel" id="settingsPanel">
         <input id="profileNameInput" placeholder="Assistant name..." maxlength="20">
         <div class="wake-hint" id="wakeHint">Say "Hey Isibi" to activate</div>
+        <select id="languageSelect" style="width:100%;padding:7px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;color:#e2e8f0;font-size:12px;outline:none;margin-top:8px;appearance:none;">
+          <option value="">Auto-detect language</option>
+          <option value="en-US">English</option>
+          <option value="es-ES">Espa\\u00f1ol</option>
+          <option value="fr-FR">Fran\\u00e7ais</option>
+          <option value="pt-BR">Portugu\\u00eas</option>
+          <option value="de-DE">Deutsch</option>
+          <option value="it-IT">Italiano</option>
+          <option value="zh-CN">\\u4e2d\\u6587</option>
+          <option value="ja-JP">\\u65e5\\u672c\\u8a9e</option>
+          <option value="ko-KR">\\ud55c\\uad6d\\uc5b4</option>
+          <option value="ar-SA">\\u0627\\u0644\\u0639\\u0631\\u0628\\u064a\\u0629</option>
+          <option value="hi-IN">\\u0939\\u093f\\u0928\\u094d\\u0926\\u0940</option>
+          <option value="ru-RU">\\u0420\\u0443\\u0441\\u0441\\u043a\\u0438\\u0439</option>
+          <option value="nl-NL">Nederlands</option>
+          <option value="pl-PL">Polski</option>
+          <option value="tr-TR">T\\u00fcrk\\u00e7e</option>
+          <option value="vi-VN">Ti\\u1ebfng Vi\\u1ec7t</option>
+          <option value="th-TH">\\u0e44\\u0e17\\u0e22</option>
+          <option value="sv-SE">Svenska</option>
+          <option value="da-DK">Dansk</option>
+          <option value="he-IL">\\u05e2\\u05d1\\u05e8\\u05d9\\u05ea</option>
+          <option value="uk-UA">\\u0423\\u043a\\u0440\\u0430\\u0457\\u043d\\u0441\\u044c\\u043a\\u0430</option>
+          <option value="ms-MY">Bahasa Melayu</option>
+          <option value="fil-PH">Filipino</option>
+          <option value="sw-KE">Kiswahili</option>
+          <option value="ht-HT">Krey\\u00f2l Ayisyen</option>
+        </select>
         <button class="save-profile-btn" onclick="saveProfile()">Save</button>
       </div>
     </div>
@@ -1454,7 +1486,9 @@ async function initVoice() {
     rec = new S();
     rec.continuous = false;
     rec.interimResults = true;
-    rec.lang = 'en-US';
+    const savedLang = await ipcRenderer.invoke('get-language');
+    if (savedLang) rec.lang = savedLang;
+    // If no language set, browser auto-detects from system locale
     rec.onresult = e => {
       let t = '';
       for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
@@ -1560,8 +1594,10 @@ function toggleSettings() {
 
 async function loadProfile() {
   const name = await ipcRenderer.invoke('get-assistant-name');
+  const lang = await ipcRenderer.invoke('get-language');
   document.getElementById('profileNameInput').value = name;
   document.getElementById('wakeHint').textContent = 'Say "Hey ' + name + '" to activate';
+  document.getElementById('languageSelect').value = lang || '';
 }
 
 document.getElementById('profileNameInput').addEventListener('input', function() {
@@ -1571,7 +1607,11 @@ document.getElementById('profileNameInput').addEventListener('input', function()
 
 async function saveProfile() {
   const name = document.getElementById('profileNameInput').value.trim() || 'Isibi';
+  const lang = document.getElementById('languageSelect').value;
   await ipcRenderer.invoke('update-assistant-profile', name);
+  await ipcRenderer.invoke('save-language', lang);
+  // Update voice recognition language
+  if (rec) rec.lang = lang || '';
   toggleSettings();
 }
 

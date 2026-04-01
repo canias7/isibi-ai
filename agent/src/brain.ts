@@ -129,6 +129,7 @@ async function planTask(command: string, index: SystemIndex, agent?: AgentProfil
     model: MODEL,
     max_tokens: 1024,
     system: `You are ISIBI Ghost Mode — an AI agent that controls a computer. Convert natural language commands into action steps.
+You understand ALL languages. The user may speak in any language — always understand their intent and respond with the correct action steps. Action JSON keys/values stay in English, but description fields should match the user's language.
 ${agentPrompt}
 === COMPUTER STATE ===
 Apps installed: ${appNames}

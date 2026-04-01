@@ -27,6 +27,7 @@ export interface GhostModeConfig {
   screenRecordingGranted: boolean;
   assistantName: string;
   assistantWakeWord: string;
+  language: string;
   agents: AgentProfileData[];
 }
 
@@ -37,6 +38,7 @@ const DEFAULTS: GhostModeConfig = {
   screenRecordingGranted: false,
   assistantName: 'Isibi',
   assistantWakeWord: 'hey isibi',
+  language: '',
   agents: [],
 };
 
@@ -74,6 +76,10 @@ export function getAssistantName(): string {
 
 export function getWakeWord(): string {
   return loadConfig().assistantWakeWord || 'hey isibi';
+}
+
+export function getLanguage(): string {
+  return loadConfig().language || '';
 }
 
 export function getApiKey(): string {
