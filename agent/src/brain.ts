@@ -19,6 +19,9 @@ import { AgentProfile } from './agents';
 
 const MODEL = 'claude-sonnet-4-20250514';
 
+// Agent memory — persists across actions within a session
+const agentMemory: Record<string, string> = {};
+
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
   if (!client) {
@@ -30,20 +33,27 @@ function getClient(): Anthropic {
 // ── Types ───────────────────────────────────────────────────────────────
 
 export interface Action {
-  type: 'open_app' | 'open_url' | 'click' | 'double_click' | 'right_click' | 'move_mouse' | 'drag' | 'type' | 'press_key' | 'scroll' | 'wait' | 'screenshot' | 'find_and_click' | 'search_spotlight' | 'read_screen' | 'read_clipboard' | 'write_clipboard' | 'create_file' | 'read_file' | 'move_file' | 'delete_file' | 'http_request' | 'conditional' | 'loop';
+  type: string;          // action type
   target?: string;       // app name, URL, element description, file path, or HTTP URL
-  text?: string;         // text to type, file content, or HTTP body
+  text?: string;         // text to type, file content, HTTP body, or speech text
   key?: string;          // key to press
   x?: number;            // coordinates
   y?: number;
-  toX?: number;          // drag destination
+  toX?: number;          // drag/select destination
   toY?: number;
-  duration?: number;     // wait duration in ms
+  duration?: number;     // wait/hold duration in ms
   method?: string;       // HTTP method (GET, POST, etc.)
   headers?: Record<string, string>; // HTTP headers
   condition?: string;    // for conditional: what to check on screen
   actions?: Action[];    // for conditional/loop: nested actions
   count?: number;        // for loop: how many times
+  value?: number;        // for set_volume: percentage, resize: width/height
+  width?: number;        // for resize_window
+  height?: number;       // for resize_window
+  app1?: string;         // for split_screen
+  app2?: string;         // for split_screen
+  on?: boolean;          // for toggle_wifi/bluetooth: true=on, false=off
+  memoryKey?: string;    // for remember/recall: storage key
   description: string;   // human-readable step description
 }
 
@@ -185,6 +195,43 @@ AUTOMATION:
 - http_request: {"type":"http_request","target":"https://api.example.com/data","method":"GET"} — call any API directly
   For POST: {"type":"http_request","target":"URL","method":"POST","text":"{\\"key\\":\\"value\\"}","headers":{"Authorization":"Bearer token"}}
 
+NOTIFICATIONS & SPEECH:
+- notify: {"type":"notify","target":"Title","text":"Message body"} — show macOS notification
+- alert: {"type":"alert","target":"Title","text":"Question?"} — show dialog, waits for OK/Cancel
+- speak: {"type":"speak","text":"Hello, I finished the task"} — text-to-speech, agent talks out loud
+
+WINDOW MANAGEMENT:
+- list_windows: {"type":"list_windows"} — get all open windows into memory
+- switch_window: {"type":"switch_window","target":"Safari"} — bring app window to front
+- resize_window: {"type":"resize_window","width":800,"height":600} — resize active window
+- move_window: {"type":"move_window","x":0,"y":25} — move active window
+- split_screen: {"type":"split_screen","app1":"Safari","app2":"Notes"} — put two apps side by side
+
+ADVANCED INPUT:
+- hold_key: {"type":"hold_key","key":"Shift","duration":2000} — hold a key for a duration
+- select_text: {"type":"select_text","x":100,"y":200,"toX":400,"toY":200} — click+shift-click to select range
+- find_and_right_click: {"type":"find_and_right_click","target":"image"} — vision finds element, right-clicks it
+- find_and_double_click: {"type":"find_and_double_click","target":"file icon"} — vision finds element, double-clicks it
+
+SYSTEM CONTROL:
+- set_volume: {"type":"set_volume","value":75} — set volume to exact percentage (0-100)
+- get_volume: {"type":"get_volume"} — check current volume
+- toggle_wifi: {"type":"toggle_wifi","on":true} — turn wifi on/off
+- toggle_bluetooth: {"type":"toggle_bluetooth","on":false} — turn bluetooth on/off
+- toggle_dark_mode: {"type":"toggle_dark_mode"} — switch light/dark mode
+- sleep_computer: {"type":"sleep_computer"} — put computer to sleep
+- empty_trash: {"type":"empty_trash"} — empty trash directly
+- get_battery: {"type":"get_battery"} — check battery percentage, shows notification
+
+DATA & MEMORY:
+- remember: {"type":"remember","memoryKey":"email","text":"john@example.com"} — store a value
+- recall: {"type":"recall","memoryKey":"email"} — retrieve a stored value into context
+- ask_user: {"type":"ask_user","text":"What email should I use?"} — notify user to check chat
+
+MULTI-AGENT:
+- call_agent: {"type":"call_agent","target":"Email Bot","text":"send report to john"} — trigger another agent
+- pass_data: {"type":"pass_data","memoryKey":"report_data","text":"Q1 revenue: $50k"} — share data between agents
+
 === CORE RULES ===
 1. Websites → open_url (never open_app with browser name)
 2. After every open_url → add wait 1500ms
@@ -206,17 +253,29 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "open/play/watch/go to" → navigate AND click the result
 - "search/look up/find" → show results page only
 - "send message to X saying Y" → open app, find contact, type, send
-- "turn up/down" → repeat key 3x
+- "turn up/down" → repeat key 3x or use set_volume with percentage
 - "copy text from X" → use read_screen or Cmd+A + Cmd+C + read_clipboard
 - "save X to a file" → use create_file to write to Desktop
 - "check if X" → use conditional with a screen check
 - "do X 5 times" → use loop with count:5
 - "call API" / "send request" → use http_request
-- "right-click" / "context menu" → use right_click
+- "right-click" / "context menu" → use right_click or find_and_right_click
 - "drag X to Y" → use drag with coordinates
 - "hover over X" → use move_mouse
-- "open file X" → use double_click on the file or open_url with file:// path
-- When unsure, add more steps rather than too few`,
+- "open file X" → use find_and_double_click or open_url with file:// path
+- "tell me" / "say" → use speak to talk back to user
+- "remind me" / "notify me" → use notify to show macOS notification
+- "put X and Y side by side" → use split_screen
+- "switch to X" → use switch_window
+- "remember X" → use remember to store, recall to retrieve
+- "ask another agent to X" → use call_agent
+- "what's my battery" → use get_battery
+- "turn on/off dark mode" → use toggle_dark_mode
+- "turn off wifi" → use toggle_wifi with on:false
+- "set volume to 50" → use set_volume with value:50
+- "go to sleep" → use sleep_computer
+- When unsure, add more steps rather than too few
+- After completing a task, use speak or notify to confirm to the user`,
     messages: [{
       role: 'user',
       content: command,
@@ -532,6 +591,200 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
         }
       }
       break;
+    }
+
+    // ── Notifications & Speech ──
+    case 'notify': {
+      controller.showNotification(action.target || 'ISIBI Ghost Mode', action.text || action.description);
+      break;
+    }
+
+    case 'alert': {
+      const result = controller.showAlert(action.target || 'ISIBI Ghost Mode', action.text || action.description);
+      addToHistory('system', 'User clicked: ' + result);
+      break;
+    }
+
+    case 'speak': {
+      controller.speak(action.text || action.description);
+      break;
+    }
+
+    // ── Window Management ──
+    case 'list_windows': {
+      const windows = controller.listWindows();
+      const winStr = windows.map(w => `${w.app}: "${w.name}"`).join(', ');
+      console.log('[Windows]', winStr);
+      addToHistory('system', 'Open windows: ' + winStr);
+      break;
+    }
+
+    case 'switch_window': {
+      controller.switchWindow(action.target || '');
+      break;
+    }
+
+    case 'resize_window': {
+      controller.resizeWindow(action.width || 800, action.height || 600);
+      break;
+    }
+
+    case 'move_window': {
+      controller.moveWindow(action.x || 0, action.y || 0);
+      break;
+    }
+
+    case 'split_screen': {
+      controller.splitScreen(action.app1 || '', action.app2 || '');
+      break;
+    }
+
+    // ── Advanced Input ──
+    case 'hold_key': {
+      const hKey = action.key || '';
+      const hParts = hKey.split('+').map(k => k.trim().toLowerCase());
+      // Use the keyMap from pressKeyCombo
+      const mapped = hParts.map(p => {
+        const km: Record<string, any> = { 'shift': controller.Key.LeftShift, 'cmd': controller.Key.LeftCmd, 'ctrl': controller.Key.LeftControl, 'alt': controller.Key.LeftAlt, 'option': controller.Key.LeftAlt };
+        return km[p];
+      }).filter(Boolean);
+      if (mapped.length > 0) {
+        await controller.holdKey(mapped[0], action.duration || 1000);
+      }
+      break;
+    }
+
+    case 'select_text': {
+      if (action.x != null && action.y != null && action.toX != null && action.toY != null) {
+        await controller.selectTextRange(action.x, action.y, action.toX, action.toY);
+      }
+      break;
+    }
+
+    case 'find_and_right_click': {
+      const pos = await vision.findElement(action.target || '');
+      if (pos) {
+        overlay.moveOrb(pos.x, pos.y);
+        await controller.sleep(300);
+        await controller.rightClick(pos.x, pos.y);
+      } else {
+        throw new Error(`Could not find: ${action.target}`);
+      }
+      break;
+    }
+
+    case 'find_and_double_click': {
+      const pos = await vision.findElement(action.target || '');
+      if (pos) {
+        overlay.moveOrb(pos.x, pos.y);
+        await controller.sleep(300);
+        overlay.clickOrb(pos.x, pos.y);
+        await controller.doubleClick(pos.x, pos.y);
+      } else {
+        throw new Error(`Could not find: ${action.target}`);
+      }
+      break;
+    }
+
+    // ── System Control ──
+    case 'set_volume': {
+      controller.setVolume(action.value || 50);
+      break;
+    }
+
+    case 'get_volume': {
+      const vol = controller.getVolume();
+      addToHistory('system', 'Current volume: ' + vol + '%');
+      break;
+    }
+
+    case 'toggle_wifi': {
+      controller.toggleWifi(action.on !== false);
+      break;
+    }
+
+    case 'toggle_bluetooth': {
+      controller.toggleBluetooth(action.on !== false);
+      break;
+    }
+
+    case 'toggle_dark_mode': {
+      controller.toggleDarkMode();
+      break;
+    }
+
+    case 'sleep_computer': {
+      controller.sleepComputer();
+      break;
+    }
+
+    case 'empty_trash': {
+      controller.emptyTrash();
+      break;
+    }
+
+    case 'get_battery': {
+      const batt = controller.getBattery();
+      const battStr = batt.percent >= 0 ? batt.percent + '% ' + (batt.charging ? '(charging)' : '(on battery)') : 'unknown';
+      addToHistory('system', 'Battery: ' + battStr);
+      controller.showNotification('Battery', battStr);
+      break;
+    }
+
+    // ── Data & Memory ──
+    case 'remember': {
+      if (action.memoryKey && action.text) {
+        agentMemory[action.memoryKey] = action.text;
+        console.log('[Memory] Stored:', action.memoryKey, '=', action.text.slice(0, 100));
+      }
+      break;
+    }
+
+    case 'recall': {
+      if (action.memoryKey) {
+        const val = agentMemory[action.memoryKey] || '';
+        addToHistory('system', 'Recalled ' + action.memoryKey + ': ' + val);
+        console.log('[Memory] Recalled:', action.memoryKey, '=', val.slice(0, 100));
+      }
+      break;
+    }
+
+    case 'ask_user': {
+      // Show notification asking the user to check the chat
+      controller.showNotification('ISIBI needs your input', action.text || 'Please check the ISIBI chat');
+      addToHistory('system', 'Asked user: ' + (action.text || action.description));
+      // Pause to give user time to respond
+      await controller.sleep(action.duration || 5000);
+      break;
+    }
+
+    // ── Multi-Agent ──
+    case 'call_agent': {
+      // Dispatch a command to another agent by name
+      const targetAgent = (await import('./agents')).getAgents().find((a: any) =>
+        a.name.toLowerCase() === (action.target || '').toLowerCase() && a.isActive
+      );
+      if (targetAgent) {
+        console.log('[MultiAgent] Calling agent:', targetAgent.name, 'with:', action.text);
+        const { dispatchCommand } = await import('./agent-manager');
+        await dispatchCommand(targetAgent.id, action.text || '', index);
+      } else {
+        console.log('[MultiAgent] Agent not found:', action.target);
+      }
+      break;
+    }
+
+    case 'pass_data': {
+      // Store data that can be picked up by another agent
+      if (action.memoryKey && action.text) {
+        agentMemory['shared_' + action.memoryKey] = action.text;
+        console.log('[MultiAgent] Shared data:', action.memoryKey);
+      }
+      break;
+    }
+
+    default: {
+      console.log('[Action] Unknown action type:', action.type);
     }
   }
 }

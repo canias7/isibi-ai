@@ -259,6 +259,219 @@ export async function getScreenSize(): Promise<ScreenSize> {
   return { width: s, height: h };
 }
 
+// ── Notifications & Speech ──────────────────────────────────────────────
+
+export function showNotification(title: string, body: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'display notification "${body.replace(/"/g, '\\"')}" with title "${title.replace(/"/g, '\\"')}"'`, { timeout: 5000 });
+  } else if (process.platform === 'win32') {
+    execSync(`powershell -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); $n=New-Object System.Windows.Forms.NotifyIcon; $n.Icon=[System.Drawing.SystemIcons]::Information; $n.Visible=$true; $n.ShowBalloonTip(5000,'${title}','${body}',[System.Windows.Forms.ToolTipIcon]::None)"`, { timeout: 5000 });
+  }
+}
+
+export function showAlert(title: string, message: string): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const result = execSync(`osascript -e 'display dialog "${message.replace(/"/g, '\\"')}" with title "${title.replace(/"/g, '\\"')}" buttons {"Cancel","OK"} default button "OK"'`, { encoding: 'utf-8', timeout: 30000 });
+      return result.includes('OK') ? 'ok' : 'cancel';
+    } catch { return 'cancel'; }
+  }
+  return 'ok';
+}
+
+export function speak(text: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`say "${text.replace(/"/g, '\\"')}"`, { timeout: 30000 });
+  } else if (process.platform === 'win32') {
+    execSync(`powershell -Command "Add-Type -AssemblyName System.Speech; $s=New-Object System.Speech.Synthesis.SpeechSynthesizer; $s.Speak('${text}')"`, { timeout: 30000 });
+  }
+}
+
+// ── Window Management ───────────────────────────────────────────────────
+
+export function listWindows(): { name: string; id: number; app: string }[] {
+  const { execSync } = require('child_process');
+  const windows: { name: string; id: number; app: string }[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'tell application "System Events"
+  set winList to ""
+  repeat with proc in (every process whose background only is false)
+    set appName to name of proc
+    repeat with w in windows of proc
+      set winList to winList & appName & "|" & name of w & "|" & id of w & "\\n"
+    end repeat
+  end repeat
+  return winList
+end tell'`, { encoding: 'utf-8', timeout: 10000 });
+      output.split('\n').forEach((line: string, i: number) => {
+        const [app, name, id] = line.split('|');
+        if (app && name) windows.push({ app: app.trim(), name: name.trim(), id: parseInt(id) || i });
+      });
+    } catch { /* skip */ }
+  }
+  return windows;
+}
+
+export function switchWindow(appName: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "${appName}" to activate'`, { timeout: 5000 });
+  }
+}
+
+export function resizeWindow(width: number, height: number): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to set size of first window of first process whose frontmost is true to {${width}, ${height}}'`, { timeout: 5000 });
+  }
+}
+
+export function moveWindow(x: number, y: number): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to set position of first window of first process whose frontmost is true to {${x}, ${y}}'`, { timeout: 5000 });
+  }
+}
+
+export function splitScreen(app1: string, app2: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    // Get screen size, put app1 on left half, app2 on right half
+    try {
+      execSync(`osascript -e '
+tell application "System Events"
+  set scr to (get size of scroll area 1 of process "Finder")
+end tell
+set screenW to item 1 of scr
+set screenH to item 2 of scr
+set halfW to screenW / 2
+tell application "${app1}" to activate
+tell application "System Events"
+  set position of first window of process "${app1}" to {0, 25}
+  set size of first window of process "${app1}" to {halfW, screenH - 25}
+end tell
+tell application "${app2}" to activate
+tell application "System Events"
+  set position of first window of process "${app2}" to {halfW, 25}
+  set size of first window of process "${app2}" to {halfW, screenH - 25}
+end tell'`, { timeout: 10000 });
+    } catch {
+      // Fallback: just activate both apps
+      execSync(`osascript -e 'tell application "${app1}" to activate'`);
+      execSync(`osascript -e 'tell application "${app2}" to activate'`);
+    }
+  }
+}
+
+// ── System Control ──────────────────────────────────────────────────────
+
+export function setVolume(percent: number): void {
+  const { execSync } = require('child_process');
+  const vol = Math.max(0, Math.min(100, percent));
+  if (process.platform === 'darwin') {
+    // macOS volume is 0-100
+    execSync(`osascript -e 'set volume output volume ${vol}'`, { timeout: 3000 });
+  }
+}
+
+export function getVolume(): number {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'output volume of (get volume settings)'`, { encoding: 'utf-8', timeout: 3000 });
+      return parseInt(output.trim()) || 50;
+    } catch { return 50; }
+  }
+  return 50;
+}
+
+export function toggleWifi(on: boolean): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`networksetup -setairportpower en0 ${on ? 'on' : 'off'}`, { timeout: 5000 });
+  }
+}
+
+export function toggleBluetooth(on: boolean): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      execSync(`blueutil --power ${on ? '1' : '0'}`, { timeout: 5000 });
+    } catch { /* blueutil not installed */ }
+  }
+}
+
+export function toggleDarkMode(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to not dark mode'`, { timeout: 5000 });
+  }
+}
+
+export function isDarkMode(): boolean {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`defaults read -g AppleInterfaceStyle 2>/dev/null`, { encoding: 'utf-8', timeout: 3000 });
+      return output.trim().toLowerCase() === 'dark';
+    } catch { return false; }
+  }
+  return false;
+}
+
+export function sleepComputer(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`pmset sleepnow`, { timeout: 3000 });
+  } else if (process.platform === 'win32') {
+    execSync(`rundll32.exe powrprof.dll,SetSuspendState 0,1,0`, { timeout: 3000 });
+  }
+}
+
+export function emptyTrash(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Finder" to empty the trash'`, { timeout: 10000 });
+  }
+}
+
+export function getBattery(): { percent: number; charging: boolean } {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`pmset -g batt`, { encoding: 'utf-8', timeout: 3000 });
+      const pMatch = output.match(/(\d+)%/);
+      const charging = output.includes('charging') || output.includes('AC Power');
+      return { percent: pMatch ? parseInt(pMatch[1]) : -1, charging };
+    } catch { return { percent: -1, charging: false }; }
+  }
+  return { percent: -1, charging: false };
+}
+
+// ── Advanced Input ──────────────────────────────────────────────────────
+
+export async function holdKey(key: Key, durationMs: number = 1000): Promise<void> {
+  await keyboard.pressKey(key);
+  await sleep(durationMs);
+  await keyboard.releaseKey(key);
+}
+
+export async function selectTextRange(startX: number, startY: number, endX: number, endY: number): Promise<void> {
+  await mouse.move(straightTo(new Point(startX, startY)));
+  await sleep(100);
+  await mouse.click(Button.LEFT);
+  await sleep(100);
+  await keyboard.pressKey(Key.LeftShift);
+  await mouse.move(straightTo(new Point(endX, endY)));
+  await sleep(100);
+  await mouse.click(Button.LEFT);
+  await keyboard.releaseKey(Key.LeftShift);
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
