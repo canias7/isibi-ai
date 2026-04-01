@@ -8,6 +8,10 @@
 import { app, BrowserWindow, ipcMain, globalShortcut, Tray, Menu, nativeImage, systemPreferences } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+
+// Suppress macOS screen recording permission popup — we use screencapture CLI instead
+app.commandLine.appendSwitch('disable-features', 'DesktopCapture,DesktopCaptureMonitor');
+app.commandLine.appendSwitch('disable-usb-keyboard-detect');
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
