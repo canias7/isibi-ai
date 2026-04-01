@@ -60,9 +60,12 @@ function createMainWindow() {
     () => true
   );
 
-  // Write HTML to temp file instead of data: URL (fixes CSP/onclick issues in Electron 28)
-  const appHtmlPath = require('path').join(app.getPath('userData'), 'app.html');
+  // Write HTML to temp file — loadFile is more reliable than data: URL in Electron 28
+  const appDir = app.getPath('userData');
+  if (!require('fs').existsSync(appDir)) require('fs').mkdirSync(appDir, { recursive: true });
+  const appHtmlPath = require('path').join(appDir, 'app.html');
   require('fs').writeFileSync(appHtmlPath, APP_HTML, 'utf-8');
+  console.log('[Main] HTML written to:', appHtmlPath, '(' + APP_HTML.length + ' chars)');
   mainWindow.loadFile(appHtmlPath);
 
   // Log renderer console errors to main process
