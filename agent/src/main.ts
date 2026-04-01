@@ -1327,6 +1327,10 @@ svg { display: block; }
   <div class="modal">
     <h2 id="modalTitle">Create Agent</h2>
     <div class="field">
+      <label>Templates</label>
+      <div id="templatePicker" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px"></div>
+    </div>
+    <div class="field">
       <label>Emoji</label>
       <div class="emoji-picker" id="emojiPicker"></div>
     </div>
@@ -1714,6 +1718,22 @@ ipcRenderer.on('profile-updated', (_, data) => {
 });
 
 // ── Agent Modal ──
+const AGENT_TEMPLATES = [
+  { name: 'Blank', emoji: '\\ud83d\\udc7b', color: '#ec4899', role: '', instructions: '', desc: 'Start from scratch' },
+  { name: 'Excel Expert', emoji: '\\ud83d\\udcca', color: '#22c55e', role: 'Spreadsheet automation', instructions: 'You are an Excel/Sheets expert agent. When I give you tasks, work inside spreadsheet apps. Create spreadsheets, write formulas (SUM, VLOOKUP, IF, etc.), format cells, build charts, and organize data. Always use keyboard shortcuts for efficiency. When creating spreadsheets, add headers in row 1, use bold formatting, and add SUM/AVERAGE formulas at the bottom.' },
+  { name: 'Email Manager', emoji: '\\ud83d\\udce7', color: '#3b82f6', role: 'Handle all email tasks', instructions: 'You are an email management agent. Read my inbox, draft replies, compose new emails, organize by priority, unsubscribe from spam, follow up on unanswered emails, and summarize my unread messages. Use Apple Mail or Gmail.' },
+  { name: 'YouTube Bot', emoji: '\\ud83c\\udfa5', color: '#ef4444', role: 'YouTube automation', instructions: 'You are a YouTube agent. Search for videos, open and play videos, navigate channels, manage playlists. When I say play or open a video, search YouTube and click the first result. When I say search, show the results page.' },
+  { name: 'Social Media', emoji: '\\ud83d\\udcf1', color: '#8b5cf6', role: 'Social media management', instructions: 'You are a social media agent. Post on Twitter/X, LinkedIn, Facebook, Instagram. Write captions, schedule posts, check engagement, reply to comments. Generate hashtags and optimize content for each platform.' },
+  { name: 'Writer', emoji: '\\u270f\\ufe0f', color: '#f97316', role: 'Writing assistant', instructions: 'You are a writing agent. Draft emails, blog posts, reports, cover letters, social posts. Proofread text, rewrite in different tones, expand or shorten content. When I say write, generate the full text. When I say proofread, check grammar and spelling.' },
+  { name: 'Developer', emoji: '\\ud83d\\udcbb', color: '#14b8a6', role: 'Coding assistant', instructions: 'You are a developer agent. Open VS Code, run terminal commands, write code, run tests, git commit and push, install packages, debug issues. Use keyboard shortcuts (Cmd+Shift+P, Cmd+backtick for terminal, etc.) for efficiency. Run Python/Node scripts when needed.' },
+  { name: 'Research Bot', emoji: '\\ud83d\\udd0d', color: '#6366f1', role: 'Research and analysis', instructions: 'You are a research agent. When I give you a topic, search Google, read multiple sources, extract key information, and compile a comprehensive summary. Save findings to notes or files. Compare sources and highlight conflicting info.' },
+  { name: 'Finance', emoji: '\\ud83d\\udcb0', color: '#eab308', role: 'Financial calculations and tracking', instructions: 'You are a finance agent. Calculate loans, mortgages, ROI, interest. Track expenses, check stock prices, convert currencies, create budgets in spreadsheets. Use financial formulas and present data clearly.' },
+  { name: 'Personal Assistant', emoji: '\\ud83d\\udcc5', color: '#06b6d4', role: 'Daily life management', instructions: 'You are my personal assistant. Manage my calendar, set reminders, send messages, make calls, check weather, find directions, create notes, organize files. Give me a daily briefing when I ask. Be proactive about upcoming events.' },
+  { name: 'Call Handler', emoji: '\\ud83d\\udcde', color: '#22c55e', role: 'Answer and handle phone calls', instructions: 'You are my AI phone assistant. When a call comes in, answer it and handle the conversation. Take messages, tell callers I am busy, schedule callbacks. Be polite and professional. Save call transcripts to Desktop.' },
+  { name: 'Slack Bot', emoji: '\\ud83d\\udcac', color: '#e11d48', role: 'Slack communication', instructions: 'You are a Slack agent. Send DMs (Cmd+K to switch), post in channels, read and summarize unread messages, set my status, reply to threads. Use Slack keyboard shortcuts for efficiency.' },
+  { name: 'File Organizer', emoji: '\\ud83d\\udcc1', color: '#84cc16', role: 'File management and cleanup', instructions: 'You are a file organization agent. Sort downloads by type, clean the desktop, archive old files, find duplicates, rename files, compress folders, and keep everything organized. Use Finder and file operations.' },
+];
+
 function openCreateAgent() {
   editingAgentId = null;
   selectedEmoji = EMOJIS[0];
@@ -1724,7 +1744,31 @@ function openCreateAgent() {
   document.getElementById('agentInstructionsInput').value = '';
   document.getElementById('deleteBtn').style.display = 'none';
   renderPickers();
+  renderTemplates();
   document.getElementById('modalBg').classList.add('visible');
+}
+
+function renderTemplates() {
+  let tpl = document.getElementById('templatePicker');
+  if (!tpl) return;
+  tpl.innerHTML = '';
+  AGENT_TEMPLATES.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.style.cssText = 'display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;cursor:pointer;font-size:11px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);transition:.15s;margin:2px';
+    el.innerHTML = t.emoji + ' ' + t.name;
+    el.onmouseover = () => { el.style.borderColor = 'rgba(236,72,153,0.3)'; };
+    el.onmouseout = () => { el.style.borderColor = 'rgba(255,255,255,0.06)'; };
+    el.onclick = () => {
+      if (i === 0) return; // Blank = do nothing
+      document.getElementById('agentNameInput').value = t.name;
+      document.getElementById('agentRoleInput').value = t.role;
+      document.getElementById('agentInstructionsInput').value = t.instructions;
+      selectedEmoji = t.emoji;
+      selectedColor = t.color;
+      renderPickers();
+    };
+    tpl.appendChild(el);
+  });
 }
 
 function openEditAgent(agent) {

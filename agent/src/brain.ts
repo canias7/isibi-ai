@@ -486,6 +486,239 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "roll dice" → use dice_roll
 - After completing a task, use speak or notify to confirm to the user
 
+SPREADSHEET EXPERT (Excel / Google Sheets / Numbers):
+When working inside a spreadsheet app, use these patterns:
+
+Navigation: Tab=next cell, Enter=next row, Cmd+Arrow=jump to edge, Cmd+Home=go to A1, Ctrl+G=Go To
+Selection: Shift+Arrow=select range, Cmd+Shift+End=select to last cell, Cmd+A=select all, Cmd+Space=select column, Shift+Space=select row
+Editing: F2=edit cell, Escape=cancel edit, Cmd+Z=undo, Cmd+;=insert date, Cmd+Shift+;=insert time, Cmd+D=fill down, Cmd+R=fill right
+Formatting: Cmd+B=bold, Cmd+I=italic, Cmd+U=underline, Cmd+1=format cells dialog, Cmd+Shift+4=currency format, Cmd+Shift+%=percentage, Cmd+Shift+#=date format
+Rows/Cols: Cmd+Shift+=insert row/col, Cmd+-=delete row/col, Cmd+0=hide column, Cmd+9=hide row
+Tables: Cmd+T=create table, Cmd+Shift+L=toggle filters
+Formulas: Tab to autocomplete formula, Cmd+backtick=show formulas, F4=toggle absolute reference (dollar-A-dollar-1)
+
+Common formulas to TYPE into cells:
+=SUM(A1:A10), =AVERAGE(A1:A10), =COUNT(A1:A10), =MAX(A1:A10), =MIN(A1:A10)
+=IF(A1>100,"Over","Under"), =VLOOKUP(A1,B:C,2,FALSE), =INDEX(B:B,MATCH(A1,A:A,0))
+=CONCATENATE(A1," ",B1) or =A1&" "&B1, =TEXT(A1,"#,##0.00"), =TODAY(), =NOW()
+=SUMIF(A:A,"condition",B:B), =COUNTIF(A:A,">100"), =SUMIFS(), =AVERAGEIF()
+=LEFT(A1,3), =RIGHT(A1,3), =MID(A1,2,4), =LEN(A1), =TRIM(A1), =UPPER(A1), =LOWER(A1)
+=ROUND(A1,2), =ROUNDUP(A1,0), =ROUNDDOWN(A1,0), =ABS(A1), =SQRT(A1)
+=IFERROR(formula,"Error"), =ISBLANK(A1), =INDIRECT("A"&B1)
+=XLOOKUP(lookup,range,return), =UNIQUE(A:A), =SORT(A:A), =FILTER(A:A,B:B>100)
+Pivot: select data → Insert → Pivot Table
+
+To build a spreadsheet from scratch:
+1. open_app "Microsoft Excel" or "Numbers" or open_url "https://sheets.google.com/create"
+2. wait 2000
+3. Click cell A1 (find_and_click or click coordinates)
+4. type the header text, press Tab for next column
+5. press Enter to go to next row
+6. type data or formulas
+7. Use Cmd+S to save
+
+When user says "create a spreadsheet/budget/tracker/report", ALWAYS:
+- Open the spreadsheet app first
+- Type headers in row 1
+- Add sample data or formulas
+- Format with bold headers (select row 1, Cmd+B)
+- Add SUM/AVERAGE formulas at the bottom
+- Save the file (Cmd+S)
+
+WORD PROCESSOR (Word / Pages / Google Docs):
+Navigation: Cmd+Home=start of doc, Cmd+End=end, Cmd+Arrow=jump word/paragraph, Cmd+F=find, Cmd+H=find & replace
+Formatting: Cmd+B=bold, Cmd+I=italic, Cmd+U=underline, Cmd+Shift+>=increase font, Cmd+Shift+<=decrease font
+Paragraphs: Cmd+E=center, Cmd+L=left, Cmd+R=right, Cmd+J=justify, Cmd+Shift+L=bullet list
+Headings: In Word: Cmd+Alt+1=Heading 1, Cmd+Alt+2=Heading 2, Cmd+Alt+3=Heading 3
+Insert: Cmd+Shift+Enter=page break, Insert→Table, Insert→Image, Insert→Link (Cmd+K)
+Track Changes: Cmd+Shift+E=toggle track changes, Review tab for accept/reject
+Save/Export: Cmd+S=save, Cmd+Shift+S=save as, File→Export as PDF
+To create a document: open_app Word/Pages → type content → format headers → Cmd+S
+
+PRESENTATION (PowerPoint / Keynote / Google Slides):
+Navigation: Arrow keys=between slides, Enter=edit slide, Escape=deselect, Tab=next placeholder
+New slide: Cmd+M (PowerPoint) or Cmd+Shift+N (Keynote)
+Formatting: same as Word (Cmd+B, Cmd+I, etc.)
+Objects: Cmd+D=duplicate, Cmd+G=group, Cmd+Shift+G=ungroup, Arrow keys=nudge
+Slideshow: Cmd+Shift+Return=start from beginning (Keynote), F5=start (PowerPoint)
+Presenter: N=next, P=previous, B=black screen, W=white screen, Esc=exit
+Insert: Insert→Text Box, Insert→Image, Insert→Shape, Insert→Chart
+Keynote specific: Cmd+Shift+K=add slide, Play→Rehearse Slideshow
+To create a presentation: open_app Keynote/PowerPoint → add title slide → Cmd+M for new slides → type content → add images
+
+PHOTOSHOP:
+Tools: V=move, M=marquee, L=lasso, W=magic wand, C=crop, I=eyedropper, B=brush, E=eraser, G=gradient, T=text, P=pen, Z=zoom, H=hand
+Layers: Cmd+Shift+N=new layer, Cmd+J=duplicate layer, Cmd+E=merge down, Cmd+G=group
+Selection: Cmd+A=select all, Cmd+D=deselect, Cmd+Shift+I=inverse selection
+Transform: Cmd+T=free transform, Enter=confirm, Escape=cancel
+Image: Cmd+Alt+I=image size, Cmd+Alt+C=canvas size, Image→Adjustments→Levels/Curves
+Filters: Filter→Blur→Gaussian Blur, Filter→Sharpen, Filter→Noise
+Save: Cmd+S=save, Cmd+Shift+S=save as, Cmd+Alt+Shift+S=save for web, File→Export
+
+FIGMA:
+Tools: V=select, F=frame, R=rectangle, O=ellipse, L=line, P=pen, T=text, K=scale, I=eyedropper
+Frames: Cmd+Alt+G=frame selection, Auto Layout=Shift+A
+Components: Cmd+Alt+K=create component, Cmd+Alt+B=detach instance
+Layers: Cmd+G=group, Cmd+Shift+G=ungroup, Cmd+]=bring forward, Cmd+[=send backward
+Zoom: Cmd+0=zoom to fit, Cmd+1=zoom 100%, Cmd+2=zoom to selection, Z+click=zoom in
+Align: use the align panel (top bar), distribute spacing
+Export: select layer → right panel → Export section → choose format
+Prototyping: click Prototype tab → drag connection between frames
+
+CANVA:
+Navigation: mostly mouse-driven, use find_and_click for templates, elements, text
+Shortcuts: T=add text, Cmd+D=duplicate, Cmd+G=group, Cmd+Z=undo, Cmd+C/V=copy/paste
+Templates: click "Templates" in sidebar, search for type, click to use
+Elements: click "Elements" in sidebar, search for icons/shapes/photos
+Export: click "Share" → "Download" → choose format (PNG, PDF, MP4)
+
+IMOVIE / FINAL CUT:
+iMovie: Space=play/pause, Cmd+B=split clip, Cmd+Z=undo, +=add to timeline, Cmd+Shift+F=fit to window
+Timeline: drag clips to arrange, use precision editor for fine cuts
+Effects: click clip → above timeline toolbar → color/audio/speed
+Export: Share→File or Share→YouTube
+Final Cut: similar but I=set in, O=set out, Q=connect to primary, W=insert, E=append
+
+VS CODE:
+Command Palette: Cmd+Shift+P (most important — search any command)
+Files: Cmd+P=quick open file, Cmd+N=new file, Cmd+S=save, Cmd+W=close tab
+Editor: Cmd+D=select next occurrence, Cmd+Shift+K=delete line, Alt+Up/Down=move line, Cmd+Shift+F=search all files
+Terminal: Cmd+backtick=toggle terminal, Cmd+Shift+backtick=new terminal
+Split: Cmd+backslash=split editor, Cmd+1/2/3=focus group
+Git: Cmd+Shift+G=source control, click +/- to stage/unstage
+Debug: F5=start debug, F9=toggle breakpoint, F10=step over, F11=step into
+Extensions: Cmd+Shift+X=extensions panel
+Multi-cursor: Alt+Click=add cursor, Cmd+Alt+Up/Down=add cursor above/below
+
+TERMINAL / SHELL:
+Navigation: cd=change dir, ls=list, pwd=print dir, clear=clear screen
+Files: cp=copy, mv=move, rm=delete, mkdir=make dir, touch=create file, cat=read file
+Search: grep=search in files, find=find files, which=locate command
+Process: ps=processes, top=activity, kill=stop process, &=background
+Pipe: |=pipe output, >=redirect to file, >>=append to file
+Common: chmod=permissions, chown=ownership, curl=HTTP request, ssh=remote connect
+Homebrew: brew install X, brew update, brew list
+Node: npm install, npm start, npm run build, npx
+Python: pip install, python3 script.py, venv
+
+XCODE:
+Build: Cmd+B=build, Cmd+R=run, Cmd+.=stop, Cmd+U=test
+Navigation: Cmd+Shift+O=quick open, Cmd+1-9=navigator panels
+Editor: Cmd+Alt+Enter=assistant editor, Cmd+Enter=standard editor
+Debug: Cmd+Y=toggle breakpoints, Cmd+Shift+Y=debug area
+Simulator: Cmd+Shift+H=home, Cmd+Shift+K=keyboard, Cmd+Left/Right=rotate
+Interface Builder: drag from Object Library, Ctrl+drag for constraints
+Signing: Xcode→Preferences→Accounts, Signing & Capabilities tab
+
+SLACK:
+Navigation: Cmd+K=quick switch (channels/DMs), Cmd+Shift+K=DM someone, Cmd+Shift+A=all unreads
+Channels: Cmd+Shift+L=channel browser, Cmd+Shift+Enter=create snippet
+Messages: Cmd+U=upload file, Cmd+Shift+backslash=reactions, Cmd+Shift+M=mentions
+Threads: Cmd+Shift+T=threads panel, click message then reply in thread
+Status: click your avatar then set status then type custom status
+Format: *bold*, _italic_, ~strikethrough~, backtick-code-backtick, triple-backtick for code block
+Calls: click phone icon in channel or DM to start huddle
+
+DISCORD:
+Navigation: Cmd+K=quick switch, Alt+Up/Down=switch channels
+Voice: click voice channel to join, M=mute, D=deafen
+Messages: @mention, #channel-link, reply by clicking message
+Format: same as Slack (*bold*, _italic_, backtick-code-backtick)
+Server: click server name → settings, invite people, create channels
+
+ZOOM:
+In meeting: Cmd+Shift+A=mute/unmute, Cmd+Shift+V=start/stop video
+Screen share: Cmd+Shift+S=share screen, Cmd+Shift+R=remote control
+Chat: Cmd+Shift+H=show/hide chat, type in chat panel
+View: Cmd+Shift+W=speaker/gallery view, Cmd+Shift+M=minimize
+Recording: Cmd+Shift+R=start recording, Cmd+Shift+P=pause
+Breakout: click Breakout Rooms in toolbar
+Reactions: click Reactions in toolbar → emoji
+
+MICROSOFT TEAMS:
+Navigation: Cmd+1=activity, Cmd+2=chat, Cmd+3=teams, Cmd+4=calendar, Cmd+5=calls
+Messages: Cmd+N=new chat, Cmd+Shift+M=mute, @mention people
+Meetings: Cmd+Shift+B=toggle blur, Cmd+Shift+O=toggle camera, Cmd+Shift+M=toggle mic
+Commands: type / in chat for commands (/available, /busy, /away)
+Search: Cmd+E=search, Cmd+F=find in conversation
+
+CHROME:
+Tabs: Cmd+T=new, Cmd+W=close, Cmd+Shift+T=reopen, Cmd+1-9=switch tab, Cmd+Option+Left/Right=prev/next tab
+Navigation: Cmd+L=address bar, Cmd+R=reload, Cmd+Shift+R=hard reload, Cmd+Left/Right=back/forward
+DevTools: Cmd+Option+I=open, Cmd+Option+J=console, Cmd+Option+C=inspect element, Cmd+Shift+C=element picker
+Find: Cmd+F=find on page, Cmd+G=next match, Cmd+Shift+G=prev match
+Bookmarks: Cmd+D=bookmark, Cmd+Shift+B=toggle bookmarks bar, Cmd+Option+B=bookmark manager
+Downloads: Cmd+Shift+J=downloads, Cmd+J=downloads page
+Profile: click avatar top-right for profile switching
+Extensions: chrome://extensions or puzzle icon in toolbar
+
+SAFARI:
+Tabs: Cmd+T=new, Cmd+W=close, Cmd+Z=reopen, Cmd+Shift+\=show all tabs
+Navigation: Cmd+L=address bar, Cmd+R=reload, Cmd+[=back, Cmd+]=forward
+Reader: Cmd+Shift+R=reader view
+Private: Cmd+Shift+N=private window
+DevTools: Cmd+Option+I=inspector (must enable in Develop menu first: Safari→Settings→Advanced→Show Develop menu)
+Reading List: Cmd+Shift+D=add to reading list
+
+ARC BROWSER:
+Spaces: Cmd+Option+Left/Right=switch spaces
+Split: Cmd+Shift+\\=split view
+Command Bar: Cmd+T=open command bar (like Spotlight for the web)
+Tabs: Cmd+Shift+D=pin tab, Cmd+Option+R=toggle sidebar
+Boost: click Boost icon to customize any website's CSS
+Notes: Cmd+Shift+N=new easel/note
+
+NOTION:
+Blocks: /=command menu (type /heading, /table, /toggle, /code, /image, etc.)
+Format: Cmd+B=bold, Cmd+I=italic, Cmd+E=code, Cmd+Shift+H=highlight, Cmd+K=link
+Navigation: Cmd+P=search, Cmd+[=back, Cmd+]=forward, Cmd+Shift+L=toggle dark mode
+Database: /database=create, click property header to configure, filter/sort icons in toolbar
+Pages: Cmd+N=new page, Cmd+Shift+N=new page in sidebar
+Drag: drag blocks to reorder, drag to other pages, 6-dot handle on left
+
+OBSIDIAN:
+Editing: Cmd+B=bold, Cmd+I=italic, Cmd+K=link, Cmd+E=toggle edit/preview
+Navigation: Cmd+O=quick open, Cmd+P=command palette, Cmd+Shift+F=search all files
+Links: [[page name]]=link to page, ![[page]]=embed, [[page#heading]]=link to heading
+Tags: #tag in text, tag pane in sidebar
+Graph: click graph icon to see knowledge graph
+Split: Cmd+\\=split pane
+Templates: Cmd+Shift+T=insert template
+
+TRELLO / ASANA:
+Trello: N=new card, Q=filter my cards, F=filter, /=search, Space=assign self, L=labels, D=due date, C=archive
+Asana: Tab+N=new task, Tab+Enter=open task, Tab+C=comment, Tab+A=assign, Tab+D=due date
+
+SPOTIFY:
+Search: Cmd+L or Cmd+K=search, type artist/song/playlist
+Playback: Space=play/pause, Cmd+Right=next, Cmd+Left=prev, Cmd+Up/Down=volume
+Queue: Cmd+Shift+Q=queue, right-click song→Add to queue
+Playlists: Cmd+N=new playlist, drag songs to playlist
+Library: Cmd+Shift+L=liked songs, sidebar for playlists/podcasts
+
+LOGIC PRO / GARAGEBAND:
+Record: R=record, Space=play/stop, Return=go to start
+Tracks: Cmd+Option+N=new track, A=automation, M=mute, S=solo
+Editing: T=trim, Cmd+T=split at playhead, Cmd+J=join regions, Cmd+Z=undo
+Mixer: X=toggle mixer, adjust volume/pan/effects per track
+MIDI: Cmd+6=piano roll editor, draw/edit notes
+Export: File→Bounce→MP3/WAV/AIFF
+
+QUICKBOOKS:
+Navigation: mostly click-based, use find_and_click
+Common: Dashboard for overview, Invoicing tab, Expenses tab, Reports tab
+Invoice: + New → Invoice → fill customer/items/amounts → Save and send
+Expense: + New → Expense → fill vendor/category/amount → Save
+Reports: Reports tab → Profit and Loss, Balance Sheet, etc.
+Banking: Banking tab → connect accounts, match transactions
+
+STRIPE DASHBOARD:
+Navigation: open_url "https://dashboard.stripe.com"
+Payments: Payments tab → list/search/refund
+Customers: Customers tab → search/create/edit
+Subscriptions: Billing → Subscriptions
+Developers: Developers → API keys, webhooks, logs
+
 EXTRA ACTIONS:
 Passwords: generate_password (value=length), check_password_strength, open_keychain
 Math: calculate (text=expression), unit_convert (value=amount, target="km to mi"), percentage (value=amount, text=percent)
