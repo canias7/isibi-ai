@@ -270,6 +270,29 @@ TERMINAL & SHORTCUTS:
 - run_terminal: {"type":"run_terminal","text":"ls -la ~/Desktop"} — run shell command, get output
 - run_shortcut: {"type":"run_shortcut","target":"My Shortcut Name"} — run Apple Shortcuts automation
 
+EMAIL:
+- send_email: {"type":"send_email","target":"john@email.com","key":"Meeting tomorrow","text":"Hi John, just confirming our meeting..."} — send via Apple Mail
+
+TIMERS & ALARMS:
+- set_timer: {"type":"set_timer","duration":300,"text":"Break time"} — timer in seconds, notifies when done
+- set_alarm: {"type":"set_alarm","target":"April 2, 2026 7:00 AM","text":"Wake up"} — creates calendar alarm
+
+NOW PLAYING:
+- get_now_playing: {"type":"get_now_playing"} — what song is playing (Spotify or Apple Music)
+
+CONTACTS:
+- add_contact: {"type":"add_contact","target":"John Smith","text":"+1234567890","key":"john@email.com"} — add to Contacts
+
+MAPS & NAVIGATION:
+- get_directions: {"type":"get_directions","target":"New York to Boston"} — opens Google Maps directions
+- find_nearby: {"type":"find_nearby","target":"restaurants near me"} — search nearby places on Google Maps
+
+CURRENCY:
+- convert_currency: {"type":"convert_currency","value":100,"target":"USD to EUR"} — live exchange rate
+
+SCREENSHOT:
+- screenshot_area: {"type":"screenshot_area"} — interactive area selection screenshot, saves to Desktop
+
 === CORE RULES ===
 1. Websites → open_url (never open_app with browser name)
 2. After every open_url → add wait 1500ms
@@ -327,6 +350,15 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "record my screen" → use start_recording / stop_recording
 - "run command X" → use run_terminal
 - "run shortcut X" → use run_shortcut
+- "email X saying Y" → use send_email
+- "set a timer for X minutes" → use set_timer (convert to seconds)
+- "set alarm for X" → use set_alarm
+- "what song is playing" → use get_now_playing
+- "add contact X" → use add_contact
+- "directions to X" / "how to get to X" → use get_directions
+- "find X near me" → use find_nearby
+- "convert X USD to EUR" → use convert_currency
+- "screenshot an area" → use screenshot_area
 - After completing a task, use speak or notify to confirm to the user`,
     messages: [{
       role: 'user',
@@ -969,6 +1001,76 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     case 'run_shortcut': {
       const output = controller.runShortcut(action.target || '', action.text);
       addToHistory('system', 'Shortcut result: ' + output.slice(0, 2000));
+      break;
+    }
+
+    // ── Email ──
+    case 'send_email': {
+      const subject = action.key || 'No subject';
+      controller.sendEmail(action.target || '', subject, action.text || '');
+      controller.showNotification('Email sent', `To: ${action.target}`);
+      break;
+    }
+
+    // ── Timers & Alarms ──
+    case 'set_timer': {
+      controller.setTimer(action.duration || 60, action.text || action.target);
+      controller.showNotification('Timer set', `${action.duration || 60}s — ${action.text || 'Timer'}`);
+      break;
+    }
+
+    case 'set_alarm': {
+      controller.setAlarm(action.target || '', action.text);
+      controller.showNotification('Alarm set', action.target || '');
+      break;
+    }
+
+    // ── Now Playing ──
+    case 'get_now_playing': {
+      const np = controller.getNowPlaying();
+      const npStr = np.track !== 'Nothing playing' ? `${np.track} by ${np.artist} (${np.app})` : 'Nothing playing';
+      addToHistory('system', 'Now playing: ' + npStr);
+      controller.showNotification('Now Playing', npStr);
+      break;
+    }
+
+    // ── Contacts ──
+    case 'add_contact': {
+      controller.addContact(action.target || '', action.text, action.key);
+      controller.showNotification('Contact added', action.target || '');
+      break;
+    }
+
+    // ── Maps ──
+    case 'get_directions': {
+      const parts = (action.target || '').split(' to ');
+      const from = parts.length > 1 ? parts[0] : 'current location';
+      const to = parts.length > 1 ? parts[1] : parts[0];
+      controller.getDirections(from, to);
+      break;
+    }
+
+    case 'find_nearby': {
+      controller.findNearby(action.target || '');
+      break;
+    }
+
+    // ── Currency ──
+    case 'convert_currency': {
+      const amt = action.value || 1;
+      const parts2 = (action.target || 'USD to EUR').split(' to ');
+      const fromCur = parts2[0]?.trim().toUpperCase() || 'USD';
+      const toCur = parts2[1]?.trim().toUpperCase() || 'EUR';
+      const result = await controller.convertCurrency(amt, fromCur, toCur);
+      addToHistory('system', 'Currency: ' + result);
+      controller.showNotification('Currency', result);
+      break;
+    }
+
+    // ── Screenshot Area ──
+    case 'screenshot_area': {
+      controller.screenshotArea(action.target);
+      controller.showNotification('Screenshot', 'Area captured');
       break;
     }
 

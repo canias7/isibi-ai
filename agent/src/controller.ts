@@ -734,6 +734,147 @@ export async function getStockPrice(symbol: string): Promise<string> {
   } catch { return 'Price unavailable'; }
 }
 
+// ── Email ───────────────────────────────────────────────────────────────
+
+export function sendEmail(to: string, subject: string, body: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Mail"
+  set newMsg to make new outgoing message with properties {subject:"${subject.replace(/"/g, '\\"')}", content:"${body.replace(/"/g, '\\"')}"}
+  tell newMsg
+    make new to recipient with properties {address:"${to.replace(/"/g, '\\"')}"}
+  end tell
+  send newMsg
+end tell'`, { timeout: 15000 });
+  }
+}
+
+// ── Timers & Alarms ─────────────────────────────────────────────────────
+
+export function setTimer(seconds: number, label?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const name = label || 'ISIBI Timer';
+    // Use AppleScript to set a timer via Clock app or fallback to notification after delay
+    try {
+      execSync(`osascript -e 'tell application "Clock" to activate'`, { timeout: 3000 });
+    } catch {
+      // Clock app may not exist — use a background process with notification
+      require('child_process').exec(`(sleep ${seconds} && osascript -e 'display notification "Timer done: ${name.replace(/"/g, '\\"')}" with title "ISIBI Timer" sound name "Glass"') &`);
+    }
+  }
+}
+
+export function setAlarm(time: string, label?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const name = label || 'ISIBI Alarm';
+    // Create a calendar event as an alarm
+    execSync(`osascript -e 'tell application "Calendar"
+  tell first calendar
+    set alarmDate to date "${time}"
+    set newEvent to make new event with properties {summary:"${name.replace(/"/g, '\\"')}", start date:alarmDate, end date:alarmDate}
+    tell newEvent
+      make new display alarm at end with properties {trigger interval:0}
+    end tell
+  end tell
+end tell'`, { timeout: 10000 });
+  }
+}
+
+// ── Now Playing ─────────────────────────────────────────────────────────
+
+export function getNowPlaying(): { track: string; artist: string; app: string } {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    // Try Spotify first
+    try {
+      const track = execSync(`osascript -e 'tell application "Spotify" to name of current track'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+      const artist = execSync(`osascript -e 'tell application "Spotify" to artist of current track'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+      if (track) return { track, artist, app: 'Spotify' };
+    } catch {}
+    // Try Apple Music
+    try {
+      const track = execSync(`osascript -e 'tell application "Music" to name of current track'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+      const artist = execSync(`osascript -e 'tell application "Music" to artist of current track'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+      if (track) return { track, artist, app: 'Apple Music' };
+    } catch {}
+  }
+  return { track: 'Nothing playing', artist: '', app: '' };
+}
+
+// ── Contacts (add) ──────────────────────────────────────────────────────
+
+export function addContact(name: string, phone?: string, email?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const nameParts = name.split(' ');
+    const first = nameParts[0] || '';
+    const last = nameParts.slice(1).join(' ') || '';
+    let script = `tell application "Contacts"
+  set newPerson to make new person with properties {first name:"${first.replace(/"/g, '\\"')}", last name:"${last.replace(/"/g, '\\"')}"}`;
+    if (phone) {
+      script += `\n  tell newPerson to make new phone at end of phones with properties {label:"mobile", value:"${phone.replace(/"/g, '\\"')}"}`;
+    }
+    if (email) {
+      script += `\n  tell newPerson to make new email at end of emails with properties {label:"work", value:"${email.replace(/"/g, '\\"')}"}`;
+    }
+    script += `\n  save\nend tell`;
+    execSync(`osascript -e '${script}'`, { timeout: 10000 });
+  }
+}
+
+// ── Maps & Navigation ───────────────────────────────────────────────────
+
+export function getDirections(from: string, to: string): void {
+  const { execSync } = require('child_process');
+  const url = `https://www.google.com/maps/dir/${encodeURIComponent(from)}/${encodeURIComponent(to)}`;
+  execSync(`open "${url}"`, { timeout: 5000 });
+}
+
+export function findNearby(query: string): void {
+  const { execSync } = require('child_process');
+  const url = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+  execSync(`open "${url}"`, { timeout: 5000 });
+}
+
+// ── Currency Conversion ─────────────────────────────────────────────────
+
+export async function convertCurrency(amount: number, from: string, to: string): Promise<string> {
+  try {
+    const https = require('https');
+    return new Promise((resolve) => {
+      https.get(`https://open.er-api.com/v6/latest/${from.toUpperCase()}`, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: string) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            const rate = json?.rates?.[to.toUpperCase()];
+            if (rate) {
+              const converted = (amount * rate).toFixed(2);
+              resolve(`${amount} ${from.toUpperCase()} = ${converted} ${to.toUpperCase()}`);
+            } else {
+              resolve('Currency not found');
+            }
+          } catch { resolve('Conversion failed'); }
+        });
+      }).on('error', () => resolve('Conversion failed'));
+    });
+  } catch { return 'Conversion failed'; }
+}
+
+// ── Screenshot Area ─────────────────────────────────────────────────────
+
+export function screenshotArea(outputPath?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `screenshot-${Date.now()}.png`);
+    // -i = interactive mode (user selects area), -s = selection only
+    execSync(`screencapture -i -s ${out}`, { timeout: 30000 });
+  }
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
