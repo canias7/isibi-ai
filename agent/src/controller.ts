@@ -96,6 +96,105 @@ export async function paste(): Promise<void> {
   }
 }
 
+// ── Drag ────────────────────────────────────────────────────────────────
+
+export async function drag(fromX: number, fromY: number, toX: number, toY: number): Promise<void> {
+  await mouse.move(straightTo(new Point(fromX, fromY)));
+  await sleep(200);
+  await mouse.pressButton(Button.LEFT);
+  await sleep(100);
+  await mouse.move(straightTo(new Point(toX, toY)));
+  await sleep(100);
+  await mouse.releaseButton(Button.LEFT);
+}
+
+// ── Clipboard ───────────────────────────────────────────────────────────
+
+export function readClipboard(): string {
+  const { execSync } = require('child_process');
+  try {
+    if (process.platform === 'darwin') {
+      return execSync('pbpaste', { encoding: 'utf-8', timeout: 3000 });
+    } else if (process.platform === 'win32') {
+      return execSync('powershell -Command "Get-Clipboard"', { encoding: 'utf-8', timeout: 3000 });
+    } else {
+      return execSync('xclip -selection clipboard -o', { encoding: 'utf-8', timeout: 3000 });
+    }
+  } catch { return ''; }
+}
+
+export function writeClipboard(text: string): void {
+  const { execSync } = require('child_process');
+  try {
+    if (process.platform === 'darwin') {
+      execSync(`echo ${JSON.stringify(text)} | pbcopy`, { timeout: 3000 });
+    } else if (process.platform === 'win32') {
+      execSync(`echo ${JSON.stringify(text)} | clip`, { timeout: 3000 });
+    } else {
+      execSync(`echo ${JSON.stringify(text)} | xclip -selection clipboard`, { timeout: 3000 });
+    }
+  } catch { /* skip */ }
+}
+
+// ── File Operations ─────────────────────────────────────────────────────
+
+export function createFile(filePath: string, content: string): void {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(filePath, content, 'utf-8');
+}
+
+export function readFile(filePath: string): string {
+  const fs = require('fs');
+  try {
+    return fs.readFileSync(filePath, 'utf-8');
+  } catch { return ''; }
+}
+
+export function moveFile(from: string, to: string): void {
+  const fs = require('fs');
+  fs.renameSync(from, to);
+}
+
+export function deleteFile(filePath: string): void {
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
+// ── HTTP Request ────────────────────────────────────────────────────────
+
+export async function httpRequest(url: string, method: string = 'GET', body?: string, headers?: Record<string, string>): Promise<{ status: number; body: string }> {
+  const https = require('https');
+  const http = require('http');
+  const urlObj = new URL(url);
+  const lib = urlObj.protocol === 'https:' ? https : http;
+
+  return new Promise((resolve, reject) => {
+    const opts: any = {
+      hostname: urlObj.hostname,
+      port: urlObj.port,
+      path: urlObj.pathname + urlObj.search,
+      method: method.toUpperCase(),
+      headers: {
+        'Content-Type': 'application/json',
+        ...headers,
+      },
+    };
+    if (body) opts.headers['Content-Length'] = Buffer.byteLength(body);
+
+    const req = lib.request(opts, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => resolve({ status: res.statusCode, body: data }));
+    });
+    req.on('error', reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
+
 // ── Scroll ──────────────────────────────────────────────────────────────
 
 export async function scrollDown(amount = 3): Promise<void> {

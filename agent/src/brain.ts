@@ -30,13 +30,20 @@ function getClient(): Anthropic {
 // ── Types ───────────────────────────────────────────────────────────────
 
 export interface Action {
-  type: 'open_app' | 'open_url' | 'click' | 'type' | 'press_key' | 'scroll' | 'wait' | 'screenshot' | 'find_and_click' | 'search_spotlight';
-  target?: string;       // app name, URL, or element description
-  text?: string;         // text to type
+  type: 'open_app' | 'open_url' | 'click' | 'double_click' | 'right_click' | 'move_mouse' | 'drag' | 'type' | 'press_key' | 'scroll' | 'wait' | 'screenshot' | 'find_and_click' | 'search_spotlight' | 'read_screen' | 'read_clipboard' | 'write_clipboard' | 'create_file' | 'read_file' | 'move_file' | 'delete_file' | 'http_request' | 'conditional' | 'loop';
+  target?: string;       // app name, URL, element description, file path, or HTTP URL
+  text?: string;         // text to type, file content, or HTTP body
   key?: string;          // key to press
-  x?: number;            // click coordinates
+  x?: number;            // coordinates
   y?: number;
+  toX?: number;          // drag destination
+  toY?: number;
   duration?: number;     // wait duration in ms
+  method?: string;       // HTTP method (GET, POST, etc.)
+  headers?: Record<string, string>; // HTTP headers
+  condition?: string;    // for conditional: what to check on screen
+  actions?: Action[];    // for conditional/loop: nested actions
+  count?: number;        // for loop: how many times
   description: string;   // human-readable step description
 }
 
@@ -145,16 +152,38 @@ Return ONLY a JSON array. No text, no markdown.
 Example: [{"type":"open_url","target":"https://youtube.com","description":"Opening YouTube"},{"type":"wait","duration":1500,"description":"Waiting for page load"}]
 
 === ACTIONS YOU CAN USE ===
+BASIC:
 - open_app: launch a desktop app (NOT browsers — use open_url for web)
 - open_url: open a URL in the default browser
-- find_and_click: describe a UI element — AI vision finds and clicks it
-- click: click at x,y pixel coordinates
+- find_and_click: {"type":"find_and_click","target":"description of element"} — AI vision finds and clicks it
+- click: {"type":"click","x":100,"y":200} — click at exact coordinates
+- double_click: {"type":"double_click","target":"file icon"} or {"type":"double_click","x":100,"y":200} — double-click (open files, select words)
+- right_click: {"type":"right_click","target":"image"} or {"type":"right_click","x":100,"y":200} — right-click for context menu
+- move_mouse: {"type":"move_mouse","target":"menu item"} or {"type":"move_mouse","x":100,"y":200} — hover without clicking (tooltips, dropdowns)
+- drag: {"type":"drag","x":100,"y":200,"toX":300,"toY":400} — drag from one point to another
 - type: type text character by character
-- press_key: keyboard key/combo (Enter, Tab, Escape, Cmd+C, Cmd+Shift+N, etc.)
+- press_key: keyboard key/combo (Enter, Tab, Escape, Cmd+C, Cmd+Shift+N, F1-F12, 0-9, etc.)
 - scroll: scroll "up" or "down"
 - wait: pause for duration ms
-- screenshot: capture screen to see what's happening
 - search_spotlight: open Spotlight to search and launch
+
+SCREEN INTELLIGENCE:
+- screenshot: capture screen to see what's happening
+- read_screen: {"type":"read_screen","target":"Read all the text on screen"} — takes screenshot, OCR/analyzes it, stores result for next steps
+- read_clipboard: {"type":"read_clipboard"} — reads clipboard contents into memory
+- write_clipboard: {"type":"write_clipboard","text":"content to copy"} — writes text to clipboard
+- conditional: {"type":"conditional","condition":"Is there an error message?","actions":[...]} — checks screen, runs nested actions only if condition is true
+
+FILE OPERATIONS:
+- create_file: {"type":"create_file","target":"/Users/X/Desktop/note.txt","text":"file content"}
+- read_file: {"type":"read_file","target":"/Users/X/Desktop/note.txt"} — reads file into memory
+- move_file: {"type":"move_file","target":"/old/path.txt","text":"/new/path.txt"} — move or rename
+- delete_file: {"type":"delete_file","target":"/Users/X/Desktop/old.txt"}
+
+AUTOMATION:
+- loop: {"type":"loop","count":3,"actions":[...]} — repeat nested actions N times
+- http_request: {"type":"http_request","target":"https://api.example.com/data","method":"GET"} — call any API directly
+  For POST: {"type":"http_request","target":"URL","method":"POST","text":"{\\"key\\":\\"value\\"}","headers":{"Authorization":"Bearer token"}}
 
 === CORE RULES ===
 1. Websites → open_url (never open_app with browser name)
@@ -178,6 +207,15 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "search/look up/find" → show results page only
 - "send message to X saying Y" → open app, find contact, type, send
 - "turn up/down" → repeat key 3x
+- "copy text from X" → use read_screen or Cmd+A + Cmd+C + read_clipboard
+- "save X to a file" → use create_file to write to Desktop
+- "check if X" → use conditional with a screen check
+- "do X 5 times" → use loop with count:5
+- "call API" / "send request" → use http_request
+- "right-click" / "context menu" → use right_click
+- "drag X to Y" → use drag with coordinates
+- "hover over X" → use move_mouse
+- "open file X" → use double_click on the file or open_url with file:// path
 - When unsure, add more steps rather than too few`,
     messages: [{
       role: 'user',
@@ -330,9 +368,169 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     }
 
     case 'screenshot': {
-      // Take screenshot and analyze — useful for conditional actions
       const analysis = await vision.analyzeScreen('What is currently on the screen?');
       console.log('[Vision]', analysis.description);
+      break;
+    }
+
+    case 'double_click': {
+      if (action.x != null && action.y != null) {
+        overlay.moveOrb(action.x, action.y);
+        await controller.sleep(300);
+        overlay.clickOrb(action.x, action.y);
+        await controller.doubleClick(action.x, action.y);
+      } else if (action.target) {
+        // Use vision to find element then double-click
+        const pos = await vision.findElement(action.target);
+        if (pos) {
+          overlay.moveOrb(pos.x, pos.y);
+          await controller.sleep(300);
+          overlay.clickOrb(pos.x, pos.y);
+          await controller.doubleClick(pos.x, pos.y);
+        } else {
+          throw new Error(`Could not find: ${action.target}`);
+        }
+      }
+      break;
+    }
+
+    case 'right_click': {
+      if (action.x != null && action.y != null) {
+        overlay.moveOrb(action.x, action.y);
+        await controller.sleep(300);
+        await controller.rightClick(action.x, action.y);
+      } else if (action.target) {
+        const pos = await vision.findElement(action.target);
+        if (pos) {
+          overlay.moveOrb(pos.x, pos.y);
+          await controller.sleep(300);
+          await controller.rightClick(pos.x, pos.y);
+        } else {
+          throw new Error(`Could not find: ${action.target}`);
+        }
+      }
+      break;
+    }
+
+    case 'move_mouse': {
+      if (action.x != null && action.y != null) {
+        overlay.moveOrb(action.x, action.y);
+        await controller.moveMouse(action.x, action.y);
+      } else if (action.target) {
+        const pos = await vision.findElement(action.target);
+        if (pos) {
+          overlay.moveOrb(pos.x, pos.y);
+          await controller.moveMouse(pos.x, pos.y);
+        }
+      }
+      break;
+    }
+
+    case 'drag': {
+      if (action.x != null && action.y != null && action.toX != null && action.toY != null) {
+        overlay.moveOrb(action.x, action.y);
+        await controller.sleep(200);
+        await controller.drag(action.x, action.y, action.toX, action.toY);
+        overlay.moveOrb(action.toX, action.toY);
+      }
+      break;
+    }
+
+    case 'read_screen': {
+      const analysis = await vision.analyzeScreen(action.target || 'Describe everything visible on screen in detail. Read all text.');
+      console.log('[ReadScreen]', analysis.description);
+      // Store in conversation history so subsequent actions can use it
+      addToHistory('system', 'Screen contents: ' + analysis.description);
+      break;
+    }
+
+    case 'read_clipboard': {
+      const content = controller.readClipboard();
+      console.log('[Clipboard]', content.slice(0, 200));
+      addToHistory('system', 'Clipboard contents: ' + content);
+      break;
+    }
+
+    case 'write_clipboard': {
+      controller.writeClipboard(action.text || '');
+      break;
+    }
+
+    case 'create_file': {
+      const filePath = action.target || '';
+      const content = action.text || '';
+      if (filePath) {
+        controller.createFile(filePath, content);
+        console.log('[File] Created:', filePath);
+      }
+      break;
+    }
+
+    case 'read_file': {
+      const content = controller.readFile(action.target || '');
+      console.log('[File] Read:', (action.target || '').slice(-40), '→', content.slice(0, 200));
+      addToHistory('system', 'File contents of ' + action.target + ': ' + content.slice(0, 2000));
+      break;
+    }
+
+    case 'move_file': {
+      if (action.target && action.text) {
+        controller.moveFile(action.target, action.text);
+        console.log('[File] Moved:', action.target, '→', action.text);
+      }
+      break;
+    }
+
+    case 'delete_file': {
+      if (action.target) {
+        controller.deleteFile(action.target);
+        console.log('[File] Deleted:', action.target);
+      }
+      break;
+    }
+
+    case 'http_request': {
+      try {
+        const result = await controller.httpRequest(
+          action.target || '',
+          action.method || 'GET',
+          action.text,
+          action.headers
+        );
+        console.log('[HTTP]', action.method || 'GET', action.target, '→', result.status);
+        addToHistory('system', 'HTTP ' + (action.method || 'GET') + ' ' + action.target + ' → ' + result.status + ': ' + result.body.slice(0, 2000));
+      } catch (e: any) {
+        console.error('[HTTP] Error:', e.message);
+        addToHistory('system', 'HTTP request failed: ' + e.message);
+      }
+      break;
+    }
+
+    case 'conditional': {
+      // Take screenshot, analyze, decide if condition is met
+      const analysis = await vision.analyzeScreen(action.condition || 'Is the action successful? Answer YES or NO.');
+      const isTrue = analysis.description.toLowerCase().includes('yes');
+      console.log('[Conditional]', action.condition, '→', isTrue ? 'TRUE' : 'FALSE');
+      if (isTrue && action.actions) {
+        for (const subAction of action.actions) {
+          await executeAction(subAction, index);
+          await controller.sleep(300);
+        }
+      }
+      break;
+    }
+
+    case 'loop': {
+      const count = action.count || 3;
+      if (action.actions) {
+        for (let i = 0; i < count; i++) {
+          console.log('[Loop] Iteration', i + 1, '/', count);
+          for (const subAction of action.actions) {
+            await executeAction(subAction, index);
+            await controller.sleep(300);
+          }
+        }
+      }
       break;
     }
   }
@@ -369,6 +567,19 @@ async function pressKeyCombo(keyStr: string): Promise<void> {
     's': controller.Key.S, 't': controller.Key.T, 'u': controller.Key.U,
     'v': controller.Key.V, 'w': controller.Key.W, 'x': controller.Key.X,
     'y': controller.Key.Y, 'z': controller.Key.Z,
+    'f1': controller.Key.F1, 'f2': controller.Key.F2, 'f3': controller.Key.F3,
+    'f4': controller.Key.F4, 'f5': controller.Key.F5, 'f6': controller.Key.F6,
+    'f7': controller.Key.F7, 'f8': controller.Key.F8, 'f9': controller.Key.F9,
+    'f10': controller.Key.F10, 'f11': controller.Key.F11, 'f12': controller.Key.F12,
+    '0': controller.Key.Num0, '1': controller.Key.Num1, '2': controller.Key.Num2,
+    '3': controller.Key.Num3, '4': controller.Key.Num4, '5': controller.Key.Num5,
+    '6': controller.Key.Num6, '7': controller.Key.Num7, '8': controller.Key.Num8,
+    '9': controller.Key.Num9,
+    'home': controller.Key.Home, 'end': controller.Key.End,
+    'pageup': controller.Key.PageUp, 'pagedown': controller.Key.PageDown,
+    '=': controller.Key.Equal, '-': controller.Key.Minus,
+    '[': controller.Key.LeftBracket, ']': controller.Key.RightBracket,
+    'super': controller.Key.LeftSuper,
   };
 
   const keys = parts.map(p => keyMap[p]).filter(Boolean);
