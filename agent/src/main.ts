@@ -3186,7 +3186,19 @@ ipcRenderer.on('stop-call-listen', () => {
 });
 
 // ── Boot ──
-init();
+init().catch(e => console.error('[Boot] Error:', e));
+// Ensure critical functions are always available
+window.openCreateAgent = openCreateAgent;
+window.switchView = switchView;
+window.trySuggestion = trySuggestion;
+window.toggleSettings = toggleSettings;
+window.saveProfile = saveProfile;
+window.closeModal = closeModal;
+window.saveAgent = saveAgent;
+window.undoLast = undoLast;
+window.toggleTheme = toggleTheme;
+window.doLogout = doLogout;
+window.sendAgentReply = sendAgentReply;
 </script>
 </body>
 </html>`;
