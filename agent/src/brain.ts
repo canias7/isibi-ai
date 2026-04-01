@@ -113,6 +113,10 @@ async function planTask(command: string, index: SystemIndex, agent?: AgentProfil
   // Build context from system index
   const appNames = index.apps.slice(0, 30).map(a => a.name).join(', ');
   const recentFiles = index.recentFiles.slice(0, 10).map(f => f.name).join(', ');
+  const runningApps = (index.runningProcesses || []).slice(0, 20).map(p => p.name).join(', ');
+  const openTabs = (index.browserTabs || []).slice(0, 10).map(t => `"${t.title}" (${t.url})`).join(', ');
+  const desktopItems = (index.desktopFiles || []).slice(0, 20).join(', ');
+  const sysInfo = index.systemInfo || {} as any;
 
   // Agent personality/role injection
   const agentContext = agent
@@ -126,7 +130,11 @@ async function planTask(command: string, index: SystemIndex, agent?: AgentProfil
     max_tokens: 1024,
     system: `You are a computer control agent. Convert natural language commands into action steps.${agentContext}
 Available apps on this computer: ${appNames}
+Currently running apps/processes: ${runningApps || 'unknown'}
+Open browser tabs: ${openTabs || 'none detected'}
+Desktop files: ${desktopItems || 'none'}
 Recent files: ${recentFiles}
+System: ${sysInfo.hostname || ''}, user: ${sysInfo.username || ''}, macOS ${sysInfo.osVersion || ''}, ${sysInfo.memoryGB || '?'}GB RAM, ${sysInfo.cpuModel || ''}
 Platform: ${index.platform} (${index.platform === 'darwin' ? 'macOS' : index.platform === 'win32' ? 'Windows' : 'Linux'})
 
 Return ONLY a JSON array of actions:

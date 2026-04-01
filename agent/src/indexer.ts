@@ -39,10 +39,36 @@ export interface BookmarkInfo {
   source: 'safari' | 'chrome';
 }
 
+export interface RunningProcess {
+  name: string;
+  pid: number;
+}
+
+export interface BrowserTab {
+  title: string;
+  url: string;
+  browser: string;
+}
+
+export interface SystemInfo {
+  hostname: string;
+  username: string;
+  osVersion: string;
+  shell: string;
+  defaultBrowser: string;
+  screenResolution: string;
+  memoryGB: number;
+  cpuModel: string;
+}
+
 export interface SystemIndex {
   apps: AppInfo[];
   recentFiles: FileInfo[];
   bookmarks: BookmarkInfo[];
+  runningProcesses: RunningProcess[];
+  browserTabs: BrowserTab[];
+  systemInfo: SystemInfo;
+  desktopFiles: string[];
   scannedAt: string;
   platform: string;
 }
@@ -224,6 +250,133 @@ function extractChromeBookmarks(node: any, results: BookmarkInfo[]) {
   }
 }
 
+// ── Running Processes ──────────────────────────────────────────────────
+
+function discoverRunningProcesses(): RunningProcess[] {
+  const procs: RunningProcess[] = [];
+  try {
+    if (process.platform === 'darwin') {
+      const output = execSync('ps -eo pid,comm | grep -v grep | tail -100', { encoding: 'utf-8', timeout: 5000 });
+      output.split('\n').forEach(line => {
+        const match = line.trim().match(/^(\d+)\s+(.+)$/);
+        if (match) {
+          const name = path.basename(match[2]);
+          if (!name.startsWith('(') && name.length > 1) {
+            procs.push({ name, pid: parseInt(match[1]) });
+          }
+        }
+      });
+    } else if (process.platform === 'win32') {
+      const output = execSync('tasklist /FO CSV /NH', { encoding: 'utf-8', timeout: 10000 });
+      output.split('\n').forEach(line => {
+        const parts = line.split('","');
+        if (parts.length >= 2) {
+          procs.push({ name: parts[0].replace('"', ''), pid: parseInt(parts[1]) });
+        }
+      });
+    } else {
+      const output = execSync('ps -eo pid,comm --no-headers | tail -100', { encoding: 'utf-8', timeout: 5000 });
+      output.split('\n').forEach(line => {
+        const match = line.trim().match(/^(\d+)\s+(.+)$/);
+        if (match) procs.push({ name: path.basename(match[2]), pid: parseInt(match[1]) });
+      });
+    }
+  } catch { /* skip */ }
+  // Deduplicate by name
+  const seen = new Set<string>();
+  return procs.filter(p => { if (seen.has(p.name)) return false; seen.add(p.name); return true; });
+}
+
+// ── Open Browser Tabs ──────────────────────────────────────────────────
+
+function discoverBrowserTabs(): BrowserTab[] {
+  const tabs: BrowserTab[] = [];
+  if (process.platform !== 'darwin') return tabs; // AppleScript only works on macOS
+
+  // Safari tabs
+  try {
+    const output = execSync(`osascript -e 'tell application "Safari" to set tabList to ""
+tell application "Safari"
+  repeat with w in windows
+    repeat with t in tabs of w
+      set tabList to tabList & name of t & "|" & URL of t & "\\n"
+    end repeat
+  end repeat
+end tell
+return tabList'`, { encoding: 'utf-8', timeout: 5000 });
+    output.split('\n').forEach(line => {
+      const [title, url] = line.split('|');
+      if (title && url) tabs.push({ title: title.trim(), url: url.trim(), browser: 'Safari' });
+    });
+  } catch { /* Safari not running or no permission */ }
+
+  // Chrome tabs
+  try {
+    const output = execSync(`osascript -e 'tell application "Google Chrome"
+  set tabList to ""
+  repeat with w in windows
+    repeat with t in tabs of w
+      set tabList to tabList & title of t & "|" & URL of t & "\\n"
+    end repeat
+  end repeat
+  return tabList
+end tell'`, { encoding: 'utf-8', timeout: 5000 });
+    output.split('\n').forEach(line => {
+      const [title, url] = line.split('|');
+      if (title && url) tabs.push({ title: title.trim(), url: url.trim(), browser: 'Chrome' });
+    });
+  } catch { /* Chrome not running */ }
+
+  return tabs.slice(0, 50);
+}
+
+// ── System Info ────────────────────────────────────────────────────────
+
+function discoverSystemInfo(): SystemInfo {
+  const os = require('os');
+  const info: SystemInfo = {
+    hostname: os.hostname(),
+    username: os.userInfo().username,
+    osVersion: '',
+    shell: process.env.SHELL || '',
+    defaultBrowser: '',
+    screenResolution: '',
+    memoryGB: Math.round(os.totalmem() / (1024 * 1024 * 1024)),
+    cpuModel: os.cpus()?.[0]?.model || 'unknown',
+  };
+
+  if (process.platform === 'darwin') {
+    try { info.osVersion = execSync('sw_vers -productVersion', { encoding: 'utf-8', timeout: 3000 }).trim(); } catch {}
+    try {
+      const browser = execSync('defaults read ~/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure LSHandlers 2>/dev/null | grep -A2 "https" | grep "LSHandlerRoleAll" | head -1', { encoding: 'utf-8', timeout: 3000 });
+      info.defaultBrowser = browser.trim().replace(/[";]/g, '').replace('LSHandlerRoleAll = ', '').trim();
+    } catch { info.defaultBrowser = 'com.apple.Safari'; }
+    try {
+      const res = execSync('system_profiler SPDisplaysDataType 2>/dev/null | grep Resolution | head -1', { encoding: 'utf-8', timeout: 5000 });
+      info.screenResolution = res.trim().replace('Resolution: ', '');
+    } catch {}
+  } else if (process.platform === 'win32') {
+    try { info.osVersion = execSync('ver', { encoding: 'utf-8', timeout: 3000 }).trim(); } catch {}
+  } else {
+    try { info.osVersion = execSync('uname -r', { encoding: 'utf-8', timeout: 3000 }).trim(); } catch {}
+  }
+
+  return info;
+}
+
+// ── Desktop Contents ───────────────────────────────────────────────────
+
+function discoverDesktopFiles(): string[] {
+  const home = require('os').homedir();
+  const desktopPath = path.join(home, 'Desktop');
+  try {
+    if (!fs.existsSync(desktopPath)) return [];
+    return fs.readdirSync(desktopPath)
+      .filter(f => !f.startsWith('.'))
+      .slice(0, 100);
+  } catch { return []; }
+}
+
 // ── Main Index Builder ──────────────────────────────────────────────────
 
 export function buildIndex(): SystemIndex {
@@ -234,12 +387,16 @@ export function buildIndex(): SystemIndex {
     apps: discoverApps(),
     recentFiles: discoverFiles(),
     bookmarks: discoverBookmarks(),
+    runningProcesses: discoverRunningProcesses(),
+    browserTabs: discoverBrowserTabs(),
+    systemInfo: discoverSystemInfo(),
+    desktopFiles: discoverDesktopFiles(),
     scannedAt: new Date().toISOString(),
     platform: process.platform,
   };
 
   const elapsed = Date.now() - start;
-  console.log(`[Indexer] Done in ${elapsed}ms: ${index.apps.length} apps, ${index.recentFiles.length} files, ${index.bookmarks.length} bookmarks`);
+  console.log(`[Indexer] Done in ${elapsed}ms: ${index.apps.length} apps, ${index.recentFiles.length} files, ${index.bookmarks.length} bookmarks, ${index.runningProcesses.length} processes, ${index.browserTabs.length} tabs, ${index.desktopFiles.length} desktop items`);
 
   // Save to disk
   try {
@@ -262,10 +419,13 @@ export function loadIndex(): SystemIndex | null {
 }
 
 export function refreshIndex(): SystemIndex {
-  // Quick refresh: just update running processes and recent files
+  // Quick refresh: update dynamic data (processes, tabs, files, desktop)
   const existing = loadIndex();
   if (existing) {
     existing.recentFiles = discoverFiles();
+    existing.runningProcesses = discoverRunningProcesses();
+    existing.browserTabs = discoverBrowserTabs();
+    existing.desktopFiles = discoverDesktopFiles();
     existing.scannedAt = new Date().toISOString();
     try { fs.writeFileSync(INDEX_PATH, JSON.stringify(existing, null, 2)); } catch {}
     return existing;
