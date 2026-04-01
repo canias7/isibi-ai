@@ -232,6 +232,21 @@ ipcMain.handle('ghost-reindex', async () => {
   return { status: 'done', apps: systemIndex.apps.length };
 });
 
+// ── Live Screenshot IPC ───────────────────────────────────────────────
+
+ipcMain.handle('capture-screen-thumbnail', async () => {
+  try {
+    const { execSync } = require('child_process');
+    const tmpFile = require('path').join(require('os').tmpdir(), `isibi-thumb-${Date.now()}.jpg`);
+    execSync(`screencapture -x -C -t jpg ${tmpFile}`, { timeout: 3000 });
+    // Resize to small thumbnail (480px wide) for performance
+    try { execSync(`sips --resampleWidth 480 ${tmpFile} --setProperty formatOptions 40`, { timeout: 3000 }); } catch {}
+    const buffer = require('fs').readFileSync(tmpFile);
+    try { require('fs').unlinkSync(tmpFile); } catch {}
+    return 'data:image/jpeg;base64,' + buffer.toString('base64');
+  } catch { return null; }
+});
+
 // ── Schedule IPC ──────────────────────────────────────────────────────
 
 ipcMain.handle('schedules-list', () => getSchedules());
@@ -1239,6 +1254,44 @@ svg { display: block; }
   font-style: italic;
 }
 
+/* ── Live Preview ── */
+.cc-live-preview {
+  margin-top: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(139,92,246,0.15);
+  position: relative;
+  background: #000;
+}
+.cc-live-preview img {
+  width: 100%;
+  display: block;
+  border-radius: 9px;
+}
+.cc-live-preview .live-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(239,68,68,0.9);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  letter-spacing: 0.5px;
+}
+.cc-live-preview .live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: white;
+  animation: livePulse 1s ease-in-out infinite;
+}
+@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
 .cc-task-log {
   margin-top: 10px;
   max-height: 80px;
@@ -2176,9 +2229,22 @@ function stopCCPolling() {
   if (ccPollTimer) { clearInterval(ccPollTimer); ccPollTimer = null; }
 }
 
+let ccScreenshot = null;
+let ccScreenshotTime = 0;
+
 async function pollCC() {
   const statuses = await ipcRenderer.invoke('agents-statuses');
   const taskStatus = await ipcRenderer.invoke('ghost-status');
+
+  // Capture screenshot if any agent is working (throttle to every 2s)
+  const hasWorking = taskStatus && taskStatus.active;
+  if (hasWorking && Date.now() - ccScreenshotTime > 2000) {
+    ccScreenshot = await ipcRenderer.invoke('capture-screen-thumbnail');
+    ccScreenshotTime = Date.now();
+  } else if (!hasWorking) {
+    ccScreenshot = null;
+  }
+
   renderControlCenter(statuses, taskStatus);
 }
 
@@ -2240,6 +2306,12 @@ function renderControlCenter(statuses, taskStatus) {
       logHtml += '</div>';
     }
 
+    // Live preview for working agents
+    let previewHtml = '';
+    if (isWorking && ccScreenshot) {
+      previewHtml = '<div class="cc-live-preview"><img src="' + ccScreenshot + '" alt="Live"><div class="live-badge"><div class="live-dot"></div>LIVE</div></div>';
+    }
+
     card.innerHTML =
       '<div class="cc-status-badge ' + badgeCls + '">' + badgeText + '</div>' +
       '<div class="cc-agent-header">' +
@@ -2251,7 +2323,7 @@ function renderControlCenter(statuses, taskStatus) {
           '<button class="cc-ctrl del" title="Delete" data-cc-action="delete" data-cc-id="' + a.id + '">\\ud83d\\uddd1</button>' +
         '</div>' +
       '</div>' +
-      thoughtHtml + logHtml;
+      previewHtml + thoughtHtml + logHtml;
 
     // Wire up control center card buttons
     card.querySelectorAll('[data-cc-action]').forEach(btn => {
