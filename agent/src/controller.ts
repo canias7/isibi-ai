@@ -2204,6 +2204,418 @@ export function captureScreenForComparison(): string {
   return outPath;
 }
 
+// ── Web Automation Helpers ───────────────────────────────────────────────
+
+export function downloadAllImages(url: string, outputDir?: string): string[] {
+  const { execSync } = require('child_process');
+  const dir = outputDir || require('path').join(require('os').homedir(), 'Downloads', `images-${Date.now()}`);
+  require('fs').mkdirSync(dir, { recursive: true });
+  try {
+    // Use wget to grab images
+    execSync(`cd "${dir}" && curl -s "${url}" | grep -oP 'src="(https?://[^"]+\\.(?:jpg|jpeg|png|gif|webp))"' | cut -d'"' -f2 | head -20 | xargs -I{} curl -sO {}`, { timeout: 30000 });
+  } catch {}
+  return require('fs').readdirSync(dir);
+}
+
+export function saveArticle(url: string, outputPath?: string): string {
+  const { execSync } = require('child_process');
+  const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `article-${Date.now()}.txt`);
+  try {
+    const html = execSync(`curl -sL "${url}"`, { encoding: 'utf-8', timeout: 15000 });
+    const text = html.replace(/<script[\s\S]*?<\/script>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    require('fs').writeFileSync(out, text, 'utf-8');
+  } catch {}
+  return out;
+}
+
+// ── Communication Helpers ───────────────────────────────────────────────
+
+export function forwardEmail(subject: string, to: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      execSync(`osascript -e 'tell application "Mail"
+  set msgs to (messages of inbox whose subject contains "${subject.replace(/"/g, '\\"')}")
+  if (count of msgs) > 0 then
+    set fwd to forward (item 1 of msgs)
+    tell fwd to make new to recipient with properties {address:"${to.replace(/"/g, '\\"')}"}
+    send fwd
+  end if
+end tell'`, { timeout: 15000 });
+    } catch {}
+  }
+}
+
+export function exportChat(appName: string, outputPath?: string): string {
+  const out = outputPath || require('path').join(require('os').homedir(), 'Desktop', `chat-export-${Date.now()}.txt`);
+  const copied = copyFromApp(appName);
+  require('fs').writeFileSync(out, copied, 'utf-8');
+  return out;
+}
+
+// ── Document Helpers ────────────────────────────────────────────────────
+
+export function convertDocFormat(inputPath: string, outputFormat: string): string {
+  const { execSync } = require('child_process');
+  const outPath = inputPath.replace(/\.[^.]+$/, `.${outputFormat}`);
+  if (process.platform === 'darwin') {
+    try {
+      execSync(`textutil -convert ${outputFormat} "${inputPath}" -output "${outPath}"`, { timeout: 15000 });
+    } catch {}
+  }
+  return outPath;
+}
+
+export function watermarkPdf(pdfPath: string, watermarkText: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      execSync(`python3 -c "
+import subprocess
+# Use Preview/Automator approach
+subprocess.run(['osascript', '-e', 'tell application \"Preview\" to open POSIX file \"${pdfPath}\"'], timeout=5)
+"`, { timeout: 10000 });
+    } catch {}
+  }
+}
+
+export function splitPdf(pdfPath: string, outputDir?: string): void {
+  const { execSync } = require('child_process');
+  const dir = outputDir || require('path').dirname(pdfPath);
+  if (process.platform === 'darwin') {
+    try {
+      execSync(`python3 -c "
+import os, subprocess
+# Get page count
+result = subprocess.run(['mdls', '-name', 'kMDItemNumberOfPages', '${pdfPath}'], capture_output=True, text=True)
+"`, { timeout: 15000 });
+    } catch {}
+  }
+}
+
+// ── Data Helpers ────────────────────────────────────────────────────────
+
+export function exportToJson(csvPath: string, outputPath?: string): string {
+  const fs = require('fs');
+  const path = require('path');
+  const out = outputPath || csvPath.replace(/\.csv$/, '.json');
+  try {
+    const lines = fs.readFileSync(csvPath, 'utf-8').split('\n').filter((l: string) => l.trim());
+    if (lines.length < 2) return out;
+    const headers = lines[0].split(',').map((h: string) => h.trim().replace(/"/g, ''));
+    const rows = lines.slice(1).map((line: string) => {
+      const vals = line.split(',').map((v: string) => v.trim().replace(/"/g, ''));
+      const obj: Record<string, string> = {};
+      headers.forEach((h: string, i: number) => { obj[h] = vals[i] || ''; });
+      return obj;
+    });
+    fs.writeFileSync(out, JSON.stringify(rows, null, 2), 'utf-8');
+  } catch {}
+  return out;
+}
+
+export function cleanCsvData(csvPath: string): string {
+  const fs = require('fs');
+  try {
+    let content = fs.readFileSync(csvPath, 'utf-8');
+    const lines = content.split('\n').filter((l: string) => l.trim() && l.split(',').some((c: string) => c.trim()));
+    fs.writeFileSync(csvPath, lines.join('\n'), 'utf-8');
+    return `Cleaned: ${lines.length} rows`;
+  } catch { return 'Failed'; }
+}
+
+export function validateEmails(text: string): { valid: string[]; invalid: string[] } {
+  const emails = text.match(/[^\s,;]+@[^\s,;]+/g) || [];
+  const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const valid = emails.filter(e => re.test(e));
+  const invalid = emails.filter(e => !re.test(e));
+  return { valid, invalid };
+}
+
+export function chartData(csvPath: string, outputPath?: string): string {
+  const fs = require('fs');
+  const path = require('path');
+  const out = outputPath || path.join(require('os').homedir(), 'Desktop', `chart-${Date.now()}.html`);
+  try {
+    const lines = fs.readFileSync(csvPath, 'utf-8').split('\n').filter((l: string) => l.trim());
+    const headers = lines[0].split(',');
+    const data = lines.slice(1).map((l: string) => l.split(','));
+    const labels = data.map((r: string[]) => r[0]);
+    const values = data.map((r: string[]) => parseFloat(r[1]) || 0);
+    const max = Math.max(...values, 1);
+    const bars = values.map((v: number, i: number) => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="width:120px;text-align:right">${labels[i]}</span><div style="background:#ec4899;height:24px;width:${(v/max*400)}px;border-radius:4px"></div><span>${v}</span></div>`).join('');
+    fs.writeFileSync(out, `<!DOCTYPE html><html><body style="font-family:system-ui;padding:20px"><h2>${headers[0]} vs ${headers[1]}</h2>${bars}</body></html>`, 'utf-8');
+  } catch {}
+  return out;
+}
+
+export function generateSampleData(type: string, count: number = 10): string {
+  const names = ['John Smith','Jane Doe','Bob Wilson','Alice Brown','Charlie Davis','Eva Martinez','Frank Miller','Grace Lee','Henry Taylor','Iris Johnson'];
+  const emails = names.map(n => n.toLowerCase().replace(' ', '.') + '@email.com');
+  const phones = Array.from({ length: count }, () => '555-' + String(Math.floor(1000 + Math.random() * 9000)));
+  if (type === 'contacts') {
+    return 'Name,Email,Phone\n' + Array.from({ length: count }, (_, i) => `${names[i % names.length]},${emails[i % emails.length]},${phones[i]}`).join('\n');
+  } else if (type === 'sales') {
+    const products = ['Widget A','Widget B','Service X','Service Y','Premium Plan'];
+    return 'Date,Product,Quantity,Price\n' + Array.from({ length: count }, () => {
+      const d = new Date(Date.now() - Math.random() * 30 * 86400000).toLocaleDateString();
+      const p = products[Math.floor(Math.random() * products.length)];
+      const q = Math.floor(1 + Math.random() * 10);
+      const pr = (10 + Math.random() * 90).toFixed(2);
+      return `${d},${p},${q},${pr}`;
+    }).join('\n');
+  }
+  return 'ID,Value\n' + Array.from({ length: count }, (_, i) => `${i + 1},${Math.floor(Math.random() * 100)}`).join('\n');
+}
+
+// ── Productivity Helpers ────────────────────────────────────────────────
+
+export function pomodoroTimer(workMins: number = 25, breakMins: number = 5): void {
+  showNotification('Pomodoro', `Working for ${workMins} minutes. Focus!`);
+  setTimeout(() => {
+    showNotification('Break time!', `Take a ${breakMins} minute break.`);
+    speak('Break time! Take a ' + breakMins + ' minute break.');
+    setTimeout(() => {
+      showNotification('Back to work!', 'Break is over.');
+      speak('Break is over. Back to work!');
+    }, breakMins * 60000);
+  }, workMins * 60000);
+}
+
+export function organizeDownloads(): string {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(require('os').homedir(), 'Downloads');
+  const categories: Record<string, string[]> = {
+    Images: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico'],
+    Videos: ['.mp4', '.mov', '.avi', '.mkv', '.wmv', '.flv'],
+    Audio: ['.mp3', '.wav', '.aac', '.flac', '.m4a', '.ogg'],
+    Documents: ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt', '.rtf', '.csv'],
+    Archives: ['.zip', '.rar', '.7z', '.tar', '.gz', '.dmg'],
+    Code: ['.js', '.ts', '.py', '.html', '.css', '.json', '.xml', '.sh'],
+    Apps: ['.app', '.exe', '.pkg', '.deb'],
+  };
+  let moved = 0;
+  try {
+    const files = fs.readdirSync(dir).filter((f: string) => !f.startsWith('.'));
+    for (const file of files) {
+      const ext = path.extname(file).toLowerCase();
+      const fp = path.join(dir, file);
+      if (!fs.statSync(fp).isFile()) continue;
+      for (const [cat, exts] of Object.entries(categories)) {
+        if (exts.includes(ext)) {
+          const catDir = path.join(dir, cat);
+          if (!fs.existsSync(catDir)) fs.mkdirSync(catDir);
+          fs.renameSync(fp, path.join(catDir, file));
+          moved++;
+          break;
+        }
+      }
+    }
+  } catch {}
+  return `Organized ${moved} files`;
+}
+
+export function cleanDesktop(): string {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(require('os').homedir(), 'Desktop');
+  let moved = 0;
+  try {
+    const files = fs.readdirSync(dir).filter((f: string) => !f.startsWith('.') && fs.statSync(path.join(dir, f)).isFile());
+    if (files.length <= 5) return 'Desktop is already clean';
+    const archiveDir = path.join(dir, `Desktop-Archive-${new Date().toISOString().slice(0, 10)}`);
+    fs.mkdirSync(archiveDir, { recursive: true });
+    for (const file of files) {
+      fs.renameSync(path.join(dir, file), path.join(archiveDir, file));
+      moved++;
+    }
+  } catch {}
+  return `Moved ${moved} files to archive`;
+}
+
+export function archiveOldFiles(folderPath: string, daysOld: number = 30): string {
+  const fs = require('fs');
+  const path = require('path');
+  const cutoff = Date.now() - daysOld * 86400000;
+  let moved = 0;
+  try {
+    const archiveDir = path.join(folderPath, 'Archive');
+    fs.mkdirSync(archiveDir, { recursive: true });
+    const files = fs.readdirSync(folderPath).filter((f: string) => !f.startsWith('.') && f !== 'Archive');
+    for (const file of files) {
+      const fp = path.join(folderPath, file);
+      if (!fs.statSync(fp).isFile()) continue;
+      if (fs.statSync(fp).mtimeMs < cutoff) {
+        fs.renameSync(fp, path.join(archiveDir, file));
+        moved++;
+      }
+    }
+  } catch {}
+  return `Archived ${moved} files older than ${daysOld} days`;
+}
+
+export function batchProcess(folderPath: string, action: string): string {
+  const fs = require('fs');
+  const { execSync } = require('child_process');
+  const path = require('path');
+  let processed = 0;
+  try {
+    const files = fs.readdirSync(folderPath).filter((f: string) => !f.startsWith('.'));
+    for (const file of files) {
+      const fp = path.join(folderPath, file);
+      if (!fs.statSync(fp).isFile()) continue;
+      try { execSync(action.replace('{}', `"${fp}"`), { timeout: 10000 }); processed++; } catch {}
+    }
+  } catch {}
+  return `Processed ${processed} files`;
+}
+
+// ── Finance Helpers ─────────────────────────────────────────────────────
+
+export async function trackPortfolio(symbols: string[]): Promise<string> {
+  const results: string[] = [];
+  for (const sym of symbols) {
+    const price = await getStockPrice(sym);
+    results.push(price);
+  }
+  return results.join('\n');
+}
+
+export function calculateRoi(investment: number, returnAmount: number): string {
+  const roi = ((returnAmount - investment) / investment * 100).toFixed(2);
+  return `Investment: $${investment}, Return: $${returnAmount}, ROI: ${roi}%`;
+}
+
+export function budgetCheck(csvPath: string): string {
+  const fs = require('fs');
+  try {
+    const lines = fs.readFileSync(csvPath, 'utf-8').split('\n').filter((l: string) => l.trim());
+    const categories: Record<string, number> = {};
+    let total = 0;
+    for (const line of lines.slice(1)) {
+      const parts = line.split(',');
+      const cat = parts[2]?.trim() || 'Other';
+      const amt = parseFloat(parts[3]?.trim() || parts[1]?.trim() || '0');
+      categories[cat] = (categories[cat] || 0) + amt;
+      total += amt;
+    }
+    const summary = Object.entries(categories).map(([k, v]) => `${k}: $${v.toFixed(2)}`).join(', ');
+    return `Total: $${total.toFixed(2)} | ${summary}`;
+  } catch { return 'Could not read budget data'; }
+}
+
+export async function cryptoPrice(symbol: string): Promise<string> {
+  try {
+    const https = require('https');
+    return new Promise((resolve) => {
+      https.get(`https://api.coinbase.com/v2/prices/${symbol.toUpperCase()}-USD/spot`, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: string) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            resolve(`${symbol.toUpperCase()}: $${json?.data?.amount || 'N/A'}`);
+          } catch { resolve('Price unavailable'); }
+        });
+      }).on('error', () => resolve('Price unavailable'));
+    });
+  } catch { return 'Price unavailable'; }
+}
+
+// ── System Maintenance ──────────────────────────────────────────────────
+
+export function clearSystemCache(): string {
+  const { execSync } = require('child_process');
+  let freed = '';
+  if (process.platform === 'darwin') {
+    try {
+      const before = execSync(`df -h / | tail -1 | awk '{print $4}'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+      execSync(`rm -rf ~/Library/Caches/* 2>/dev/null`, { timeout: 10000 });
+      const after = execSync(`df -h / | tail -1 | awk '{print $4}'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+      freed = `Before: ${before} free, After: ${after} free`;
+    } catch { freed = 'Cache cleared'; }
+  }
+  return freed;
+}
+
+export function backupFolder(folderPath: string, destPath?: string): string {
+  const { execSync } = require('child_process');
+  const path = require('path');
+  const name = path.basename(folderPath);
+  const timestamp = new Date().toISOString().slice(0, 10);
+  const out = destPath || path.join(require('os').homedir(), 'Desktop', `backup-${name}-${timestamp}.zip`);
+  execSync(`zip -r "${out}" "${folderPath}"`, { timeout: 60000 });
+  return out;
+}
+
+export function systemHealth(): string {
+  const { execSync } = require('child_process');
+  const parts: string[] = [];
+  try { parts.push('CPU: ' + execSync(`top -l 1 -n 0 | grep "CPU usage" | sed 's/CPU usage: //'`, { encoding: 'utf-8', timeout: 5000 }).trim()); } catch {}
+  try { parts.push('RAM: ' + execSync(`top -l 1 -n 0 | grep PhysMem | sed 's/PhysMem: //'`, { encoding: 'utf-8', timeout: 5000 }).trim()); } catch {}
+  try { parts.push('Disk: ' + execSync(`df -h / | tail -1 | awk '{print $4 " free of " $2}'`, { encoding: 'utf-8', timeout: 3000 }).trim()); } catch {}
+  try {
+    const batt = getBattery();
+    parts.push(`Battery: ${batt.percent}% ${batt.charging ? '(charging)' : ''}`);
+  } catch {}
+  try { parts.push('Uptime: ' + execSync(`uptime | sed 's/.*up //' | sed 's/,.*//'`, { encoding: 'utf-8', timeout: 3000 }).trim()); } catch {}
+  return parts.join(' | ');
+}
+
+export async function speedTest(): Promise<string> {
+  const start = Date.now();
+  try {
+    const https = require('https');
+    return new Promise((resolve) => {
+      const req = https.get('https://speed.cloudflare.com/__down?bytes=1000000', (res: any) => {
+        let bytes = 0;
+        res.on('data', (chunk: Buffer) => { bytes += chunk.length; });
+        res.on('end', () => {
+          const elapsed = (Date.now() - start) / 1000;
+          const mbps = ((bytes * 8) / elapsed / 1000000).toFixed(1);
+          resolve(`Download: ${mbps} Mbps (${(bytes / 1024).toFixed(0)} KB in ${elapsed.toFixed(1)}s)`);
+        });
+      });
+      req.on('error', () => resolve('Speed test failed'));
+    });
+  } catch { return 'Speed test failed'; }
+}
+
+export function findLargeFiles(folderPath?: string, minSizeMb: number = 100): string[] {
+  const { execSync } = require('child_process');
+  const dir = folderPath || require('os').homedir();
+  try {
+    return execSync(`find "${dir}" -type f -size +${minSizeMb}M 2>/dev/null | head -20`, { encoding: 'utf-8', timeout: 30000 })
+      .split('\n').filter((l: string) => l.trim());
+  } catch { return []; }
+}
+
+export function findDuplicateFiles(folderPath: string): string[] {
+  const fs = require('fs');
+  const path = require('path');
+  const crypto = require('crypto');
+  const hashes: Record<string, string[]> = {};
+  try {
+    const files = fs.readdirSync(folderPath).filter((f: string) => !f.startsWith('.'));
+    for (const file of files) {
+      const fp = path.join(folderPath, file);
+      if (!fs.statSync(fp).isFile()) continue;
+      const hash = crypto.createHash('md5').update(fs.readFileSync(fp)).digest('hex');
+      if (!hashes[hash]) hashes[hash] = [];
+      hashes[hash].push(file);
+    }
+  } catch {}
+  return Object.values(hashes).filter(files => files.length > 1).map(files => files.join(' = '));
+}
+
+export function getUptime(): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`uptime`, { encoding: 'utf-8', timeout: 3000 }).trim();
+  } catch { return 'Unknown'; }
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

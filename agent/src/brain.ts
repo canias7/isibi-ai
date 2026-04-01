@@ -2458,6 +2458,384 @@ Format in clean HTML with tables if needed.` }]
       break;
     }
 
+    // ── Web Automation (1-15) ──
+    case 'login_to_website': case 'fill_checkout': case 'add_to_cart':
+    case 'book_appointment': case 'submit_form': case 'click_through_pages':
+    case 'accept_cookies': case 'close_popups': case 'auto_scroll_and_read': {
+      // These are all AI-vision powered — read screen, figure out what to click
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}: ${action.text || action.target || ''}`, description: action.description }, index);
+      break;
+    }
+    case 'compare_prices': {
+      const product = action.target || '';
+      const sites = ['amazon.com', 'walmart.com', 'target.com'];
+      const priceResults: string[] = [];
+      for (const site of sites) {
+        const pageText = await controller.fetchWebpage(`https://www.google.com/search?q=${encodeURIComponent(product + ' site:' + site)}`);
+        priceResults.push(`${site}: ${pageText.slice(0, 200)}`);
+      }
+      addToHistory('system', 'Price comparison:\n' + priceResults.join('\n'));
+      break;
+    }
+    case 'track_package': {
+      await executeAction({ type: 'open_url', target: `https://www.google.com/search?q=track+package+${encodeURIComponent(action.target || '')}`, description: 'Tracking package' }, index);
+      break;
+    }
+    case 'unsubscribe_email': {
+      await executeAction({ type: 'complete_task', text: 'Find the unsubscribe link in this email and click it', description: 'Unsubscribing' }, index);
+      break;
+    }
+    case 'download_all_images': {
+      const imgs = controller.downloadAllImages(action.target || '');
+      addToHistory('system', `Downloaded ${imgs.length} images`);
+      break;
+    }
+    case 'save_article': {
+      const artPath = controller.saveArticle(action.target || '');
+      addToHistory('system', 'Article saved: ' + artPath);
+      break;
+    }
+    case 'extract_product_info': {
+      const prodPage = await controller.fetchWebpage(action.target || '');
+      const prodApi = (await import('./config')).getApiKey();
+      const prodClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: prodApi });
+      const prodResp = await prodClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 512,
+        messages: [{ role: 'user', content: `Extract product info from this page: name, price, rating, availability.\n\n${prodPage.slice(0, 3000)}` }]
+      });
+      addToHistory('system', 'Product: ' + (prodResp.content[0].type === 'text' ? prodResp.content[0].text : ''));
+      break;
+    }
+
+    // ── Communication (16-30) ──
+    case 'compose_email': {
+      const ceApi = (await import('./config')).getApiKey();
+      const ceClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: ceApi });
+      const ceResp = await ceClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Write a professional email. Brief: ${action.text || ''}. Return ONLY the email body.` }]
+      });
+      const emailBody = ceResp.content[0].type === 'text' ? ceResp.content[0].text : '';
+      addToHistory('system', 'Composed email: ' + emailBody.slice(0, 500));
+      controller.writeClipboard(emailBody);
+      controller.showNotification('Email composed', 'Copied to clipboard');
+      break;
+    }
+    case 'forward_email': {
+      controller.forwardEmail(action.text || '', action.target || '');
+      break;
+    }
+    case 'translate_and_send': {
+      const translated = await controller.translateText(action.text || '', action.key || 'es');
+      controller.sendIMessage(action.target || '', translated);
+      break;
+    }
+    case 'summarize_conversation': {
+      const chatText = controller.copyFromApp(action.target || 'Messages');
+      const scApi = (await import('./config')).getApiKey();
+      const scClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: scApi });
+      const scResp = await scClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 512,
+        messages: [{ role: 'user', content: `Summarize this conversation in 3-5 bullet points:\n${chatText.slice(0, 3000)}` }]
+      });
+      addToHistory('system', 'Summary: ' + (scResp.content[0].type === 'text' ? scResp.content[0].text : ''));
+      break;
+    }
+    case 'find_and_call': {
+      const contact = controller.findContact(action.target || '');
+      if (contact && contact.phone) {
+        controller.makeFaceTimeCall(contact.phone, action.text === 'audio');
+      } else { addToHistory('system', 'Contact not found: ' + action.target); }
+      break;
+    }
+    case 'export_chat': {
+      const chatPath = controller.exportChat(action.target || 'Messages', action.text);
+      addToHistory('system', 'Chat exported: ' + chatPath);
+      break;
+    }
+    case 'send_bulk_sms': case 'read_whatsapp': case 'send_voice_note':
+    case 'conference_call': case 'check_voicemail': case 'auto_respond': case 'archive_conversation': case 'reply_all_emails': case 'schedule_email': {
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}: ${action.text || action.target || ''}`, description: action.description }, index);
+      break;
+    }
+
+    // ── Document Work (31-45) ──
+    case 'proofread_text': case 'rewrite_text': case 'expand_text': case 'shorten_text': {
+      const dtApi = (await import('./config')).getApiKey();
+      const dtClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: dtApi });
+      const prompts: Record<string, string> = {
+        proofread_text: 'Proofread and fix grammar/spelling. Return corrected text only:',
+        rewrite_text: `Rewrite in a ${action.target || 'professional'} tone. Return rewritten text only:`,
+        expand_text: 'Expand this into full detailed paragraphs:',
+        shorten_text: 'Condense this to be shorter while keeping key points:',
+      };
+      const dtResp = await dtClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 2048,
+        messages: [{ role: 'user', content: `${prompts[action.type]}\n\n${action.text || ''}` }]
+      });
+      const dtResult = dtResp.content[0].type === 'text' ? dtResp.content[0].text : '';
+      addToHistory('system', action.type + ': ' + dtResult.slice(0, 1000));
+      controller.writeClipboard(dtResult);
+      break;
+    }
+    case 'convert_doc_format': {
+      const converted = controller.convertDocFormat(action.target || '', action.text || 'pdf');
+      addToHistory('system', 'Converted: ' + converted);
+      break;
+    }
+    case 'extract_text_from_image': {
+      await executeAction({ type: 'analyze_image', target: action.target, text: 'Extract ALL text from this image. Return only the text.', description: 'OCR' }, index);
+      break;
+    }
+    case 'sign_pdf': case 'annotate_pdf': case 'format_document':
+    case 'add_table_of_contents': case 'merge_documents': case 'create_template': case 'fill_template': case 'watermark_pdf': case 'split_pdf': {
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}: ${action.text || action.target || ''}`, description: action.description }, index);
+      break;
+    }
+
+    // ── Data & Research (46-60) ──
+    case 'scrape_list': case 'scrape_contacts': case 'scrape_reviews': {
+      const slPage = await controller.fetchWebpage(action.target || '');
+      const slApi = (await import('./config')).getApiKey();
+      const slClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: slApi });
+      const extractType = action.type.replace('scrape_', '');
+      const slResp = await slClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 2048,
+        messages: [{ role: 'user', content: `Extract all ${extractType} from this webpage. Format as CSV:\n\n${slPage.slice(0, 4000)}` }]
+      });
+      const slData = slResp.content[0].type === 'text' ? slResp.content[0].text : '';
+      addToHistory('system', `Scraped ${extractType}: ` + slData.slice(0, 1000));
+      if (action.key) controller.createFile(action.key, slData); // save to file if path given
+      break;
+    }
+    case 'compare_documents': {
+      const doc1 = controller.readFile(action.target || '');
+      const doc2 = controller.readFile(action.text || '');
+      const diff2 = controller.diffText(doc1, doc2);
+      addToHistory('system', 'Document diff:\n' + diff2.slice(0, 2000));
+      break;
+    }
+    case 'export_to_json': {
+      const jsonPath = controller.exportToJson(action.target || '');
+      addToHistory('system', 'Exported to: ' + jsonPath);
+      break;
+    }
+    case 'clean_data': {
+      const cleanResult = controller.cleanCsvData(action.target || '');
+      addToHistory('system', cleanResult);
+      break;
+    }
+    case 'validate_data': {
+      const valData = controller.readFile(action.target || '');
+      const valEmails = controller.validateEmails(valData);
+      addToHistory('system', `Valid: ${valEmails.valid.length}, Invalid: ${valEmails.invalid.length}${valEmails.invalid.length > 0 ? ' — ' + valEmails.invalid.join(', ') : ''}`);
+      break;
+    }
+    case 'chart_data': {
+      const chartPath = controller.chartData(action.target || '', action.text);
+      addToHistory('system', 'Chart created: ' + chartPath);
+      controller.openWith(chartPath, 'Safari');
+      break;
+    }
+    case 'generate_sample_data': {
+      const sample = controller.generateSampleData(action.text || 'contacts', action.count || 10);
+      if (action.target) controller.createFile(action.target, sample);
+      addToHistory('system', 'Sample data:\n' + sample.slice(0, 500));
+      break;
+    }
+    case 'build_database': case 'export_to_xml': case 'pivot_table':
+    case 'cross_reference': case 'find_duplicates_in_file': case 'lookup_value': {
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}: ${action.text || action.target || ''}`, description: action.description }, index);
+      break;
+    }
+
+    // ── Productivity (61-75) ──
+    case 'daily_briefing': {
+      const events = controller.listCalendarEvents(1);
+      const reminders = controller.listReminders();
+      const emails = controller.readEmails(3);
+      const briefing = `Calendar: ${events.join('; ')}\nReminders: ${reminders.join('; ')}\nEmails: ${emails.join('; ')}`;
+      addToHistory('system', 'Daily briefing:\n' + briefing);
+      controller.showNotification('Daily Briefing', `${events.length} events, ${reminders.length} reminders, ${emails.length} emails`);
+      controller.speak(`Good morning. You have ${events.length} events today, ${reminders.length} reminders, and ${emails.length} new emails.`);
+      break;
+    }
+    case 'end_of_day_report': {
+      const eodApi = (await import('./config')).getApiKey();
+      const eodClient = new (await import('@anthropic-ai/sdk')).default({ apiKey: eodApi });
+      const history = getHistory();
+      const eodResp = await eodClient.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Based on today's activity, write a brief end-of-day summary:\n${history.map(h => h.content).join('\n').slice(0, 3000)}` }]
+      });
+      const eodReport = eodResp.content[0].type === 'text' ? eodResp.content[0].text : '';
+      addToHistory('system', 'EOD Report: ' + eodReport);
+      controller.showNotification('End of Day', 'Report generated');
+      break;
+    }
+    case 'pomodoro_timer': {
+      controller.pomodoroTimer(action.value || 25, action.count || 5);
+      break;
+    }
+    case 'focus_mode': {
+      controller.toggleDoNotDisturb();
+      const distractingApps = ['Discord', 'Slack', 'Messages', 'Twitter', 'Facebook'];
+      for (const app of distractingApps) { try { controller.killApp(app); } catch {} }
+      if (action.duration) controller.setTimer(action.duration, 'Focus mode ending');
+      controller.showNotification('Focus Mode', 'Distracting apps closed, DND enabled');
+      break;
+    }
+    case 'open_workspace': {
+      const wsApps = (action.text || '').split(',').map((a: string) => a.trim());
+      for (const app of wsApps) {
+        if (app.startsWith('http')) await controller.openUrl(app);
+        else await controller.openApp(app);
+        await controller.sleep(500);
+      }
+      break;
+    }
+    case 'close_workspace': {
+      const cwApps = (action.text || '').split(',').map((a: string) => a.trim());
+      for (const app of cwApps) { try { controller.killApp(app); } catch {} }
+      break;
+    }
+    case 'organize_downloads': {
+      const orgResult = controller.organizeDownloads();
+      addToHistory('system', orgResult);
+      controller.showNotification('Downloads organized', orgResult);
+      break;
+    }
+    case 'clean_desktop': {
+      const cleanResult2 = controller.cleanDesktop();
+      addToHistory('system', cleanResult2);
+      controller.showNotification('Desktop cleaned', cleanResult2);
+      break;
+    }
+    case 'archive_old_files': {
+      const archResult = controller.archiveOldFiles(action.target || path.join(os.homedir(), 'Downloads'), action.value || 30);
+      addToHistory('system', archResult);
+      break;
+    }
+    case 'batch_process_files': {
+      const bpResult = controller.batchProcess(action.target || '', action.text || '');
+      addToHistory('system', bpResult);
+      break;
+    }
+    case 'create_todo_list': case 'prioritize_tasks': case 'time_tracker_start':
+    case 'time_tracker_stop': case 'rename_photos': {
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}: ${action.text || action.target || ''}`, description: action.description }, index);
+      break;
+    }
+
+    // ── Social Media (76-85) ──
+    case 'post_linkedin': {
+      await controller.openUrl('https://www.linkedin.com/feed/');
+      await controller.sleep(2000);
+      await executeAction({ type: 'find_and_click', target: 'Start a post button', description: 'Starting post' }, index);
+      await controller.sleep(1000);
+      await controller.typeText(action.text || '', 20);
+      break;
+    }
+    case 'post_facebook': {
+      await controller.openUrl('https://www.facebook.com/');
+      await controller.sleep(2000);
+      await executeAction({ type: 'find_and_click', target: "What's on your mind input", description: 'Starting post' }, index);
+      await controller.sleep(1000);
+      await controller.typeText(action.text || '', 20);
+      break;
+    }
+    case 'download_video': {
+      // Use yt-dlp if available, otherwise open a downloader site
+      try {
+        const { execSync: exec2 } = require('child_process');
+        const out = path.join(os.homedir(), 'Downloads');
+        exec2(`yt-dlp -o "${out}/%(title)s.%(ext)s" "${action.target}"`, { timeout: 120000 });
+        addToHistory('system', 'Video downloaded to Downloads folder');
+      } catch {
+        await controller.openUrl(`https://www.y2mate.com/youtube/${action.target}`);
+      }
+      break;
+    }
+    case 'schedule_post': case 'check_social_stats': case 'upload_to_youtube':
+    case 'create_thumbnail': case 'social_reply': case 'hashtag_research': case 'content_calendar': {
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}: ${action.text || action.target || ''}`, description: action.description }, index);
+      break;
+    }
+
+    // ── Finance (86-92) ──
+    case 'track_portfolio': {
+      const symbols = (action.text || 'AAPL,GOOGL,MSFT').split(',').map((s: string) => s.trim());
+      const portfolio = await controller.trackPortfolio(symbols);
+      addToHistory('system', 'Portfolio:\n' + portfolio);
+      controller.showNotification('Portfolio', portfolio.slice(0, 100));
+      break;
+    }
+    case 'calculate_roi': {
+      const roiResult = controller.calculateRoi(action.value || 0, parseFloat(action.text || '0'));
+      addToHistory('system', roiResult);
+      break;
+    }
+    case 'budget_check': {
+      const budgetResult = controller.budgetCheck(action.target || '');
+      addToHistory('system', 'Budget: ' + budgetResult);
+      break;
+    }
+    case 'crypto_price': {
+      const cp2 = await controller.cryptoPrice(action.target || 'BTC');
+      addToHistory('system', cp2);
+      controller.showNotification('Crypto', cp2);
+      break;
+    }
+    case 'tax_estimate': case 'invoice_reminder': case 'compare_banks': {
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}: ${action.text || action.target || ''}`, description: action.description }, index);
+      break;
+    }
+
+    // ── System Maintenance (93-100) ──
+    case 'clear_cache': {
+      const cacheResult = controller.clearSystemCache();
+      addToHistory('system', 'Cache: ' + cacheResult);
+      controller.showNotification('Cache cleared', cacheResult);
+      break;
+    }
+    case 'backup_folder': {
+      const backupPath = controller.backupFolder(action.target || '', action.text);
+      addToHistory('system', 'Backup: ' + backupPath);
+      controller.showNotification('Backup complete', backupPath);
+      break;
+    }
+    case 'system_health': {
+      const health = controller.systemHealth();
+      addToHistory('system', 'System: ' + health);
+      controller.showNotification('System Health', health);
+      break;
+    }
+    case 'speed_test': {
+      const speed = await controller.speedTest();
+      addToHistory('system', speed);
+      controller.showNotification('Speed Test', speed);
+      break;
+    }
+    case 'find_large_files': {
+      const large = controller.findLargeFiles(action.target, action.value || 100);
+      addToHistory('system', 'Large files:\n' + large.join('\n'));
+      break;
+    }
+    case 'clean_duplicates': {
+      const dupes = controller.findDuplicateFiles(action.target || path.join(os.homedir(), 'Downloads'));
+      addToHistory('system', 'Duplicates:\n' + dupes.join('\n'));
+      break;
+    }
+    case 'get_uptime': {
+      const up = controller.getUptime();
+      addToHistory('system', 'Uptime: ' + up);
+      break;
+    }
+    case 'update_apps': case 'startup_optimize': case 'force_restart': case 'shutdown_computer': case 'log_out': {
+      await executeAction({ type: 'complete_task', text: `${action.type.replace(/_/g, ' ')}`, description: action.description }, index);
+      break;
+    }
+
     default: {
       console.log('[Action] Unknown action type:', action.type);
     }
