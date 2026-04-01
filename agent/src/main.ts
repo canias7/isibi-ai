@@ -908,9 +908,12 @@ body:not(.light) {
   border-right: 1px solid rgba(255,255,255,0.04);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   -webkit-app-region: no-drag;
 }
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar::-webkit-scrollbar-thumb { background: rgba(236,72,153,0.1); border-radius: 2px; }
 .sidebar-top {
   padding: 16px;
 }
