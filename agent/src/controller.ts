@@ -2775,6 +2775,231 @@ export async function elevenLabsSpeak(apiKey: string, voiceId: string, text: str
   }
 }
 
+// ── Math: Basic (1-15) ──────────────────────────────────────────────────
+
+export function mathAdd(...nums: number[]): number { return nums.reduce((a, b) => a + b, 0); }
+export function mathSubtract(a: number, b: number): number { return a - b; }
+export function mathMultiply(...nums: number[]): number { return nums.reduce((a, b) => a * b, 1); }
+export function mathDivide(a: number, b: number): number { return b !== 0 ? a / b : NaN; }
+export function mathModulo(a: number, b: number): number { return a % b; }
+export function mathPower(base: number, exp: number): number { return Math.pow(base, exp); }
+export function mathSqrt(n: number): number { return Math.sqrt(n); }
+export function mathCbrt(n: number): number { return Math.cbrt(n); }
+export function mathAbs(n: number): number { return Math.abs(n); }
+export function mathRound(n: number, decimals: number = 0): number { const f = Math.pow(10, decimals); return Math.round(n * f) / f; }
+export function mathFloor(n: number): number { return Math.floor(n); }
+export function mathCeil(n: number): number { return Math.ceil(n); }
+export function mathMin(...nums: number[]): number { return Math.min(...nums); }
+export function mathMax(...nums: number[]): number { return Math.max(...nums); }
+export function mathAverage(nums: number[]): number { return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0; }
+
+// ── Math: Financial (16-35) ─────────────────────────────────────────────
+
+export function compoundInterest(principal: number, rate: number, n: number, t: number): string {
+  const a = principal * Math.pow(1 + rate / n, n * t);
+  return `Principal: $${principal}, Rate: ${(rate * 100).toFixed(1)}%, Periods: ${n}/yr, Years: ${t} → Final: $${a.toFixed(2)}, Interest: $${(a - principal).toFixed(2)}`;
+}
+export function simpleInterest(principal: number, rate: number, t: number): string {
+  const a = principal * (1 + rate * t);
+  return `$${principal} at ${(rate * 100).toFixed(1)}% for ${t} years = $${a.toFixed(2)} (interest: $${(a - principal).toFixed(2)})`;
+}
+export function mortgagePayment(principal: number, annualRate: number, years: number): string {
+  const r = annualRate / 12; const n = years * 12;
+  const m = principal * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+  return `Loan: $${principal}, Rate: ${(annualRate * 100).toFixed(2)}%, ${years}yr → Monthly: $${m.toFixed(2)}, Total: $${(m * n).toFixed(2)}, Interest: $${(m * n - principal).toFixed(2)}`;
+}
+export function tipCalculator(bill: number, tipPercent: number, people: number = 1): string {
+  const tip = bill * tipPercent / 100; const total = bill + tip; const perPerson = total / people;
+  return `Bill: $${bill}, Tip: $${tip.toFixed(2)} (${tipPercent}%), Total: $${total.toFixed(2)}${people > 1 ? `, Per person: $${perPerson.toFixed(2)} (${people} people)` : ''}`;
+}
+export function taxCalculator(amount: number, taxRate: number): string {
+  const tax = amount * taxRate / 100;
+  return `Amount: $${amount}, Tax: $${tax.toFixed(2)} (${taxRate}%), Total: $${(amount + tax).toFixed(2)}`;
+}
+export function discountCalculator(price: number, discount: number): string {
+  const saved = price * discount / 100;
+  return `Original: $${price}, Discount: ${discount}% (-$${saved.toFixed(2)}), Final: $${(price - saved).toFixed(2)}`;
+}
+export function markupCalculator(cost: number, markup: number): string {
+  const price = cost * (1 + markup / 100);
+  return `Cost: $${cost}, Markup: ${markup}%, Selling price: $${price.toFixed(2)}, Profit: $${(price - cost).toFixed(2)}`;
+}
+export function profitMargin(revenue: number, cost: number): string {
+  const margin = ((revenue - cost) / revenue * 100);
+  return `Revenue: $${revenue}, Cost: $${cost}, Profit: $${(revenue - cost).toFixed(2)}, Margin: ${margin.toFixed(1)}%`;
+}
+export function breakEven(fixedCosts: number, price: number, variableCost: number): string {
+  const units = fixedCosts / (price - variableCost);
+  return `Fixed: $${fixedCosts}, Price: $${price}, Variable: $${variableCost} → Break-even: ${Math.ceil(units)} units ($${(Math.ceil(units) * price).toFixed(2)})`;
+}
+export function npvCalc(rate: number, cashFlows: number[]): string {
+  let npv = 0;
+  cashFlows.forEach((cf, i) => { npv += cf / Math.pow(1 + rate, i); });
+  return `NPV at ${(rate * 100).toFixed(1)}%: $${npv.toFixed(2)}`;
+}
+export function salaryToHourly(annual: number, hoursPerWeek: number = 40): string {
+  const hourly = annual / (hoursPerWeek * 52);
+  return `$${annual}/yr = $${hourly.toFixed(2)}/hr (${hoursPerWeek}hr/wk)`;
+}
+export function overtimePay(hourlyRate: number, regularHours: number, overtimeHours: number, otMultiplier: number = 1.5): string {
+  const regular = hourlyRate * regularHours;
+  const ot = hourlyRate * otMultiplier * overtimeHours;
+  return `Regular: $${regular.toFixed(2)} (${regularHours}hr), OT: $${ot.toFixed(2)} (${overtimeHours}hr @ ${otMultiplier}x), Total: $${(regular + ot).toFixed(2)}`;
+}
+export function commissionCalc(sales: number, rate: number): string {
+  const comm = sales * rate / 100;
+  return `Sales: $${sales}, Commission: ${rate}% = $${comm.toFixed(2)}`;
+}
+export function inflationAdjusted(amount: number, years: number, inflationRate: number = 0.03): string {
+  const adjusted = amount / Math.pow(1 + inflationRate, years);
+  return `$${amount} ${years} years ago = $${(amount * Math.pow(1 + inflationRate, years)).toFixed(2)} today (${(inflationRate * 100).toFixed(1)}% inflation)`;
+}
+
+// ── Math: Statistics (36-55) ────────────────────────────────────────────
+
+export function statMean(nums: number[]): number { return nums.length ? nums.reduce((a, b) => a + b, 0) / nums.length : 0; }
+export function statMedian(nums: number[]): number {
+  const s = [...nums].sort((a, b) => a - b); const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+export function statMode(nums: number[]): number[] {
+  const freq: Record<number, number> = {}; nums.forEach(n => freq[n] = (freq[n] || 0) + 1);
+  const maxFreq = Math.max(...Object.values(freq));
+  return Object.entries(freq).filter(([_, f]) => f === maxFreq).map(([n]) => parseFloat(n));
+}
+export function statStdDev(nums: number[]): number {
+  const m = statMean(nums);
+  return Math.sqrt(nums.reduce((sum, n) => sum + Math.pow(n - m, 2), 0) / nums.length);
+}
+export function statVariance(nums: number[]): number { const s = statStdDev(nums); return s * s; }
+export function statRange(nums: number[]): number { return Math.max(...nums) - Math.min(...nums); }
+export function statPercentile(nums: number[], p: number): number {
+  const s = [...nums].sort((a, b) => a - b); const i = (p / 100) * (s.length - 1);
+  const lo = Math.floor(i); const hi = Math.ceil(i);
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (i - lo);
+}
+export function statZScore(x: number, mean: number, stdDev: number): number { return (x - mean) / stdDev; }
+export function statCorrelation(x: number[], y: number[]): number {
+  const n = Math.min(x.length, y.length); const mx = statMean(x.slice(0, n)); const my = statMean(y.slice(0, n));
+  let num = 0, dx = 0, dy = 0;
+  for (let i = 0; i < n; i++) { num += (x[i] - mx) * (y[i] - my); dx += (x[i] - mx) ** 2; dy += (y[i] - my) ** 2; }
+  return num / Math.sqrt(dx * dy);
+}
+export function statRegression(x: number[], y: number[]): { slope: number; intercept: number; equation: string } {
+  const n = Math.min(x.length, y.length); const mx = statMean(x.slice(0, n)); const my = statMean(y.slice(0, n));
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) { num += (x[i] - mx) * (y[i] - my); den += (x[i] - mx) ** 2; }
+  const slope = den ? num / den : 0; const intercept = my - slope * mx;
+  return { slope, intercept, equation: `y = ${slope.toFixed(4)}x + ${intercept.toFixed(4)}` };
+}
+export function movingAverage(nums: number[], period: number): number[] {
+  const result: number[] = [];
+  for (let i = period - 1; i < nums.length; i++) {
+    result.push(nums.slice(i - period + 1, i + 1).reduce((a, b) => a + b, 0) / period);
+  }
+  return result;
+}
+export function weightedAverage(values: number[], weights: number[]): number {
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  return values.reduce((sum, v, i) => sum + v * (weights[i] || 0), 0) / totalWeight;
+}
+export function probability(favorable: number, total: number): string {
+  return `P = ${favorable}/${total} = ${(favorable / total).toFixed(4)} = ${(favorable / total * 100).toFixed(2)}%`;
+}
+export function combinations(n: number, r: number): number {
+  return factorial(n) / (factorial(r) * factorial(n - r));
+}
+export function permutations(n: number, r: number): number {
+  return factorial(n) / factorial(n - r);
+}
+export function factorial(n: number): number {
+  if (n <= 1) return 1; let r = 1; for (let i = 2; i <= n; i++) r *= i; return r;
+}
+export function fibonacci(n: number): number {
+  if (n <= 1) return n; let a = 0, b = 1;
+  for (let i = 2; i <= n; i++) { const t = a + b; a = b; b = t; } return b;
+}
+export function isPrime(n: number): boolean {
+  if (n < 2) return false; for (let i = 2; i <= Math.sqrt(n); i++) { if (n % i === 0) return false; } return true;
+}
+export function gcd(a: number, b: number): number { return b === 0 ? a : gcd(b, a % b); }
+export function lcm(a: number, b: number): number { return Math.abs(a * b) / gcd(a, b); }
+
+// ── Math: Geometry (56-70) ──────────────────────────────────────────────
+
+export function areaCircle(r: number): string { return `Area = π×${r}² = ${(Math.PI * r * r).toFixed(4)}`; }
+export function areaRectangle(l: number, w: number): string { return `Area = ${l}×${w} = ${(l * w).toFixed(4)}`; }
+export function areaTriangle(b: number, h: number): string { return `Area = ½×${b}×${h} = ${(0.5 * b * h).toFixed(4)}`; }
+export function areaTrapezoid(a: number, b: number, h: number): string { return `Area = ½×(${a}+${b})×${h} = ${(0.5 * (a + b) * h).toFixed(4)}`; }
+export function circumference(r: number): string { return `C = 2π×${r} = ${(2 * Math.PI * r).toFixed(4)}`; }
+export function perimeterRectangle(l: number, w: number): string { return `P = 2×(${l}+${w}) = ${(2 * (l + w)).toFixed(4)}`; }
+export function volumeSphere(r: number): string { return `V = (4/3)π×${r}³ = ${(4/3 * Math.PI * r * r * r).toFixed(4)}`; }
+export function volumeCylinder(r: number, h: number): string { return `V = π×${r}²×${h} = ${(Math.PI * r * r * h).toFixed(4)}`; }
+export function volumeCone(r: number, h: number): string { return `V = (1/3)π×${r}²×${h} = ${(Math.PI * r * r * h / 3).toFixed(4)}`; }
+export function volumeCube(s: number): string { return `V = ${s}³ = ${(s * s * s).toFixed(4)}`; }
+export function surfaceAreaSphere(r: number): string { return `SA = 4π×${r}² = ${(4 * Math.PI * r * r).toFixed(4)}`; }
+export function surfaceAreaCylinder(r: number, h: number): string { return `SA = 2π×${r}² + 2π×${r}×${h} = ${(2 * Math.PI * r * r + 2 * Math.PI * r * h).toFixed(4)}`; }
+export function pythagorean(a: number, b: number): string { const c = Math.sqrt(a * a + b * b); return `a=${a}, b=${b} → c = √(${a}²+${b}²) = ${c.toFixed(4)}`; }
+export function distance2d(x1: number, y1: number, x2: number, y2: number): string {
+  const d = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+  return `Distance from (${x1},${y1}) to (${x2},${y2}) = ${d.toFixed(4)}`;
+}
+export function midpoint(x1: number, y1: number, x2: number, y2: number): string {
+  return `Midpoint of (${x1},${y1}) and (${x2},${y2}) = (${((x1 + x2) / 2).toFixed(2)}, ${((y1 + y2) / 2).toFixed(2)})`;
+}
+
+// ── Math: Business & Analytics (86-100) ─────────────────────────────────
+
+export function growthRate(oldVal: number, newVal: number): string {
+  return `Growth: ${(((newVal - oldVal) / oldVal) * 100).toFixed(2)}%`;
+}
+export function cagr(startVal: number, endVal: number, years: number): string {
+  const rate = Math.pow(endVal / startVal, 1 / years) - 1;
+  return `CAGR: ${(rate * 100).toFixed(2)}% over ${years} years`;
+}
+export function customerLifetimeValue(avgPurchase: number, frequency: number, lifespan: number): string {
+  const clv = avgPurchase * frequency * lifespan;
+  return `CLV = $${avgPurchase} × ${frequency}/yr × ${lifespan}yr = $${clv.toFixed(2)}`;
+}
+export function churnRate(lost: number, total: number): string {
+  return `Churn: ${lost}/${total} = ${(lost / total * 100).toFixed(2)}%`;
+}
+export function conversionRate(conversions: number, visitors: number): string {
+  return `CR: ${conversions}/${visitors} = ${(conversions / visitors * 100).toFixed(2)}%`;
+}
+export function costPerAcquisition(spend: number, customers: number): string {
+  return `CPA: $${spend}/${customers} = $${(spend / customers).toFixed(2)} per customer`;
+}
+export function averageOrderValue(revenue: number, orders: number): string {
+  return `AOV: $${revenue}/${orders} = $${(revenue / orders).toFixed(2)}`;
+}
+export function burnRate(cash: number, monthlySpend: number): string {
+  const months = cash / monthlySpend;
+  return `Cash: $${cash}, Burn: $${monthlySpend}/mo, Runway: ${months.toFixed(1)} months`;
+}
+export function revenueForecast(current: number, growthRate: number, months: number): string {
+  const projected = current * Math.pow(1 + growthRate / 100, months / 12);
+  return `Current: $${current}, Growth: ${growthRate}%, In ${months}mo: $${projected.toFixed(2)}`;
+}
+export function splitBill(total: number, people: number, tipPercent: number = 0): string {
+  const tip = total * tipPercent / 100;
+  const withTip = total + tip;
+  const each = withTip / people;
+  return `Total: $${total}, Tip: $${tip.toFixed(2)} (${tipPercent}%), Each of ${people}: $${each.toFixed(2)}`;
+}
+export function loanCalculator(principal: number, annualRate: number, months: number): string {
+  const r = annualRate / 12;
+  const payment = principal * (r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
+  return `Loan: $${principal}, ${(annualRate * 100).toFixed(1)}% for ${months}mo → $${payment.toFixed(2)}/mo, Total: $${(payment * months).toFixed(2)}`;
+}
+export function investmentReturn(principal: number, rate: number, years: number): string {
+  const final2 = principal * Math.pow(1 + rate / 100, years);
+  return `$${principal} at ${rate}% for ${years}yr → $${final2.toFixed(2)} (earned: $${(final2 - principal).toFixed(2)})`;
+}
+export function pricePerUnit(price: number, quantity: number, unit: string = 'unit'): string {
+  return `$${price} / ${quantity} ${unit} = $${(price / quantity).toFixed(4)} per ${unit}`;
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

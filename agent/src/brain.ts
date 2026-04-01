@@ -3025,6 +3025,222 @@ Format in clean HTML with tables if needed.` }]
       break;
     }
 
+    // ── Math Actions (100 functions) ──
+    case 'add': case 'subtract': case 'multiply': case 'divide': case 'modulo':
+    case 'power': case 'square_root': case 'cube_root': case 'absolute':
+    case 'round': case 'floor': case 'ceil': case 'min': case 'max': case 'average': {
+      const nums = (action.text || '').split(',').map(Number).filter(n => !isNaN(n));
+      let mathResult = '';
+      switch (action.type) {
+        case 'add': mathResult = String(controller.mathAdd(...nums)); break;
+        case 'subtract': mathResult = String(controller.mathSubtract(nums[0]||0, nums[1]||0)); break;
+        case 'multiply': mathResult = String(controller.mathMultiply(...nums)); break;
+        case 'divide': mathResult = String(controller.mathDivide(nums[0]||0, nums[1]||1)); break;
+        case 'modulo': mathResult = String(controller.mathModulo(nums[0]||0, nums[1]||1)); break;
+        case 'power': mathResult = String(controller.mathPower(nums[0]||0, nums[1]||2)); break;
+        case 'square_root': mathResult = String(controller.mathSqrt(nums[0]||0)); break;
+        case 'cube_root': mathResult = String(controller.mathCbrt(nums[0]||0)); break;
+        case 'absolute': mathResult = String(controller.mathAbs(nums[0]||0)); break;
+        case 'round': mathResult = String(controller.mathRound(nums[0]||0, nums[1]||0)); break;
+        case 'floor': mathResult = String(controller.mathFloor(nums[0]||0)); break;
+        case 'ceil': mathResult = String(controller.mathCeil(nums[0]||0)); break;
+        case 'min': mathResult = String(controller.mathMin(...nums)); break;
+        case 'max': mathResult = String(controller.mathMax(...nums)); break;
+        case 'average': mathResult = String(controller.mathAverage(nums)); break;
+      }
+      addToHistory('system', `${action.type}(${action.text}) = ${mathResult}`);
+      controller.showNotification('Math', mathResult);
+      break;
+    }
+
+    // Financial calculations
+    case 'compound_interest': {
+      const r = controller.compoundInterest(action.value||1000, parseFloat(action.text||'0.05'), action.count||12, action.duration||1);
+      addToHistory('system', r); break;
+    }
+    case 'simple_interest': {
+      const r = controller.simpleInterest(action.value||1000, parseFloat(action.text||'0.05'), action.duration||1);
+      addToHistory('system', r); break;
+    }
+    case 'mortgage_payment': {
+      const r = controller.mortgagePayment(action.value||300000, parseFloat(action.text||'0.06'), action.count||30);
+      addToHistory('system', r); controller.showNotification('Mortgage', r.slice(0, 100)); break;
+    }
+    case 'tip_calculator': {
+      const r = controller.tipCalculator(action.value||0, parseFloat(action.text||'18'), action.count||1);
+      addToHistory('system', r); controller.showNotification('Tip', r); break;
+    }
+    case 'tax_calculator': {
+      const r = controller.taxCalculator(action.value||0, parseFloat(action.text||'8.25'));
+      addToHistory('system', r); break;
+    }
+    case 'discount_calculator': {
+      const r = controller.discountCalculator(action.value||0, parseFloat(action.text||'10'));
+      addToHistory('system', r); break;
+    }
+    case 'markup_calculator': {
+      const r = controller.markupCalculator(action.value||0, parseFloat(action.text||'50'));
+      addToHistory('system', r); break;
+    }
+    case 'profit_margin': {
+      const nums2 = (action.text||'').split(',').map(Number);
+      const r = controller.profitMargin(nums2[0]||action.value||0, nums2[1]||0);
+      addToHistory('system', r); break;
+    }
+    case 'break_even': {
+      const nums2 = (action.text||'').split(',').map(Number);
+      const r = controller.breakEven(nums2[0]||0, nums2[1]||0, nums2[2]||0);
+      addToHistory('system', r); break;
+    }
+    case 'npv': {
+      const cfs = (action.text||'').split(',').map(Number);
+      const r = controller.npvCalc(action.value||0.1, cfs);
+      addToHistory('system', r); break;
+    }
+    case 'salary_to_hourly': {
+      const r = controller.salaryToHourly(action.value||50000, action.count||40);
+      addToHistory('system', r); break;
+    }
+    case 'overtime_pay': {
+      const nums2 = (action.text||'').split(',').map(Number);
+      const r = controller.overtimePay(nums2[0]||25, nums2[1]||40, nums2[2]||10, nums2[3]||1.5);
+      addToHistory('system', r); break;
+    }
+    case 'commission_calculator': {
+      const r = controller.commissionCalc(action.value||0, parseFloat(action.text||'10'));
+      addToHistory('system', r); break;
+    }
+    case 'inflation_adjusted': {
+      const r = controller.inflationAdjusted(action.value||0, action.count||10, parseFloat(action.text||'0.03'));
+      addToHistory('system', r); break;
+    }
+    case 'split_bill': {
+      const r = controller.splitBill(action.value||0, action.count||2, parseFloat(action.text||'18'));
+      addToHistory('system', r); controller.showNotification('Bill Split', r); break;
+    }
+    case 'loan_calculator': {
+      const r = controller.loanCalculator(action.value||0, parseFloat(action.text||'0.05'), action.count||60);
+      addToHistory('system', r); break;
+    }
+    case 'investment_return': {
+      const r = controller.investmentReturn(action.value||0, parseFloat(action.text||'7'), action.count||10);
+      addToHistory('system', r); break;
+    }
+    case 'price_per_unit': {
+      const r = controller.pricePerUnit(action.value||0, action.count||1, action.target||'unit');
+      addToHistory('system', r); break;
+    }
+
+    // Statistics
+    case 'mean': case 'median': case 'mode': case 'standard_deviation':
+    case 'variance': case 'range_stat': case 'percentile': {
+      const nums3 = (action.text||'').split(',').map(Number).filter(n => !isNaN(n));
+      let statR = '';
+      switch (action.type) {
+        case 'mean': statR = String(controller.statMean(nums3)); break;
+        case 'median': statR = String(controller.statMedian(nums3)); break;
+        case 'mode': statR = controller.statMode(nums3).join(', '); break;
+        case 'standard_deviation': statR = controller.statStdDev(nums3).toFixed(4); break;
+        case 'variance': statR = controller.statVariance(nums3).toFixed(4); break;
+        case 'range_stat': statR = String(controller.statRange(nums3)); break;
+        case 'percentile': statR = String(controller.statPercentile(nums3, action.value||50)); break;
+      }
+      addToHistory('system', `${action.type}(${action.text}) = ${statR}`); break;
+    }
+    case 'z_score': {
+      const nums3 = (action.text||'').split(',').map(Number);
+      const r = controller.statZScore(nums3[0]||0, nums3[1]||0, nums3[2]||1);
+      addToHistory('system', `Z-score: ${r.toFixed(4)}`); break;
+    }
+    case 'correlation': {
+      const parts5 = (action.text||'').split('|');
+      const x2 = (parts5[0]||'').split(',').map(Number);
+      const y2 = (parts5[1]||'').split(',').map(Number);
+      const r = controller.statCorrelation(x2, y2);
+      addToHistory('system', `Correlation: ${r.toFixed(4)}`); break;
+    }
+    case 'regression': {
+      const parts5 = (action.text||'').split('|');
+      const x2 = (parts5[0]||'').split(',').map(Number);
+      const y2 = (parts5[1]||'').split(',').map(Number);
+      const r = controller.statRegression(x2, y2);
+      addToHistory('system', `Regression: ${r.equation}`); break;
+    }
+    case 'moving_average': {
+      const nums3 = (action.text||'').split(',').map(Number);
+      const r = controller.movingAverage(nums3, action.value||3);
+      addToHistory('system', `Moving avg (${action.value||3}): ${r.map(n => n.toFixed(2)).join(', ')}`); break;
+    }
+    case 'weighted_average': {
+      const parts5 = (action.text||'').split('|');
+      const vals = (parts5[0]||'').split(',').map(Number);
+      const wts = (parts5[1]||'').split(',').map(Number);
+      const r = controller.weightedAverage(vals, wts);
+      addToHistory('system', `Weighted avg: ${r.toFixed(4)}`); break;
+    }
+    case 'probability': {
+      const r = controller.probability(action.value||1, action.count||6);
+      addToHistory('system', r); break;
+    }
+    case 'combinations_calc': {
+      const r = controller.combinations(action.value||10, action.count||3);
+      addToHistory('system', `C(${action.value},${action.count}) = ${r}`); break;
+    }
+    case 'permutations_calc': {
+      const r = controller.permutations(action.value||10, action.count||3);
+      addToHistory('system', `P(${action.value},${action.count}) = ${r}`); break;
+    }
+    case 'factorial_calc': {
+      const r = controller.factorial(action.value||5);
+      addToHistory('system', `${action.value}! = ${r}`); break;
+    }
+    case 'fibonacci_calc': {
+      const r = controller.fibonacci(action.value||10);
+      addToHistory('system', `Fibonacci(${action.value}) = ${r}`); break;
+    }
+    case 'prime_check': {
+      const r = controller.isPrime(action.value||0);
+      addToHistory('system', `${action.value} is ${r ? 'prime' : 'not prime'}`); break;
+    }
+    case 'gcd_calc': {
+      const nums3 = (action.text||'').split(',').map(Number);
+      const r = controller.gcd(nums3[0]||0, nums3[1]||0);
+      addToHistory('system', `GCD(${nums3[0]},${nums3[1]}) = ${r}`); break;
+    }
+    case 'lcm_calc': {
+      const nums3 = (action.text||'').split(',').map(Number);
+      const r = controller.lcm(nums3[0]||0, nums3[1]||0);
+      addToHistory('system', `LCM(${nums3[0]},${nums3[1]}) = ${r}`); break;
+    }
+
+    // Geometry
+    case 'area_circle': { addToHistory('system', controller.areaCircle(action.value||1)); break; }
+    case 'area_rectangle': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.areaRectangle(n[0]||0,n[1]||0)); break; }
+    case 'area_triangle': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.areaTriangle(n[0]||0,n[1]||0)); break; }
+    case 'area_trapezoid': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.areaTrapezoid(n[0]||0,n[1]||0,n[2]||0)); break; }
+    case 'circumference_calc': { addToHistory('system', controller.circumference(action.value||1)); break; }
+    case 'perimeter_rectangle': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.perimeterRectangle(n[0]||0,n[1]||0)); break; }
+    case 'volume_sphere': { addToHistory('system', controller.volumeSphere(action.value||1)); break; }
+    case 'volume_cylinder': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.volumeCylinder(n[0]||0,n[1]||0)); break; }
+    case 'volume_cone': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.volumeCone(n[0]||0,n[1]||0)); break; }
+    case 'volume_cube': { addToHistory('system', controller.volumeCube(action.value||1)); break; }
+    case 'surface_area_sphere': { addToHistory('system', controller.surfaceAreaSphere(action.value||1)); break; }
+    case 'surface_area_cylinder': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.surfaceAreaCylinder(n[0]||0,n[1]||0)); break; }
+    case 'pythagorean_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.pythagorean(n[0]||3,n[1]||4)); break; }
+    case 'distance_2d': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.distance2d(n[0]||0,n[1]||0,n[2]||0,n[3]||0)); break; }
+    case 'midpoint_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.midpoint(n[0]||0,n[1]||0,n[2]||0,n[3]||0)); break; }
+
+    // Business analytics
+    case 'growth_rate': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.growthRate(n[0]||0,n[1]||0)); break; }
+    case 'cagr_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.cagr(n[0]||0,n[1]||0,n[2]||1)); break; }
+    case 'customer_lifetime_value': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.customerLifetimeValue(n[0]||0,n[1]||0,n[2]||0)); break; }
+    case 'churn_rate': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.churnRate(n[0]||0,n[1]||1)); break; }
+    case 'conversion_rate': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.conversionRate(n[0]||0,n[1]||1)); break; }
+    case 'cost_per_acquisition': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.costPerAcquisition(n[0]||0,n[1]||1)); break; }
+    case 'average_order_value': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.averageOrderValue(n[0]||0,n[1]||1)); break; }
+    case 'burn_rate_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.burnRate(n[0]||0,n[1]||1)); break; }
+    case 'revenue_forecast': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.revenueForecast(n[0]||0,n[1]||10,n[2]||12)); break; }
+
     default: {
       console.log('[Action] Unknown action type:', action.type);
     }
