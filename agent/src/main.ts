@@ -3199,6 +3199,18 @@ window.undoLast = undoLast;
 window.toggleTheme = toggleTheme;
 window.doLogout = doLogout;
 window.sendAgentReply = sendAgentReply;
+window.toggleNotifs = toggleNotifs;
+window.clearNotifs = clearNotifs;
+window.openScheduleModal = openScheduleModal;
+window.closeScheduleModal = closeScheduleModal;
+window.saveScheduledTask = saveScheduledTask;
+window.updateScheduleFields = updateScheduleFields;
+window.selectAudioFiles = selectAudioFiles;
+window.cloneVoice = cloneVoice;
+window.buyCredits = buyCredits;
+window.clearHistory = clearHistory;
+window.deleteCurrentAgent = deleteCurrentAgent;
+window.openEditAgent = openEditAgent;
 </script>
 </body>
 </html>`;
