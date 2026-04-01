@@ -3632,6 +3632,33 @@ export function dailyQuote(): string {
   return quotes[Math.floor(Math.random() * quotes.length)];
 }
 
+// ── Multi-Monitor ───────────────────────────────────────────────────────
+
+export function getDisplays(): { id: number; width: number; height: number; x: number; y: number; primary: boolean }[] {
+  const { execSync } = require('child_process');
+  const displays: any[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`system_profiler SPDisplaysDataType -json`, { encoding: 'utf-8', timeout: 5000 });
+      const data = JSON.parse(output);
+      let id = 0;
+      for (const gpu of data?.SPDisplaysDataType || []) {
+        for (const disp of gpu?.spdisplays_ndrvs || []) {
+          const res = disp._spdisplays_resolution?.match(/(\d+)\s*x\s*(\d+)/);
+          displays.push({
+            id: id++,
+            width: res ? parseInt(res[1]) : 0,
+            height: res ? parseInt(res[2]) : 0,
+            x: 0, y: 0,
+            primary: disp.spdisplays_main === 'spdisplays_yes',
+          });
+        }
+      }
+    } catch {}
+  }
+  return displays.length > 0 ? displays : [{ id: 0, width: 1920, height: 1080, x: 0, y: 0, primary: true }];
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

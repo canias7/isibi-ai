@@ -1241,11 +1241,25 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     }
 
     case 'ask_user': {
-      // Show notification asking the user to check the chat
+      // Show question in chat and wait for user response
       controller.showNotification('ISIBI needs your input', action.text || 'Please check the ISIBI chat');
-      addToHistory('system', 'Asked user: ' + (action.text || action.description));
-      // Pause to give user time to respond
-      await controller.sleep(action.duration || 5000);
+      if ((global as any).__mainWindow) {
+        (global as any).__mainWindow.webContents.send('agent-question', {
+          question: action.text || 'I need more information. What should I do?',
+        });
+      }
+      // Wait for user response (stored in global by renderer)
+      (global as any).__userResponse = null;
+      const maxWait = action.duration || 60000; // Wait up to 60 seconds
+      const startWait = Date.now();
+      while (!(global as any).__userResponse && Date.now() - startWait < maxWait) {
+        await controller.sleep(500);
+      }
+      const userReply = (global as any).__userResponse || 'No response';
+      (global as any).__userResponse = null;
+      addToHistory('user', userReply);
+      addToHistory('system', 'User replied: ' + userReply);
+      console.log('[AskUser] Got response:', userReply);
       break;
     }
 

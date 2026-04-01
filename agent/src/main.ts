@@ -346,9 +346,20 @@ ipcMain.handle('get-agent-usage', () => {
   }));
 });
 
-// ── Analytics IPC ─────────────────────────────────────────────────────
+// ── Analytics & Performance IPC ────────────────────────────────────────
 
 ipcMain.handle('get-analytics', () => getAnalytics());
+ipcMain.handle('get-performance', () => {
+  const analytics = getAnalytics();
+  const agentUsage = loadConfig().agents?.map(a => ({
+    name: a.name, emoji: a.emoji,
+    commands: a.commandCount || 0,
+    actions: a.actionCount || 0,
+    credits: a.creditsUsed || 0,
+    avgActionsPerCommand: (a.commandCount || 0) > 0 ? ((a.actionCount || 0) / (a.commandCount || 0)).toFixed(1) : '0',
+  })) || [];
+  return { ...analytics, agentPerformance: agentUsage };
+});
 
 // ── ElevenLabs Voice IPC ──────────────────────────────────────────────
 
@@ -389,6 +400,13 @@ ipcMain.handle('eleven-upload-audio', async (event) => {
     filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'aac'] }]
   });
   return result.filePaths || [];
+});
+
+// ── Agent Question Response IPC ────────────────────────────────────────
+
+ipcMain.handle('agent-response', (_, text: string) => {
+  (global as any).__userResponse = text;
+  return true;
 });
 
 // ── Call Transcription IPC ─────────────────────────────────────────────
@@ -602,6 +620,13 @@ body {
   height: 100vh;
   overflow: hidden;
 }
+/* ── Accessibility ── */
+body.high-contrast { --bg: #000000; --bg2: #0a0a0a; --bg3: #1a1a1a; --text: #ffffff; --text2: rgba(255,255,255,0.8); --border: rgba(255,255,255,0.2); }
+body.high-contrast .sidebar-tab.active { background: #ec4899; color: white; }
+body.high-contrast .agent-item.selected { background: rgba(236,72,153,0.2); }
+body.high-contrast .msg-user .bubble { background: rgba(236,72,153,0.2); border-color: #ec4899; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+
 body.light {
   --bg: #f5f5f7; --bg2: #ffffff; --bg3: #e8e8ed; --text: #1d1d1f; --text2: rgba(29,29,31,0.6); --border: rgba(0,0,0,0.08);
 }
@@ -1404,6 +1429,12 @@ svg { display: block; }
       <div class="dot max"></div>
     </div>
     <span class="title">ISIBI Ghost Mode</span>
+    <div style="margin-left:auto;-webkit-app-region:no-drag;display:flex;align-items:center;gap:8px">
+      <button onclick="toggleNotifs()" style="position:relative;background:none;border:none;cursor:pointer;color:rgba(226,232,240,0.5);padding:4px" title="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span id="notifBadge" style="display:none;position:absolute;top:0;right:0;width:8px;height:8px;border-radius:50%;background:#ef4444"></span>
+      </button>
+    </div>
   </div>
 
   <!-- Sidebar -->
@@ -1508,7 +1539,17 @@ svg { display: block; }
             <div class="suggestion-chip" onclick="trySuggestion('what is the weather')">weather</div>
             <div class="suggestion-chip" onclick="trySuggestion('take a screenshot')">screenshot</div>
             <div class="suggestion-chip" onclick="trySuggestion('create a new note')">new note</div>
-            <div class="suggestion-chip" onclick="trySuggestion('set a timer for 5 minutes')">5 min timer</div>
+            <div class="suggestion-chip" onclick="trySuggestion('generate an image of a sunset')">generate image</div>
+          </div>
+          <div style="margin-top:24px;display:flex;flex-direction:column;gap:8px;max-width:400px">
+            <div style="font-size:11px;font-weight:600;color:rgba(226,232,240,0.4);text-transform:uppercase;letter-spacing:1px">Quick Tips</div>
+            <div style="font-size:12px;color:rgba(226,232,240,0.45);line-height:1.6">
+              \\ud83c\\udfaf <strong style="color:rgba(226,232,240,0.6)">Create agents</strong> for different tasks — YouTube bot, email manager, etc.<br>
+              \\ud83c\\udf99 Press <strong style="color:rgba(226,232,240,0.6)">F9</strong> to use voice commands<br>
+              \\u23f0 Use the <strong style="color:rgba(226,232,240,0.6)">Scheduled</strong> tab to run tasks automatically<br>
+              \\ud83c\\udfa8 Say "generate an image of..." for <strong style="color:rgba(226,232,240,0.6)">AI image creation</strong><br>
+              \\ud83d\\udcde Set up the <strong style="color:rgba(226,232,240,0.6)">AI Call Handler</strong> to answer phone calls for you
+            </div>
           </div>
         </div>
       </div>
@@ -1714,6 +1755,15 @@ svg { display: block; }
   </div>
 </div>
 
+<!-- Notification Center -->
+<div id="notifPanel" style="display:none;position:fixed;top:38px;right:0;width:320px;max-height:400px;overflow-y:auto;background:#12122a;border:1px solid rgba(236,72,153,0.1);border-radius:0 0 0 16px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:150;padding:12px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-size:13px;font-weight:600;color:#e2e8f0">Notifications</span>
+    <button onclick="clearNotifs()" style="font-size:10px;color:rgba(226,232,240,0.4);background:none;border:none;cursor:pointer">Clear all</button>
+  </div>
+  <div id="notifList"></div>
+</div>
+
 <!-- Voice Bar -->
 <div class="voice-bar" id="voiceBar">
   <div class="vb-dot"></div>
@@ -1868,6 +1918,31 @@ async function switchAgent(newId) {
 }
 
 ipcRenderer.on('agents-updated', () => loadAgents());
+
+// Agent questions — show question in chat with reply input
+ipcRenderer.on('agent-question', (_, data) => {
+  chatMessages.push({
+    type: 'system',
+    content: '\\ud83e\\udd14 <strong>Agent needs your input:</strong> ' + escHtml(data.question) +
+      '<div style="display:flex;gap:6px;margin-top:8px">' +
+        '<input id="agentReplyInput" placeholder="Type your answer..." style="flex:1;padding:6px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(236,72,153,0.2);border-radius:8px;color:#e2e8f0;font-size:12px;outline:none">' +
+        '<button onclick="sendAgentReply()" style="padding:6px 14px;border-radius:8px;border:none;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:white;font-size:12px;cursor:pointer">Reply</button>' +
+      '</div>'
+  });
+  renderChat();
+  // Focus the reply input
+  setTimeout(() => { const el = document.getElementById('agentReplyInput'); if (el) el.focus(); }, 100);
+});
+
+function sendAgentReply() {
+  const el = document.getElementById('agentReplyInput');
+  if (!el) return;
+  const text = el.value.trim();
+  if (!text) return;
+  ipcRenderer.invoke('agent-response', text);
+  chatMessages.push({ type: 'user', content: text });
+  renderChat();
+}
 
 // Error handling — show error cards in chat
 ipcRenderer.on('action-error', (_, err) => {
@@ -2429,6 +2504,53 @@ document.addEventListener('click', (e) => {
   }
 });
 window.addEventListener('focus', () => { if (currentView === 'chat') input.focus(); });
+
+// ── Notification Center ──
+let notifications = [];
+let notifVisible = false;
+
+function addNotif(title, body, type) {
+  notifications.unshift({ title, body, type: type || 'info', time: new Date().toLocaleTimeString() });
+  if (notifications.length > 30) notifications.pop();
+  document.getElementById('notifBadge').style.display = 'block';
+  renderNotifs();
+}
+
+function renderNotifs() {
+  const list = document.getElementById('notifList');
+  if (!list) return;
+  if (notifications.length === 0) {
+    list.innerHTML = '<div style="color:rgba(226,232,240,0.4);font-size:12px;text-align:center;padding:20px">No notifications</div>';
+    return;
+  }
+  list.innerHTML = notifications.map(n => {
+    const iconColor = n.type === 'error' ? '#ef4444' : n.type === 'success' ? '#22c55e' : '#8b5cf6';
+    return '<div style="padding:8px;border-bottom:1px solid rgba(255,255,255,0.04);display:flex;gap:8px;align-items:start">' +
+      '<div style="width:6px;height:6px;border-radius:50%;background:' + iconColor + ';margin-top:5px;flex-shrink:0"></div>' +
+      '<div style="flex:1"><div style="font-size:12px;color:#e2e8f0;font-weight:500">' + escHtml(n.title) + '</div>' +
+      '<div style="font-size:11px;color:rgba(226,232,240,0.4)">' + escHtml(n.body) + '</div>' +
+      '<div style="font-size:9px;color:rgba(226,232,240,0.3);margin-top:2px">' + n.time + '</div></div></div>';
+  }).join('');
+}
+
+function toggleNotifs() {
+  notifVisible = !notifVisible;
+  document.getElementById('notifPanel').style.display = notifVisible ? 'block' : 'none';
+  if (notifVisible) document.getElementById('notifBadge').style.display = 'none';
+}
+
+function clearNotifs() {
+  notifications = [];
+  renderNotifs();
+}
+
+// Hook into task completion/error for auto-notifications
+ipcRenderer.on('action-error', (_, err) => {
+  addNotif('Task Failed', err.action + ': ' + err.error, 'error');
+});
+ipcRenderer.on('schedule-ran', (_, data) => {
+  addNotif('Scheduled Task', data.label + ' completed', 'success');
+});
 
 // ── Usage View ──
 async function loadUsage() {
