@@ -1042,25 +1042,28 @@ svg { display: block; }
 /* ── Sidebar Tabs ── */
 .sidebar-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 2px;
-  padding: 0 12px;
+  padding: 0 8px;
   margin-bottom: 8px;
 }
 .sidebar-tab {
   flex: 1;
-  padding: 7px 0;
-  border-radius: 8px;
+  min-width: 0;
+  padding: 5px 2px;
+  border-radius: 6px;
   border: none;
   background: transparent;
   color: rgba(226,232,240,0.55);
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
   cursor: pointer;
   transition: .15s;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 3px;
+  white-space: nowrap;
 }
 .sidebar-tab:hover { background: rgba(255,255,255,0.03); color: rgba(226,232,240,0.65); }
 .sidebar-tab.active { background: rgba(236,72,153,0.08); color: #f9a8d4; }
@@ -1360,8 +1363,12 @@ svg { display: block; }
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
         Voices
       </button>
-      <button class="sidebar-tab" id="tabHistory" onclick="switchView('history')">
+      <button class="sidebar-tab" id="tabScheduled" onclick="switchView('scheduled')">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Scheduled
+      </button>
+      <button class="sidebar-tab" id="tabHistory" onclick="switchView('history')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 9l-5 5-2-2-4 4"/></svg>
         History
       </button>
     </div>
@@ -1496,6 +1503,77 @@ svg { display: block; }
     </div>
   </div>
 </div>
+
+    <!-- Scheduled View -->
+    <div class="view" id="scheduledView">
+      <div class="control-center">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="cc-header">Scheduled Tasks</div>
+          <button class="btn btn-primary" onclick="openScheduleModal()" style="font-size:12px;padding:8px 16px;display:flex;align-items:center;gap:6px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Task
+          </button>
+        </div>
+        <div class="cc-sub" style="margin-bottom:16px">Run tasks on a schedule or whenever you need them.</div>
+        <div style="background:rgba(139,92,246,0.04);border:1px solid rgba(139,92,246,0.08);border-radius:10px;padding:10px 14px;margin-bottom:20px;display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(226,232,240,0.55)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          Tasks only run while ISIBI Ghost Mode is open and your computer is awake.
+        </div>
+        <div id="scheduleList" style="display:flex;flex-direction:column;gap:10px">
+          <div style="color:rgba(226,232,240,0.5);font-size:13px;text-align:center;padding:40px 0">No scheduled tasks yet. Click "+ New Task" to create one.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div class="modal-bg" id="scheduleModalBg">
+      <div class="modal">
+        <h2 id="scheduleModalTitle" style="background:linear-gradient(135deg,#8b5cf6,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent">New Scheduled Task</h2>
+        <div class="field">
+          <label>Agent</label>
+          <select id="schedAgentSelect" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:13px;outline:none;appearance:none"></select>
+        </div>
+        <div class="field">
+          <label>Command</label>
+          <input id="schedCommandInput" placeholder="e.g. check my email and summarize">
+        </div>
+        <div class="field">
+          <label>Label (optional)</label>
+          <input id="schedLabelInput" placeholder="e.g. Morning email check">
+        </div>
+        <div class="field">
+          <label>Schedule</label>
+          <select id="schedTypeSelect" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:13px;outline:none;appearance:none" onchange="updateScheduleFields()">
+            <option value="daily">Daily at a specific time</option>
+            <option value="weekdays">Weekdays only (Mon-Fri)</option>
+            <option value="weekly">Specific day of the week</option>
+            <option value="interval">Every X minutes</option>
+          </select>
+        </div>
+        <div id="schedTimeField" class="field">
+          <label>Time</label>
+          <input id="schedTimeInput" type="time" value="09:00" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:13px;outline:none">
+        </div>
+        <div id="schedDayField" class="field" style="display:none">
+          <label>Day</label>
+          <select id="schedDaySelect" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:13px;outline:none;appearance:none">
+            <option value="monday">Monday</option><option value="tuesday">Tuesday</option><option value="wednesday">Wednesday</option>
+            <option value="thursday">Thursday</option><option value="friday">Friday</option><option value="saturday">Saturday</option><option value="sunday">Sunday</option>
+          </select>
+        </div>
+        <div id="schedIntervalField" class="field" style="display:none">
+          <label>Minutes</label>
+          <input id="schedIntervalInput" type="number" value="30" min="1" max="1440" style="width:100%;padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;color:#e2e8f0;font-size:13px;outline:none">
+        </div>
+        <div class="modal-btns">
+          <div></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="closeScheduleModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveScheduledTask()">Create Task</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- History View -->
     <div class="view" id="historyView">
@@ -2063,10 +2141,12 @@ function switchView(view) {
   document.getElementById('chatView').classList.toggle('active', view === 'chat');
   document.getElementById('ccView').classList.toggle('active', view === 'cc');
   document.getElementById('voicesView').classList.toggle('active', view === 'voices');
+  document.getElementById('scheduledView').classList.toggle('active', view === 'scheduled');
   document.getElementById('historyView').classList.toggle('active', view === 'history');
   document.getElementById('tabChat').classList.toggle('active', view === 'chat');
   document.getElementById('tabCC').classList.toggle('active', view === 'cc');
   document.getElementById('tabVoices').classList.toggle('active', view === 'voices');
+  document.getElementById('tabScheduled').classList.toggle('active', view === 'scheduled');
   document.getElementById('tabHistory').classList.toggle('active', view === 'history');
 
   if (view === 'cc') {
@@ -2077,6 +2157,9 @@ function switchView(view) {
   }
   if (view === 'voices') {
     loadVoices();
+  }
+  if (view === 'scheduled') {
+    loadSchedules();
   }
   if (view === 'history') {
     loadHistory();
@@ -2201,6 +2284,122 @@ document.addEventListener('click', (e) => {
   }
 });
 window.addEventListener('focus', () => { if (currentView === 'chat') input.focus(); });
+
+// ── Scheduled Tasks View ──
+let editingScheduleId = null;
+
+async function loadSchedules() {
+  const schedules = await ipcRenderer.invoke('schedules-list');
+  const container = document.getElementById('scheduleList');
+  if (!container) return;
+  if (schedules.length === 0) {
+    container.innerHTML = '<div style="color:rgba(226,232,240,0.5);font-size:13px;text-align:center;padding:40px 0">No scheduled tasks yet. Click "+ New Task" to create one.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  schedules.forEach(s => {
+    const agent3 = agents.find(a => a.id === s.agentId);
+    const el = document.createElement('div');
+    el.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px 18px;transition:.2s';
+
+    // Format schedule description
+    let schedDesc = s.cron;
+    if (s.cron.match(/^\\d{2}:\\d{2}$/)) schedDesc = 'Daily at ' + s.cron;
+    else if (s.cron.startsWith('weekdays')) schedDesc = 'Weekdays at ' + s.cron.split(' ')[1];
+    else if (s.cron.startsWith('interval:')) schedDesc = 'Every ' + s.cron.split(':')[1] + ' minutes';
+    else if (s.cron.includes(' ')) { const p = s.cron.split(' '); schedDesc = p[0].charAt(0).toUpperCase() + p[0].slice(1) + ' at ' + p[1]; }
+
+    const lastRunText = s.lastRun ? 'Last run: ' + new Date(s.lastRun).toLocaleString() : 'Never run';
+
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:16px">' + (agent3?.emoji || '\\ud83d\\udc7b') + '</span>' +
+          '<div>' +
+            '<div style="font-size:14px;font-weight:600;color:#e2e8f0">' + escHtml(s.label || s.command) + '</div>' +
+            '<div style="font-size:11px;color:rgba(226,232,240,0.4)">' + (agent3?.name || 'Agent') + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:6px">' +
+          '<button class="cc-switch' + (s.enabled ? ' on' : '') + '" data-sid="' + s.id + '" data-saction="toggle" style="width:32px;height:18px"></button>' +
+          '<button class="ctrl-btn del" data-sid="' + s.id + '" data-saction="delete" style="font-size:10px">\\u2715</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:rgba(226,232,240,0.5);margin-bottom:4px">' + schedDesc + '</div>' +
+      '<div style="font-size:11px;color:rgba(226,232,240,0.35)">' + escHtml(s.command) + '</div>' +
+      '<div style="font-size:10px;color:rgba(226,232,240,0.3);margin-top:6px">' + lastRunText + (s.enabled ? '' : ' \\u2022 <span style="color:#eab308">Paused</span>') + '</div>';
+
+    // Wire up buttons
+    el.querySelectorAll('[data-saction]').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (btn.dataset.saction === 'toggle') {
+          await ipcRenderer.invoke('schedules-toggle', btn.dataset.sid);
+          loadSchedules();
+        } else if (btn.dataset.saction === 'delete') {
+          await ipcRenderer.invoke('schedules-delete', btn.dataset.sid);
+          loadSchedules();
+        }
+      };
+    });
+
+    container.appendChild(el);
+  });
+}
+
+function openScheduleModal() {
+  editingScheduleId = null;
+  document.getElementById('scheduleModalTitle').textContent = 'New Scheduled Task';
+  document.getElementById('schedCommandInput').value = '';
+  document.getElementById('schedLabelInput').value = '';
+  document.getElementById('schedTimeInput').value = '09:00';
+  // Populate agent select
+  const sel = document.getElementById('schedAgentSelect');
+  sel.innerHTML = '';
+  agents.filter(a => a.isActive).forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a.id;
+    opt.textContent = a.emoji + ' ' + a.name;
+    sel.appendChild(opt);
+  });
+  updateScheduleFields();
+  document.getElementById('scheduleModalBg').classList.add('visible');
+}
+
+function closeScheduleModal() {
+  document.getElementById('scheduleModalBg').classList.remove('visible');
+}
+
+function updateScheduleFields() {
+  const type = document.getElementById('schedTypeSelect').value;
+  document.getElementById('schedTimeField').style.display = type !== 'interval' ? 'block' : 'none';
+  document.getElementById('schedDayField').style.display = type === 'weekly' ? 'block' : 'none';
+  document.getElementById('schedIntervalField').style.display = type === 'interval' ? 'block' : 'none';
+}
+
+async function saveScheduledTask() {
+  const agentId = document.getElementById('schedAgentSelect').value;
+  const command = document.getElementById('schedCommandInput').value.trim();
+  const label = document.getElementById('schedLabelInput').value.trim();
+  const type = document.getElementById('schedTypeSelect').value;
+  if (!command) return;
+
+  let cron = '';
+  if (type === 'daily') cron = document.getElementById('schedTimeInput').value;
+  else if (type === 'weekdays') cron = 'weekdays ' + document.getElementById('schedTimeInput').value;
+  else if (type === 'weekly') cron = document.getElementById('schedDaySelect').value + ' ' + document.getElementById('schedTimeInput').value;
+  else if (type === 'interval') cron = 'interval:' + document.getElementById('schedIntervalInput').value;
+
+  await ipcRenderer.invoke('schedules-create', { agentId, command, cron, label });
+  closeScheduleModal();
+  loadSchedules();
+}
+
+// Listen for scheduled task notifications
+ipcRenderer.on('schedule-ran', (_, data) => {
+  chatMessages.push({ type: 'system', content: '\\u23f0 Scheduled task ran: ' + escHtml(data.label) });
+  renderChat();
+});
 
 // ── History View ──
 async function loadHistory() {
