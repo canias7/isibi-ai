@@ -494,7 +494,47 @@ Browser: get_page_title, get_page_url, save_page, get_all_tabs, clear_browser_ca
 Compression: zip_files (text=paths comma-separated, target=output.zip), unzip_file (target=zip, text=outdir), tar_files
 Database: sqlite_query (target=db, text=SQL), csv_query (target=file, text=filter)
 Encoding: base64_encode/decode (text), url_encode/decode (text), hash_text (text, target=sha256|md5)
-Fun: random_number (x=min, y=max), coin_flip, dice_roll (value=sides, count=N), lorem_ipsum (count=paragraphs)`,
+Fun: random_number (x=min, y=max), coin_flip, dice_roll (value=sides, count=N), lorem_ipsum (count=paragraphs)
+
+DATA EXTRACTION:
+- extract_emails/extract_phone_numbers/extract_urls: {"type":"extract_emails","text":"contact john@email.com or 555-1234"}
+- extract_table: {"type":"extract_table","target":"https://example.com"} — extract HTML table to CSV
+- scrape_webpage: {"type":"scrape_webpage","target":"https://example.com","text":"extract all product names and prices"}
+
+DOCUMENT AUTOMATION:
+- batch_rename: {"type":"batch_rename","target":"/folder","text":"pattern","key":"replacement"}
+- find_replace_in_files: {"type":"find_replace_in_files","target":"/folder","text":"search","key":"replace"}
+
+WORKFLOW:
+- wait_for_download: {"type":"wait_for_download","target":"/path/file","duration":30000}
+- get_latest_download / move_latest_download: {"type":"move_latest_download","target":"/dest/folder"}
+- wait_for_element: {"type":"wait_for_element","target":"Submit button","duration":10000} — wait until UI element appears
+
+DATA PROCESSING:
+- sort_data: {"type":"sort_data","text":"csv data","value":0} — sort by column
+- filter_data: {"type":"filter_data","text":"csv data","target":"keyword"}
+- deduplicate: {"type":"deduplicate","text":"line1\\nline2\\nline1"} — remove duplicates
+- merge_csvs: {"type":"merge_csvs","text":"/path/a.csv,/path/b.csv","target":"/out.csv"}
+
+INTEGRATION:
+- webhook_send: {"type":"webhook_send","target":"https://hook.url","text":"{\\"key\\":\\"value\\"}"}
+- google_sheets_read: {"type":"google_sheets_read","target":"https://docs.google.com/spreadsheets/d/..."}
+
+FILE UTILITIES:
+- list_folder/search_files/get_file_info/rename_file/duplicate_file/trash_file/reveal_in_finder/open_with
+
+AI SMART ACTIONS (most powerful — uses screen vision):
+- ai_decide: {"type":"ai_decide","text":"what should I do to complete the checkout?"} — AI looks at screen, decides next action
+- ai_extract: {"type":"ai_extract","text":"extract all prices from screen"} — AI reads screen, extracts data
+- ai_fill: {"type":"ai_fill"} — AI identifies form fields and fills them
+- ai_navigate: {"type":"ai_navigate","target":"Settings > Privacy > Microphone"} — AI figures out how to get there
+
+AUTOMATION CHAINS:
+- if_else: {"type":"if_else","condition":"Is there an error?","actions":[retry],"text":"[fallback actions]"}
+- try_catch: {"type":"try_catch","actions":[main],"text":"[fallback actions if main fails]"}
+- while_loop: {"type":"while_loop","condition":"Is download complete?","actions":[wait],"count":10}
+- parallel: {"type":"parallel","actions":[action1, action2]} — run simultaneously
+- pipe: {"type":"pipe","actions":[step1, step2, step3]} — sequential with shared context`,
     messages: [{
       role: 'user',
       content: command,
@@ -1672,6 +1712,271 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
       const li = controller.loremIpsum(action.count || 1);
       addToHistory('system', li);
       controller.writeClipboard(li);
+      break;
+    }
+
+    // ── Data Extraction ──
+    case 'extract_emails': {
+      const emails = controller.extractEmails(action.text || '');
+      addToHistory('system', 'Emails found: ' + (emails.length > 0 ? emails.join(', ') : 'None'));
+      break;
+    }
+    case 'extract_phone_numbers': {
+      const phones = controller.extractPhoneNumbers(action.text || '');
+      addToHistory('system', 'Phones found: ' + (phones.length > 0 ? phones.join(', ') : 'None'));
+      break;
+    }
+    case 'extract_urls': {
+      const urls = controller.extractUrls(action.text || '');
+      addToHistory('system', 'URLs found: ' + (urls.length > 0 ? urls.join(', ') : 'None'));
+      break;
+    }
+    case 'extract_table': {
+      const pageHtml = await controller.fetchWebpage(action.target || '');
+      const table = controller.extractTable(pageHtml);
+      const csv = table.map(r => r.join(',')).join('\n');
+      addToHistory('system', 'Table:\n' + csv.slice(0, 2000));
+      break;
+    }
+    case 'scrape_webpage': {
+      const html = await controller.fetchWebpage(action.target || '');
+      // Use Claude to extract what user wants
+      const api4 = (await import('./config')).getApiKey();
+      const client4 = new (await import('@anthropic-ai/sdk')).default({ apiKey: api4 });
+      const resp4 = await client4.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Extract the following from this webpage text: ${action.text || 'all important data'}\n\nWebpage:\n${html.slice(0, 4000)}` }]
+      });
+      const scraped = resp4.content[0].type === 'text' ? resp4.content[0].text : '';
+      addToHistory('system', 'Scraped: ' + scraped);
+      break;
+    }
+
+    // ── Document Automation ──
+    case 'batch_rename': {
+      const renamed = controller.batchRename(action.target || '', action.text || '', action.key || '');
+      addToHistory('system', 'Renamed: ' + renamed.join(', '));
+      break;
+    }
+    case 'find_replace_in_files': {
+      const frCount = controller.findAndReplaceInFiles(action.target || '', action.text || '', action.key || '');
+      addToHistory('system', `Replaced in ${frCount} files`);
+      break;
+    }
+
+    // ── Workflow ──
+    case 'wait_for_download': {
+      const dlFile = await controller.waitForFile(action.target || '', action.duration || 30000);
+      addToHistory('system', dlFile ? 'File found' : 'Timed out waiting');
+      break;
+    }
+    case 'move_latest_download': {
+      const moved = controller.moveLatestDownload(action.target || path.join(os.homedir(), 'Desktop'));
+      addToHistory('system', moved ? 'Moved to: ' + moved : 'No recent download found');
+      break;
+    }
+    case 'get_latest_download': {
+      const latest = controller.getLatestDownload();
+      addToHistory('system', 'Latest download: ' + (latest || 'None'));
+      break;
+    }
+
+    // ── Data Processing ──
+    case 'sort_data': {
+      const sorted = controller.sortData(action.text || '', action.value);
+      addToHistory('system', 'Sorted:\n' + sorted.slice(0, 2000));
+      break;
+    }
+    case 'filter_data': {
+      const filtered = controller.filterData(action.text || '', action.target || '');
+      addToHistory('system', 'Filtered:\n' + filtered.slice(0, 2000));
+      break;
+    }
+    case 'deduplicate': {
+      const deduped = controller.deduplicate(action.text || '');
+      addToHistory('system', 'Deduplicated:\n' + deduped.slice(0, 2000));
+      break;
+    }
+    case 'merge_csvs': {
+      const csvPaths = (action.text || '').split(',').map((p: string) => p.trim());
+      const merged = controller.mergeCsvs(csvPaths);
+      if (action.target) controller.createFile(action.target, merged);
+      addToHistory('system', 'Merged CSV:\n' + merged.slice(0, 2000));
+      break;
+    }
+
+    // ── Integration ──
+    case 'webhook_send': {
+      const whResult = await controller.webhookSend(action.target || '', action.text || '{}');
+      addToHistory('system', 'Webhook: ' + whResult);
+      break;
+    }
+    case 'google_sheets_read': {
+      const gsData = await controller.googleSheetsRead(action.target || '');
+      addToHistory('system', 'Sheets data:\n' + gsData.slice(0, 2000));
+      break;
+    }
+
+    // ── File Utilities ──
+    case 'list_folder': {
+      const contents = controller.listFolder(action.target || '.');
+      addToHistory('system', 'Contents: ' + contents.join(', '));
+      break;
+    }
+    case 'search_files': {
+      const found2 = controller.searchFiles(action.target || '');
+      addToHistory('system', 'Files found: ' + found2.join('\n'));
+      break;
+    }
+    case 'get_file_info': {
+      const info = controller.getFileInfo(action.target || '');
+      addToHistory('system', `File: ${info.name}, Size: ${info.size}, Modified: ${info.modified}, Type: ${info.type}`);
+      break;
+    }
+    case 'rename_file': {
+      const np = controller.renameFile(action.target || '', action.text || '');
+      addToHistory('system', 'Renamed to: ' + np);
+      break;
+    }
+    case 'duplicate_file': {
+      const dp = controller.duplicateFile(action.target || '');
+      addToHistory('system', 'Duplicated to: ' + dp);
+      break;
+    }
+    case 'trash_file': {
+      controller.trashFile(action.target || '');
+      break;
+    }
+    case 'reveal_in_finder': {
+      controller.revealInFinder(action.target || '');
+      break;
+    }
+    case 'open_with': {
+      controller.openWith(action.target || '', action.text || '');
+      break;
+    }
+
+    // ── AI Smart Actions ──
+    case 'ai_decide': {
+      // Take screenshot, let Claude decide what to do next
+      const screenAnalysis = await vision.analyzeScreen(action.text || 'What should I do next to complete the task? Return a JSON action.');
+      addToHistory('system', 'AI decision: ' + screenAnalysis.description);
+      // Try to parse and execute the suggested action
+      try {
+        const jsonMatch2 = screenAnalysis.description.match(/\{[\s\S]*\}/);
+        if (jsonMatch2) {
+          const nextAction = JSON.parse(jsonMatch2[0]);
+          if (nextAction.type) await executeAction(nextAction, index);
+        }
+      } catch {}
+      break;
+    }
+    case 'ai_extract': {
+      // Take screenshot and extract specific info
+      const extracted = await vision.analyzeScreen(action.text || 'Extract all important information from the screen.');
+      addToHistory('system', 'Extracted: ' + extracted.description);
+      break;
+    }
+    case 'ai_fill': {
+      // Take screenshot, figure out form fields, fill them
+      const formAnalysis = await vision.analyzeScreen('Identify all form fields on screen. Return JSON array: [{"field":"name","x":100,"y":200,"value":"suggested value"}]');
+      try {
+        const fields = JSON.parse(formAnalysis.description.match(/\[[\s\S]*\]/)?.[0] || '[]');
+        for (const field of fields) {
+          if (field.x && field.y) {
+            await controller.click(field.x, field.y);
+            await controller.sleep(200);
+            if (field.value) await controller.typeText(field.value, 30);
+            await controller.sleep(200);
+          }
+        }
+      } catch {}
+      break;
+    }
+    case 'ai_navigate': {
+      // Take screenshot, figure out how to get to the target
+      const navAnalysis = await vision.analyzeScreen(`How do I navigate to: "${action.target}"? Return a JSON action to get there.`);
+      try {
+        const jsonMatch3 = navAnalysis.description.match(/\{[\s\S]*\}/);
+        if (jsonMatch3) {
+          const navAction = JSON.parse(jsonMatch3[0]);
+          if (navAction.type) await executeAction(navAction, index);
+        }
+      } catch {}
+      break;
+    }
+
+    // ── Automation Chains ──
+    case 'if_else': {
+      const checkResult = await vision.analyzeScreen(action.condition || 'Is the current state successful?');
+      const isTrue2 = checkResult.description.toLowerCase().includes('yes');
+      if (isTrue2 && action.actions) {
+        for (const a of action.actions) { await executeAction(a, index); await controller.sleep(300); }
+      } else if (!isTrue2 && action.text) {
+        // Parse else actions from text field
+        try {
+          const elseActions = JSON.parse(action.text);
+          if (Array.isArray(elseActions)) {
+            for (const a of elseActions) { await executeAction(a, index); await controller.sleep(300); }
+          }
+        } catch {}
+      }
+      break;
+    }
+    case 'try_catch': {
+      if (action.actions && action.actions.length > 0) {
+        try {
+          for (const a of action.actions) { await executeAction(a, index); await controller.sleep(300); }
+        } catch (e: any) {
+          console.log('[TryCatch] Failed:', e.message, '— running fallback');
+          if (action.text) {
+            try {
+              const fallback = JSON.parse(action.text);
+              if (Array.isArray(fallback)) {
+                for (const a of fallback) { await executeAction(a, index); await controller.sleep(300); }
+              }
+            } catch {}
+          }
+        }
+      }
+      break;
+    }
+    case 'while_loop': {
+      let maxIter = action.count || 10;
+      let iter = 0;
+      while (iter < maxIter) {
+        const check = await vision.analyzeScreen(action.condition || 'Is the task complete? Answer YES or NO.');
+        if (check.description.toLowerCase().includes('yes')) break;
+        if (action.actions) {
+          for (const a of action.actions) { await executeAction(a, index); await controller.sleep(300); }
+        }
+        iter++;
+      }
+      break;
+    }
+    case 'parallel': {
+      if (action.actions) {
+        await Promise.all(action.actions.map(a => executeAction(a, index)));
+      }
+      break;
+    }
+    case 'pipe': {
+      // Execute actions sequentially, passing output forward via history
+      if (action.actions) {
+        for (const a of action.actions) { await executeAction(a, index); await controller.sleep(300); }
+      }
+      break;
+    }
+    case 'wait_for_element': {
+      let found3 = false;
+      const maxWait = action.duration || 10000;
+      const start = Date.now();
+      while (!found3 && Date.now() - start < maxWait) {
+        const pos = await vision.findElement(action.target || '');
+        if (pos) { found3 = true; addToHistory('system', `Element found at ${pos.x},${pos.y}`); }
+        else await controller.sleep(1000);
+      }
+      if (!found3) addToHistory('system', 'Element not found: ' + action.target);
       break;
     }
 

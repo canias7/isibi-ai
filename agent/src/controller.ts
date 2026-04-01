@@ -1658,6 +1658,269 @@ export function loremIpsum(paragraphs: number = 1): string {
   return Array(paragraphs).fill(lorem).join('\n\n');
 }
 
+// ── Data Extraction ─────────────────────────────────────────────────────
+
+export function extractEmails(text: string): string[] {
+  return text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+}
+
+export function extractPhoneNumbers(text: string): string[] {
+  return text.match(/[\+]?[(]?[0-9]{1,4}[)]?[-\s./0-9]{6,15}/g) || [];
+}
+
+export function extractUrls(text: string): string[] {
+  return text.match(/https?:\/\/[^\s<>"{}|\\^`[\]]+/g) || [];
+}
+
+export function extractTable(html: string): string[][] {
+  const rows: string[][] = [];
+  const rowMatches = html.match(/<tr[^>]*>[\s\S]*?<\/tr>/gi) || [];
+  for (const row of rowMatches) {
+    const cells: string[] = [];
+    const cellMatches = row.match(/<t[dh][^>]*>([\s\S]*?)<\/t[dh]>/gi) || [];
+    for (const cell of cellMatches) {
+      cells.push(cell.replace(/<[^>]+>/g, '').trim());
+    }
+    if (cells.length > 0) rows.push(cells);
+  }
+  return rows;
+}
+
+// ── Document Automation ─────────────────────────────────────────────────
+
+export function batchRename(folderPath: string, pattern: string, replacement: string): string[] {
+  const fs = require('fs');
+  const path = require('path');
+  const renamed: string[] = [];
+  try {
+    const files = fs.readdirSync(folderPath);
+    for (const file of files) {
+      const re = new RegExp(pattern);
+      if (re.test(file)) {
+        const newName = file.replace(re, replacement);
+        fs.renameSync(path.join(folderPath, file), path.join(folderPath, newName));
+        renamed.push(`${file} → ${newName}`);
+      }
+    }
+  } catch {}
+  return renamed;
+}
+
+export function findAndReplaceInFiles(folderPath: string, search: string, replace: string, glob: string = '*'): number {
+  const fs = require('fs');
+  const path = require('path');
+  let count = 0;
+  try {
+    const files = fs.readdirSync(folderPath).filter((f: string) => {
+      if (glob === '*') return true;
+      const ext = glob.replace('*.', '');
+      return f.endsWith(ext);
+    });
+    for (const file of files) {
+      const fp = path.join(folderPath, file);
+      try {
+        const content = fs.readFileSync(fp, 'utf-8');
+        if (content.includes(search)) {
+          fs.writeFileSync(fp, content.split(search).join(replace), 'utf-8');
+          count++;
+        }
+      } catch {}
+    }
+  } catch {}
+  return count;
+}
+
+// ── Workflow ─────────────────────────────────────────────────────────────
+
+export function waitForFile(filePath: string, timeoutMs: number = 30000): Promise<boolean> {
+  const fs = require('fs');
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if (fs.existsSync(filePath)) { resolve(true); return; }
+      if (Date.now() - start > timeoutMs) { resolve(false); return; }
+      setTimeout(check, 500);
+    };
+    check();
+  });
+}
+
+export function getLatestDownload(): string {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.join(require('os').homedir(), 'Downloads');
+  try {
+    const files = fs.readdirSync(dir)
+      .filter((f: string) => !f.startsWith('.'))
+      .map((f: string) => ({ name: f, time: fs.statSync(path.join(dir, f)).mtimeMs }))
+      .sort((a: any, b: any) => b.time - a.time);
+    return files.length > 0 ? path.join(dir, files[0].name) : '';
+  } catch { return ''; }
+}
+
+export function moveLatestDownload(destFolder: string): string {
+  const fs = require('fs');
+  const path = require('path');
+  const latest = getLatestDownload();
+  if (!latest) return '';
+  const dest = path.join(destFolder, path.basename(latest));
+  fs.renameSync(latest, dest);
+  return dest;
+}
+
+// ── Data Processing ─────────────────────────────────────────────────────
+
+export function sortData(text: string, column?: number, descending: boolean = false): string {
+  const lines = text.split('\n').filter((l: string) => l.trim());
+  if (lines.length < 2) return text;
+  const header = lines[0];
+  const rows = lines.slice(1);
+  rows.sort((a: string, b: string) => {
+    const aVal = column !== undefined ? (a.split(',')[column] || '').trim() : a;
+    const bVal = column !== undefined ? (b.split(',')[column] || '').trim() : b;
+    const cmp = aVal.localeCompare(bVal, undefined, { numeric: true });
+    return descending ? -cmp : cmp;
+  });
+  return [header, ...rows].join('\n');
+}
+
+export function filterData(text: string, condition: string): string {
+  const lines = text.split('\n').filter((l: string) => l.trim());
+  if (lines.length < 2) return text;
+  const header = lines[0];
+  const rows = lines.slice(1).filter((l: string) => l.toLowerCase().includes(condition.toLowerCase()));
+  return [header, ...rows].join('\n');
+}
+
+export function deduplicate(text: string): string {
+  const lines = text.split('\n');
+  const seen = new Set<string>();
+  return lines.filter(l => {
+    if (seen.has(l)) return false;
+    seen.add(l);
+    return true;
+  }).join('\n');
+}
+
+export function mergeCsvs(filePaths: string[]): string {
+  const fs = require('fs');
+  let header = '';
+  const allRows: string[] = [];
+  for (const fp of filePaths) {
+    try {
+      const lines = fs.readFileSync(fp, 'utf-8').split('\n').filter((l: string) => l.trim());
+      if (!header && lines.length > 0) header = lines[0];
+      allRows.push(...lines.slice(1));
+    } catch {}
+  }
+  return header ? [header, ...allRows].join('\n') : allRows.join('\n');
+}
+
+// ── Integration ─────────────────────────────────────────────────────────
+
+export async function webhookSend(url: string, data: any): Promise<string> {
+  const https = require('https');
+  const http = require('http');
+  const body = typeof data === 'string' ? data : JSON.stringify(data);
+  const urlObj = new URL(url);
+  const lib = urlObj.protocol === 'https:' ? https : http;
+  return new Promise((resolve) => {
+    const req = lib.request({
+      hostname: urlObj.hostname, port: urlObj.port,
+      path: urlObj.pathname + urlObj.search,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) }
+    }, (res: any) => {
+      let d = '';
+      res.on('data', (c: string) => { d += c; });
+      res.on('end', () => resolve(`${res.statusCode}: ${d.slice(0, 500)}`));
+    });
+    req.on('error', (e: any) => resolve('Error: ' + e.message));
+    req.write(body);
+    req.end();
+  });
+}
+
+export async function googleSheetsRead(sheetUrl: string): Promise<string> {
+  // Convert Google Sheets URL to CSV export URL
+  const match = sheetUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (!match) return 'Invalid Google Sheets URL';
+  const csvUrl = `https://docs.google.com/spreadsheets/d/${match[1]}/export?format=csv`;
+  return fetchWebpage(csvUrl);
+}
+
+// ── File Utilities ──────────────────────────────────────────────────────
+
+export function listFolder(folderPath: string): string[] {
+  const fs = require('fs');
+  try {
+    return fs.readdirSync(folderPath).filter((f: string) => !f.startsWith('.'));
+  } catch { return []; }
+}
+
+export function searchFiles(query: string): string[] {
+  const { execSync } = require('child_process');
+  try {
+    const output = execSync(`mdfind "${query.replace(/"/g, '\\"')}" | head -20`, { encoding: 'utf-8', timeout: 10000 });
+    return output.split('\n').filter((l: string) => l.trim());
+  } catch { return []; }
+}
+
+export function getFileInfo(filePath: string): { name: string; size: string; modified: string; type: string } {
+  const fs = require('fs');
+  const path = require('path');
+  try {
+    const stat = fs.statSync(filePath);
+    const sizeKb = (stat.size / 1024).toFixed(1);
+    const sizeMb = (stat.size / 1048576).toFixed(1);
+    return {
+      name: path.basename(filePath),
+      size: stat.size > 1048576 ? `${sizeMb} MB` : `${sizeKb} KB`,
+      modified: stat.mtime.toLocaleString(),
+      type: path.extname(filePath) || 'unknown',
+    };
+  } catch { return { name: '', size: '', modified: '', type: '' }; }
+}
+
+export function duplicateFile(filePath: string): string {
+  const fs = require('fs');
+  const path = require('path');
+  const ext = path.extname(filePath);
+  const base = filePath.slice(0, -ext.length);
+  const newPath = `${base} copy${ext}`;
+  fs.copyFileSync(filePath, newPath);
+  return newPath;
+}
+
+export function renameFile(oldPath: string, newName: string): string {
+  const fs = require('fs');
+  const path = require('path');
+  const newPath = path.join(path.dirname(oldPath), newName);
+  fs.renameSync(oldPath, newPath);
+  return newPath;
+}
+
+export function trashFile(filePath: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Finder" to delete POSIX file "${filePath}"'`, { timeout: 5000 });
+  }
+}
+
+export function revealInFinder(filePath: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`open -R "${filePath}"`, { timeout: 5000 });
+  }
+}
+
+export function openWith(filePath: string, appName: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`open -a "${appName}" "${filePath}"`, { timeout: 5000 });
+  }
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
