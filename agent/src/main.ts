@@ -565,13 +565,17 @@ body {
   flex-direction: column;
   background: #0f0f1a;
   min-width: 0;
+  overflow: hidden;
+  min-height: 0;
 }
 
 /* ── Chat Area ── */
 .chat-area {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 24px 32px;
+  min-height: 0;
 }
 .chat-area::-webkit-scrollbar { width: 4px; }
 .chat-area::-webkit-scrollbar-thumb { background: rgba(236,72,153,0.1); border-radius: 2px; }
@@ -844,7 +848,7 @@ svg { display: block; }
 .sidebar-tab.active { background: rgba(236,72,153,0.08); color: #f9a8d4; }
 
 /* ── Control Center ── */
-.view { display: none; flex-direction: column; flex: 1; }
+.view { display: none; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
 .view.active { display: flex; }
 
 .control-center {
