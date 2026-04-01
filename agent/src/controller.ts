@@ -3193,6 +3193,209 @@ export function wavelengthCalc(speed: number, frequency: number): string {
   return `λ = ${speed} / ${frequency} = ${(speed / frequency).toFixed(6)}`;
 }
 
+// ── Math: Calculus ──────────────────────────────────────────────────────
+
+export function numericalDerivative(fn: string, x: number, h: number = 0.0001): number {
+  const f = (v: number) => new Function('x', 'return ' + fn)(v);
+  return (f(x + h) - f(x - h)) / (2 * h);
+}
+
+export function numericalIntegral(fn: string, a: number, b: number, n: number = 1000): number {
+  const f = (v: number) => new Function('x', 'return ' + fn)(v);
+  const dx = (b - a) / n;
+  let sum = 0;
+  for (let i = 0; i < n; i++) sum += f(a + (i + 0.5) * dx);
+  return sum * dx;
+}
+
+export function numericalLimit(fn: string, x: number, side: string = 'both'): number {
+  const f = (v: number) => new Function('x', 'return ' + fn)(v);
+  const h = 0.00001;
+  if (side === 'left') return f(x - h);
+  if (side === 'right') return f(x + h);
+  return (f(x - h) + f(x + h)) / 2;
+}
+
+// ── Math: Linear Algebra ────────────────────────────────────────────────
+
+export function matrixAdd(a: number[][], b: number[][]): number[][] {
+  return a.map((row, i) => row.map((val, j) => val + (b[i]?.[j] || 0)));
+}
+
+export function matrixMultiply(a: number[][], b: number[][]): number[][] {
+  const rows = a.length, cols = b[0]?.length || 0, inner = b.length;
+  const result: number[][] = Array.from({ length: rows }, () => Array(cols).fill(0));
+  for (let i = 0; i < rows; i++)
+    for (let j = 0; j < cols; j++)
+      for (let k = 0; k < inner; k++)
+        result[i][j] += (a[i][k] || 0) * (b[k]?.[j] || 0);
+  return result;
+}
+
+export function determinant(m: number[][]): number {
+  const n = m.length;
+  if (n === 1) return m[0][0];
+  if (n === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+  let det = 0;
+  for (let j = 0; j < n; j++) {
+    const sub = m.slice(1).map(row => [...row.slice(0, j), ...row.slice(j + 1)]);
+    det += (j % 2 === 0 ? 1 : -1) * m[0][j] * determinant(sub);
+  }
+  return det;
+}
+
+export function transpose(m: number[][]): number[][] {
+  return m[0].map((_, j) => m.map(row => row[j]));
+}
+
+export function dotProduct(a: number[], b: number[]): number {
+  return a.reduce((sum, v, i) => sum + v * (b[i] || 0), 0);
+}
+
+export function crossProduct(a: number[], b: number[]): number[] {
+  return [a[1]*b[2] - a[2]*b[1], a[2]*b[0] - a[0]*b[2], a[0]*b[1] - a[1]*b[0]];
+}
+
+export function vectorMagnitude(v: number[]): number {
+  return Math.sqrt(v.reduce((sum, x) => sum + x * x, 0));
+}
+
+// ── Math: Number Sequences ──────────────────────────────────────────────
+
+export function arithmeticSequence(a1: number, d: number, n: number): { nth: number; sum: number } {
+  const nth = a1 + (n - 1) * d;
+  const sum = n * (a1 + nth) / 2;
+  return { nth, sum };
+}
+
+export function geometricSequence(a1: number, r: number, n: number): { nth: number; sum: number } {
+  const nth = a1 * Math.pow(r, n - 1);
+  const sum = r === 1 ? a1 * n : a1 * (1 - Math.pow(r, n)) / (1 - r);
+  return { nth, sum };
+}
+
+export function sumOfSeries(n: number): number {
+  return n * (n + 1) / 2;
+}
+
+// ── Math: Logic ─────────────────────────────────────────────────────────
+
+export function booleanAnd(a: boolean, b: boolean): boolean { return a && b; }
+export function booleanOr(a: boolean, b: boolean): boolean { return a || b; }
+export function booleanXor(a: boolean, b: boolean): boolean { return a !== b; }
+export function booleanNot(a: boolean): boolean { return !a; }
+
+export function truthTable(vars: number = 2): string {
+  const letters = ['A', 'B', 'C', 'D'].slice(0, vars);
+  const rows = Math.pow(2, vars);
+  let table = letters.join(' | ') + ' | AND | OR | XOR\n';
+  table += '-'.repeat(table.length) + '\n';
+  for (let i = 0; i < rows; i++) {
+    const bits = letters.map((_, j) => (i >> (vars - 1 - j)) & 1);
+    const and = bits.every(b => b === 1) ? 1 : 0;
+    const or = bits.some(b => b === 1) ? 1 : 0;
+    const xor = bits.reduce((a, b) => a ^ b, 0);
+    table += bits.join(' | ') + ` |  ${and}  | ${or}  |  ${xor}\n`;
+  }
+  return table;
+}
+
+// ── Math: Ratios & Proportions ──────────────────────────────────────────
+
+export function ratioSimplify(a: number, b: number): string {
+  const g = gcd(Math.abs(a), Math.abs(b));
+  return `${a}:${b} = ${a/g}:${b/g}`;
+}
+
+export function proportionSolve(a: number, b: number, c: number): string {
+  const x = (b * c) / a;
+  return `${a}/${b} = ${c}/x → x = ${x.toFixed(4)}`;
+}
+
+// ── Math: More Physics ──────────────────────────────────────────────────
+
+export function momentum(mass: number, velocity: number): string { return `p = ${mass} × ${velocity} = ${(mass * velocity).toFixed(2)} kg·m/s`; }
+export function work(force2: number, distance: number): string { return `W = ${force2} × ${distance} = ${(force2 * distance).toFixed(2)} J`; }
+export function powerPhysics(work2: number, time: number): string { return `P = ${work2} / ${time} = ${(work2 / time).toFixed(2)} W`; }
+export function frequency(period: number): string { return `f = 1 / ${period} = ${(1 / period).toFixed(4)} Hz`; }
+export function pressure(force2: number, area: number): string { return `P = ${force2} / ${area} = ${(force2 / area).toFixed(2)} Pa`; }
+export function density(mass: number, volume: number): string { return `ρ = ${mass} / ${volume} = ${(mass / volume).toFixed(4)} kg/m³`; }
+export function acceleration(v: number, u: number, t: number): string { return `a = (${v} - ${u}) / ${t} = ${((v - u) / t).toFixed(4)} m/s²`; }
+export function projectileRange(v: number, angle: number, g: number = 9.81): string {
+  const rad = angle * Math.PI / 180;
+  const r = (v * v * Math.sin(2 * rad)) / g;
+  return `R = ${v}²×sin(2×${angle}°) / ${g} = ${r.toFixed(2)} m`;
+}
+
+// ── Math: Chemistry ─────────────────────────────────────────────────────
+
+export function molarity(moles: number, liters: number): string { return `M = ${moles} / ${liters} = ${(moles / liters).toFixed(4)} mol/L`; }
+export function dilution(m1: number, v1: number, m2: number): string {
+  const v2 = (m1 * v1) / m2;
+  return `M1V1 = M2V2 → ${m1}×${v1} = ${m2}×V2 → V2 = ${v2.toFixed(4)} L`;
+}
+export function phCalculator(hConc: number): string {
+  const ph = -Math.log10(hConc);
+  return `pH = -log(${hConc}) = ${ph.toFixed(2)} (${ph < 7 ? 'acidic' : ph > 7 ? 'basic' : 'neutral'})`;
+}
+export function idealGas(known: { P?: number; V?: number; n?: number; T?: number }): string {
+  const R = 0.0821; // L·atm/(mol·K)
+  if (known.P && known.V && known.n) return `T = PV/nR = ${(known.P * known.V / (known.n * R)).toFixed(2)} K`;
+  if (known.P && known.V && known.T) return `n = PV/RT = ${(known.P * known.V / (R * known.T)).toFixed(4)} mol`;
+  if (known.P && known.n && known.T) return `V = nRT/P = ${(known.n * R * known.T / known.P).toFixed(4)} L`;
+  if (known.V && known.n && known.T) return `P = nRT/V = ${(known.n * R * known.T / known.V).toFixed(4)} atm`;
+  return 'Need at least 3 of: P, V, n, T';
+}
+
+// ── Math: More Financial ────────────────────────────────────────────────
+
+export function ruleOf72(rate: number): string { return `Years to double at ${rate}%: ${(72 / rate).toFixed(1)} years`; }
+export function futureValue(pv: number, rate: number, years: number, pmt: number = 0): string {
+  const fv = pv * Math.pow(1 + rate, years) + pmt * (Math.pow(1 + rate, years) - 1) / rate;
+  return `FV = $${fv.toFixed(2)} (PV=$${pv}, rate=${(rate*100).toFixed(1)}%, ${years}yr, PMT=$${pmt})`;
+}
+export function presentValue(fv: number, rate: number, years: number): string {
+  const pv = fv / Math.pow(1 + rate, years);
+  return `PV = $${pv.toFixed(2)} (FV=$${fv} in ${years}yr at ${(rate*100).toFixed(1)}%)`;
+}
+export function annuityPayment(target: number, rate: number, years: number): string {
+  const n = years * 12; const r = rate / 12;
+  const pmt = target * r / (Math.pow(1 + r, n) - 1);
+  return `Monthly payment: $${pmt.toFixed(2)} to reach $${target} in ${years}yr at ${(rate*100).toFixed(1)}%`;
+}
+export function debtPayoff(balance: number, rate: number, payment: number): string {
+  let bal = balance; let months = 0; const r = rate / 12;
+  while (bal > 0 && months < 600) { bal = bal * (1 + r) - payment; months++; }
+  return `$${balance} at ${(rate*100).toFixed(1)}% with $${payment}/mo → paid off in ${months} months (${(months/12).toFixed(1)} years)`;
+}
+
+// ── Math: Probability & Statistics Advanced ─────────────────────────────
+
+export function normalDistribution(x: number, mean: number, stdDev: number): number {
+  const z = (x - mean) / stdDev;
+  return Math.exp(-0.5 * z * z) / (stdDev * Math.sqrt(2 * Math.PI));
+}
+
+export function binomialProbability(n: number, k: number, p: number): number {
+  return combinations(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+}
+
+export function expectedValue(values: number[], probabilities: number[]): number {
+  return values.reduce((sum, v, i) => sum + v * (probabilities[i] || 0), 0);
+}
+
+export function standardError(stdDev: number, n: number): number {
+  return stdDev / Math.sqrt(n);
+}
+
+export function confidenceInterval(mean: number, stdDev: number, n: number, confidence: number = 0.95): string {
+  const zScores: Record<number, number> = { 0.90: 1.645, 0.95: 1.96, 0.99: 2.576 };
+  const z = zScores[confidence] || 1.96;
+  const se = stdDev / Math.sqrt(n);
+  const margin = z * se;
+  return `${(confidence*100).toFixed(0)}% CI: ${(mean - margin).toFixed(4)} to ${(mean + margin).toFixed(4)} (margin: ±${margin.toFixed(4)})`;
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

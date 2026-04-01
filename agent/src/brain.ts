@@ -3541,6 +3541,114 @@ Format in clean HTML with tables if needed.` }]
     case 'calories_burned': { addToHistory('system', controller.caloriesBurned(action.target||'walking', action.value||30, action.count||70)); break; }
     case 'wavelength_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.wavelengthCalc(n[0]||0,n[1]||1)); break; }
 
+    // ── Calculus ──
+    case 'derivative': {
+      const r = controller.numericalDerivative(action.text||'x*x', action.value||0);
+      addToHistory('system', `d/dx(${action.text}) at x=${action.value} = ${r.toFixed(6)}`); break;
+    }
+    case 'integral': {
+      const n=(action.target||'').split(',').map(Number);
+      const r = controller.numericalIntegral(action.text||'x*x', n[0]||0, n[1]||1);
+      addToHistory('system', `∫(${action.text}) from ${n[0]||0} to ${n[1]||1} = ${r.toFixed(6)}`); break;
+    }
+    case 'limit_calc': {
+      const r = controller.numericalLimit(action.text||'x', action.value||0);
+      addToHistory('system', `lim(${action.text}) as x→${action.value} = ${r.toFixed(6)}`); break;
+    }
+
+    // ── Linear Algebra ──
+    case 'matrix_add': {
+      const parts6 = (action.text||'').split('|');
+      const a2 = JSON.parse(parts6[0]||'[[]]'); const b2 = JSON.parse(parts6[1]||'[[]]');
+      addToHistory('system', 'Matrix sum: ' + JSON.stringify(controller.matrixAdd(a2, b2))); break;
+    }
+    case 'matrix_multiply': {
+      const parts6 = (action.text||'').split('|');
+      const a2 = JSON.parse(parts6[0]||'[[]]'); const b2 = JSON.parse(parts6[1]||'[[]]');
+      addToHistory('system', 'Matrix product: ' + JSON.stringify(controller.matrixMultiply(a2, b2))); break;
+    }
+    case 'determinant_calc': {
+      const m = JSON.parse(action.text||'[[1]]');
+      addToHistory('system', 'Determinant: ' + controller.determinant(m)); break;
+    }
+    case 'transpose_calc': {
+      const m = JSON.parse(action.text||'[[1]]');
+      addToHistory('system', 'Transpose: ' + JSON.stringify(controller.transpose(m))); break;
+    }
+    case 'dot_product': {
+      const parts6 = (action.text||'').split('|');
+      const a2 = JSON.parse(parts6[0]||'[0]'); const b2 = JSON.parse(parts6[1]||'[0]');
+      addToHistory('system', 'Dot product: ' + controller.dotProduct(a2, b2)); break;
+    }
+    case 'cross_product': {
+      const parts6 = (action.text||'').split('|');
+      const a2 = JSON.parse(parts6[0]||'[0,0,0]'); const b2 = JSON.parse(parts6[1]||'[0,0,0]');
+      addToHistory('system', 'Cross product: ' + JSON.stringify(controller.crossProduct(a2, b2))); break;
+    }
+    case 'vector_magnitude': {
+      const v = JSON.parse(action.text||'[0]');
+      addToHistory('system', 'Magnitude: ' + controller.vectorMagnitude(v).toFixed(6)); break;
+    }
+
+    // ── Sequences ──
+    case 'arithmetic_sequence': { const n=(action.text||'').split(',').map(Number); const r=controller.arithmeticSequence(n[0]||1,n[1]||1,n[2]||10); addToHistory('system', `a1=${n[0]}, d=${n[1]}, n=${n[2]} → nth=${r.nth}, sum=${r.sum}`); break; }
+    case 'geometric_sequence': { const n=(action.text||'').split(',').map(Number); const r=controller.geometricSequence(n[0]||1,n[1]||2,n[2]||10); addToHistory('system', `a1=${n[0]}, r=${n[1]}, n=${n[2]} → nth=${r.nth.toFixed(2)}, sum=${r.sum.toFixed(2)}`); break; }
+    case 'sum_of_series': { addToHistory('system', `1+2+...+${action.value} = ${controller.sumOfSeries(action.value||10)}`); break; }
+
+    // ── Logic ──
+    case 'boolean_and': case 'boolean_or': case 'boolean_xor': case 'boolean_not': {
+      const bVals = (action.text||'').split(',').map(v => v.trim().toLowerCase() === 'true');
+      let bResult = false;
+      if (action.type === 'boolean_and') bResult = controller.booleanAnd(bVals[0]||false, bVals[1]||false);
+      else if (action.type === 'boolean_or') bResult = controller.booleanOr(bVals[0]||false, bVals[1]||false);
+      else if (action.type === 'boolean_xor') bResult = controller.booleanXor(bVals[0]||false, bVals[1]||false);
+      else bResult = controller.booleanNot(bVals[0]||false);
+      addToHistory('system', `${action.type}(${action.text}) = ${bResult}`); break;
+    }
+    case 'truth_table': { addToHistory('system', controller.truthTable(action.value||2)); break; }
+
+    // ── Ratios ──
+    case 'ratio_simplify': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.ratioSimplify(n[0]||1,n[1]||1)); break; }
+    case 'proportion_solve': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.proportionSolve(n[0]||1,n[1]||1,n[2]||1)); break; }
+
+    // ── More Physics ──
+    case 'momentum_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.momentum(n[0]||0,n[1]||0)); break; }
+    case 'work_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.work(n[0]||0,n[1]||0)); break; }
+    case 'power_physics': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.powerPhysics(n[0]||0,n[1]||1)); break; }
+    case 'frequency_calc': { addToHistory('system', controller.frequency(action.value||1)); break; }
+    case 'pressure_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.pressure(n[0]||0,n[1]||1)); break; }
+    case 'density_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.density(n[0]||0,n[1]||1)); break; }
+    case 'acceleration_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.acceleration(n[0]||0,n[1]||0,n[2]||1)); break; }
+    case 'projectile_range': { addToHistory('system', controller.projectileRange(action.value||10, parseFloat(action.text||'45'))); break; }
+
+    // ── Chemistry ──
+    case 'molarity_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.molarity(n[0]||0,n[1]||1)); break; }
+    case 'dilution_calc': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.dilution(n[0]||0,n[1]||0,n[2]||1)); break; }
+    case 'ph_calculator': { addToHistory('system', controller.phCalculator(action.value||0.001)); break; }
+    case 'ideal_gas': {
+      const n=(action.text||'').split(',').map(Number);
+      addToHistory('system', controller.idealGas({ P:n[0]||undefined, V:n[1]||undefined, n:n[2]||undefined, T:n[3]||undefined })); break;
+    }
+
+    // ── More Financial ──
+    case 'rule_of_72': { addToHistory('system', controller.ruleOf72(action.value||7)); break; }
+    case 'future_value': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.futureValue(n[0]||0,n[1]||0.07,n[2]||10,n[3]||0)); break; }
+    case 'present_value': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.presentValue(n[0]||0,n[1]||0.07,n[2]||10)); break; }
+    case 'annuity_payment': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.annuityPayment(n[0]||0,n[1]||0.07,n[2]||10)); break; }
+    case 'debt_payoff': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.debtPayoff(n[0]||0,n[1]||0.2,n[2]||100)); break; }
+
+    // ── Advanced Probability ──
+    case 'normal_distribution': { const n=(action.text||'').split(',').map(Number); addToHistory('system', `P(x=${n[0]}) = ${controller.normalDistribution(n[0]||0,n[1]||0,n[2]||1).toFixed(6)}`); break; }
+    case 'binomial_probability': { const n=(action.text||'').split(',').map(Number); addToHistory('system', `P(X=${n[1]}) = ${controller.binomialProbability(n[0]||10,n[1]||5,n[2]||0.5).toFixed(6)}`); break; }
+    case 'expected_value_calc': {
+      const parts7 = (action.text||'').split('|');
+      const vals = (parts7[0]||'').split(',').map(Number);
+      const probs = (parts7[1]||'').split(',').map(Number);
+      addToHistory('system', `E(X) = ${controller.expectedValue(vals, probs).toFixed(4)}`); break;
+    }
+    case 'standard_error': { const n=(action.text||'').split(',').map(Number); addToHistory('system', `SE = ${controller.standardError(n[0]||1,n[1]||30).toFixed(4)}`); break; }
+    case 'confidence_interval': { const n=(action.text||'').split(',').map(Number); addToHistory('system', controller.confidenceInterval(n[0]||0,n[1]||1,n[2]||30,n[3]||0.95)); break; }
+
     default: {
       console.log('[Action] Unknown action type:', action.type);
     }
