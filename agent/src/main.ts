@@ -2843,7 +2843,9 @@ async function loadCreditPlans() {
       '<div style="font-size:10px;color:rgba(226,232,240,0.4);margin-bottom:6px">USD</div>' +
       '<div style="font-size:13px;font-weight:600;color:#f9a8d4">' + p.name + '</div>' +
       '<div style="font-size:11px;color:rgba(226,232,240,0.4);margin-top:2px">' + p.description + '</div>' +
-      '<button onclick="buyCredits(\'' + p.id + '\')" style="margin-top:10px;width:100%;padding:8px;border-radius:8px;border:none;background:' + (popular ? 'linear-gradient(135deg,#ec4899,#8b5cf6)' : 'rgba(255,255,255,0.06)') + ';color:' + (popular ? 'white' : '#e2e8f0') + ';font-size:12px;font-weight:600;cursor:pointer">Buy</button>';
+      '<button data-plan="' + p.id + '" style="margin-top:10px;width:100%;padding:8px;border-radius:8px;border:none;background:' + (popular ? 'linear-gradient(135deg,#ec4899,#8b5cf6)' : 'rgba(255,255,255,0.06)') + ';color:' + (popular ? 'white' : '#e2e8f0') + ';font-size:12px;font-weight:600;cursor:pointer">Buy</button>';
+    // Wire up buy button via addEventListener (avoids quote escaping issues)
+    el.querySelector('[data-plan]').onclick = () => buyCredits(p.id);
     el.onmouseover = () => { el.style.borderColor = 'rgba(236,72,153,0.3)'; };
     el.onmouseout = () => { if (!popular) el.style.borderColor = 'rgba(255,255,255,0.06)'; };
     container.appendChild(el);
@@ -3049,7 +3051,10 @@ async function loadHistory() {
         '<div style="font-size:13px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(h.command) + '</div>' +
         '<div style="font-size:10px;color:rgba(226,232,240,0.4)">' + escHtml(h.agentName || 'Agent') + ' \\u2022 ' + h.steps + ' steps \\u2022 ' + time + '</div>' +
       '</div>' +
-      '<button class="ctrl-btn" title="Run again" onclick="trySuggestion(\'' + escHtml(h.command).replace(/'/g, "\\\\'") + '\')" style="font-size:12px">\\u21bb</button>';
+      '<button class="ctrl-btn rerun-btn" data-cmd="' + escHtml(h.command).replace(/"/g, '&quot;') + '" title="Run again" style="font-size:12px">\\u21bb</button>';
+    // Wire up rerun button
+    const rerunBtn = el.querySelector('.rerun-btn');
+    if (rerunBtn) rerunBtn.onclick = () => trySuggestion(h.command);
     container.appendChild(el);
   });
 }
