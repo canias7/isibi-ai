@@ -534,7 +534,40 @@ AUTOMATION CHAINS:
 - try_catch: {"type":"try_catch","actions":[main],"text":"[fallback actions if main fails]"}
 - while_loop: {"type":"while_loop","condition":"Is download complete?","actions":[wait],"count":10}
 - parallel: {"type":"parallel","actions":[action1, action2]} — run simultaneously
-- pipe: {"type":"pipe","actions":[step1, step2, step3]} — sequential with shared context`,
+- pipe: {"type":"pipe","actions":[step1, step2, step3]} — sequential with shared context
+
+EMAIL MANAGEMENT:
+- read_email: {"type":"read_email","count":5} — read recent inbox
+- search_email: {"type":"search_email","target":"invoice"} — search by subject/sender
+- create_email_draft: {"type":"create_email_draft","target":"john@email.com","key":"Subject","text":"Body"}
+
+DISPLAY:
+- set_brightness: {"type":"set_brightness","value":75} — set brightness 0-100
+- toggle_night_shift: {"type":"toggle_night_shift"}
+- get_screen_resolution: {"type":"get_screen_resolution"}
+
+PRINTING:
+- list_printers: {"type":"list_printers"}
+- print_text: {"type":"print_text","text":"content to print"}
+- print_image: {"type":"print_image","target":"/path/image.jpg"}
+
+USER INTERACTION:
+- input_prompt: {"type":"input_prompt","target":"Title","text":"What's your name?"} — shows dialog, gets text response
+- choice_prompt: {"type":"choice_prompt","target":"Pick one","text":"Option A,Option B,Option C"} — shows choices
+
+APP-SPECIFIC:
+- keynote_new/numbers_new/pages_new — create new iWork documents
+- preview_open: {"type":"preview_open","target":"/path/file"} — open in Preview
+- xcode_build: {"type":"xcode_build","target":"/path/to/project"} — build Xcode project
+
+TEXT MANIPULATION:
+- text_replace: {"type":"text_replace","text":"hello world","target":"hello","key":"hi"}
+- text_case: {"type":"text_case","text":"hello","target":"upper|lower|title|camel|snake|kebab"}
+- text_trim/text_reverse/text_split
+
+ACCESSIBILITY:
+- read_aloud: {"type":"read_aloud","text":"Hello","target":"Samantha"} — read with system voice
+- increase_text_size/decrease_text_size — zoom text system-wide`,
     messages: [{
       role: 'user',
       content: command,
@@ -1979,6 +2012,115 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
       if (!found3) addToHistory('system', 'Element not found: ' + action.target);
       break;
     }
+
+    // ── Email Management ──
+    case 'read_email': {
+      const emails2 = controller.readEmails(action.count || 5);
+      addToHistory('system', 'Emails: ' + emails2.join('\n'));
+      break;
+    }
+    case 'search_email': {
+      const emailResults = controller.searchEmail(action.target || '');
+      addToHistory('system', 'Email search: ' + emailResults.join('\n'));
+      break;
+    }
+    case 'create_email_draft': {
+      controller.createEmailDraft(action.target || '', action.key || 'No subject', action.text || '');
+      controller.showNotification('Draft created', action.target || '');
+      break;
+    }
+
+    // ── Display ──
+    case 'set_brightness': {
+      controller.setBrightness(action.value || 50);
+      break;
+    }
+    case 'toggle_night_shift': {
+      controller.toggleNightShift();
+      break;
+    }
+    case 'get_screen_resolution': {
+      const res = controller.getScreenResolution();
+      addToHistory('system', 'Resolution: ' + res);
+      break;
+    }
+
+    // ── Printing ──
+    case 'list_printers': {
+      const printers = controller.listPrinters();
+      addToHistory('system', 'Printers: ' + (printers.length > 0 ? printers.join(', ') : 'None found'));
+      break;
+    }
+    case 'print_text': {
+      controller.printText(action.text || '');
+      controller.showNotification('Printing', 'Sent to printer');
+      break;
+    }
+    case 'print_image': {
+      controller.printImage(action.target || '');
+      controller.showNotification('Printing', action.target || '');
+      break;
+    }
+
+    // ── User Interaction ──
+    case 'input_prompt': {
+      const userInput = controller.inputPrompt(action.target || 'ISIBI', action.text || 'Enter a value:', action.key);
+      addToHistory('system', 'User input: ' + userInput);
+      break;
+    }
+    case 'choice_prompt': {
+      const choices = (action.text || 'Option A,Option B').split(',').map((c: string) => c.trim());
+      const chosen = controller.choicePrompt(action.target || 'Choose', choices);
+      addToHistory('system', 'User chose: ' + chosen);
+      break;
+    }
+
+    // ── App-Specific ──
+    case 'keynote_new': { controller.keynoteNew(); break; }
+    case 'numbers_new': { controller.numbersNew(); break; }
+    case 'pages_new': { controller.pagesNew(); break; }
+    case 'preview_open': { controller.previewOpen(action.target || ''); break; }
+    case 'xcode_build': {
+      const buildOut = controller.xcodeBuild(action.target || '.');
+      addToHistory('system', 'Xcode: ' + buildOut.slice(0, 2000));
+      break;
+    }
+
+    // ── Text Manipulation ──
+    case 'text_replace': {
+      const replaced = controller.textReplace(action.text || '', action.target || '', action.key || '');
+      addToHistory('system', 'Replaced: ' + replaced.slice(0, 2000));
+      break;
+    }
+    case 'text_case': {
+      const cased = controller.textCase(action.text || '', action.target || 'upper');
+      addToHistory('system', 'Result: ' + cased);
+      controller.writeClipboard(cased);
+      break;
+    }
+    case 'text_trim': {
+      const trimmed = controller.textTrim(action.text || '');
+      addToHistory('system', 'Trimmed: ' + trimmed);
+      break;
+    }
+    case 'text_reverse': {
+      const reversed = controller.textReverse(action.text || '');
+      addToHistory('system', 'Reversed: ' + reversed);
+      break;
+    }
+    case 'text_split': {
+      const parts4 = controller.textSplit(action.text || '', action.target || ',');
+      addToHistory('system', 'Split: ' + parts4.join(' | '));
+      break;
+    }
+
+    // ── Accessibility ──
+    case 'read_aloud': {
+      controller.readAloud(action.text || '', action.target);
+      break;
+    }
+    case 'increase_text_size': { controller.increaseTextSize(); break; }
+    case 'decrease_text_size': { controller.decreaseTextSize(); break; }
 
     default: {
       console.log('[Action] Unknown action type:', action.type);

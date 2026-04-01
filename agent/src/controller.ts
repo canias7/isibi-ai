@@ -1921,6 +1921,246 @@ export function openWith(filePath: string, appName: string): void {
   }
 }
 
+// ── Email Management ────────────────────────────────────────────────────
+
+export function readEmails(count: number = 5): string[] {
+  const { execSync } = require('child_process');
+  const emails: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'tell application "Mail"
+  set msgs to ""
+  set msgList to messages of inbox
+  set maxCount to ${count}
+  set i to 0
+  repeat with m in msgList
+    if i >= maxCount then exit repeat
+    set msgs to msgs & subject of m & " | " & sender of m & " | " & date received of m & "\\n"
+    set i to i + 1
+  end repeat
+  return msgs
+end tell'`, { encoding: 'utf-8', timeout: 15000 });
+      output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => emails.push(l.trim()));
+    } catch {}
+  }
+  return emails;
+}
+
+export function searchEmail(query: string): string[] {
+  const { execSync } = require('child_process');
+  const results: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      const output = execSync(`osascript -e 'tell application "Mail"
+  set msgs to ""
+  set found to (messages of inbox whose subject contains "${query.replace(/"/g, '\\"')}" or sender contains "${query.replace(/"/g, '\\"')}")
+  set maxCount to 10
+  set i to 0
+  repeat with m in found
+    if i >= maxCount then exit repeat
+    set msgs to msgs & subject of m & " | " & sender of m & "\\n"
+    set i to i + 1
+  end repeat
+  return msgs
+end tell'`, { encoding: 'utf-8', timeout: 15000 });
+      output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => results.push(l.trim()));
+    } catch {}
+  }
+  return results;
+}
+
+export function createEmailDraft(to: string, subject: string, body: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Mail"
+  set newMsg to make new outgoing message with properties {subject:"${subject.replace(/"/g, '\\"')}", content:"${body.replace(/"/g, '\\"')}", visible:true}
+  tell newMsg
+    make new to recipient with properties {address:"${to.replace(/"/g, '\\"')}"}
+  end tell
+end tell'`, { timeout: 10000 });
+  }
+}
+
+// ── Display & Appearance ────────────────────────────────────────────────
+
+export function setBrightness(percent: number): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const val = Math.max(0, Math.min(1, percent / 100));
+    try {
+      execSync(`osascript -e 'tell application "System Events" to set value of slider 1 of group 1 of window "Displays" of application process "System Preferences" to ${val}'`, { timeout: 5000 });
+    } catch {
+      // Fallback: use brightness keys
+      const steps = Math.round(percent / 6.25);
+      for (let i = 0; i < 16; i++) execSync(`osascript -e 'tell application "System Events" to key code 145'`, { timeout: 1000 }); // brightness down
+      for (let i = 0; i < steps; i++) execSync(`osascript -e 'tell application "System Events" to key code 144'`, { timeout: 1000 }); // brightness up
+    }
+  }
+}
+
+export function toggleNightShift(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      execSync(`osascript -e 'tell application "System Events"
+  tell process "ControlCenter"
+    click menu bar item "Display" of menu bar 1
+  end tell
+end tell'`, { timeout: 5000 });
+    } catch {}
+  }
+}
+
+export function getScreenResolution(): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`system_profiler SPDisplaysDataType 2>/dev/null | grep Resolution | head -1`, { encoding: 'utf-8', timeout: 5000 }).trim();
+  } catch { return 'Unknown'; }
+}
+
+// ── Printing ────────────────────────────────────────────────────────────
+
+export function listPrinters(): string[] {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`lpstat -a 2>/dev/null | cut -d' ' -f1`, { encoding: 'utf-8', timeout: 5000 }).split('\n').filter((l: string) => l.trim());
+  } catch { return []; }
+}
+
+export function printText(text: string): void {
+  const fs = require('fs');
+  const path = require('path');
+  const tmpFile = path.join(require('os').tmpdir(), `isibi-print-${Date.now()}.txt`);
+  fs.writeFileSync(tmpFile, text, 'utf-8');
+  const { execSync } = require('child_process');
+  execSync(`lpr "${tmpFile}"`, { timeout: 10000 });
+  try { fs.unlinkSync(tmpFile); } catch {}
+}
+
+export function printImage(imagePath: string): void {
+  const { execSync } = require('child_process');
+  execSync(`lpr "${imagePath}"`, { timeout: 10000 });
+}
+
+// ── User Interaction (dialogs) ──────────────────────────────────────────
+
+export function inputPrompt(title: string, message: string, defaultValue?: string): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const def = defaultValue ? ` default answer "${defaultValue.replace(/"/g, '\\"')}"` : ' default answer ""';
+      const output = execSync(`osascript -e 'set response to display dialog "${message.replace(/"/g, '\\"')}" with title "${title.replace(/"/g, '\\"')}"${def} buttons {"Cancel","OK"} default button "OK"
+return text returned of response'`, { encoding: 'utf-8', timeout: 60000 });
+      return output.trim();
+    } catch { return ''; }
+  }
+  return '';
+}
+
+export function choicePrompt(title: string, choices: string[]): string {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    try {
+      const choiceList = choices.map(c => `"${c.replace(/"/g, '\\"')}"`).join(', ');
+      const output = execSync(`osascript -e 'choose from list {${choiceList}} with title "${title.replace(/"/g, '\\"')}" with prompt "Select an option:"'`, { encoding: 'utf-8', timeout: 60000 });
+      return output.trim() === 'false' ? '' : output.trim();
+    } catch { return ''; }
+  }
+  return '';
+}
+
+// ── App-Specific ────────────────────────────────────────────────────────
+
+export function keynoteNew(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Keynote" to activate' -e 'tell application "Keynote" to make new document'`, { timeout: 10000 });
+  }
+}
+
+export function numbersNew(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Numbers" to activate' -e 'tell application "Numbers" to make new document'`, { timeout: 10000 });
+  }
+}
+
+export function pagesNew(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "Pages" to activate' -e 'tell application "Pages" to make new document'`, { timeout: 10000 });
+  }
+}
+
+export function previewOpen(filePath: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`open -a "Preview" "${filePath}"`, { timeout: 5000 });
+  }
+}
+
+export function xcodeBuild(projectPath: string): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`cd "${projectPath}" && xcodebuild build 2>&1 | tail -20`, { encoding: 'utf-8', timeout: 120000 });
+  } catch (e: any) { return e.stderr || 'Build failed'; }
+}
+
+// ── Text Manipulation ───────────────────────────────────────────────────
+
+export function textReplace(text: string, search: string, replace: string): string {
+  return text.split(search).join(replace);
+}
+
+export function textCase(text: string, mode: string): string {
+  switch (mode.toLowerCase()) {
+    case 'upper': return text.toUpperCase();
+    case 'lower': return text.toLowerCase();
+    case 'title': return text.replace(/\b\w/g, c => c.toUpperCase());
+    case 'sentence': return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+    case 'camel': return text.replace(/[-_\s]+(.)?/g, (_, c) => c ? c.toUpperCase() : '');
+    case 'snake': return text.replace(/\s+/g, '_').toLowerCase();
+    case 'kebab': return text.replace(/\s+/g, '-').toLowerCase();
+    default: return text;
+  }
+}
+
+export function textTrim(text: string): string {
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+export function textReverse(text: string): string {
+  return text.split('').reverse().join('');
+}
+
+export function textSplit(text: string, delimiter: string): string[] {
+  return text.split(delimiter);
+}
+
+// ── Accessibility ───────────────────────────────────────────────────────
+
+export function readAloud(text: string, voice?: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    const voicePart = voice ? ` -v "${voice}"` : '';
+    execSync(`say${voicePart} "${text.replace(/"/g, '\\"')}"`, { timeout: 30000 });
+  }
+}
+
+export function increaseTextSize(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to keystroke "=" using {command down, option down}'`, { timeout: 3000 });
+  }
+}
+
+export function decreaseTextSize(): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    execSync(`osascript -e 'tell application "System Events" to keystroke "-" using {command down, option down}'`, { timeout: 3000 });
+  }
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
