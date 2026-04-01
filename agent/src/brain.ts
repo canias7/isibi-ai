@@ -172,8 +172,18 @@ For searching on a website (YouTube, Google, Amazon, etc.), ALWAYS prefer using 
 
 Use find_and_click ONLY for UI elements that cannot be accessed via keyboard shortcuts or URLs (like specific buttons in desktop apps).
 Use open_app for launching known applications.
-Keep actions minimal — don't add unnecessary waits or screenshots unless needed.
-Add a wait of 1500ms after open_url to let the page load before interacting with it.`,
+Add a wait of 1500ms after open_url to let the page load before interacting with it.
+
+CRITICAL — ALWAYS complete the full user intent. Think step by step:
+- "open the latest KSI video on YouTube" means: search YouTube for KSI → wait for results → click the FIRST video result. You MUST include the find_and_click step for the first video.
+- "play a song on Spotify" means: open Spotify → search for the song → click the result → click play.
+- "send an email to X" means: open Gmail/Mail → compose → fill fields → click send.
+- "search X on YouTube" means: open YouTube search results URL → wait → done (user just wants to see results).
+- "open X on YouTube" or "play X on YouTube" means: search → wait → CLICK the first result to open it.
+- When the user says "open", "play", "watch", or "go to" something, ALWAYS add steps to click/select the result — don't just stop at the search page.
+- When the user says "search" or "look up", stopping at the results page is fine.
+
+Always generate enough steps to FULLY complete the task. If unsure, add a find_and_click for the most logical next step rather than stopping too early.`,
     messages: [{
       role: 'user',
       content: command,
