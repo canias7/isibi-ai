@@ -933,7 +933,14 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     }
 
     case 'speak': {
-      controller.speak(action.text || action.description);
+      // Use ElevenLabs voice if one is selected, otherwise system TTS
+      const { getElevenLabsKey, getSelectedVoiceId } = await import('./config');
+      const voiceId = getSelectedVoiceId();
+      if (voiceId) {
+        await controller.elevenLabsSpeak(getElevenLabsKey(), voiceId, action.text || action.description);
+      } else {
+        controller.speak(action.text || action.description);
+      }
       break;
     }
 
@@ -2881,8 +2888,15 @@ Format in clean HTML with tables if needed.` }]
       const callPrompt = action.text || 'You are a helpful AI assistant answering a phone call. Be conversational, friendly, and concise. Take messages if needed.';
       const callGreeting = action.key || "Hello, this is an AI assistant. How can I help you?";
 
-      // Greet the caller
-      controller.speakDuringCall(callGreeting);
+      // Greet the caller (use ElevenLabs if voice selected)
+      const { getElevenLabsKey: getELKey, getSelectedVoiceId: getSelVoice } = await import('./config');
+      const callVoiceId = getSelVoice();
+      const callELKey = getELKey();
+      if (callVoiceId) {
+        await controller.elevenLabsSpeak(callELKey, callVoiceId, callGreeting);
+      } else {
+        controller.speakDuringCall(callGreeting);
+      }
       await controller.sleep(500);
 
       // Conversation loop — uses the main window's SpeechRecognition via IPC
@@ -2941,8 +2955,12 @@ Format in clean HTML with tables if needed.` }]
           console.log('[AICall] AI says:', aiResponse);
           callHistory.push({ role: 'assistant', content: aiResponse });
 
-          // Speak the response
-          controller.speakDuringCall(aiResponse, 180); // Slightly faster speech
+          // Speak the response (ElevenLabs if voice selected)
+          if (callVoiceId) {
+            await controller.elevenLabsSpeak(callELKey, callVoiceId, aiResponse);
+          } else {
+            controller.speakDuringCall(aiResponse, 180);
+          }
 
           // Check for goodbye/end signals
           const lower = (callerSaid + ' ' + aiResponse).toLowerCase();

@@ -15,7 +15,7 @@ app.commandLine.appendSwitch('disable-usb-keyboard-detect');
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId } from './config';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
 import { dispatchCommand, getAllAgentStatuses } from './agent-manager';
@@ -229,6 +229,47 @@ ipcMain.handle('ghost-index-status', () => {
 ipcMain.handle('ghost-reindex', async () => {
   systemIndex = buildIndex();
   return { status: 'done', apps: systemIndex.apps.length };
+});
+
+// ── ElevenLabs Voice IPC ──────────────────────────────────────────────
+
+import * as ctrl from './controller';
+
+ipcMain.handle('eleven-list-voices', async () => {
+  return ctrl.elevenLabsListVoices(getElevenLabsKey());
+});
+
+ipcMain.handle('eleven-clone-voice', async (_, name: string, description: string, filePaths: string[]) => {
+  return ctrl.elevenLabsCloneVoice(getElevenLabsKey(), name, description, filePaths);
+});
+
+ipcMain.handle('eleven-delete-voice', async (_, voiceId: string) => {
+  return ctrl.elevenLabsDeleteVoice(getElevenLabsKey(), voiceId);
+});
+
+ipcMain.handle('eleven-preview-voice', async (_, voiceId: string, text: string) => {
+  const audioPath = await ctrl.elevenLabsTTS(getElevenLabsKey(), voiceId, text);
+  if (audioPath) {
+    require('child_process').execSync(`afplay "${audioPath}"`, { timeout: 30000 });
+    try { require('fs').unlinkSync(audioPath); } catch {}
+  }
+  return true;
+});
+
+ipcMain.handle('eleven-set-voice', (_, voiceId: string) => {
+  saveConfig({ selectedVoiceId: voiceId });
+  return true;
+});
+
+ipcMain.handle('eleven-get-selected', () => getSelectedVoiceId());
+
+ipcMain.handle('eleven-upload-audio', async (event) => {
+  const { dialog } = require('electron');
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile', 'multiSelections'],
+    filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'ogg', 'flac', 'aac'] }]
+  });
+  return result.filePaths || [];
 });
 
 // ── Call Transcription IPC ─────────────────────────────────────────────
@@ -1149,6 +1190,10 @@ svg { display: block; }
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
         Control Center
       </button>
+      <button class="sidebar-tab" id="tabVoices" onclick="switchView('voices')">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+        My Voices
+      </button>
     </div>
     <div class="sidebar-section">
       <div class="sidebar-label">Agents</div>
@@ -1230,6 +1275,41 @@ svg { display: block; }
         <div class="cc-header">Control Center</div>
         <div class="cc-sub">Watch your agents work in real-time</div>
         <div class="cc-grid" id="ccGrid"></div>
+      </div>
+    </div>
+
+    <!-- My Voices View -->
+    <div class="view" id="voicesView">
+      <div class="control-center">
+        <div class="cc-header">My Voices</div>
+        <div class="cc-sub">Clone your voice or use AI voices for your agents</div>
+
+        <!-- Clone Voice Section -->
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(236,72,153,0.1);border-radius:16px;padding:24px;margin-bottom:20px">
+          <h3 style="font-size:15px;font-weight:600;color:#f9a8d4;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+            Clone a Voice
+          </h3>
+          <p style="font-size:12px;color:rgba(226,232,240,0.5);margin-bottom:16px">Upload audio samples of a voice to clone it. Works best with 1-3 minutes of clear speech.</p>
+          <div class="field"><label>Voice Name</label><input id="cloneNameInput" placeholder="e.g. My Voice, Boss, Client..."></div>
+          <div class="field"><label>Description</label><input id="cloneDescInput" placeholder="e.g. Professional male voice"></div>
+          <div style="margin-bottom:14px">
+            <label style="display:block;font-size:10px;color:rgba(226,232,240,0.6);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px">Audio Samples</label>
+            <div id="audioFileList" style="font-size:12px;color:rgba(226,232,240,0.5);margin-bottom:8px">No files selected</div>
+            <button class="btn btn-ghost" onclick="selectAudioFiles()" style="font-size:12px;padding:6px 14px">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Audio Files
+            </button>
+          </div>
+          <button class="btn btn-primary" onclick="cloneVoice()" id="cloneBtn" style="font-size:13px">Clone Voice</button>
+          <div id="cloneStatus" style="font-size:11px;color:rgba(226,232,240,0.5);margin-top:8px"></div>
+        </div>
+
+        <!-- Voice List -->
+        <h3 style="font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:12px">Available Voices</h3>
+        <div id="voiceList" style="display:flex;flex-direction:column;gap:8px">
+          <div style="color:rgba(226,232,240,0.5);font-size:13px">Loading voices...</div>
+        </div>
       </div>
     </div>
   </div>
@@ -1724,14 +1804,19 @@ function switchView(view) {
   currentView = view;
   document.getElementById('chatView').classList.toggle('active', view === 'chat');
   document.getElementById('ccView').classList.toggle('active', view === 'cc');
+  document.getElementById('voicesView').classList.toggle('active', view === 'voices');
   document.getElementById('tabChat').classList.toggle('active', view === 'chat');
   document.getElementById('tabCC').classList.toggle('active', view === 'cc');
+  document.getElementById('tabVoices').classList.toggle('active', view === 'voices');
 
   if (view === 'cc') {
     renderControlCenter();
     startCCPolling();
   } else {
     stopCCPolling();
+  }
+  if (view === 'voices') {
+    loadVoices();
   }
 }
 
@@ -1853,6 +1938,112 @@ document.addEventListener('click', (e) => {
   }
 });
 window.addEventListener('focus', () => { if (currentView === 'chat') input.focus(); });
+
+// ── Voices View ──
+let voicesList = [];
+let selectedVoiceId = '';
+let cloneAudioFiles = [];
+
+async function loadVoices() {
+  voicesList = await ipcRenderer.invoke('eleven-list-voices');
+  selectedVoiceId = await ipcRenderer.invoke('eleven-get-selected');
+  renderVoiceList();
+}
+
+function renderVoiceList() {
+  const container = document.getElementById('voiceList');
+  if (!container) return;
+  if (voicesList.length === 0) {
+    container.innerHTML = '<div style="color:rgba(226,232,240,0.5);font-size:13px">No voices found. Clone one above or check your API key.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  voicesList.forEach(v => {
+    const isSelected = v.voice_id === selectedVoiceId;
+    const isCloned = v.category === 'cloned';
+    const el = document.createElement('div');
+    el.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid ' + (isSelected ? 'rgba(236,72,153,0.3)' : 'rgba(255,255,255,0.04)') + ';border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;transition:.15s;cursor:pointer';
+    el.innerHTML =
+      '<div style="width:36px;height:36px;border-radius:10px;background:' + (isCloned ? 'rgba(236,72,153,0.1)' : 'rgba(139,92,246,0.1)') + ';display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">' + (isCloned ? '\\ud83c\\udfb5' : '\\ud83d\\udde3') + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:500;color:#e2e8f0">' + v.name + (isSelected ? ' <span style="color:#22c55e;font-size:10px">\\u2713 Active</span>' : '') + '</div>' +
+        '<div style="font-size:10px;color:rgba(226,232,240,0.5)">' + (isCloned ? 'Cloned' : 'ElevenLabs') + (v.labels?.accent ? ' \\u2022 ' + v.labels.accent : '') + '</div>' +
+      '</div>' +
+      '<button class="ctrl-btn" title="Preview" data-vid="' + v.voice_id + '" data-action="preview" style="font-size:14px">\\u25b6</button>' +
+      (isSelected
+        ? '<button class="ctrl-btn toggle-on" title="Active" style="font-size:10px">\\u25cf</button>'
+        : '<button class="ctrl-btn" title="Set as active" data-vid="' + v.voice_id + '" data-action="select" style="font-size:11px">Use</button>'
+      ) +
+      (isCloned ? '<button class="ctrl-btn del" title="Delete" data-vid="' + v.voice_id + '" data-action="delete" style="font-size:10px">\\u2715</button>' : '');
+
+    el.querySelectorAll = el.querySelectorAll || (() => []);
+    container.appendChild(el);
+
+    // Wire up buttons after append
+    el.querySelectorAll('[data-action]').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        const act = btn.dataset.action;
+        const vid = btn.dataset.vid;
+        if (act === 'preview') {
+          btn.textContent = '...';
+          await ipcRenderer.invoke('eleven-preview-voice', vid, 'Hello! This is how I sound. I am your AI assistant.');
+          btn.textContent = '\\u25b6';
+        } else if (act === 'select') {
+          await ipcRenderer.invoke('eleven-set-voice', vid);
+          selectedVoiceId = vid;
+          renderVoiceList();
+        } else if (act === 'delete') {
+          if (confirm('Delete this voice?')) {
+            await ipcRenderer.invoke('eleven-delete-voice', vid);
+            await loadVoices();
+          }
+        }
+      };
+    });
+  });
+}
+
+async function selectAudioFiles() {
+  cloneAudioFiles = await ipcRenderer.invoke('eleven-upload-audio');
+  const listEl = document.getElementById('audioFileList');
+  if (cloneAudioFiles.length > 0) {
+    listEl.innerHTML = cloneAudioFiles.map(f => '<div style="color:#e2e8f0">\\u2022 ' + f.split('/').pop() + '</div>').join('');
+  } else {
+    listEl.textContent = 'No files selected';
+  }
+}
+
+async function cloneVoice() {
+  const name = document.getElementById('cloneNameInput').value.trim();
+  const desc = document.getElementById('cloneDescInput').value.trim();
+  if (!name) { document.getElementById('cloneStatus').textContent = 'Please enter a voice name'; return; }
+  if (cloneAudioFiles.length === 0) { document.getElementById('cloneStatus').textContent = 'Please upload audio samples'; return; }
+
+  const btn = document.getElementById('cloneBtn');
+  btn.textContent = 'Cloning...';
+  btn.disabled = true;
+  document.getElementById('cloneStatus').textContent = 'Uploading and cloning voice...';
+
+  const result = await ipcRenderer.invoke('eleven-clone-voice', name, desc || 'Cloned via ISIBI Ghost Mode', cloneAudioFiles);
+
+  btn.textContent = 'Clone Voice';
+  btn.disabled = false;
+
+  if (result.voice_id) {
+    document.getElementById('cloneStatus').textContent = '\\u2713 Voice cloned successfully!';
+    document.getElementById('cloneNameInput').value = '';
+    document.getElementById('cloneDescInput').value = '';
+    document.getElementById('audioFileList').textContent = 'No files selected';
+    cloneAudioFiles = [];
+    // Auto-select the new voice
+    await ipcRenderer.invoke('eleven-set-voice', result.voice_id);
+    selectedVoiceId = result.voice_id;
+    await loadVoices();
+  } else {
+    document.getElementById('cloneStatus').textContent = '\\u2717 Failed: ' + (result.detail?.message || result.error || 'Unknown error');
+  }
+}
 
 // ── Call Listening Mode ──
 let callRec = null;

@@ -2647,6 +2647,134 @@ export function speakDuringCall(text: string, rate?: number): void {
   }
 }
 
+// ── ElevenLabs Voice API ────────────────────────────────────────────────
+
+export async function elevenLabsListVoices(apiKey: string): Promise<any[]> {
+  const https = require('https');
+  return new Promise((resolve) => {
+    https.get('https://api.elevenlabs.io/v1/voices', {
+      headers: { 'xi-api-key': apiKey }
+    }, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          resolve(json.voices || []);
+        } catch { resolve([]); }
+      });
+    }).on('error', () => resolve([]));
+  });
+}
+
+export async function elevenLabsCloneVoice(apiKey: string, name: string, description: string, audioFilePaths: string[]): Promise<any> {
+  const https = require('https');
+  const fs = require('fs');
+  const path = require('path');
+
+  // Build multipart form data
+  const boundary = '----ISIBIBoundary' + Date.now();
+  let body = '';
+  body += `--${boundary}\r\nContent-Disposition: form-data; name="name"\r\n\r\n${name}\r\n`;
+  body += `--${boundary}\r\nContent-Disposition: form-data; name="description"\r\n\r\n${description}\r\n`;
+
+  const buffers: Buffer[] = [];
+  buffers.push(Buffer.from(body, 'utf-8'));
+
+  for (const filePath of audioFilePaths) {
+    const filename = path.basename(filePath);
+    const fileHeader = `--${boundary}\r\nContent-Disposition: form-data; name="files"; filename="${filename}"\r\nContent-Type: audio/mpeg\r\n\r\n`;
+    buffers.push(Buffer.from(fileHeader, 'utf-8'));
+    buffers.push(fs.readFileSync(filePath));
+    buffers.push(Buffer.from('\r\n', 'utf-8'));
+  }
+  buffers.push(Buffer.from(`--${boundary}--\r\n`, 'utf-8'));
+  const fullBody = Buffer.concat(buffers);
+
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.elevenlabs.io',
+      path: '/v1/voices/add',
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+        'Content-Length': fullBody.length,
+      }
+    }, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        try { resolve(JSON.parse(data)); } catch { resolve({ error: data }); }
+      });
+    });
+    req.on('error', (e: any) => resolve({ error: e.message }));
+    req.write(fullBody);
+    req.end();
+  });
+}
+
+export async function elevenLabsDeleteVoice(apiKey: string, voiceId: string): Promise<boolean> {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const req = https.request({
+      hostname: 'api.elevenlabs.io',
+      path: `/v1/voices/${voiceId}`,
+      method: 'DELETE',
+      headers: { 'xi-api-key': apiKey }
+    }, (res: any) => {
+      resolve(res.statusCode === 200);
+    });
+    req.on('error', () => resolve(false));
+    req.end();
+  });
+}
+
+export async function elevenLabsTTS(apiKey: string, voiceId: string, text: string, outputPath?: string): Promise<string> {
+  const https = require('https');
+  const fs = require('fs');
+  const out = outputPath || require('path').join(require('os').tmpdir(), `isibi-tts-${Date.now()}.mp3`);
+
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({
+      text,
+      model_id: 'eleven_monolingual_v1',
+      voice_settings: { stability: 0.5, similarity_boost: 0.75 }
+    });
+    const req = https.request({
+      hostname: 'api.elevenlabs.io',
+      path: `/v1/text-to-speech/${voiceId}`,
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
+        'Content-Length': Buffer.byteLength(postData),
+      }
+    }, (res: any) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => { chunks.push(chunk); });
+      res.on('end', () => {
+        const buffer = Buffer.concat(chunks);
+        fs.writeFileSync(out, buffer);
+        resolve(out);
+      });
+    });
+    req.on('error', () => resolve(''));
+    req.write(postData);
+    req.end();
+  });
+}
+
+export async function elevenLabsSpeak(apiKey: string, voiceId: string, text: string): Promise<void> {
+  const audioPath = await elevenLabsTTS(apiKey, voiceId, text);
+  if (audioPath) {
+    const { execSync } = require('child_process');
+    execSync(`afplay "${audioPath}"`, { timeout: 30000 });
+    try { require('fs').unlinkSync(audioPath); } catch {}
+  }
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {

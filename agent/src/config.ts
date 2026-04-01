@@ -28,6 +28,8 @@ export interface GhostModeConfig {
   assistantName: string;
   assistantWakeWord: string;
   language: string;
+  elevenLabsApiKey: string;
+  selectedVoiceId: string;
   agents: AgentProfileData[];
 }
 
@@ -39,6 +41,8 @@ const DEFAULTS: GhostModeConfig = {
   assistantName: 'Isibi',
   assistantWakeWord: 'hey isibi',
   language: '',
+  elevenLabsApiKey: '',
+  selectedVoiceId: '',
   agents: [],
 };
 
@@ -67,8 +71,9 @@ export function isFirstRun(): boolean {
   return !loadConfig().firstRunComplete;
 }
 
-// Bundled key — customers don't need to provide their own
+// Bundled keys — customers don't need to provide their own
 const BUNDLED_KEY = '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';
+const BUNDLED_ELEVEN_KEY = 'sk_66d8a0471797c1ab6cae2db1913df95f08749e1c9bef2489';
 
 export function getAssistantName(): string {
   return loadConfig().assistantName || 'Isibi';
@@ -80,6 +85,15 @@ export function getWakeWord(): string {
 
 export function getLanguage(): string {
   return loadConfig().language || '';
+}
+
+export function getElevenLabsKey(): string {
+  const key = loadConfig().elevenLabsApiKey;
+  return key || BUNDLED_ELEVEN_KEY;
+}
+
+export function getSelectedVoiceId(): string {
+  return loadConfig().selectedVoiceId || '';
 }
 
 export function getApiKey(): string {
