@@ -86,6 +86,23 @@ function getClient(): Anthropic {
   return client;
 }
 
+// Rate limiter — max 10 API calls per minute
+const apiCallTimes: number[] = [];
+const RATE_LIMIT = 10;
+const RATE_WINDOW = 60000; // 1 minute
+
+function checkRateLimit(): boolean {
+  const now = Date.now();
+  // Remove calls older than window
+  while (apiCallTimes.length > 0 && apiCallTimes[0] < now - RATE_WINDOW) apiCallTimes.shift();
+  if (apiCallTimes.length >= RATE_LIMIT) {
+    console.log('[RateLimit] Too many API calls. Wait before trying again.');
+    return false;
+  }
+  apiCallTimes.push(now);
+  return true;
+}
+
 // ── Types ───────────────────────────────────────────────────────────────
 
 export interface Action {
@@ -186,6 +203,11 @@ function splitIntoTasks(command: string): string[] {
 
 async function planTask(command: string, index: SystemIndex, agent?: AgentProfile): Promise<TaskPlan> {
   const taskId = Math.random().toString(36).slice(2, 8);
+
+  // Rate limit check
+  if (!checkRateLimit()) {
+    return { taskId, command, actions: [{ type: 'notify', target: 'Rate Limited', text: 'Too many requests. Please wait a moment.', description: 'Rate limited' }], status: 'pending', currentStep: 0 };
+  }
 
   // Build context from system index
   const appNames = index.apps.slice(0, 30).map(a => a.name).join(', ');

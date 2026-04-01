@@ -232,6 +232,26 @@ ipcMain.handle('ghost-reindex', async () => {
   return { status: 'done', apps: systemIndex.apps.length };
 });
 
+// ── Chat Persistence IPC ──────────────────────────────────────────────
+
+const chatDir = () => { const d = require('path').join(app.getPath('userData'), 'chats'); if (!require('fs').existsSync(d)) require('fs').mkdirSync(d, { recursive: true }); return d; };
+
+ipcMain.handle('chat-save', (_, agentId: string, messages: any[]) => {
+  try {
+    const fp = require('path').join(chatDir(), agentId + '.json');
+    require('fs').writeFileSync(fp, JSON.stringify(messages.slice(-50))); // Keep last 50
+  } catch {}
+  return true;
+});
+
+ipcMain.handle('chat-load', (_, agentId: string) => {
+  try {
+    const fp = require('path').join(chatDir(), agentId + '.json');
+    if (require('fs').existsSync(fp)) return JSON.parse(require('fs').readFileSync(fp, 'utf-8'));
+  } catch {}
+  return [];
+});
+
 // ── Analytics IPC ─────────────────────────────────────────────────────
 
 ipcMain.handle('get-analytics', () => getAnalytics());
@@ -428,10 +448,16 @@ const APP_HTML = `<!DOCTYPE html>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
   font-family: -apple-system, 'SF Pro Text', system-ui, sans-serif;
-  background: #0f0f1a;
-  color: #e2e8f0;
+  background: var(--bg, #0f0f1a);
+  color: var(--text, #e2e8f0);
   height: 100vh;
   overflow: hidden;
+}
+body.light {
+  --bg: #f5f5f7; --bg2: #ffffff; --bg3: #e8e8ed; --text: #1d1d1f; --text2: rgba(29,29,31,0.6); --border: rgba(0,0,0,0.08);
+}
+body:not(.light) {
+  --bg: #0f0f1a; --bg2: #0a0a14; --bg3: rgba(255,255,255,0.03); --text: #e2e8f0; --text2: rgba(226,232,240,0.5); --border: rgba(255,255,255,0.04);
 }
 
 /* ── Layout Grid ── */
@@ -1256,6 +1282,10 @@ svg { display: block; }
           <option value="sw-KE">Kiswahili</option>
           <option value="ht-HT">Krey\\u00f2l Ayisyen</option>
         </select>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;margin-bottom:8px">
+          <span style="font-size:11px;color:rgba(226,232,240,0.5)">Light theme</span>
+          <button class="cc-switch" id="themeToggle" onclick="toggleTheme()" style="width:32px;height:18px"></button>
+        </div>
         <button class="save-profile-btn" onclick="saveProfile()">Save</button>
       </div>
     </div>
@@ -1470,15 +1500,25 @@ function updatePlaceholder() {
   input.placeholder = a ? 'Message ' + a.name + '...' : 'Message your agent...';
 }
 
-function switchAgent(newId) {
-  // Save current chat
+async function switchAgent(newId) {
+  // Save current chat to disk
   if (selectedAgentId) {
     chatHistoryByAgent[selectedAgentId] = [...chatMessages];
+    ipcRenderer.invoke('chat-save', selectedAgentId, chatMessages);
   }
   selectedAgentId = newId;
-  // Restore or start fresh
-  chatMessages = chatHistoryByAgent[newId] ? [...chatHistoryByAgent[newId]] : [];
   renderAgentList();
+  // Show loading briefly
+  chatMessages = [{ type: 'system', content: 'Loading...' }];
+  renderChat();
+  // Load from memory or disk
+  if (chatHistoryByAgent[newId] && chatHistoryByAgent[newId].length > 0) {
+    chatMessages = [...chatHistoryByAgent[newId]];
+  } else {
+    const loaded = await ipcRenderer.invoke('chat-load', newId);
+    chatMessages = loaded.length > 0 ? loaded : [];
+    chatHistoryByAgent[newId] = [...chatMessages];
+  }
   renderChat();
   updatePlaceholder();
 }
@@ -1532,7 +1572,7 @@ function renderChat() {
         '<div class="content">' + escHtml(m.content) + '</div>' +
         taskHtml + '</div></div>';
     } else if (m.type === 'system') {
-      html += '<div class="msg msg-system">' + escHtml(m.content) + '</div>';
+      html += '<div class="msg msg-system">' + m.content + '</div>'; // System msgs can contain HTML (undo link)
     }
   });
 
@@ -1541,6 +1581,8 @@ function renderChat() {
   existing.forEach(e => e.remove());
   chatArea.insertAdjacentHTML('beforeend', html);
   chatArea.scrollTop = chatArea.scrollHeight;
+  // Auto-save chat to disk
+  if (selectedAgentId) ipcRenderer.invoke('chat-save', selectedAgentId, chatMessages);
 }
 
 function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1565,8 +1607,10 @@ async function send() {
     return;
   }
 
-  agentMsg.content = 'Working on it...';
-  agentMsg.tasks = r.tasks.map(t => ({ ...t, progress: t.steps + ' steps' }));
+  const totalSteps = r.tasks.reduce((sum, t) => sum + t.steps, 0);
+  const estSeconds = totalSteps * 3; // ~3 sec per step average
+  agentMsg.content = 'Working on it... (' + totalSteps + ' steps, ~' + estSeconds + 's)';
+  agentMsg.tasks = r.tasks.map(t => ({ ...t, progress: t.steps + ' steps, ~' + (t.steps * 3) + 's' }));
   renderChat();
   poll();
 }
@@ -1587,6 +1631,8 @@ async function poll() {
     if (lastAgent) {
       lastAgent.content = 'Done!';
       if (lastAgent.tasks) lastAgent.tasks.forEach(t => t.status = 'done');
+      // Add undo option
+      chatMessages.push({ type: 'system', content: '\\u2713 Task complete \\u2022 <span style="color:#f9a8d4;cursor:pointer;text-decoration:underline" onclick="undoLast()">Undo</span>' });
       renderChat();
     }
   }
@@ -1705,6 +1751,23 @@ input.onkeydown = e => {
   if (e.key === 'Escape') { if (listening) stopMic(); closeModal(); }
 };
 sendBtn.onclick = () => send();
+
+let lightTheme = localStorage.getItem('theme') === 'light';
+function toggleTheme() {
+  lightTheme = !lightTheme;
+  document.body.classList.toggle('light', lightTheme);
+  localStorage.setItem('theme', lightTheme ? 'light' : 'dark');
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.classList.toggle('on', lightTheme);
+}
+// Apply saved theme on load
+if (lightTheme) document.body.classList.add('light');
+
+function undoLast() {
+  ipcRenderer.invoke('ghost-command', 'undo last action', selectedAgentId);
+  chatMessages.push({ type: 'system', content: 'Undoing last action (Cmd+Z)...' });
+  renderChat();
+}
 
 function trySuggestion(text) {
   input.value = text;
