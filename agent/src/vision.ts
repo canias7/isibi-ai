@@ -7,7 +7,6 @@
  * - Current state (which app is focused, what page is showing)
  */
 
-import { desktopCapturer, screen, systemPreferences } from 'electron';
 import Anthropic from '@anthropic-ai/sdk';
 import { execSync } from 'child_process';
 import * as fs from 'fs';
@@ -46,30 +45,41 @@ export interface ScreenAnalysis {
 // ── Screenshot Capture ──────────────────────────────────────────────────
 
 export async function captureScreen(): Promise<Buffer> {
-  // Use macOS screencapture CLI — doesn't trigger the Electron screen recording popup
   if (process.platform === 'darwin') {
-    const tmpFile = path.join(os.tmpdir(), `isibi-screenshot-${Date.now()}.png`);
-    execSync(`screencapture -x -C ${tmpFile}`, { timeout: 5000 });
+    // Use screencapture CLI with JPEG compression — no Electron popup, stays under 5MB
+    const tmpFile = path.join(os.tmpdir(), `isibi-screenshot-${Date.now()}.jpg`);
+    // -t jpg = JPEG format, -x = no sound, -C = capture cursor
+    // Then use sips to resize to max 1920px wide (keeps it under 5MB)
+    execSync(`screencapture -x -C -t jpg ${tmpFile}`, { timeout: 5000 });
+    // Resize to max 1920px wide to keep under API limit
+    try {
+      execSync(`sips --resampleWidth 1920 ${tmpFile} --setProperty formatOptions 60`, { timeout: 5000 });
+    } catch { /* sips may fail, that's ok */ }
     const buffer = fs.readFileSync(tmpFile);
     try { fs.unlinkSync(tmpFile); } catch {}
     return buffer;
   }
 
-  // Windows/Linux fallback: use Electron desktopCapturer
-  const sources = await desktopCapturer.getSources({
+  // Windows/Linux: dynamic import to avoid triggering macOS popup
+  const electron = require('electron');
+  const sources = await electron.desktopCapturer.getSources({
     types: ['screen'],
     thumbnailSize: {
-      width: screen.getPrimaryDisplay().workAreaSize.width,
-      height: screen.getPrimaryDisplay().workAreaSize.height,
+      width: electron.screen.getPrimaryDisplay().workAreaSize.width,
+      height: electron.screen.getPrimaryDisplay().workAreaSize.height,
     },
   });
   if (sources.length === 0) throw new Error('No screen source available');
-  return sources[0].thumbnail.toPNG();
+  return sources[0].thumbnail.toJPEG(60); // JPEG at 60% quality to stay under 5MB
 }
 
 export async function captureScreenBase64(): Promise<string> {
   const buffer = await captureScreen();
   return buffer.toString('base64');
+}
+
+function getImageMediaType(): 'image/jpeg' | 'image/png' {
+  return process.platform === 'darwin' ? 'image/jpeg' : 'image/jpeg';
 }
 
 // ── Screen Analysis with Claude Vision ──────────────────────────────────
@@ -88,7 +98,7 @@ export async function analyzeScreen(query: string): Promise<ScreenAnalysis> {
           type: 'image',
           source: {
             type: 'base64',
-            media_type: 'image/png',
+            media_type: 'image/jpeg',
             data: screenshot,
           },
         },
@@ -145,7 +155,7 @@ export async function findElement(description: string): Promise<{ x: number; y: 
           type: 'image',
           source: {
             type: 'base64',
-            media_type: 'image/png',
+            media_type: 'image/jpeg',
             data: screenshot,
           },
         },
