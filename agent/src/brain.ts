@@ -16,6 +16,8 @@ import * as vision from './vision';
 
 import { getApiKey } from './config';
 import { AgentProfile } from './agents';
+import * as path from 'path';
+import * as os from 'os';
 
 const MODEL = 'claude-sonnet-4-20250514';
 
@@ -293,6 +295,34 @@ CURRENCY:
 SCREENSHOT:
 - screenshot_area: {"type":"screenshot_area"} — interactive area selection screenshot, saves to Desktop
 
+SOCIAL MEDIA:
+- post_tweet: {"type":"post_tweet","text":"Just shipped a new feature!"} — opens Twitter/X compose
+- check_notifications: {"type":"check_notifications"} — read macOS notification center
+
+PRODUCTIVITY:
+- translate_text: {"type":"translate_text","text":"Hello world","target":"es"} — translate to any language (es, fr, de, ja, etc.)
+- create_spreadsheet: {"type":"create_spreadsheet","target":"/Users/X/Desktop/data.csv","text":"Name,Email,Phone"} — create CSV
+- add_to_spreadsheet: {"type":"add_to_spreadsheet","target":"/Users/X/Desktop/data.csv","text":"John,john@email.com,555-1234"} — add row
+
+DEVELOPER:
+- git_command: {"type":"git_command","text":"status","target":"/path/to/repo"} — run any git command
+- run_python: {"type":"run_python","text":"print(2+2)"} — execute Python code
+- run_node: {"type":"run_node","text":"console.log(2+2)"} — execute Node.js code
+- open_vscode: {"type":"open_vscode","target":"/path/to/project"} — open in VS Code
+
+SMART HOME:
+- control_homekit: {"type":"control_homekit","target":"Living Room Light","text":"toggle"} — control HomeKit devices
+- play_airplay: {"type":"play_airplay","target":"Living Room Speaker"} — AirPlay audio
+
+AI-POWERED:
+- analyze_image: {"type":"analyze_image","target":"/path/to/image.jpg","text":"What's in this image?"} — Claude Vision analysis
+- generate_text: {"type":"generate_text","text":"Write a haiku about coding"} — ask Claude to generate text
+- summarize_page: {"type":"summarize_page","target":"https://example.com"} — fetch and summarize a webpage
+
+ZOOM:
+- create_zoom: {"type":"create_zoom"} — start a new Zoom meeting
+- join_zoom: {"type":"join_zoom","target":"123456789"} — join a Zoom meeting by ID
+
 === CORE RULES ===
 1. Websites → open_url (never open_app with browser name)
 2. After every open_url → add wait 1500ms
@@ -359,6 +389,19 @@ Files: downloads→file:///Users/${sysInfo.username || ''}/Downloads, documents�
 - "find X near me" → use find_nearby
 - "convert X USD to EUR" → use convert_currency
 - "screenshot an area" → use screenshot_area
+- "tweet X" / "post on twitter" → use post_tweet
+- "translate X to Spanish" → use translate_text with target "es"
+- "create a spreadsheet" → use create_spreadsheet
+- "run git status" → use git_command
+- "run python code" → use run_python
+- "open in VS Code" → use open_vscode
+- "analyze this image" → use analyze_image
+- "write me X" / "generate X" → use generate_text
+- "summarize this website" → use summarize_page
+- "start a Zoom call" → use create_zoom
+- "join Zoom X" → use join_zoom
+- "check my notifications" → use check_notifications
+- "turn on the lights" → use control_homekit
 - After completing a task, use speak or notify to confirm to the user`,
     messages: [{
       role: 'user',
@@ -1071,6 +1114,132 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     case 'screenshot_area': {
       controller.screenshotArea(action.target);
       controller.showNotification('Screenshot', 'Area captured');
+      break;
+    }
+
+    // ── Social Media ──
+    case 'post_tweet': {
+      controller.postTweet(action.text || '');
+      break;
+    }
+
+    case 'check_notifications': {
+      const notifs = controller.checkNotifications();
+      addToHistory('system', 'Notifications: ' + notifs.join(' | '));
+      break;
+    }
+
+    // ── Productivity ──
+    case 'translate_text': {
+      const translated = await controller.translateText(action.text || '', action.target || 'en');
+      addToHistory('system', 'Translation: ' + translated);
+      controller.showNotification('Translation', translated);
+      break;
+    }
+
+    case 'create_spreadsheet': {
+      const headers = (action.text || 'Column1,Column2').split(',').map((h: string) => h.trim());
+      controller.createSpreadsheet(action.target || path.join(os.homedir(), 'Desktop', `sheet-${Date.now()}.csv`), headers);
+      controller.showNotification('Spreadsheet created', action.target || '');
+      break;
+    }
+
+    case 'add_to_spreadsheet': {
+      const row = (action.text || '').split(',').map((c: string) => c.trim());
+      controller.addToSpreadsheet(action.target || '', row);
+      break;
+    }
+
+    // ── Developer ──
+    case 'git_command': {
+      const gitOut = controller.gitCommand(action.text || 'status', action.target);
+      addToHistory('system', 'Git: ' + gitOut.slice(0, 2000));
+      break;
+    }
+
+    case 'run_python': {
+      const pyOut = controller.runPython(action.text || '');
+      addToHistory('system', 'Python: ' + pyOut.slice(0, 2000));
+      break;
+    }
+
+    case 'run_node': {
+      const nodeOut = controller.runNode(action.text || '');
+      addToHistory('system', 'Node: ' + nodeOut.slice(0, 2000));
+      break;
+    }
+
+    case 'open_vscode': {
+      controller.openInVSCode(action.target || '.');
+      break;
+    }
+
+    // ── Smart Home ──
+    case 'control_homekit': {
+      controller.controlHomeKit(action.target || '', action.text || 'toggle');
+      break;
+    }
+
+    case 'play_airplay': {
+      controller.playAirPlay(action.target || '');
+      break;
+    }
+
+    // ── AI-Powered ──
+    case 'analyze_image': {
+      const imgBuffer = controller.analyzeImageFile(action.target || '');
+      if (imgBuffer) {
+        const imgBase64 = imgBuffer.toString('base64');
+        const api = (await import('./config')).getApiKey();
+        const client = new (await import('@anthropic-ai/sdk')).default({ apiKey: api });
+        const ext = (action.target || '').toLowerCase();
+        const mediaType = ext.endsWith('.png') ? 'image/png' : 'image/jpeg';
+        const resp = await client.messages.create({
+          model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType as any, data: imgBase64 } },
+            { type: 'text', text: action.text || 'Describe this image in detail.' }
+          ]}]
+        });
+        const desc = resp.content[0].type === 'text' ? resp.content[0].text : '';
+        addToHistory('system', 'Image analysis: ' + desc);
+      }
+      break;
+    }
+
+    case 'generate_text': {
+      const api2 = (await import('./config')).getApiKey();
+      const client2 = new (await import('@anthropic-ai/sdk')).default({ apiKey: api2 });
+      const resp2 = await client2.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 2048,
+        messages: [{ role: 'user', content: action.text || 'Hello' }]
+      });
+      const generated = resp2.content[0].type === 'text' ? resp2.content[0].text : '';
+      addToHistory('system', 'Generated: ' + generated);
+      break;
+    }
+
+    case 'summarize_page': {
+      const pageText = await controller.fetchWebpage(action.target || '');
+      const api3 = (await import('./config')).getApiKey();
+      const client3 = new (await import('@anthropic-ai/sdk')).default({ apiKey: api3 });
+      const resp3 = await client3.messages.create({
+        model: 'claude-sonnet-4-20250514', max_tokens: 1024,
+        messages: [{ role: 'user', content: `Summarize this webpage content in 3-5 bullet points:\n\n${pageText}` }]
+      });
+      const summary = resp3.content[0].type === 'text' ? resp3.content[0].text : '';
+      addToHistory('system', 'Page summary: ' + summary);
+      break;
+    }
+
+    // ── Communication ──
+    case 'create_zoom': {
+      controller.createZoomMeeting();
+      break;
+    }
+
+    case 'join_zoom': {
+      controller.joinZoomMeeting(action.target || '');
       break;
     }
 

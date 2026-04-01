@@ -875,6 +875,186 @@ export function screenshotArea(outputPath?: string): void {
   }
 }
 
+// ── Social Media ────────────────────────────────────────────────────────
+
+export function postTweet(text: string): void {
+  const { execSync } = require('child_process');
+  // Open Twitter/X compose with pre-filled text
+  const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+  execSync(`open "${url}"`, { timeout: 5000 });
+}
+
+export function checkNotifications(): string[] {
+  const { execSync } = require('child_process');
+  const notifications: string[] = [];
+  if (process.platform === 'darwin') {
+    try {
+      // Read from notification center database
+      const db = require('path').join(require('os').homedir(), 'Library/Group Containers/group.com.apple.usernoted/db2/db');
+      const output = execSync(`sqlite3 "${db}" "SELECT json_extract(data, '$.req.titl'), json_extract(data, '$.req.body') FROM record ORDER BY delivered_date DESC LIMIT 10" 2>/dev/null`, { encoding: 'utf-8', timeout: 5000 });
+      output.split('\n').filter((l: string) => l.trim()).forEach((l: string) => notifications.push(l.trim()));
+    } catch {
+      // Fallback: check via AppleScript
+      try {
+        const output = execSync(`osascript -e 'tell application "System Events" to get every notification'`, { encoding: 'utf-8', timeout: 5000 });
+        if (output.trim()) notifications.push(output.trim());
+      } catch {}
+    }
+  }
+  return notifications.length > 0 ? notifications : ['No recent notifications'];
+}
+
+// ── Productivity ────────────────────────────────────────────────────────
+
+export async function translateText(text: string, targetLang: string): Promise<string> {
+  try {
+    const https = require('https');
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=autodetect|${encodeURIComponent(targetLang)}`;
+    return new Promise((resolve) => {
+      https.get(url, (res: any) => {
+        let data = '';
+        res.on('data', (chunk: string) => { data += chunk; });
+        res.on('end', () => {
+          try {
+            const json = JSON.parse(data);
+            resolve(json?.responseData?.translatedText || 'Translation failed');
+          } catch { resolve('Translation failed'); }
+        });
+      }).on('error', () => resolve('Translation failed'));
+    });
+  } catch { return 'Translation failed'; }
+}
+
+export function createSpreadsheet(filePath: string, headers: string[], rows?: string[][]): void {
+  const fs = require('fs');
+  const path = require('path');
+  const dir = path.dirname(filePath);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  let csv = headers.join(',') + '\n';
+  if (rows) {
+    rows.forEach((row: string[]) => {
+      csv += row.map((cell: string) => `"${cell.replace(/"/g, '""')}"`).join(',') + '\n';
+    });
+  }
+  fs.writeFileSync(filePath, csv, 'utf-8');
+}
+
+export function addToSpreadsheet(filePath: string, row: string[]): void {
+  const fs = require('fs');
+  if (!fs.existsSync(filePath)) return;
+  const csvRow = row.map((cell: string) => `"${cell.replace(/"/g, '""')}"`).join(',') + '\n';
+  fs.appendFileSync(filePath, csvRow, 'utf-8');
+}
+
+// ── Developer Tools ─────────────────────────────────────────────────────
+
+export function gitCommand(command: string, repoPath?: string): string {
+  const { execSync } = require('child_process');
+  try {
+    const cwd = repoPath || process.cwd();
+    return execSync(`git ${command}`, { encoding: 'utf-8', cwd, timeout: 15000 });
+  } catch (e: any) { return e.stderr || e.message || 'Git command failed'; }
+}
+
+export function runPython(code: string): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`python3 -c ${JSON.stringify(code)}`, { encoding: 'utf-8', timeout: 30000 });
+  } catch (e: any) { return e.stderr || e.message || 'Python execution failed'; }
+}
+
+export function runNode(code: string): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`node -e ${JSON.stringify(code)}`, { encoding: 'utf-8', timeout: 30000 });
+  } catch (e: any) { return e.stderr || e.message || 'Node execution failed'; }
+}
+
+export function openInVSCode(filePath: string): void {
+  const { execSync } = require('child_process');
+  try {
+    execSync(`code "${filePath}"`, { timeout: 5000 });
+  } catch {
+    // VS Code CLI not in PATH — try direct
+    try {
+      execSync(`open -a "Visual Studio Code" "${filePath}"`, { timeout: 5000 });
+    } catch {}
+  }
+}
+
+// ── Smart Home ──────────────────────────────────────────────────────────
+
+export function controlHomeKit(device: string, action: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    // Use Shortcuts to control HomeKit (most reliable way)
+    try {
+      execSync(`shortcuts run "ISIBI HomeKit" -i '{"device":"${device}","action":"${action}"}'`, { timeout: 10000 });
+    } catch {
+      // Fallback: open Home app
+      execSync(`open -a "Home"`, { timeout: 5000 });
+    }
+  }
+}
+
+export function playAirPlay(deviceName: string): void {
+  const { execSync } = require('child_process');
+  if (process.platform === 'darwin') {
+    // Switch audio output via AppleScript
+    try {
+      execSync(`osascript -e 'tell application "System Events"
+  tell process "ControlCenter"
+    click menu bar item "Sound" of menu bar 1
+  end tell
+end tell'`, { timeout: 5000 });
+    } catch {}
+  }
+}
+
+// ── AI-Powered Actions ──────────────────────────────────────────────────
+
+export function analyzeImageFile(imagePath: string): Buffer | null {
+  const fs = require('fs');
+  try {
+    return fs.readFileSync(imagePath);
+  } catch { return null; }
+}
+
+export async function fetchWebpage(url: string): Promise<string> {
+  const https = require('https');
+  const http = require('http');
+  const lib = url.startsWith('https') ? https : http;
+  return new Promise((resolve) => {
+    lib.get(url, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        // Strip HTML tags for plain text
+        const text = data.replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 5000);
+        resolve(text);
+      });
+    }).on('error', () => resolve('Failed to fetch page'));
+  });
+}
+
+// ── Communication ───────────────────────────────────────────────────────
+
+export function createZoomMeeting(): void {
+  const { execSync } = require('child_process');
+  // Open Zoom new meeting
+  execSync(`open "zoommtg://zoom.us/start?confno=new"`, { timeout: 5000 });
+}
+
+export function joinZoomMeeting(meetingId: string): void {
+  const { execSync } = require('child_process');
+  execSync(`open "zoommtg://zoom.us/join?confno=${meetingId}"`, { timeout: 5000 });
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
