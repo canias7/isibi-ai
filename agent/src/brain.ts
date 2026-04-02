@@ -269,6 +269,8 @@ ${agent!.instructions}
 
 Use the information in your custom instructions to answer questions and complete tasks. Only use ask_user if the user's command is genuinely ambiguous AND your instructions don't cover it. If your instructions tell you what to do, just do it without asking.
 
+IMPORTANT: If your instructions mention a specific app (like Neo, Outlook, Spark, etc.), use open_app to open that app and control it with find_and_click/type/press_key. Do NOT use generic actions like send_email — instead, open the app and interact with its UI directly.
+
 `
     : '';
 
@@ -1471,21 +1473,10 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
       // Open Gmail compose URL, wait for it to load, then click Send
       const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
       await controller.openUrl(gmailUrl);
-      await controller.sleep(3000); // Wait for Gmail to load
-      // Click the Send button
-      try {
-        const sendPos = await vision.findElement('Send button in Gmail compose');
-        if (sendPos) {
-          await controller.click(sendPos.x, sendPos.y);
-          await controller.sleep(1000);
-        } else {
-          // Fallback: use keyboard shortcut Cmd+Enter to send
-          await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
-        }
-      } catch {
-        // Last resort: keyboard shortcut
-        await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
-      }
+      await controller.sleep(4000); // Wait for Gmail to fully load
+      // Use Cmd+Enter to send (Gmail keyboard shortcut — most reliable)
+      await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
+      await controller.sleep(1000);
       controller.showNotification('Email sent', `To: ${emailTo}`);
       break;
     }
