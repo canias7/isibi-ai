@@ -1917,6 +1917,10 @@ svg { display: block; }
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
         My Voices
       </button>
+      <button class="sidebar-tab" id="tabTemplates" onclick="switchView('templates')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Templates
+      </button>
       <button class="sidebar-tab" id="tabScheduled" onclick="switchView('scheduled')">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Scheduled
@@ -2120,6 +2124,49 @@ svg { display: block; }
             <div>Vision (screenshot analysis)</div><div style="text-align:right;color:#f9a8d4">3 credits</div>
             <div>AI text generation</div><div style="text-align:right;color:#f9a8d4">5 credits</div>
             <div>Voice clone</div><div style="text-align:right;color:#f9a8d4">10 credits</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Templates View -->
+    <div class="view" id="templatesView">
+      <div class="control-center">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div class="cc-header">Email Templates</div>
+          <button class="btn btn-primary" onclick="openTemplateModal()" style="font-size:12px;padding:8px 16px;display:flex;align-items:center;gap:6px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Template
+          </button>
+        </div>
+        <div class="cc-sub" style="margin-bottom:16px">Save email templates and send them with one click.</div>
+        <div id="templateList" style="display:flex;flex-direction:column;gap:10px">
+          <div style="color:rgba(226,232,240,0.5);font-size:13px;text-align:center;padding:40px 0">No templates yet. Click "+ New Template" to create one.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template Modal -->
+    <div class="modal-bg" id="templateModalBg">
+      <div class="modal" style="width:520px">
+        <h2 id="templateModalTitle" style="background:linear-gradient(135deg,#ec4899,#8b5cf6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">New Template</h2>
+        <div class="field">
+          <label>Template Name</label>
+          <input id="tplNameInput" placeholder="e.g. Approval Email, Follow-up, Payment Reminder">
+        </div>
+        <div class="field">
+          <label>Subject Line</label>
+          <input id="tplSubjectInput" placeholder="e.g. You've Been Approved! 🎉">
+        </div>
+        <div class="field">
+          <label>Email Body <span style="font-size:9px;color:rgba(226,232,240,0.3)">(use X or {name} as placeholder for recipient name)</span></label>
+          <textarea id="tplBodyInput" placeholder="Type your email template here..." style="height:200px"></textarea>
+        </div>
+        <div class="modal-btns">
+          <div><button class="btn btn-danger" id="tplDeleteBtn" style="display:none" onclick="deleteCurrentTemplate()">Delete</button></div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost" onclick="closeTemplateModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveCurrentTemplate()">Save Template</button>
           </div>
         </div>
       </div>
@@ -2810,12 +2857,14 @@ function switchView(view) {
   document.getElementById('ccView').classList.toggle('active', view === 'cc');
   document.getElementById('voicesView').classList.toggle('active', view === 'voices');
   document.getElementById('usageView').classList.toggle('active', view === 'usage');
+  document.getElementById('templatesView').classList.toggle('active', view === 'templates');
   document.getElementById('scheduledView').classList.toggle('active', view === 'scheduled');
   document.getElementById('historyView').classList.toggle('active', view === 'history');
   document.getElementById('tabChat').classList.toggle('active', view === 'chat');
   document.getElementById('tabCC').classList.toggle('active', view === 'cc');
   document.getElementById('tabVoices').classList.toggle('active', view === 'voices');
   document.getElementById('tabUsage').classList.toggle('active', view === 'usage');
+  document.getElementById('tabTemplates').classList.toggle('active', view === 'templates');
   document.getElementById('tabScheduled').classList.toggle('active', view === 'scheduled');
   document.getElementById('tabHistory').classList.toggle('active', view === 'history');
 
@@ -2827,6 +2876,9 @@ function switchView(view) {
   }
   if (view === 'voices') {
     loadVoices();
+  }
+  if (view === 'templates') {
+    loadTemplatesList();
   }
   if (view === 'usage') {
     loadUsage();
@@ -3107,6 +3159,89 @@ async function loadUsage() {
       '</div>';
     container.appendChild(el);
   });
+}
+
+// ── Templates View ──
+let editingTemplateId = null;
+
+async function loadTemplatesList() {
+  const templates = await ipcRenderer.invoke('templates-list');
+  const container = document.getElementById('templateList');
+  if (!container) return;
+  if (templates.length === 0) {
+    container.innerHTML = '<div style="color:rgba(226,232,240,0.5);font-size:13px;text-align:center;padding:40px 0">No templates yet. Click "+ New Template" to create one.</div>';
+    return;
+  }
+  container.innerHTML = '';
+  templates.forEach(t => {
+    const el = document.createElement('div');
+    el.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px 18px;cursor:pointer;transition:.2s';
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+        '<div style="font-size:14px;font-weight:600;color:#e2e8f0">' + escHtml(t.name) + '</div>' +
+        '<div style="display:flex;gap:4px">' +
+          '<button class="ctrl-btn" data-tid="' + t.id + '" data-taction="edit" title="Edit" style="font-size:11px">&#9998;</button>' +
+          '<button class="ctrl-btn del" data-tid="' + t.id + '" data-taction="delete" title="Delete" style="font-size:10px">&#10005;</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:12px;color:#f9a8d4;margin-bottom:4px">' + escHtml(t.subject) + '</div>' +
+      '<div style="font-size:11px;color:rgba(226,232,240,0.4);max-height:40px;overflow:hidden">' + escHtml(t.body.slice(0, 150)) + '...</div>';
+
+    el.querySelectorAll('[data-taction]').forEach(btn => {
+      btn.onclick = async (e) => {
+        e.stopPropagation();
+        if (btn.dataset.taction === 'edit') {
+          openTemplateModalEdit(t);
+        } else if (btn.dataset.taction === 'delete') {
+          await ipcRenderer.invoke('templates-delete', btn.dataset.tid);
+          loadTemplatesList();
+        }
+      };
+    });
+
+    container.appendChild(el);
+  });
+}
+
+function openTemplateModal() {
+  editingTemplateId = null;
+  document.getElementById('templateModalTitle').textContent = 'New Template';
+  document.getElementById('tplNameInput').value = '';
+  document.getElementById('tplSubjectInput').value = '';
+  document.getElementById('tplBodyInput').value = '';
+  document.getElementById('tplDeleteBtn').style.display = 'none';
+  document.getElementById('templateModalBg').classList.add('visible');
+}
+
+function openTemplateModalEdit(t) {
+  editingTemplateId = t.id;
+  document.getElementById('templateModalTitle').textContent = 'Edit Template';
+  document.getElementById('tplNameInput').value = t.name;
+  document.getElementById('tplSubjectInput').value = t.subject;
+  document.getElementById('tplBodyInput').value = t.body;
+  document.getElementById('tplDeleteBtn').style.display = 'inline-block';
+  document.getElementById('templateModalBg').classList.add('visible');
+}
+
+function closeTemplateModal() {
+  document.getElementById('templateModalBg').classList.remove('visible');
+}
+
+async function saveCurrentTemplate() {
+  const name = document.getElementById('tplNameInput').value.trim();
+  const subject = document.getElementById('tplSubjectInput').value.trim();
+  const body = document.getElementById('tplBodyInput').value.trim();
+  if (!name || !subject || !body) return;
+  await ipcRenderer.invoke('templates-save', { id: editingTemplateId, name, subject, body });
+  closeTemplateModal();
+  loadTemplatesList();
+}
+
+async function deleteCurrentTemplate() {
+  if (!editingTemplateId) return;
+  await ipcRenderer.invoke('templates-delete', editingTemplateId);
+  closeTemplateModal();
+  loadTemplatesList();
 }
 
 // ── Scheduled Tasks View ──
@@ -3424,6 +3559,10 @@ window.cloneVoice = cloneVoice;
 window.buyCredits = buyCredits;
 window.clearHistory = clearHistory;
 window.deleteCurrentAgent = deleteCurrentAgent;
+window.openTemplateModal = openTemplateModal;
+window.closeTemplateModal = closeTemplateModal;
+window.saveCurrentTemplate = saveCurrentTemplate;
+window.deleteCurrentTemplate = deleteCurrentTemplate;
 window.openEditAgent = openEditAgent;
 window.renderPickers = renderPickers;
 window.loadCreditPlans = loadCreditPlans;
