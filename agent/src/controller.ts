@@ -739,13 +739,18 @@ export async function getStockPrice(symbol: string): Promise<string> {
 export function sendEmail(to: string, subject: string, body: string): void {
   const { execSync } = require('child_process');
   if (process.platform === 'darwin') {
+    // Activate Mail first so it's ready
+    try { execSync(`osascript -e 'tell application "Mail" to activate'`, { timeout: 10000 }); } catch {}
+    // Wait for Mail to be ready
+    execSync(`sleep 2`);
+    // Compose and send
     execSync(`osascript -e 'tell application "Mail"
-  set newMsg to make new outgoing message with properties {subject:"${subject.replace(/"/g, '\\"')}", content:"${body.replace(/"/g, '\\"')}"}
+  set newMsg to make new outgoing message with properties {subject:"${subject.replace(/"/g, '\\"')}", content:"${body.replace(/"/g, '\\"')}", visible:false}
   tell newMsg
     make new to recipient with properties {address:"${to.replace(/"/g, '\\"')}"}
   end tell
   send newMsg
-end tell'`, { timeout: 15000 });
+end tell'`, { timeout: 30000 });
   }
 }
 
