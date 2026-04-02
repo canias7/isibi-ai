@@ -505,7 +505,7 @@ TEXT PROCESSING:
 3. Web searches → use URL params: open_url "https://site.com/search?q=TERM"
 4. find_and_click → LAST RESORT ONLY. It takes a screenshot which triggers a permission popup. ALWAYS prefer: open_url, press_key, type, open_app over find_and_click. Only use find_and_click when there is absolutely no keyboard shortcut or URL alternative.
 5. Complete the FULL intent — "open X video" means search AND click the result
-6. EMAILS → If your agent instructions mention a specific email app (Neo, Outlook, Spark, etc.), open that app and compose the email using find_and_click and type. Do NOT use send_email. Only use send_email if no specific app is mentioned.
+6. EMAILS → ALWAYS use the send_email action: [{"type":"send_email","target":"email@address","key":"Subject","text":"Body text","description":"Sending email via Apple Mail"}]. This sends via Apple Mail AppleScript — one action, instant, no browser. NEVER plan 10 keyboard steps for email — just use send_email.
 7. MESSAGES/SMS → use send_imessage: {"type":"send_imessage","target":"name or phone","text":"message"}. Auto-lookup contacts by name.
 8. ALWAYS return at least 1 action. NEVER return an empty array [].
 9. Only use ask_user when GENUINELY missing info that you cannot infer from the command or the agent's custom instructions. If you can figure it out, just do it.
