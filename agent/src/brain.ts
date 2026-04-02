@@ -1469,19 +1469,23 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
       const subject = action.key || 'No subject';
       const emailTo = action.target || '';
       const emailBody = action.text || '';
-      // Try Apple Mail first (macOS), fallback to Gmail compose URL (cross-platform)
-      if (process.platform === 'darwin') {
-        try {
-          controller.sendEmail(emailTo, subject, emailBody);
-        } catch {
-          // Fallback to Gmail compose URL
-          const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-          await controller.openUrl(gmailUrl);
+      // Open Gmail compose URL, wait for it to load, then click Send
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+      await controller.openUrl(gmailUrl);
+      await controller.sleep(3000); // Wait for Gmail to load
+      // Click the Send button
+      try {
+        const sendPos = await vision.findElement('Send button in Gmail compose');
+        if (sendPos) {
+          await controller.click(sendPos.x, sendPos.y);
+          await controller.sleep(1000);
+        } else {
+          // Fallback: use keyboard shortcut Cmd+Enter to send
+          await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
         }
-      } else {
-        // Windows/Linux — use Gmail compose URL
-        const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-        await controller.openUrl(gmailUrl);
+      } catch {
+        // Last resort: keyboard shortcut
+        await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
       }
       controller.showNotification('Email sent', `To: ${emailTo}`);
       break;
