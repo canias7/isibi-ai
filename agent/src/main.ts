@@ -718,7 +718,6 @@ input::placeholder{color:rgba(226,232,240,0.3)}
     <button class="btn" onclick="doSignup()">Create Account</button>
   </div>
   <div class="err" id="errMsg"></div>
-  <div class="skip" onclick="skipLogin()">Continue without account</div>
 </div>
 <script>
 const{ipcRenderer}=require('electron');
@@ -749,7 +748,13 @@ async function doSignup(){
   if(r.token){ipcRenderer.invoke('login-success')}
   else{document.getElementById('errMsg').textContent=r.detail||'Signup failed';document.querySelectorAll('.btn')[1].textContent='Create Account'}
 }
-function skipLogin(){ipcRenderer.invoke('login-success')}
+// Auto-fill email for returning users
+ipcRenderer.invoke('ghost-get-user').then(user => {
+  if (user && user.email) {
+    document.getElementById('loginEmail').value = user.email;
+    document.getElementById('loginPassword').focus();
+  }
+});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'){
   if(document.getElementById('loginForm').style.display!=='none')doLogin();
   else doSignup();
@@ -778,12 +783,8 @@ app.whenReady().then(async () => {
     }
   };
 
-  // Show login if not logged in
-  if (!loadConfig().userLoggedIn) {
-    createLoginWindow(startApp);
-  } else {
-    startApp();
-  }
+  // Always show login screen on app launch (separate from isibi.ai)
+  createLoginWindow(startApp);
 });
 
 app.on('window-all-closed', () => {
