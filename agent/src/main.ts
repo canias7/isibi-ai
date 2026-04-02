@@ -863,10 +863,8 @@ async function doSignup(){
   if(pw.length<6){document.getElementById('errMsg').textContent='Password must be at least 6 characters';return}
   document.querySelector('#signupForm .btn').textContent='Creating account...';
   const r=await ipcRenderer.invoke('ghost-signup',email,name,pw);
-  if(r.email){
-    verifyEmail=email;
-    switchTab('verify');
-    document.getElementById('errMsg').textContent='';
+  if(r.token){
+    ipcRenderer.invoke('login-success');
   } else {
     document.getElementById('errMsg').textContent=r.detail||'Signup failed';
     document.querySelector('#signupForm .btn').textContent='Create Account';

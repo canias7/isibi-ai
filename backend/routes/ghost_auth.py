@@ -159,39 +159,26 @@ def verify_ghost_token(token: str) -> dict:
 
 router = APIRouter(prefix="/ghost", tags=["Ghost Mode Auth"])
 
-@router.post("/signup")
+@router.post("/signup", response_model=GhostTokenResponse)
 async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_db)):
     # Check if email exists
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     existing = result.scalar_one_or_none()
-    if existing and existing.email_verified:
+    if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Generate verification code
-    code = generate_code()
-    expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+    # Create user — auto-verified for now (no email verification required)
     hashed = bcrypt.hashpw(body.password.encode(), bcrypt.gensalt()).decode()
-
-    if existing and not existing.email_verified:
-        # Update existing unverified account
-        existing.name = body.name
-        existing.password_hash = hashed
-        existing.verification_code = code
-        existing.verification_expires = expires
-    else:
-        # Create new user
-        user = GhostUser(
-            email=body.email, name=body.name, password_hash=hashed,
-            verification_code=code, verification_expires=expires,
-        )
-        db.add(user)
-
+    user = GhostUser(
+        email=body.email, name=body.name, password_hash=hashed,
+        email_verified=True,  # Auto-verify
+    )
+    db.add(user)
     await db.commit()
+    await db.refresh(user)
 
-    # Send verification email
-    await send_verification_email(body.email, code)
-
-    return {"message": "Verification code sent to " + body.email, "email": body.email}
+    token = create_ghost_token(str(user.id), user.email)
+    return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
 
 @router.post("/verify", response_model=GhostTokenResponse)
 async def ghost_verify(body: GhostVerifyRequest, db: AsyncSession = Depends(get_db)):
@@ -259,13 +246,7 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
         attempts_left = MAX_LOGIN_ATTEMPTS - len([t for t in _login_attempts.get(body.email, []) if t > time.time() - LOCKOUT_MINUTES * 60])
         raise HTTPException(status_code=401, detail=f"Invalid email or password. {attempts_left} attempts remaining.")
 
-    if not user.email_verified:
-        code = generate_code()
-        user.verification_code = code
-        user.verification_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
-        await db.commit()
-        await send_verification_email(body.email, code)
-        return GhostTokenResponse(token="needs_verification", email=user.email, name=user.name, credits=0, plan="unverified")
+    # Email verification disabled for now — auto-verified on signup
 
     # Success — clear lockout, log success
     _clear_login_attempts(body.email)
