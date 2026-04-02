@@ -185,40 +185,9 @@ function showRipple(x, y) {
 
 // ── Overlay Management ──────────────────────────────────────────────────
 
-export function createOverlay(): BrowserWindow {
-  if (overlayWindow && !overlayWindow.isDestroyed()) {
-    return overlayWindow;
-  }
-
-  const display = screen.getPrimaryDisplay();
-  const { width, height } = display.workAreaSize;
-
-  overlayWindow = new BrowserWindow({
-    width,
-    height,
-    x: 0,
-    y: 0,
-    transparent: true,
-    frame: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    hasShadow: false,
-    focusable: false,
-    webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
-
-  // Click-through: mouse events pass to windows below
-  overlayWindow.setIgnoreMouseEvents(true);
-
-  // Load the overlay HTML
-  overlayWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(OVERLAY_HTML)}`);
-
-  overlayWindow.on('closed', () => { overlayWindow = null; });
-
-  return overlayWindow;
+export function createOverlay(): BrowserWindow | null {
+  // Overlay disabled — was causing screen vibration
+  return null;
 }
 
 export function destroyOverlay(): void {

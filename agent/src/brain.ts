@@ -783,15 +783,14 @@ async function executeQueue(index: SystemIndex): Promise<void> {
     task.status = 'running';
 
     try {
-      // Create ghost overlay
-      overlay.createOverlay();
+      // Overlay disabled — was causing screen vibration
+      // Status shown in chat UI instead
 
       for (let i = 0; i < task.actions.length; i++) {
         task.currentStep = i;
         const action = task.actions[i];
 
-        // Show status
-        overlay.showStatus(action.description, i + 1);
+        console.log(`[Action] Step ${i + 1}/${task.actions.length}: ${action.description}`);
 
         const actionStart = Date.now();
         try {
