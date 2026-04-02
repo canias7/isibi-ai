@@ -1470,13 +1470,17 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
       const subject = action.key || 'No subject';
       const emailTo = action.target || '';
       const emailBody = action.text || '';
-      // Open Gmail compose URL, wait for it to load, then click Send
-      const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-      await controller.openUrl(gmailUrl);
-      await controller.sleep(4000); // Wait for Gmail to fully load
-      // Use Cmd+Enter to send (Gmail keyboard shortcut — most reliable)
-      await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
-      await controller.sleep(1000);
+      // Use Apple Mail via AppleScript (no screen recording needed)
+      try {
+        controller.sendEmail(emailTo, subject, emailBody);
+      } catch (emailErr: any) {
+        console.log('[Email] Apple Mail failed:', emailErr.message, '— falling back to Gmail URL');
+        // Fallback: open Gmail compose + Cmd+Enter
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+        await controller.openUrl(gmailUrl);
+        await controller.sleep(4000);
+        await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
+      }
       controller.showNotification('Email sent', `To: ${emailTo}`);
       break;
     }
