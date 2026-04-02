@@ -3659,6 +3659,218 @@ export function getDisplays(): { id: number; width: number; height: number; x: n
   return displays.length > 0 ? displays : [{ id: 0, width: 1920, height: 1080, x: 0, y: 0, primary: true }];
 }
 
+// ── Safari (AppleScript) ────────────────────────────────────────────────
+
+export function safariGetTabs(): string[] {
+  const { execSync } = require('child_process');
+  try {
+    const output = execSync(`osascript -e 'tell application "Safari" to set t to ""
+repeat with w in windows
+  repeat with tb in tabs of w
+    set t to t & name of tb & " | " & URL of tb & "\\n"
+  end repeat
+end repeat
+return t'`, { encoding: 'utf-8', timeout: 10000 });
+    return output.split('\n').filter((l: string) => l.trim());
+  } catch { return []; }
+}
+
+export function safariOpenUrl(url: string): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Safari" to open location "${url}"' -e 'tell application "Safari" to activate'`, { timeout: 5000 });
+}
+
+export function safariGetCurrentUrl(): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`osascript -e 'tell application "Safari" to URL of current tab of front window'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+  } catch { return ''; }
+}
+
+export function safariGetCurrentTitle(): string {
+  const { execSync } = require('child_process');
+  try {
+    return execSync(`osascript -e 'tell application "Safari" to name of current tab of front window'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+  } catch { return ''; }
+}
+
+// ── Apple Music (AppleScript) ───────────────────────────────────────────
+
+export function musicPlay(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Music" to play'`, { timeout: 5000 });
+}
+
+export function musicPause(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Music" to pause'`, { timeout: 5000 });
+}
+
+export function musicNext(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Music" to next track'`, { timeout: 5000 });
+}
+
+export function musicPrev(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Music" to previous track'`, { timeout: 5000 });
+}
+
+export function musicGetNowPlaying(): { track: string; artist: string; album: string } {
+  const { execSync } = require('child_process');
+  try {
+    const track = execSync(`osascript -e 'tell application "Music" to name of current track'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    const artist = execSync(`osascript -e 'tell application "Music" to artist of current track'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    const album = execSync(`osascript -e 'tell application "Music" to album of current track'`, { encoding: 'utf-8', timeout: 3000 }).trim();
+    return { track, artist, album };
+  } catch { return { track: 'Nothing playing', artist: '', album: '' }; }
+}
+
+export function musicSearch(query: string): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Music" to activate'`, { timeout: 3000 });
+  // Use Cmd+F to search
+  execSync(`osascript -e 'tell application "System Events" to keystroke "f" using command down'`, { timeout: 2000 });
+  execSync(`osascript -e 'tell application "System Events" to keystroke "${query.replace(/"/g, '\\"')}"'`, { timeout: 3000 });
+}
+
+export function musicSetVolume(percent: number): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Music" to set sound volume to ${Math.max(0, Math.min(100, percent))}'`, { timeout: 3000 });
+}
+
+export function musicPlayPlaylist(name: string): void {
+  const { execSync } = require('child_process');
+  try {
+    execSync(`osascript -e 'tell application "Music" to play playlist "${name.replace(/"/g, '\\"')}"'`, { timeout: 5000 });
+  } catch {}
+}
+
+export function musicGetPlaylists(): string[] {
+  const { execSync } = require('child_process');
+  try {
+    const output = execSync(`osascript -e 'tell application "Music" to get name of every playlist'`, { encoding: 'utf-8', timeout: 5000 });
+    return output.split(', ').map((p: string) => p.trim());
+  } catch { return []; }
+}
+
+// ── Keynote (AppleScript) ───────────────────────────────────────────────
+
+export function keynoteCreate(title?: string): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Keynote"
+  activate
+  set newDoc to make new document
+  ${title ? 'tell slide 1 of newDoc to set object text of default title item to "' + title.replace(/"/g, '\\"') + '"' : ''}
+end tell'`, { timeout: 10000 });
+}
+
+export function keynoteAddSlide(title?: string, body?: string): void {
+  const { execSync } = require('child_process');
+  let script = `tell application "Keynote"
+  tell front document
+    set newSlide to make new slide`;
+  if (title) script += `\n    tell newSlide to set object text of default title item to "${title.replace(/"/g, '\\"')}"`;
+  if (body) script += `\n    tell newSlide to set object text of default body item to "${body.replace(/"/g, '\\"')}"`;
+  script += `\n  end tell\nend tell`;
+  execSync(`osascript -e '${script}'`, { timeout: 10000 });
+}
+
+// ── Numbers (AppleScript) ───────────────────────────────────────────────
+
+export function numbersCreate(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Numbers" to activate' -e 'tell application "Numbers" to make new document'`, { timeout: 10000 });
+}
+
+export function numbersSetCell(row: number, col: number, value: string): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Numbers"
+  tell table 1 of sheet 1 of front document
+    set value of cell ${col} of row ${row} to "${value.replace(/"/g, '\\"')}"
+  end tell
+end tell'`, { timeout: 5000 });
+}
+
+// ── Pages (AppleScript) ─────────────────────────────────────────────────
+
+export function pagesCreate(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Pages" to activate' -e 'tell application "Pages" to make new document'`, { timeout: 10000 });
+}
+
+export function pagesTypeText(text: string): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Pages" to activate'`, { timeout: 3000 });
+  execSync(`osascript -e 'tell application "System Events" to keystroke "${text.replace(/"/g, '\\"')}"'`, { timeout: 10000 });
+}
+
+// ── Photos (AppleScript) ────────────────────────────────────────────────
+
+export function photosSearch(query: string): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Photos" to activate'`, { timeout: 5000 });
+  execSync(`osascript -e 'tell application "System Events" to keystroke "f" using command down'`, { timeout: 2000 });
+  execSync(`osascript -e 'tell application "System Events" to keystroke "${query.replace(/"/g, '\\"')}"'`, { timeout: 3000 });
+}
+
+export function photosGetCount(): number {
+  const { execSync } = require('child_process');
+  try {
+    const output = execSync(`osascript -e 'tell application "Photos" to count of media items'`, { encoding: 'utf-8', timeout: 10000 });
+    return parseInt(output.trim()) || 0;
+  } catch { return 0; }
+}
+
+export function photosGetAlbums(): string[] {
+  const { execSync } = require('child_process');
+  try {
+    const output = execSync(`osascript -e 'tell application "Photos" to get name of every album'`, { encoding: 'utf-8', timeout: 10000 });
+    return output.split(', ').map((a: string) => a.trim());
+  } catch { return []; }
+}
+
+// ── Podcasts (AppleScript) ──────────────────────────────────────────────
+
+export function podcastsPlay(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Podcasts" to activate'`, { timeout: 5000 });
+  execSync(`osascript -e 'tell application "System Events" to keystroke space'`, { timeout: 2000 });
+}
+
+export function podcastsSearch(query: string): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Podcasts" to activate'`, { timeout: 5000 });
+  execSync(`osascript -e 'tell application "System Events" to keystroke "f" using command down'`, { timeout: 2000 });
+  execSync(`osascript -e 'tell application "System Events" to keystroke "${query.replace(/"/g, '\\"')}"'`, { timeout: 3000 });
+}
+
+// ── Maps (AppleScript) ──────────────────────────────────────────────────
+
+export function mapsSearch(query: string): void {
+  const { execSync } = require('child_process');
+  execSync(`open "maps://?q=${encodeURIComponent(query)}"`, { timeout: 5000 });
+}
+
+export function mapsDirections(from: string, to: string): void {
+  const { execSync } = require('child_process');
+  execSync(`open "maps://?saddr=${encodeURIComponent(from)}&daddr=${encodeURIComponent(to)}"`, { timeout: 5000 });
+}
+
+// ── Books (AppleScript) ─────────────────────────────────────────────────
+
+export function booksOpen(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Books" to activate'`, { timeout: 5000 });
+}
+
+// ── Home/HomeKit (AppleScript) ──────────────────────────────────────────
+
+export function homeOpen(): void {
+  const { execSync } = require('child_process');
+  execSync(`osascript -e 'tell application "Home" to activate'`, { timeout: 5000 });
+}
+
 // ── Utility ─────────────────────────────────────────────────────────────
 
 function sleep(ms: number): Promise<void> {
