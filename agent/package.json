@@ -22,9 +22,15 @@
       "category": "public.app-category.productivity",
       "target": [{ "target": "zip", "arch": ["x64"] }],
       "artifactName": "ISIBI-Ghost-Mode-macOS.${ext}",
+      "identity": "cristian anias (MY8LTVJQ82)",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "entitlements.plist",
+      "entitlementsInherit": "entitlements.plist",
       "extendInfo": {
         "NSAppleEventsUsageDescription": "Ghost Mode needs accessibility access to control your computer.",
-        "NSScreenCaptureUsageDescription": "Ghost Mode needs screen capture to see what's on your screen."
+        "NSScreenCaptureUsageDescription": "Ghost Mode needs screen capture to see what's on your screen.",
+        "NSMicrophoneUsageDescription": "Ghost Mode needs microphone access for voice commands."
       }
     },
     "win": {
