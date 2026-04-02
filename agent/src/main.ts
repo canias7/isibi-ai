@@ -938,8 +938,8 @@ app.whenReady().then(async () => {
     launchGhostMode();
   };
 
-  // Always show login screen on app launch (separate from isibi.ai)
-  createLoginWindow(startApp);
+  // Skip login for now — go straight to app
+  startApp();
 });
 
 app.on('window-all-closed', () => {
