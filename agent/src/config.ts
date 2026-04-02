@@ -45,6 +45,14 @@ export interface AgentProfileData {
   actionCount: number;
 }
 
+export interface EmailTemplate {
+  id: string;
+  name: string;
+  subject: string;
+  body: string;
+  createdAt: string;
+}
+
 export interface ScheduledTask {
   id: string;
   agentId: string;
@@ -237,6 +245,34 @@ export function trackAgentUsage(agentId: string, commands: number, actions: numb
       saveConfig({ agents: c.agents });
     }
   }
+}
+
+// ── Email Templates ──────────────────────────────────────────────────
+
+function templatesPath(): string {
+  return path.join(app.getPath('userData'), 'email-templates.json');
+}
+
+export function getTemplates(): EmailTemplate[] {
+  try {
+    if (fs.existsSync(templatesPath())) {
+      return JSON.parse(fs.readFileSync(templatesPath(), 'utf-8'));
+    }
+  } catch {}
+  return [];
+}
+
+export function saveTemplate(template: EmailTemplate): void {
+  const templates = getTemplates();
+  const idx = templates.findIndex(t => t.id === template.id);
+  if (idx >= 0) templates[idx] = template;
+  else templates.push(template);
+  fs.writeFileSync(templatesPath(), JSON.stringify(templates, null, 2));
+}
+
+export function deleteTemplate(id: string): void {
+  const templates = getTemplates().filter(t => t.id !== id);
+  fs.writeFileSync(templatesPath(), JSON.stringify(templates, null, 2));
 }
 
 export function getSchedules(): ScheduledTask[] {

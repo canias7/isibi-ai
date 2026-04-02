@@ -15,7 +15,7 @@ app.commandLine.appendSwitch('disable-usb-keyboard-detect');
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask, getCredits, getStripeKey, addCredits, setActiveUser } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask, getCredits, getStripeKey, addCredits, setActiveUser, getTemplates, saveTemplate, deleteTemplate, EmailTemplate } from './config';
 import { loadAnalytics, getAnalytics } from './analytics';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
@@ -499,6 +499,47 @@ ipcMain.handle('ghost-is-logged-in', () => {
 ipcMain.handle('ghost-get-user', () => {
   const c = loadConfig();
   return c.userLoggedIn ? { email: c.userEmail, name: c.userName } : null;
+});
+
+// ── Email Templates IPC ───────────────────────────────────────────────
+
+ipcMain.handle('templates-list', () => getTemplates());
+
+ipcMain.handle('templates-save', (_, data: { id?: string; name: string; subject: string; body: string }) => {
+  const template: EmailTemplate = {
+    id: data.id || Math.random().toString(36).slice(2, 8),
+    name: data.name,
+    subject: data.subject,
+    body: data.body,
+    createdAt: new Date().toISOString(),
+  };
+  saveTemplate(template);
+  return template;
+});
+
+ipcMain.handle('templates-delete', (_, id: string) => {
+  deleteTemplate(id);
+  return true;
+});
+
+ipcMain.handle('templates-send', async (_, templateId: string, recipientEmail: string, recipientName?: string) => {
+  const templates = getTemplates();
+  const template = templates.find(t => t.id === templateId);
+  if (!template) return { error: 'Template not found' };
+
+  // Replace placeholder with recipient name
+  let body = template.body;
+  if (recipientName) {
+    body = body.replace(/\bX\b/g, recipientName).replace(/\[name\]/gi, recipientName).replace(/\{name\}/gi, recipientName);
+  }
+
+  // Send via Apple Mail
+  try {
+    ctrl.sendEmail(recipientEmail, template.subject, body);
+    return { success: true };
+  } catch (e: any) {
+    return { error: e.message };
+  }
 });
 
 // ── Stripe Payment IPC ────────────────────────────────────────────────

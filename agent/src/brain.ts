@@ -506,6 +506,8 @@ TEXT PROCESSING:
 4. find_and_click → LAST RESORT ONLY. It takes a screenshot which triggers a permission popup. ALWAYS prefer: open_url, press_key, type, open_app over find_and_click. Only use find_and_click when there is absolutely no keyboard shortcut or URL alternative.
 5. Complete the FULL intent — "open X video" means search AND click the result
 6. EMAILS → ALWAYS use the send_email action: [{"type":"send_email","target":"email@address","key":"Subject","text":"Body text","description":"Sending email via Apple Mail"}]. This sends via Apple Mail AppleScript — one action, instant, no browser. NEVER plan 10 keyboard steps for email — just use send_email.
+   For TEMPLATE emails: use [{"type":"send_template","target":"recipient@email.com","text":"recipient name","key":"template name","description":"Sending template email"}]. This looks up the saved template by name and sends it instantly via Apple Mail.
+   If agent instructions say "send approval email" or reference a template name, ALWAYS use send_template, not send_email.
 7. MESSAGES/SMS → use send_imessage: {"type":"send_imessage","target":"name or phone","text":"message"}. Auto-lookup contacts by name.
 8. ALWAYS return at least 1 action. NEVER return an empty array [].
 9. Only use ask_user when GENUINELY missing info that you cannot infer from the command or the agent's custom instructions. If you can figure it out, just do it.
@@ -1462,6 +1464,34 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     case 'run_shortcut': {
       const output = controller.runShortcut(action.target || '', action.text);
       addToHistory('system', 'Shortcut result: ' + output.slice(0, 2000));
+      break;
+    }
+
+    // ── Email Template ──
+    case 'send_template': {
+      const { getTemplates: getT } = await import('./config');
+      const templates = getT();
+      const templateName = (action.key || '').toLowerCase();
+      const template = templates.find(t => t.name.toLowerCase().includes(templateName));
+      if (template) {
+        let tBody = template.body;
+        const recipientName = action.text || '';
+        if (recipientName) {
+          tBody = tBody.replace(/\bX\b/g, recipientName).replace(/\[name\]/gi, recipientName).replace(/\{name\}/gi, recipientName);
+        }
+        try {
+          controller.sendEmail(action.target || '', template.subject, tBody);
+          controller.showNotification('Template sent', `"${template.name}" to ${action.target}`);
+        } catch (tErr: any) {
+          console.log('[Template] Apple Mail failed:', tErr.message);
+          const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(action.target || '')}&su=${encodeURIComponent(template.subject)}&body=${encodeURIComponent(tBody)}`;
+          await controller.openUrl(gmailUrl);
+          await controller.sleep(4000);
+          await controller.pressKey(controller.Key.LeftCmd, controller.Key.Enter);
+        }
+      } else {
+        addToHistory('system', 'Template not found: ' + action.key + '. Available: ' + templates.map(t => t.name).join(', '));
+      }
       break;
     }
 
