@@ -383,10 +383,14 @@ ipcMain.handle('ghost-signup', async (_, email: string, name: string, password: 
   });
 });
 
-ipcMain.handle('ghost-login', async (_, email: string, password: string) => {
+ipcMain.handle('ghost-login', async (_, email: string, password: string, trustDevice: boolean = false) => {
   const https = require('https');
+  const os2 = require('os');
+  const crypto2 = require('crypto');
+  const deviceId = crypto2.createHash('sha256').update(os2.hostname() + ':' + os2.userInfo().username).digest('hex').slice(0, 16);
+  const deviceName = os2.hostname();
   return new Promise((resolve) => {
-    const postData = JSON.stringify({ email, password });
+    const postData = JSON.stringify({ email, password, device_id: deviceId, device_name: deviceName, trust_device: trustDevice });
     const req = https.request({
       hostname: 'isibi-backend.onrender.com', path: '/api/ghost/login', method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
@@ -783,6 +787,9 @@ input::placeholder{color:rgba(226,232,240,0.3)}
   <div id="loginForm">
     <input id="loginEmail" placeholder="Email" type="email">
     <input id="loginPassword" placeholder="Password" type="password">
+    <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(226,232,240,0.4);margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="trustDevice" style="accent-color:#ec4899"> Remember this device
+    </label>
     <button class="btn" onclick="doLogin()">Log In</button>
   </div>
   <div id="signupForm" style="display:none">
@@ -833,7 +840,8 @@ async function doLogin(){
   const pw=document.getElementById('loginPassword').value;
   if(!email||!pw){document.getElementById('errMsg').textContent='Please fill in all fields';return}
   document.querySelector('#loginForm .btn').textContent='Logging in...';
-  const r=await ipcRenderer.invoke('ghost-login',email,pw);
+  const trust=document.getElementById('trustDevice').checked;
+  const r=await ipcRenderer.invoke('ghost-login',email,pw,trust);
   if(r.token==='needs_verification'){
     verifyEmail=email;
     switchTab('verify');

@@ -28,6 +28,8 @@ from sqlalchemy.dialects.postgresql import UUID
 
 from db import get_db, Base
 from services.email import send_verification_email, send_password_reset_email
+import time
+import hashlib
 
 # ── Ghost User Model ──────────────────────────────────────────────────
 
@@ -47,6 +49,49 @@ class GhostUser(Base):
     reset_code = Column(String, nullable=True)
     reset_expires = Column(DateTime(timezone=True), nullable=True)
 
+# ── Login Logs & Trusted Devices ──────────────────────────────────────
+
+class GhostLoginLog(Base):
+    __tablename__ = "ghost_login_logs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_email = Column(String, nullable=False, index=True)
+    ip_address = Column(String, nullable=True)
+    device_id = Column(String, nullable=True)
+    success = Column(Boolean, default=False)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+class GhostTrustedDevice(Base):
+    __tablename__ = "ghost_trusted_devices"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_email = Column(String, nullable=False, index=True)
+    device_id = Column(String, nullable=False)
+    device_name = Column(String, nullable=True)
+    trusted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+# ── Login Attempt Lockout ─────────────────────────────────────────────
+
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_MINUTES = 15
+_login_attempts: dict[str, list[float]] = {}
+
+def _check_lockout(email: str) -> bool:
+    attempts = _login_attempts.get(email, [])
+    cutoff = time.time() - (LOCKOUT_MINUTES * 60)
+    recent = [t for t in attempts if t > cutoff]
+    _login_attempts[email] = recent
+    return len(recent) >= MAX_LOGIN_ATTEMPTS
+
+def _record_failed_login(email: str):
+    if email not in _login_attempts:
+        _login_attempts[email] = []
+    _login_attempts[email].append(time.time())
+
+def _clear_login_attempts(email: str):
+    _login_attempts.pop(email, None)
+
+def _get_device_id(hostname: str, username: str) -> str:
+    return hashlib.sha256(f"{hostname}:{username}".encode()).hexdigest()[:16]
+
 # ── Schemas ───────────────────────────────────────────────────────────
 
 class GhostSignupRequest(BaseModel):
@@ -61,6 +106,9 @@ class GhostVerifyRequest(BaseModel):
 class GhostLoginRequest(BaseModel):
     email: EmailStr
     password: str
+    device_id: str = ""
+    device_name: str = ""
+    trust_device: bool = False
 
 class GhostForgotRequest(BaseModel):
     email: EmailStr
@@ -181,15 +229,37 @@ async def ghost_resend(body: GhostForgotRequest, db: AsyncSession = Depends(get_
     return {"message": "New code sent"}
 
 @router.post("/login", response_model=GhostTokenResponse)
-async def ghost_login(body: GhostLoginRequest, db: AsyncSession = Depends(get_db)):
+async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = Depends(get_db)):
+    # Get IP address
+    ip = "unknown"
+    try:
+        from fastapi import Request
+        # IP will be passed via header in production
+    except:
+        pass
+
+    # Check lockout
+    if _check_lockout(body.email):
+        remaining = LOCKOUT_MINUTES - int((time.time() - min(_login_attempts.get(body.email, [time.time()]))) / 60)
+        raise HTTPException(status_code=429, detail=f"Account locked. Too many failed attempts. Try again in {remaining} minutes.")
+
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
     if not user:
+        _record_failed_login(body.email)
+        # Log failed attempt
+        db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=False))
+        await db.commit()
         raise HTTPException(status_code=401, detail="Invalid email or password")
+
     if not bcrypt.checkpw(body.password.encode(), user.password_hash.encode()):
-        raise HTTPException(status_code=401, detail="Invalid email or password")
+        _record_failed_login(body.email)
+        db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=False))
+        await db.commit()
+        attempts_left = MAX_LOGIN_ATTEMPTS - len([t for t in _login_attempts.get(body.email, []) if t > time.time() - LOCKOUT_MINUTES * 60])
+        raise HTTPException(status_code=401, detail=f"Invalid email or password. {attempts_left} attempts remaining.")
+
     if not user.email_verified:
-        # Resend verification code
         code = generate_code()
         user.verification_code = code
         user.verification_expires = datetime.now(timezone.utc) + timedelta(minutes=10)
@@ -197,8 +267,58 @@ async def ghost_login(body: GhostLoginRequest, db: AsyncSession = Depends(get_db
         await send_verification_email(body.email, code)
         return GhostTokenResponse(token="needs_verification", email=user.email, name=user.name, credits=0, plan="unverified")
 
+    # Success — clear lockout, log success
+    _clear_login_attempts(body.email)
+    db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=True))
+
+    # Trust device if requested
+    if body.trust_device and body.device_id:
+        existing_device = await db.execute(
+            select(GhostTrustedDevice).where(
+                GhostTrustedDevice.user_email == body.email,
+                GhostTrustedDevice.device_id == body.device_id,
+            )
+        )
+        if not existing_device.scalar_one_or_none():
+            db.add(GhostTrustedDevice(user_email=body.email, device_id=body.device_id, device_name=body.device_name))
+
+    await db.commit()
+
     token = create_ghost_token(str(user.id), user.email)
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
+
+@router.get("/login-logs")
+async def ghost_login_logs(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(
+        select(GhostLoginLog).where(GhostLoginLog.user_email == payload["email"]).order_by(GhostLoginLog.timestamp.desc()).limit(20)
+    )
+    logs = result.scalars().all()
+    return [{"ip": l.ip_address, "device": l.device_id, "success": l.success, "time": str(l.timestamp)} for l in logs]
+
+@router.get("/trusted-devices")
+async def ghost_trusted_devices(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(
+        select(GhostTrustedDevice).where(GhostTrustedDevice.user_email == payload["email"])
+    )
+    devices = result.scalars().all()
+    return [{"id": str(d.id), "device_id": d.device_id, "name": d.device_name, "trusted_at": str(d.trusted_at)} for d in devices]
+
+@router.delete("/trusted-devices/{device_db_id}")
+async def ghost_remove_device(device_db_id: str, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(
+        select(GhostTrustedDevice).where(GhostTrustedDevice.id == uuid.UUID(device_db_id), GhostTrustedDevice.user_email == payload["email"])
+    )
+    device = result.scalar_one_or_none()
+    if device:
+        await db.delete(device)
+        await db.commit()
+    return {"ok": True}
 
 @router.post("/forgot")
 async def ghost_forgot(body: GhostForgotRequest, db: AsyncSession = Depends(get_db)):
