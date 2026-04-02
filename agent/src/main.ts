@@ -186,16 +186,20 @@ ipcMain.handle('agents-statuses', () => getAllAgentStatuses());
 
 // Command & Status
 ipcMain.handle('ghost-command', async (_, command: string, agentId?: string) => {
+  // Always ensure index is ready
   if (!systemIndex) {
-    // Build index on-the-fly if not ready
-    try { systemIndex = buildIndex(); } catch {}
-    if (!systemIndex) return { error: 'System indexing failed. Try restarting the app.' };
+    try { systemIndex = loadIndex(); } catch {}
+    if (!systemIndex) { try { systemIndex = buildIndex(); } catch {} }
+    if (!systemIndex) {
+      // Minimal fallback index so commands don't block
+      systemIndex = { apps: [], recentFiles: [], bookmarks: [], runningProcesses: [], browserTabs: [], systemInfo: { hostname: '', username: '', osVersion: '', shell: '', defaultBrowser: '', screenResolution: '', memoryGB: 0, cpuModel: '' }, desktopFiles: [], scannedAt: new Date().toISOString(), platform: process.platform } as any;
+    }
   }
   try {
     const targetId = agentId || getActiveAgents()[0]?.id;
     if (!targetId) return { error: 'No active agents. Create one in the sidebar.' };
 
-    const plans = await dispatchCommand(targetId, command, systemIndex);
+    const plans = await dispatchCommand(targetId, command, systemIndex!);
     const agent = getAgent(targetId);
     return {
       agentName: agent?.name,
