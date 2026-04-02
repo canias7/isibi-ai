@@ -187,7 +187,9 @@ ipcMain.handle('agents-statuses', () => getAllAgentStatuses());
 // Command & Status
 ipcMain.handle('ghost-command', async (_, command: string, agentId?: string) => {
   if (!systemIndex) {
-    return { error: 'System not indexed yet. Please wait...' };
+    // Build index on-the-fly if not ready
+    try { systemIndex = buildIndex(); } catch {}
+    if (!systemIndex) return { error: 'System indexing failed. Try restarting the app.' };
   }
   try {
     const targetId = agentId || getActiveAgents()[0]?.id;
@@ -926,11 +928,12 @@ app.whenReady().then(async () => {
   registerOnboardingIPC();
 
   const startApp = () => {
+    // Skip onboarding — login screen is the new entry point
+    // Mark first run as complete for this user
     if (isFirstRun()) {
-      createOnboardingWindow(() => { launchGhostMode(); });
-    } else {
-      launchGhostMode();
+      saveConfig({ firstRunComplete: true });
     }
+    launchGhostMode();
   };
 
   // Always show login screen on app launch (separate from isibi.ai)
