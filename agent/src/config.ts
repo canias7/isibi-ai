@@ -99,7 +99,23 @@ const DEFAULTS: GhostModeConfig = {
   plan: 'free',
 };
 
+// Active user email — set on login, determines which config file to use
+let _activeUserEmail: string = '';
+
+export function setActiveUser(email: string): void {
+  _activeUserEmail = email;
+}
+
+export function getActiveUser(): string {
+  return _activeUserEmail;
+}
+
 function configPath(): string {
+  // Each user gets their own config file
+  if (_activeUserEmail) {
+    const safeEmail = _activeUserEmail.replace(/[^a-zA-Z0-9@.-]/g, '_');
+    return path.join(app.getPath('userData'), `config-${safeEmail}.json`);
+  }
   return path.join(app.getPath('userData'), 'config.json');
 }
 

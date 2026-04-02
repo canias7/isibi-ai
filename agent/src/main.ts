@@ -15,7 +15,7 @@ app.commandLine.appendSwitch('disable-usb-keyboard-detect');
 import { buildIndex, loadIndex, refreshIndex, SystemIndex } from './indexer';
 import { processCommand, getTaskQueue, getActiveTask } from './brain';
 import { createOverlay, destroyOverlay } from './overlay';
-import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask, getCredits, getStripeKey, addCredits } from './config';
+import { isFirstRun, loadConfig, saveConfig, getWakeWord, getAssistantName, getLanguage, getElevenLabsKey, getSelectedVoiceId, getSchedules, saveSchedule, deleteSchedule, ScheduledTask, getCredits, getStripeKey, addCredits, setActiveUser } from './config';
 import { loadAnalytics, getAnalytics } from './analytics';
 import { createOnboardingWindow, registerOnboardingIPC } from './onboarding';
 import { getAgents, getAgent, createAgent, updateAgent, deleteAgent, toggleAgent, getActiveAgents } from './agents';
@@ -328,7 +328,13 @@ ipcMain.handle('history-clear', () => {
 
 // ── Chat Persistence IPC ──────────────────────────────────────────────
 
-const chatDir = () => { const d = require('path').join(app.getPath('userData'), 'chats'); if (!require('fs').existsSync(d)) require('fs').mkdirSync(d, { recursive: true }); return d; };
+const chatDir = () => {
+  const { getActiveUser } = require('./config');
+  const userDir = getActiveUser() ? getActiveUser().replace(/[^a-zA-Z0-9@.-]/g, '_') : 'default';
+  const d = require('path').join(app.getPath('userData'), 'chats', userDir);
+  if (!require('fs').existsSync(d)) require('fs').mkdirSync(d, { recursive: true });
+  return d;
+};
 
 ipcMain.handle('chat-save', (_, agentId: string, messages: any[]) => {
   try {
@@ -364,6 +370,7 @@ ipcMain.handle('ghost-signup', async (_, email: string, name: string, password: 
         try {
           const json = JSON.parse(data);
           if (json.token) {
+            setActiveUser(json.email); // Switch to this user's config
             saveConfig({ userEmail: json.email, userName: json.name, userLoggedIn: true, userCreatedAt: new Date().toISOString(), credits: json.credits });
             (global as any).__ghostToken = json.token;
           }
@@ -390,6 +397,7 @@ ipcMain.handle('ghost-login', async (_, email: string, password: string) => {
         try {
           const json = JSON.parse(data);
           if (json.token) {
+            setActiveUser(json.email); // Switch to this user's config
             saveConfig({ userEmail: json.email, userName: json.name, userLoggedIn: true, credits: json.credits });
             (global as any).__ghostToken = json.token;
           }
