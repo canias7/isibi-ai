@@ -259,9 +259,17 @@ async function planTask(command: string, index: SystemIndex, agent?: AgentProfil
 
   const appKnowledge = getRelevantKnowledge(command, agent?.instructions || '');
 
-  // Build agent-specific prompt section
-  const agentPrompt = agent && agent.instructions
-    ? `\n=== YOUR IDENTITY ===\nYou are "${agent.name}" ${agent.emoji}. Role: ${agent.role}\n\n=== YOUR INSTRUCTIONS (FOLLOW THESE AS YOUR PRIMARY DIRECTIVE) ===\n${agent.instructions}\n`
+  // Build agent-specific prompt — goes FIRST so AI prioritizes it
+  const hasAgentPrompt = agent && agent.instructions && agent.instructions.trim().length > 0;
+  const agentSection = hasAgentPrompt
+    ? `YOU ARE "${agent!.name}" ${agent!.emoji}. Role: ${agent!.role}
+
+YOUR CUSTOM INSTRUCTIONS (HIGHEST PRIORITY — follow these above all other rules):
+${agent!.instructions}
+
+Use the information in your custom instructions to answer questions and complete tasks. Only use ask_user if the user's command is genuinely ambiguous AND your instructions don't cover it. If your instructions tell you what to do, just do it without asking.
+
+`
     : '';
 
   const api = getClient();
@@ -269,9 +277,9 @@ async function planTask(command: string, index: SystemIndex, agent?: AgentProfil
   const response = await api.messages.create({
     model: MODEL,
     max_tokens: 1024,
-    system: `You are ISIBI Ghost Mode — an AI agent that controls a computer. Convert natural language commands into action steps.
-You understand ALL languages. The user may speak in any language — always understand their intent and respond with the correct action steps. Action JSON keys/values stay in English, but description fields should match the user's language.
-${agentPrompt}
+    system: `${agentSection}You are ISIBI Ghost Mode — an AI agent that controls a computer. Convert natural language commands into action steps.
+You understand ALL languages. Action JSON keys/values stay in English, but description fields should match the user's language.
+
 === COMPUTER STATE ===
 Apps installed: ${appNames}
 Running now: ${runningApps || 'unknown'}
@@ -495,9 +503,10 @@ TEXT PROCESSING:
 3. Web searches → use URL params: open_url "https://site.com/search?q=TERM"
 4. find_and_click → ONLY when no shortcut/URL exists
 5. Complete the FULL intent — "open X video" means search AND click the result
-6. EMAILS → ALWAYS use: [{"type":"send_email","target":"recipient@email.com","key":"Subject line","text":"Email body text","description":"Sending email"}]. NEVER return 0 actions for email commands.
-7. MESSAGES/SMS → ALWAYS use: [{"type":"send_imessage","target":"contact name or phone","text":"message","description":"Sending message"}]
+6. EMAILS → use send_email: {"type":"send_email","target":"email@address","key":"Subject","text":"Body","description":"Sending email"}. If user gives all info, send directly. If missing recipient/subject/body, use ask_user ONLY for what's missing.
+7. MESSAGES/SMS → use send_imessage: {"type":"send_imessage","target":"name or phone","text":"message"}. Auto-lookup contacts by name.
 8. ALWAYS return at least 1 action. NEVER return an empty array [].
+9. Only use ask_user when GENUINELY missing info that you cannot infer from the command or the agent's custom instructions. If you can figure it out, just do it.
 
 === COMMON PATTERNS ===
 URLs: gmail→mail.google.com, calendar→calendar.google.com, drive→drive.google.com, youtube search→youtube.com/results?search_query=X, google search→google.com/search?q=X, amazon→amazon.com/s?k=X, reddit search→reddit.com/search/?q=X, new doc→docs.google.com/document/create, new sheet→sheets.google.com/create, new slides→slides.google.com/create
@@ -1458,8 +1467,23 @@ async function executeAction(action: Action, index: SystemIndex): Promise<void> 
     // ── Email ──
     case 'send_email': {
       const subject = action.key || 'No subject';
-      controller.sendEmail(action.target || '', subject, action.text || '');
-      controller.showNotification('Email sent', `To: ${action.target}`);
+      const emailTo = action.target || '';
+      const emailBody = action.text || '';
+      // Try Apple Mail first (macOS), fallback to Gmail compose URL (cross-platform)
+      if (process.platform === 'darwin') {
+        try {
+          controller.sendEmail(emailTo, subject, emailBody);
+        } catch {
+          // Fallback to Gmail compose URL
+          const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+          await controller.openUrl(gmailUrl);
+        }
+      } else {
+        // Windows/Linux — use Gmail compose URL
+        const gmailUrl = `https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(emailTo)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+        await controller.openUrl(gmailUrl);
+      }
+      controller.showNotification('Email sent', `To: ${emailTo}`);
       break;
     }
 
