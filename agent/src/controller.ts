@@ -738,19 +738,30 @@ export async function getStockPrice(symbol: string): Promise<string> {
 
 export function sendEmail(to: string, subject: string, body: string): void {
   const { execSync } = require('child_process');
+  const fs2 = require('fs');
+  const path2 = require('path');
   if (process.platform === 'darwin') {
-    // Activate Mail first so it's ready
-    try { execSync(`osascript -e 'tell application "Mail" to activate'`, { timeout: 10000 }); } catch {}
-    // Wait for Mail to be ready
-    execSync(`sleep 2`);
-    // Compose and send
-    execSync(`osascript -e 'tell application "Mail"
-  set newMsg to make new outgoing message with properties {subject:"${subject.replace(/"/g, '\\"')}", content:"${body.replace(/"/g, '\\"')}", visible:false}
+    // Write body and subject to temp files to avoid shell escaping issues
+    const tmpBody = path2.join(require('os').tmpdir(), 'isibi-email-body.txt');
+    const tmpScript = path2.join(require('os').tmpdir(), 'isibi-email-send.scpt');
+    fs2.writeFileSync(tmpBody, body, 'utf-8');
+
+    const script = `
+set bodyFile to POSIX file "${tmpBody}"
+set bodyText to read bodyFile as «class utf8»
+tell application "Mail"
+  activate
+  delay 1
+  set newMsg to make new outgoing message with properties {subject:"${subject.replace(/"/g, '\\"')}", content:bodyText, visible:false}
   tell newMsg
     make new to recipient with properties {address:"${to.replace(/"/g, '\\"')}"}
   end tell
   send newMsg
-end tell'`, { timeout: 30000 });
+end tell`;
+
+    fs2.writeFileSync(tmpScript, script, 'utf-8');
+    execSync(`osascript "${tmpScript}"`, { timeout: 30000 });
+    try { fs2.unlinkSync(tmpBody); fs2.unlinkSync(tmpScript); } catch {}
   }
 }
 

@@ -501,6 +501,24 @@ ipcMain.handle('ghost-get-user', () => {
   return c.userLoggedIn ? { email: c.userEmail, name: c.userName } : null;
 });
 
+// ── AI Template Generator IPC ─────────────────────────────────────────
+
+ipcMain.handle('generate-template', async (_, prompt: string) => {
+  try {
+    const Anthropic = require('@anthropic-ai/sdk');
+    const { getApiKey: gk } = require('./config');
+    const client = new Anthropic({ apiKey: gk() });
+    const resp = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2048,
+      messages: [{ role: 'user', content: `Write a professional email template based on this description: "${prompt}"
+
+Use X as a placeholder for the recipient's name. Return ONLY the email body text — no subject, no explanation, just the email content. Make it professional, clear, and well-formatted with emojis where appropriate.` }],
+    });
+    return { body: resp.content[0].type === 'text' ? resp.content[0].text : '' };
+  } catch (e: any) { return { error: e.message }; }
+});
+
 // ── Email Templates IPC ───────────────────────────────────────────────
 
 ipcMain.handle('templates-list', () => getTemplates());
@@ -2161,6 +2179,10 @@ svg { display: block; }
         <div class="field">
           <label>Email Body <span style="font-size:9px;color:rgba(226,232,240,0.3)">(use X or {name} as placeholder for recipient name)</span></label>
           <textarea id="tplBodyInput" placeholder="Type your email template here..." style="height:200px"></textarea>
+          <div style="margin-top:6px;display:flex;gap:6px;align-items:center">
+            <input id="tplAiPrompt" placeholder="Describe what the email should say..." style="flex:1;padding:6px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;color:#e2e8f0;font-size:11px;outline:none">
+            <button onclick="generateTemplateAI()" style="padding:6px 12px;border-radius:8px;border:none;background:linear-gradient(135deg,#ec4899,#8b5cf6);color:white;font-size:11px;cursor:pointer;white-space:nowrap">Generate with AI</button>
+          </div>
         </div>
         <div class="modal-btns">
           <div><button class="btn btn-danger" id="tplDeleteBtn" style="display:none" onclick="deleteCurrentTemplate()">Delete</button></div>
@@ -3244,6 +3266,26 @@ async function deleteCurrentTemplate() {
   loadTemplatesList();
 }
 
+async function generateTemplateAI() {
+  const prompt = document.getElementById('tplAiPrompt').value.trim();
+  if (!prompt) return;
+  const btn = document.querySelector('[onclick="generateTemplateAI()"]');
+  btn.textContent = 'Generating...';
+  btn.disabled = true;
+  const result = await ipcRenderer.invoke('generate-template', prompt);
+  if (result.body) {
+    document.getElementById('tplBodyInput').value = result.body;
+    // Auto-fill subject if empty
+    if (!document.getElementById('tplSubjectInput').value) {
+      document.getElementById('tplSubjectInput').value = prompt.slice(0, 60);
+    }
+  } else {
+    document.getElementById('tplAiPrompt').value = result.error || 'Generation failed';
+  }
+  btn.textContent = 'Generate with AI';
+  btn.disabled = false;
+}
+
 // ── Scheduled Tasks View ──
 let editingScheduleId = null;
 
@@ -3563,6 +3605,7 @@ window.openTemplateModal = openTemplateModal;
 window.closeTemplateModal = closeTemplateModal;
 window.saveCurrentTemplate = saveCurrentTemplate;
 window.deleteCurrentTemplate = deleteCurrentTemplate;
+window.generateTemplateAI = generateTemplateAI;
 window.openEditAgent = openEditAgent;
 window.renderPickers = renderPickers;
 window.loadCreditPlans = loadCreditPlans;
