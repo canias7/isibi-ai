@@ -492,9 +492,12 @@ TEXT PROCESSING:
 === CORE RULES ===
 1. Websites → open_url (never open_app with browser name)
 2. After every open_url → add wait 1500ms
-3. Web searches → use URL params: open_url "https://site.com/search?q=TERM" (never find_and_click a search box)
+3. Web searches → use URL params: open_url "https://site.com/search?q=TERM"
 4. find_and_click → ONLY when no shortcut/URL exists
 5. Complete the FULL intent — "open X video" means search AND click the result
+6. EMAILS → ALWAYS use: [{"type":"send_email","target":"recipient@email.com","key":"Subject line","text":"Email body text","description":"Sending email"}]. NEVER return 0 actions for email commands.
+7. MESSAGES/SMS → ALWAYS use: [{"type":"send_imessage","target":"contact name or phone","text":"message","description":"Sending message"}]
+8. ALWAYS return at least 1 action. NEVER return an empty array [].
 
 === COMMON PATTERNS ===
 URLs: gmail→mail.google.com, calendar→calendar.google.com, drive→drive.google.com, youtube search→youtube.com/results?search_query=X, google search→google.com/search?q=X, amazon→amazon.com/s?k=X, reddit search→reddit.com/search/?q=X, new doc→docs.google.com/document/create, new sheet→sheets.google.com/create, new slides→slides.google.com/create
