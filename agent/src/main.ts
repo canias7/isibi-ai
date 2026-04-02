@@ -410,6 +410,72 @@ ipcMain.handle('ghost-login', async (_, email: string, password: string) => {
   });
 });
 
+ipcMain.handle('ghost-verify', async (_, email: string, code: string) => {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({ email, code });
+    const req = https.request({
+      hostname: 'isibi-backend.onrender.com', path: '/api/ghost/verify', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    }, (res: any) => {
+      let data = '';
+      res.on('data', (chunk: string) => { data += chunk; });
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.token) {
+            setActiveUser(json.email);
+            saveConfig({ userEmail: json.email, userName: json.name, userLoggedIn: true, credits: json.credits });
+            (global as any).__ghostToken = json.token;
+          }
+          resolve(json);
+        } catch { resolve({ detail: 'Server error' }); }
+      });
+    });
+    req.on('error', (e: any) => resolve({ detail: e.message }));
+    req.write(postData); req.end();
+  });
+});
+
+ipcMain.handle('ghost-resend', async (_, email: string) => {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({ email });
+    const req = https.request({
+      hostname: 'isibi-backend.onrender.com', path: '/api/ghost/resend', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    }, (res: any) => { let d = ''; res.on('data', (c: string) => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } }); });
+    req.on('error', () => resolve({}));
+    req.write(postData); req.end();
+  });
+});
+
+ipcMain.handle('ghost-forgot', async (_, email: string) => {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({ email });
+    const req = https.request({
+      hostname: 'isibi-backend.onrender.com', path: '/api/ghost/forgot', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    }, (res: any) => { let d = ''; res.on('data', (c: string) => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } }); });
+    req.on('error', () => resolve({}));
+    req.write(postData); req.end();
+  });
+});
+
+ipcMain.handle('ghost-reset', async (_, email: string, code: string, newPassword: string) => {
+  const https = require('https');
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({ email, code, new_password: newPassword });
+    const req = https.request({
+      hostname: 'isibi-backend.onrender.com', path: '/api/ghost/reset', method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+    }, (res: any) => { let d = ''; res.on('data', (c: string) => d += c); res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve({}); } }); });
+    req.on('error', () => resolve({}));
+    req.write(postData); req.end();
+  });
+});
+
 ipcMain.handle('ghost-logout', () => {
   saveConfig({ userEmail: '', userName: '', userLoggedIn: false });
   (global as any).__ghostToken = null;
@@ -725,25 +791,59 @@ input::placeholder{color:rgba(226,232,240,0.3)}
     <input id="signupPassword" placeholder="Password (min 6 characters)" type="password">
     <button class="btn" onclick="doSignup()">Create Account</button>
   </div>
+  <div id="verifyForm" style="display:none">
+    <div style="font-size:13px;color:rgba(226,232,240,0.6);margin-bottom:12px">Enter the 6-digit code sent to your email</div>
+    <input id="verifyCode" placeholder="000000" maxlength="6" style="text-align:center;font-size:24px;letter-spacing:8px;font-weight:700">
+    <button class="btn" onclick="doVerify()">Verify Email</button>
+    <div style="margin-top:10px;font-size:11px;color:rgba(226,232,240,0.3);cursor:pointer" onclick="doResend()">Resend code</div>
+  </div>
+  <div id="forgotForm" style="display:none">
+    <input id="forgotEmail" placeholder="Email" type="email">
+    <button class="btn" onclick="doForgot()">Send Reset Code</button>
+    <div style="margin-top:10px;font-size:11px;color:rgba(226,232,240,0.3);cursor:pointer" onclick="switchTab('login')">Back to login</div>
+  </div>
+  <div id="resetForm" style="display:none">
+    <input id="resetCode" placeholder="6-digit code" maxlength="6" style="text-align:center;font-size:20px;letter-spacing:6px">
+    <input id="resetPassword" placeholder="New password (min 6 characters)" type="password">
+    <button class="btn" onclick="doReset()">Reset Password</button>
+  </div>
   <div class="err" id="errMsg"></div>
+  <div id="forgotLink" style="margin-top:12px;font-size:11px;color:rgba(226,232,240,0.3);cursor:pointer" onclick="switchTab('forgot')">Forgot password?</div>
 </div>
 <script>
 const{ipcRenderer}=require('electron');
+let verifyEmail = '';
+let resetEmail = '';
 function switchTab(t){
   document.getElementById('loginForm').style.display=t==='login'?'block':'none';
   document.getElementById('signupForm').style.display=t==='signup'?'block':'none';
-  document.getElementById('tabLogin').className='tab'+(t==='login'?' active':'');
-  document.getElementById('tabSignup').className='tab'+(t==='signup'?' active':'');
+  document.getElementById('verifyForm').style.display=t==='verify'?'block':'none';
+  document.getElementById('forgotForm').style.display=t==='forgot'?'block':'none';
+  document.getElementById('resetForm').style.display=t==='reset'?'block':'none';
+  document.getElementById('forgotLink').style.display=(t==='login')?'block':'none';
+  document.querySelector('.tabs').style.display=(t==='login'||t==='signup')?'flex':'none';
+  if(t==='login'||t==='signup'){
+    document.getElementById('tabLogin').className='tab'+(t==='login'?' active':'');
+    document.getElementById('tabSignup').className='tab'+(t==='signup'?' active':'');
+  }
   document.getElementById('errMsg').textContent='';
 }
 async function doLogin(){
   const email=document.getElementById('loginEmail').value.trim();
   const pw=document.getElementById('loginPassword').value;
   if(!email||!pw){document.getElementById('errMsg').textContent='Please fill in all fields';return}
-  document.querySelector('.btn').textContent='Logging in...';
+  document.querySelector('#loginForm .btn').textContent='Logging in...';
   const r=await ipcRenderer.invoke('ghost-login',email,pw);
-  if(r.token){ipcRenderer.invoke('login-success')}
-  else{document.getElementById('errMsg').textContent=r.detail||'Login failed';document.querySelector('.btn').textContent='Log In'}
+  if(r.token==='needs_verification'){
+    verifyEmail=email;
+    switchTab('verify');
+    document.getElementById('errMsg').textContent='Please verify your email first. Check your inbox.';
+  } else if(r.token){
+    ipcRenderer.invoke('login-success');
+  } else {
+    document.getElementById('errMsg').textContent=r.detail||'Login failed';
+    document.querySelector('#loginForm .btn').textContent='Log In';
+  }
 }
 async function doSignup(){
   const name=document.getElementById('signupName').value.trim();
@@ -751,10 +851,44 @@ async function doSignup(){
   const pw=document.getElementById('signupPassword').value;
   if(!name||!email||!pw){document.getElementById('errMsg').textContent='Please fill in all fields';return}
   if(pw.length<6){document.getElementById('errMsg').textContent='Password must be at least 6 characters';return}
-  document.querySelectorAll('.btn')[1].textContent='Creating account...';
+  document.querySelector('#signupForm .btn').textContent='Creating account...';
   const r=await ipcRenderer.invoke('ghost-signup',email,name,pw);
+  if(r.email){
+    verifyEmail=email;
+    switchTab('verify');
+    document.getElementById('errMsg').textContent='';
+  } else {
+    document.getElementById('errMsg').textContent=r.detail||'Signup failed';
+    document.querySelector('#signupForm .btn').textContent='Create Account';
+  }
+}
+async function doVerify(){
+  const code=document.getElementById('verifyCode').value.trim();
+  if(code.length!==6){document.getElementById('errMsg').textContent='Enter 6-digit code';return}
+  document.querySelector('#verifyForm .btn').textContent='Verifying...';
+  const r=await ipcRenderer.invoke('ghost-verify',verifyEmail,code);
   if(r.token){ipcRenderer.invoke('login-success')}
-  else{document.getElementById('errMsg').textContent=r.detail||'Signup failed';document.querySelectorAll('.btn')[1].textContent='Create Account'}
+  else{document.getElementById('errMsg').textContent=r.detail||'Invalid code';document.querySelector('#verifyForm .btn').textContent='Verify Email'}
+}
+async function doResend(){
+  await ipcRenderer.invoke('ghost-resend',verifyEmail);
+  document.getElementById('errMsg').textContent='New code sent!';
+}
+async function doForgot(){
+  const email=document.getElementById('forgotEmail').value.trim();
+  if(!email){document.getElementById('errMsg').textContent='Enter your email';return}
+  resetEmail=email;
+  await ipcRenderer.invoke('ghost-forgot',email);
+  switchTab('reset');
+  document.getElementById('errMsg').textContent='If that email exists, a reset code was sent';
+}
+async function doReset(){
+  const code=document.getElementById('resetCode').value.trim();
+  const pw=document.getElementById('resetPassword').value;
+  if(code.length!==6||pw.length<6){document.getElementById('errMsg').textContent='Enter code and new password (min 6 chars)';return}
+  const r=await ipcRenderer.invoke('ghost-reset',resetEmail,code,pw);
+  if(r.message){switchTab('login');document.getElementById('errMsg').textContent='Password reset! Log in with your new password.';}
+  else{document.getElementById('errMsg').textContent=r.detail||'Reset failed';}
 }
 // Auto-fill email for returning users
 ipcRenderer.invoke('ghost-get-user').then(user => {
