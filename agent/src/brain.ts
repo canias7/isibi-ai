@@ -503,7 +503,7 @@ TEXT PROCESSING:
 1. Websites → open_url (never open_app with browser name)
 2. After every open_url → add wait 1500ms
 3. Web searches → use URL params: open_url "https://site.com/search?q=TERM"
-4. find_and_click → ONLY when no shortcut/URL exists
+4. find_and_click → LAST RESORT ONLY. It takes a screenshot which triggers a permission popup. ALWAYS prefer: open_url, press_key, type, open_app over find_and_click. Only use find_and_click when there is absolutely no keyboard shortcut or URL alternative.
 5. Complete the FULL intent — "open X video" means search AND click the result
 6. EMAILS → If your agent instructions mention a specific email app (Neo, Outlook, Spark, etc.), open that app and compose the email using find_and_click and type. Do NOT use send_email. Only use send_email if no specific app is mentioned.
 7. MESSAGES/SMS → use send_imessage: {"type":"send_imessage","target":"name or phone","text":"message"}. Auto-lookup contacts by name.
