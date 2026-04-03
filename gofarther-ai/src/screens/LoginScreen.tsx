@@ -9,8 +9,8 @@ import { login, signup, socialLogin } from '../lib/api';
 WebBrowser.maybeCompleteAuthSession();
 
 // Google OAuth Client IDs — replace with your own from Google Cloud Console
-const GOOGLE_CLIENT_ID_WEB = ''; // Web client ID
-const GOOGLE_CLIENT_ID_IOS = ''; // iOS client ID
+const GOOGLE_CLIENT_ID_WEB = '321209982665-uboadljp5d0hl426rrntnnmg8c6l5v2f.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID_IOS = '321209982665-uboadljp5d0hl426rrntnnmg8c6l5v2f.apps.googleusercontent.com';
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [mode, setMode] = useState<'welcome' | 'email-login' | 'email-signup'>('welcome');
