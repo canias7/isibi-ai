@@ -99,6 +99,12 @@ class GhostSignupRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     password: str = Field(min_length=6, max_length=128)
 
+class GhostSocialLoginRequest(BaseModel):
+    email: EmailStr
+    name: str = Field(min_length=1, max_length=100)
+    provider: str  # 'apple' or 'google'
+    social_token: str
+
 class GhostVerifyRequest(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=6)
@@ -197,6 +203,27 @@ async def ghost_verify(body: GhostVerifyRequest, db: AsyncSession = Depends(get_
     user.verification_code = None
     user.verification_expires = None
     await db.commit()
+
+    token = create_ghost_token(str(user.id), user.email)
+    return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
+
+@router.post("/social-login", response_model=GhostTokenResponse)
+async def ghost_social_login(body: GhostSocialLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Login or signup via Apple/Google. Creates account if doesn't exist."""
+    result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        # Auto-create account for social login (no password needed)
+        random_pw = secrets.token_hex(16)
+        hashed = bcrypt.hashpw(random_pw.encode(), bcrypt.gensalt()).decode()
+        user = GhostUser(
+            email=body.email, name=body.name, password_hash=hashed,
+            email_verified=True,  # Social login = verified
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
 
     token = create_ghost_token(str(user.id), user.email)
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
