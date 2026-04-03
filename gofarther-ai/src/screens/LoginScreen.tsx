@@ -103,6 +103,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       <View style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator color={C.primary} size="large" />
         <Text style={{ color: C.textMid, marginTop: 16, fontSize: F.sm }}>Signing in...</Text>
+        <Text style={{ color: C.textDim, marginTop: 8, fontSize: F.xs, textAlign: 'center', paddingHorizontal: 40 }}>First login may take a moment while the server wakes up</Text>
       </View>
     );
   }
