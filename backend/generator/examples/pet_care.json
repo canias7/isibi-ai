@@ -1,0 +1,147 @@
+{
+  "app_name": "PawPal Pet Care",
+  "entities": [
+    {
+      "name": "Owner",
+      "table": "owner",
+      "description": "Pet owners and their contact information",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "full_name", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 2}},
+        {"name": "email", "db_type": "VARCHAR(255)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "EmailInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "phone", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "address", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "emergency_contact", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "full_name", "default_sort_order": "asc", "page_size": 25, "columns": ["full_name", "email", "phone", "emergency_contact", "created_at"], "filters": [], "empty_state": {"icon": "user", "heading": "No owners registered", "subtext": "Add pet owners to get started", "action_label": "Add Owner"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Owner", "required_fields": ["full_name", "email", "phone"], "field_order": ["full_name", "email", "phone", "address", "emergency_contact"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Pet",
+      "table": "pet",
+      "description": "Pets registered for care services",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true, "min_length": 1}},
+        {"name": "owner_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Owner", "validation": {"required": true}},
+        {"name": "species", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "dog", "label": "Dog", "badge_color": "orange"}, {"value": "cat", "label": "Cat", "badge_color": "purple"}, {"value": "bird", "label": "Bird", "badge_color": "blue"}, {"value": "rabbit", "label": "Rabbit", "badge_color": "pink"}, {"value": "other", "label": "Other", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "breed", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "date_of_birth", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date"},
+        {"name": "weight_kg", "db_type": "DECIMAL(5,1)", "ts_type": "number", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "NumberInput", "display_component": "Text"},
+        {"name": "medical_notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "is_neutered", "db_type": "BOOLEAN", "ts_type": "boolean", "nullable": false, "default": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Toggle", "display_component": "Badge", "enum_values": [{"value": true, "label": "Yes", "badge_color": "green"}, {"value": false, "label": "No", "badge_color": "gray"}]},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "name", "default_sort_order": "asc", "page_size": 25, "columns": ["name", "owner_id", "species", "breed", "date_of_birth", "weight_kg", "is_neutered", "created_at"], "filters": ["species", "owner_id", "is_neutered"], "empty_state": {"icon": "paw-print", "heading": "No pets registered", "subtext": "Register a pet to start tracking their care", "action_label": "Add Pet"}},
+        "create_form": {"type": "SlideOverForm", "title": "Register Pet", "required_fields": ["name", "owner_id", "species"], "field_order": ["name", "owner_id", "species", "breed", "date_of_birth", "weight_kg", "is_neutered", "medical_notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Appointment",
+      "table": "appointment",
+      "description": "Grooming, checkup, and care appointments",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "pet_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Pet", "validation": {"required": true}},
+        {"name": "service_type", "db_type": "VARCHAR(30)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "grooming", "label": "Grooming", "badge_color": "pink"}, {"value": "checkup", "label": "Checkup", "badge_color": "blue"}, {"value": "daycare", "label": "Daycare", "badge_color": "green"}, {"value": "training", "label": "Training", "badge_color": "purple"}, {"value": "dental", "label": "Dental", "badge_color": "orange"}], "validation": {"required": true}},
+        {"name": "appointment_date", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "DateTime", "validation": {"required": true}},
+        {"name": "duration_minutes", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 60, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "NumberInput", "display_component": "Text", "validation": {"required": true, "min": 15}},
+        {"name": "price", "db_type": "DECIMAL(8,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "scheduled", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "scheduled", "label": "Scheduled", "badge_color": "blue"}, {"value": "in_progress", "label": "In Progress", "badge_color": "yellow"}, {"value": "completed", "label": "Completed", "badge_color": "green"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}, {"value": "no_show", "label": "No Show", "badge_color": "gray"}], "validation": {"required": true}},
+        {"name": "notes", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "appointment_date", "default_sort_order": "desc", "page_size": 25, "columns": ["pet_id", "service_type", "appointment_date", "duration_minutes", "price", "status", "created_at"], "filters": ["service_type", "status"], "empty_state": {"icon": "calendar", "heading": "No appointments", "subtext": "Schedule an appointment for a pet", "action_label": "Book Appointment"}},
+        "create_form": {"type": "SlideOverForm", "title": "Book Appointment", "required_fields": ["pet_id", "service_type", "appointment_date", "price"], "field_order": ["pet_id", "service_type", "appointment_date", "duration_minutes", "price", "status", "notes"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Vaccination",
+      "table": "vaccination",
+      "description": "Vaccination records for pets",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "pet_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Pet", "validation": {"required": true}},
+        {"name": "vaccine_name", "db_type": "VARCHAR(100)", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": true, "input_component": "TextInput", "display_component": "Text", "validation": {"required": true}},
+        {"name": "date_administered", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date", "validation": {"required": true}},
+        {"name": "next_due_date", "db_type": "DATE", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date"},
+        {"name": "administered_by", "db_type": "VARCHAR(150)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "batch_number", "db_type": "VARCHAR(50)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "date_administered", "default_sort_order": "desc", "page_size": 25, "columns": ["pet_id", "vaccine_name", "date_administered", "next_due_date", "administered_by", "created_at"], "filters": ["pet_id"], "empty_state": {"icon": "syringe", "heading": "No vaccinations recorded", "subtext": "Track pet vaccination records here", "action_label": "Add Vaccination"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Vaccination", "required_fields": ["pet_id", "vaccine_name", "date_administered"], "field_order": ["pet_id", "vaccine_name", "date_administered", "next_due_date", "administered_by", "batch_number"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    },
+    {
+      "name": "Boarding",
+      "table": "boarding",
+      "description": "Pet boarding and overnight stay reservations",
+      "fields": [
+        {"name": "id", "db_type": "UUID", "ts_type": "string", "nullable": false, "primary_key": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "org_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "pet_id", "db_type": "UUID", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Text", "fk_entity": "Pet", "validation": {"required": true}},
+        {"name": "check_in", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date", "validation": {"required": true}},
+        {"name": "check_out", "db_type": "DATE", "ts_type": "string", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "DatePicker", "display_component": "Date", "validation": {"required": true}},
+        {"name": "daily_rate", "db_type": "DECIMAL(8,2)", "ts_type": "number", "nullable": false, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": true, "filterable": false, "input_component": "CurrencyInput", "display_component": "Currency", "validation": {"required": true, "min": 0}},
+        {"name": "kennel_number", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextInput", "display_component": "Text"},
+        {"name": "special_instructions", "db_type": "TEXT", "ts_type": "string", "nullable": true, "editable": true, "show_in_table": false, "show_in_form": true, "sortable": false, "filterable": false, "input_component": "TextArea", "display_component": "Text"},
+        {"name": "status", "db_type": "VARCHAR(20)", "ts_type": "string", "nullable": false, "default": "reserved", "editable": true, "show_in_table": true, "show_in_form": true, "sortable": false, "filterable": true, "input_component": "Select", "display_component": "Badge", "enum_values": [{"value": "reserved", "label": "Reserved", "badge_color": "blue"}, {"value": "checked_in", "label": "Checked In", "badge_color": "green"}, {"value": "checked_out", "label": "Checked Out", "badge_color": "gray"}, {"value": "cancelled", "label": "Cancelled", "badge_color": "red"}], "validation": {"required": true}},
+        {"name": "created_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": true, "show_in_form": false, "sortable": true, "filterable": false, "input_component": null, "display_component": "DateTime"},
+        {"name": "updated_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": false, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "deleted_at", "db_type": "TIMESTAMPTZ", "ts_type": "string", "nullable": true, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null},
+        {"name": "version", "db_type": "INTEGER", "ts_type": "number", "nullable": false, "default": 1, "editable": false, "show_in_table": false, "show_in_form": false, "sortable": false, "filterable": false, "input_component": null, "display_component": null}
+      ],
+      "ui_config": {
+        "list_view": {"layout": "table", "default_sort": "check_in", "default_sort_order": "desc", "page_size": 25, "columns": ["pet_id", "check_in", "check_out", "daily_rate", "kennel_number", "status", "created_at"], "filters": ["status", "pet_id"], "empty_state": {"icon": "home", "heading": "No boarding reservations", "subtext": "Create a boarding reservation for a pet", "action_label": "Add Reservation"}},
+        "create_form": {"type": "SlideOverForm", "title": "Add Boarding Reservation", "required_fields": ["pet_id", "check_in", "check_out", "daily_rate"], "field_order": ["pet_id", "check_in", "check_out", "daily_rate", "kennel_number", "special_instructions", "status"], "submit_action": "create", "on_success": ["refresh_list", "show_toast"]}
+      }
+    }
+  ],
+  "modules": [
+    {"name": "Dashboard", "route": "/", "component": "Dashboard", "layout": "dashboard", "sidebar_order": 0, "sidebar_icon": "LayoutDashboard", "entity": null},
+    {"name": "Pets", "route": "/pets", "component": "EntityList", "layout": "table", "sidebar_order": 1, "sidebar_icon": "PawPrint", "entity": "Pet"},
+    {"name": "Owners", "route": "/owners", "component": "EntityList", "layout": "table", "sidebar_order": 2, "sidebar_icon": "User", "entity": "Owner"},
+    {"name": "Appointments", "route": "/appointments", "component": "EntityList", "layout": "table", "sidebar_order": 3, "sidebar_icon": "Calendar", "entity": "Appointment"},
+    {"name": "Vaccinations", "route": "/vaccinations", "component": "EntityList", "layout": "table", "sidebar_order": 4, "sidebar_icon": "Syringe", "entity": "Vaccination"},
+    {"name": "Boarding", "route": "/boarding", "component": "EntityList", "layout": "table", "sidebar_order": 5, "sidebar_icon": "Home", "entity": "Boarding"}
+  ],
+  "dashboard": {
+    "stat_cards": [
+      {"label": "Registered Pets", "entity": "Pet", "icon": "PawPrint", "color": "orange"},
+      {"label": "Pet Owners", "entity": "Owner", "icon": "User", "color": "blue"},
+      {"label": "Upcoming Appointments", "entity": "Appointment", "icon": "Calendar", "color": "green"},
+      {"label": "Active Boarding", "entity": "Boarding", "icon": "Home", "color": "purple"}
+    ]
+  },
+  "design_system": {
+    "colors": {"primary": "#ea580c", "secondary": "#f97316", "sidebar_bg": "#fff7ed", "sidebar_text": "#9a3412"},
+    "spacing": {"page_padding": "24px", "card_padding": "16px", "gap": "16px"},
+    "buttons": {"primary_bg": "#ea580c", "primary_text": "white"},
+    "table": {"striped": true, "hover": true},
+    "typography": {"font": "Nunito"}
+  },
+  "pagination": {"default_page_size": 25, "max_page_size": 100}
+}
