@@ -14,7 +14,7 @@ import { login, signup, socialLogin } from '../lib/api';
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_CLIENT_ID_WEB = '321209982665-uboadljp5d0hl426rrntnnmg8c6l5v2f.apps.googleusercontent.com';
-const GOOGLE_CLIENT_ID_IOS = '321209982665-uboadljp5d0hl426rrntnnmg8c6l5v2f.apps.googleusercontent.com';
+const GOOGLE_CLIENT_ID_IOS = '321209982665-agd7dabtpq1jujo8fqsf6j7o70hva44b.apps.googleusercontent.com';
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
