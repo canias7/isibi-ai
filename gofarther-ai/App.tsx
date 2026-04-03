@@ -11,6 +11,8 @@ export default function App() {
   const [auth, setAuth] = useState<'loading' | 'yes' | 'no'>('loading');
 
   useEffect(() => {
+    // Wake up server immediately so login is fast
+    fetch('https://isibi-backend.onrender.com/api/ghost/me').catch(() => {});
     getToken().then(t => setAuth(t ? 'yes' : 'no'));
   }, []);
 
