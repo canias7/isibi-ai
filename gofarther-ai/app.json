@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "GoFarther AI",
-    "slug": "gofarther-ai",
+    "slug": "gofurther-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,7 +22,8 @@
         "NSLocationWhenInUseUsageDescription": "GoFarther AI needs location for directions and nearby search.",
         "ITSAppUsesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.gofurther.ai"
+      "bundleIdentifier": "com.gofarther.ai",
+      "buildNumber": "1"
     },
     "android": {
       "permissions": [
@@ -38,7 +39,8 @@
       "adaptiveIcon": {
         "backgroundColor": "#0a0a0a"
       },
-      "package": "com.gofurther.ai"
+      "package": "com.gofarther.ai",
+      "versionCode": 1
     },
     "plugins": [
       [
@@ -46,13 +48,6 @@
         {
           "color": "#ec4899",
           "defaultChannel": "default"
-        }
-      ],
-      [
-        "expo-speech-recognition",
-        {
-          "microphonePermission": "GoFarther AI needs microphone access for voice commands.",
-          "speechRecognitionPermission": "GoFarther AI needs speech recognition to understand your voice commands."
         }
       ]
     ],
