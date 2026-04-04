@@ -1,0 +1,496 @@
+"""
+Ghost AI Tools — file creation, web intelligence, code interpreter, data analysis.
+
+Routes:
+  POST /api/ghost/tools/create-file         — create PDF/XLSX/DOCX/CSV/TXT
+  POST /api/ghost/tools/create-presentation — create slide deck
+  POST /api/ghost/tools/web-search          — search web, return results
+  POST /api/ghost/tools/read-url            — scrape and summarize a URL
+  POST /api/ghost/tools/read-pdf            — read uploaded PDF, summarize
+  POST /api/ghost/tools/stock-report        — stock analysis
+  POST /api/ghost/tools/weather-report      — weather forecast
+  POST /api/ghost/tools/news                — latest news on topic
+  POST /api/ghost/tools/translate-doc       — translate document
+  POST /api/ghost/tools/run-code            — execute Python code
+  POST /api/ghost/tools/analyze-data        — analyze CSV data
+"""
+
+from __future__ import annotations
+import os
+import io
+import json
+import base64
+import tempfile
+import uuid
+import httpx
+from datetime import datetime
+from fastapi import APIRouter, HTTPException, Header, UploadFile, File, Form
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from typing import Optional
+
+router = APIRouter(prefix="/ghost/tools", tags=["ghost-tools"])
+
+ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+
+# Simple file storage — files stored in /tmp with unique IDs
+# In production, use S3 or Cloudinary
+FILE_STORE: dict[str, dict] = {}
+
+
+def _verify_auth(authorization: str):
+    from routes.ghost_auth import verify_ghost_token
+    token = authorization.replace("Bearer ", "") if authorization.startswith("Bearer ") else authorization
+    return verify_ghost_token(token)
+
+
+async def _ask_claude(prompt: str, system: str = "You are a helpful assistant.") -> str:
+    if not ANTHROPIC_KEY:
+        raise HTTPException(500, "API key not configured")
+    async with httpx.AsyncClient(timeout=60) as client:
+        res = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
+            json={"model": "claude-sonnet-4-20250514", "max_tokens": 4096, "system": system, "messages": [{"role": "user", "content": prompt}]},
+        )
+        if res.status_code != 200:
+            raise HTTPException(res.status_code, "AI error")
+        return res.json().get("content", [{}])[0].get("text", "")
+
+
+# ─── FILE CREATION ────────────────────────────────────────────────────────
+
+class CreateFileRequest(BaseModel):
+    description: str  # What the file should contain
+    file_type: Optional[str] = "pdf"  # pdf, xlsx, docx, csv, txt
+    filename: Optional[str] = None
+
+
+@router.post("/create-file")
+async def create_file(req: CreateFileRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    # Ask AI to generate the content
+    system = f"""You are a document creation assistant. Generate the content for a {req.file_type.upper()} file based on the user's description.
+
+For CSV: return raw CSV data with headers.
+For TXT: return plain text.
+For PDF/DOCX: return well-structured text with headings (use # for headings).
+For XLSX: return JSON array of objects where keys are column headers.
+
+Return ONLY the content, no explanations."""
+
+    content = await _ask_claude(req.description, system)
+
+    file_id = str(uuid.uuid4())
+    filename = req.filename or f"document_{file_id[:8]}"
+
+    if req.file_type == "csv":
+        file_bytes = content.encode('utf-8')
+        filename += ".csv"
+        mime = "text/csv"
+
+    elif req.file_type == "txt":
+        file_bytes = content.encode('utf-8')
+        filename += ".txt"
+        mime = "text/plain"
+
+    elif req.file_type == "xlsx":
+        try:
+            import openpyxl
+            wb = openpyxl.Workbook()
+            ws = wb.active
+
+            # Try to parse JSON data from AI
+            try:
+                data = json.loads(content)
+                if isinstance(data, list) and len(data) > 0:
+                    headers = list(data[0].keys())
+                    ws.append(headers)
+                    for row in data:
+                        ws.append([row.get(h, "") for h in headers])
+            except json.JSONDecodeError:
+                # Fallback: put content as text
+                for i, line in enumerate(content.split('\n')):
+                    cells = line.split(',') if ',' in line else [line]
+                    ws.append(cells)
+
+            buf = io.BytesIO()
+            wb.save(buf)
+            file_bytes = buf.getvalue()
+            filename += ".xlsx"
+            mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        except ImportError:
+            # Fallback to CSV if openpyxl not installed
+            file_bytes = content.encode('utf-8')
+            filename += ".csv"
+            mime = "text/csv"
+
+    elif req.file_type == "docx":
+        try:
+            from docx import Document
+            doc = Document()
+            for line in content.split('\n'):
+                line = line.strip()
+                if line.startswith('# '):
+                    doc.add_heading(line[2:], level=1)
+                elif line.startswith('## '):
+                    doc.add_heading(line[3:], level=2)
+                elif line.startswith('### '):
+                    doc.add_heading(line[4:], level=3)
+                elif line.startswith('- '):
+                    doc.add_paragraph(line[2:], style='List Bullet')
+                elif line:
+                    doc.add_paragraph(line)
+            buf = io.BytesIO()
+            doc.save(buf)
+            file_bytes = buf.getvalue()
+            filename += ".docx"
+            mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        except ImportError:
+            file_bytes = content.encode('utf-8')
+            filename += ".txt"
+            mime = "text/plain"
+
+    else:  # pdf
+        try:
+            from reportlab.lib.pagesizes import letter
+            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet
+
+            buf = io.BytesIO()
+            doc = SimpleDocTemplate(buf, pagesize=letter)
+            styles = getSampleStyleSheet()
+            story = []
+
+            for line in content.split('\n'):
+                line = line.strip()
+                if line.startswith('# '):
+                    story.append(Paragraph(line[2:], styles['Heading1']))
+                elif line.startswith('## '):
+                    story.append(Paragraph(line[3:], styles['Heading2']))
+                elif line.startswith('### '):
+                    story.append(Paragraph(line[4:], styles['Heading3']))
+                elif line:
+                    story.append(Paragraph(line, styles['Normal']))
+                else:
+                    story.append(Spacer(1, 12))
+
+            doc.build(story)
+            file_bytes = buf.getvalue()
+            filename += ".pdf"
+            mime = "application/pdf"
+        except ImportError:
+            file_bytes = content.encode('utf-8')
+            filename += ".txt"
+            mime = "text/plain"
+
+    # Store file
+    file_b64 = base64.b64encode(file_bytes).decode()
+    FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+
+    return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes)}
+
+
+@router.get("/download/{file_id}")
+async def download_file(file_id: str):
+    if file_id not in FILE_STORE:
+        raise HTTPException(404, "File not found or expired")
+    f = FILE_STORE[file_id]
+    from fastapi.responses import Response
+    return Response(content=base64.b64decode(f["data"]), media_type=f["mime"], headers={"Content-Disposition": f'attachment; filename="{f["filename"]}"'})
+
+
+# ─── PRESENTATION ─────────────────────────────────────────────────────────
+
+class PresentationRequest(BaseModel):
+    description: str
+    slides: Optional[int] = 5
+
+
+@router.post("/create-presentation")
+async def create_presentation(req: PresentationRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    system = f"""Create a {req.slides}-slide presentation. Return JSON array where each item has "title" and "bullets" (array of strings). Example:
+[{{"title":"Introduction","bullets":["Point 1","Point 2"]}},{{"title":"Details","bullets":["Info 1","Info 2"]}}]
+Return ONLY valid JSON."""
+
+    content = await _ask_claude(req.description, system)
+
+    try:
+        slides_data = json.loads(content)
+    except:
+        slides_data = [{"title": "Presentation", "bullets": [content]}]
+
+    # Create simple HTML presentation
+    html_slides = []
+    for i, slide in enumerate(slides_data):
+        bullets_html = "".join(f"<li>{b}</li>" for b in slide.get("bullets", []))
+        html_slides.append(f"""
+        <div style="page-break-after: always; padding: 60px; font-family: -apple-system, sans-serif;">
+            <h1 style="font-size: 36px; color: #1a1a1a; margin-bottom: 24px;">{slide.get('title', f'Slide {i+1}')}</h1>
+            <ul style="font-size: 20px; line-height: 2; color: #444;">{bullets_html}</ul>
+            <p style="position: absolute; bottom: 30px; right: 40px; color: #999; font-size: 14px;">{i+1} / {len(slides_data)}</p>
+        </div>""")
+
+    html = f"<html><body>{''.join(html_slides)}</body></html>"
+    file_bytes = html.encode('utf-8')
+    file_id = str(uuid.uuid4())
+    filename = f"presentation_{file_id[:8]}.html"
+
+    FILE_STORE[file_id] = {"filename": filename, "mime": "text/html", "data": base64.b64encode(file_bytes).decode(), "created": datetime.utcnow().isoformat()}
+
+    return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "slides": len(slides_data)}
+
+
+# ─── WEB SEARCH ───────────────────────────────────────────────────────────
+
+class WebSearchRequest(BaseModel):
+    query: str
+
+
+@router.post("/web-search")
+async def web_search(req: WebSearchRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    # Use DuckDuckGo instant answer API (free, no key needed)
+    async with httpx.AsyncClient(timeout=15) as client:
+        res = await client.get(f"https://api.duckduckgo.com/?q={req.query}&format=json&no_html=1")
+        data = res.json()
+
+    results = []
+
+    # Abstract (main answer)
+    if data.get("Abstract"):
+        results.append({"title": data.get("Heading", "Answer"), "snippet": data["Abstract"], "url": data.get("AbstractURL", "")})
+
+    # Related topics
+    for topic in data.get("RelatedTopics", [])[:5]:
+        if isinstance(topic, dict) and topic.get("Text"):
+            results.append({"title": topic.get("Text", "")[:80], "snippet": topic.get("Text", ""), "url": topic.get("FirstURL", "")})
+
+    if not results:
+        # Fallback: ask AI to answer based on its knowledge
+        answer = await _ask_claude(f"Answer this search query concisely: {req.query}")
+        results.append({"title": "AI Answer", "snippet": answer, "url": ""})
+
+    return {"query": req.query, "results": results}
+
+
+# ─── URL READER ───────────────────────────────────────────────────────────
+
+class ReadURLRequest(BaseModel):
+    url: str
+    question: Optional[str] = "Summarize this page."
+
+
+@router.post("/read-url")
+async def read_url(req: ReadURLRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        res = await client.get(req.url, headers={"User-Agent": "GoFarther-AI/1.0"})
+        if res.status_code != 200:
+            raise HTTPException(400, f"Could not fetch URL (status {res.status_code})")
+        html = res.text[:50000]  # Limit to 50KB
+
+    # Strip HTML tags (basic)
+    import re
+    text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+    text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL)
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()[:10000]
+
+    # Ask AI to answer based on content
+    summary = await _ask_claude(f"Based on this webpage content, {req.question}\n\nContent:\n{text}")
+
+    return {"url": req.url, "summary": summary}
+
+
+# ─── PDF READER ───────────────────────────────────────────────────────────
+
+class ReadPDFRequest(BaseModel):
+    pdf_base64: str
+    question: Optional[str] = "Summarize this document."
+
+
+@router.post("/read-pdf")
+async def read_pdf(req: ReadPDFRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    try:
+        import fitz  # PyMuPDF
+        pdf_bytes = base64.b64decode(req.pdf_base64)
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        text = ""
+        for page in doc:
+            text += page.get_text()
+        doc.close()
+        text = text[:10000]
+    except ImportError:
+        raise HTTPException(500, "PDF reader not available on server")
+    except Exception as e:
+        raise HTTPException(400, f"Could not read PDF: {str(e)}")
+
+    summary = await _ask_claude(f"{req.question}\n\nDocument content:\n{text}")
+    return {"summary": summary, "pages": len(doc) if doc else 0}
+
+
+# ─── STOCK REPORT ─────────────────────────────────────────────────────────
+
+class StockRequest(BaseModel):
+    symbol: str
+
+
+@router.post("/stock-report")
+async def stock_report(req: StockRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    symbol = req.symbol.upper()
+    async with httpx.AsyncClient(timeout=15) as client:
+        res = await client.get(f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=1mo")
+        data = res.json()
+
+    meta = data.get("chart", {}).get("result", [{}])[0].get("meta", {})
+    price = meta.get("regularMarketPrice", "N/A")
+    prev_close = meta.get("previousClose", "N/A")
+    currency = meta.get("currency", "USD")
+
+    report = await _ask_claude(f"Give a brief stock analysis for {symbol}. Current price: ${price} {currency}. Previous close: ${prev_close}. Include a brief outlook.")
+
+    return {"symbol": symbol, "price": price, "currency": currency, "previous_close": prev_close, "analysis": report}
+
+
+# ─── WEATHER REPORT ───────────────────────────────────────────────────────
+
+class WeatherRequest(BaseModel):
+    location: str
+
+
+@router.post("/weather-report")
+async def weather_report(req: WeatherRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        res = await client.get(f"https://wttr.in/{req.location}?format=j1")
+        data = res.json()
+
+    current = data.get("current_condition", [{}])[0]
+    forecast = data.get("weather", [])[:3]
+
+    weather_info = {
+        "location": req.location,
+        "temperature": f"{current.get('temp_F', '?')}°F / {current.get('temp_C', '?')}°C",
+        "condition": current.get("weatherDesc", [{}])[0].get("value", "Unknown"),
+        "humidity": f"{current.get('humidity', '?')}%",
+        "wind": f"{current.get('windspeedMiles', '?')} mph",
+        "forecast": [{"date": d.get("date", ""), "high": f"{d.get('maxtempF', '?')}°F", "low": f"{d.get('mintempF', '?')}°F"} for d in forecast],
+    }
+
+    return weather_info
+
+
+# ─── NEWS ─────────────────────────────────────────────────────────────────
+
+class NewsRequest(BaseModel):
+    topic: str
+
+
+@router.post("/news")
+async def news(req: NewsRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    # Use DuckDuckGo news
+    async with httpx.AsyncClient(timeout=15) as client:
+        res = await client.get(f"https://api.duckduckgo.com/?q={req.topic}&format=json&no_html=1")
+        data = res.json()
+
+    # Get AI to provide news summary based on its knowledge
+    summary = await _ask_claude(f"Give me the latest news and developments about: {req.topic}. Be specific with recent events, dates, and key details. Format as bullet points.")
+
+    return {"topic": req.topic, "summary": summary}
+
+
+# ─── TRANSLATE DOCUMENT ───────────────────────────────────────────────────
+
+class TranslateRequest(BaseModel):
+    text: str
+    target_language: str  # e.g. "Spanish", "French"
+
+
+@router.post("/translate-doc")
+async def translate_doc(req: TranslateRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    translation = await _ask_claude(
+        f"Translate the following text to {req.target_language}. Return ONLY the translation, nothing else.\n\n{req.text}",
+        system=f"You are a professional translator. Translate accurately to {req.target_language}."
+    )
+
+    return {"original_language": "auto-detected", "target_language": req.target_language, "translation": translation}
+
+
+# ─── CODE INTERPRETER ─────────────────────────────────────────────────────
+
+class RunCodeRequest(BaseModel):
+    description: str  # What the user wants to compute/create
+
+
+@router.post("/run-code")
+async def run_code(req: RunCodeRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    # Ask AI to write Python code
+    code = await _ask_claude(
+        f"Write Python code to: {req.description}\n\nReturn ONLY the Python code, no explanations. Use print() for output. Do not use any dangerous operations (no file deletion, no network requests, no system commands).",
+        system="You are a Python code generator. Write safe, clean Python code. Only use standard library modules."
+    )
+
+    # Clean the code (remove markdown fences)
+    code = code.strip()
+    if code.startswith("```python"):
+        code = code[9:]
+    if code.startswith("```"):
+        code = code[3:]
+    if code.endswith("```"):
+        code = code[:-3]
+    code = code.strip()
+
+    # Execute in a restricted environment
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["python3", "-c", code],
+            capture_output=True, text=True, timeout=10,
+            env={"PATH": "/usr/bin:/usr/local/bin"}  # Restricted PATH
+        )
+        output = result.stdout or result.stderr or "No output"
+    except subprocess.TimeoutExpired:
+        output = "Code execution timed out (10s limit)"
+    except Exception as e:
+        output = f"Execution error: {str(e)}"
+
+    return {"code": code, "output": output.strip()}
+
+
+# ─── DATA ANALYZER ────────────────────────────────────────────────────────
+
+class AnalyzeDataRequest(BaseModel):
+    csv_data: str  # Raw CSV content
+    question: Optional[str] = "Analyze this data and provide key insights."
+
+
+@router.post("/analyze-data")
+async def analyze_data(req: AnalyzeDataRequest, authorization: str = Header(...)):
+    _verify_auth(authorization)
+
+    # Limit data size
+    csv_preview = req.csv_data[:5000]
+
+    analysis = await _ask_claude(
+        f"{req.question}\n\nCSV Data:\n{csv_preview}",
+        system="You are a data analyst. Analyze the CSV data provided. Give clear insights, trends, and statistics. Format with bullet points and headers."
+    )
+
+    return {"analysis": analysis, "rows_analyzed": req.csv_data.count('\n')}
