@@ -92,6 +92,7 @@ def _register_app_feature_routers(app):
     from routes.control_center_download import router as control_center_router
     from routes.ghost_auth import router as ghost_auth_router
     from routes.ghost_download import router as ghost_download_router
+    from routes.ghost_ai import router as ghost_ai_router
 
     app.include_router(webhooks_router, prefix="/api")
     app.include_router(api_keys_router, prefix="/api")
@@ -127,6 +128,7 @@ def _register_app_feature_routers(app):
     app.include_router(control_center_router, prefix="/api")
     app.include_router(ghost_auth_router, prefix="/api")
     app.include_router(ghost_download_router, prefix="/api")
+    app.include_router(ghost_ai_router, prefix="/api")
 
 
 
