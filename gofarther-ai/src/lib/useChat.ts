@@ -125,7 +125,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           // Show in chat with file path for tap-to-open
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? {
             ...m,
-            content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**\nTap to open`,
+            content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**`,
             fileUrl: filePath,
           } : m));
         }).catch(e => {

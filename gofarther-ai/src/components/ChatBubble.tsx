@@ -89,11 +89,11 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
           {item.fileUrl && (
             <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
               if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(item.fileUrl!);
+                await Sharing.shareAsync(item.fileUrl!, { UTI: 'public.item', mimeType: 'application/octet-stream', dialogTitle: 'Open or Save File' });
               }
             }}>
-              <Ionicons name="document-outline" size={18} color="#1a1a1a" />
-              <Text style={s.fileBtnText}>Open File</Text>
+              <Ionicons name="open-outline" size={18} color="#1a1a1a" />
+              <Text style={s.fileBtnText}>Open / Save File</Text>
             </TouchableOpacity>
           )}
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
