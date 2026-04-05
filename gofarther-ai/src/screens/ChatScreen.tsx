@@ -363,7 +363,9 @@ RULES:
       <View style={[s.inputBarOuter, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#f0f0f0', borderColor: tc.border }]}>
           <TouchableOpacity style={s.plusBtn} onPress={openMenu} activeOpacity={0.6} accessibilityLabel="Actions menu" accessibilityRole="button">
-            <Ionicons name="add-circle" size={26} color={tc.textDim} />
+            <View style={s.plusCircle}>
+              <Ionicons name="add" size={20} color="#1a1a1a" />
+            </View>
           </TouchableOpacity>
           <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
             placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
@@ -469,7 +471,8 @@ const s = StyleSheet.create({
   // Input bar
   inputBarOuter: { paddingHorizontal: 12, paddingTop: 6 },
   inputBar: { flexDirection: 'row', alignItems: 'flex-end', borderRadius: 26, paddingLeft: 4, paddingRight: 4, paddingVertical: 4, borderWidth: 1 },
-  plusBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
+  plusBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  plusCircle: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: '#c5c5c5', alignItems: 'center', justifyContent: 'center' },
   inputIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
   input: { flex: 1, paddingHorizontal: 6, paddingVertical: 8, fontSize: 16, maxHeight: 120, lineHeight: 22 },
   voiceBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
