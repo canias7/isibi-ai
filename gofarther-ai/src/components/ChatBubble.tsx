@@ -1,8 +1,7 @@
 /** Memoized chat message bubble — prevents unnecessary re-renders in FlatList */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated, Modal, SafeAreaView } from 'react-native';
-import WebView from 'react-native-webview';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,7 +45,6 @@ function PulsingText({ text }: { text: string }) {
 }
 
 function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, colors }: Props) {
-  const [showFileViewer, setShowFileViewer] = useState(false);
   const onLongPress = () => {
     if (Platform.OS === 'ios') {
       const options = ['Copy', item.role === 'user' ? 'Edit' : 'Regenerate', 'Cancel'];
@@ -111,36 +109,14 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
             </View>
           )}
           {item.fileUrl && (
-            <View style={s.fileBtns}>
-              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={() => setShowFileViewer(true)}>
-                <Ionicons name="eye-outline" size={18} color="#1a1a1a" />
-                <Text style={s.fileBtnText}>View</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
-                if (await Sharing.isAvailableAsync()) {
-                  await Sharing.shareAsync(item.fileUrl!);
-                }
-              }}>
-                <Ionicons name="share-outline" size={18} color="#1a1a1a" />
-                <Text style={s.fileBtnText}>Save / Share</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-          {item.fileUrl && showFileViewer && (
-            <Modal visible animationType="slide" presentationStyle="pageSheet">
-              <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-                <View style={s.fileViewerHeader}>
-                  <TouchableOpacity onPress={() => setShowFileViewer(false)}>
-                    <Text style={s.fileViewerClose}>Done</Text>
-                  </TouchableOpacity>
-                </View>
-                <WebView
-                  source={{ uri: item.fileUrl! }}
-                  style={{ flex: 1 }}
-                  originWhitelist={['*']}
-                />
-              </SafeAreaView>
-            </Modal>
+            <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
+              if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(item.fileUrl!);
+              }
+            }}>
+              <Ionicons name="document-outline" size={18} color="#1a1a1a" />
+              <Text style={s.fileBtnText}>Open File</Text>
+            </TouchableOpacity>
           )}
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
           {renderAction()}
@@ -159,11 +135,8 @@ const s = StyleSheet.create({
   msgText: { fontSize: 17, lineHeight: 27, color: '#1f2937', letterSpacing: 0.1 },
   msgTextUser: { color: '#111827' },
   pulsingText: { fontSize: 17, color: '#1f2937', fontWeight: '500', lineHeight: 27 },
-  fileBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
-  fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: '#f0f0f0' },
-  fileBtnText: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
-  fileViewerHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e0e0e0' },
-  fileViewerClose: { fontSize: 17, fontWeight: '600', color: '#007AFF' },
+  fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
+  fileBtnText: { fontSize: 15, fontWeight: '600', color: '#1a1a1a' },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
   actionConfirm: { marginTop: 10, padding: 14, borderRadius: 16, backgroundColor: '#f5f5f5' },
   actionConfirmText: { fontSize: 14, fontWeight: '500', marginBottom: 10 },
