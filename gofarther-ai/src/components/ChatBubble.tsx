@@ -1,7 +1,7 @@
 /** Memoized chat message bubble — prevents unnecessary re-renders in FlatList */
 
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,31 @@ interface Props {
   onEdit: (id: string) => void;
   onCopy: (text: string) => void;
   colors: { text: string; textMid: string; textDim: string; bubbleAI: string; bubbleBorder: string };
+}
+
+/** Animated bouncing dots for loading states */
+function AnimatedDots() {
+  const d1 = useRef(new Animated.Value(0)).current;
+  const d2 = useRef(new Animated.Value(0)).current;
+  const d3 = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(Animated.stagger(150, [
+      Animated.sequence([Animated.timing(d1, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(d1, { toValue: 0, duration: 300, useNativeDriver: true })]),
+      Animated.sequence([Animated.timing(d2, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(d2, { toValue: 0, duration: 300, useNativeDriver: true })]),
+      Animated.sequence([Animated.timing(d3, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(d3, { toValue: 0, duration: 300, useNativeDriver: true })]),
+    ]));
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  return (
+    <View style={s.dotsRow}>
+      {[d1, d2, d3].map((d, i) => (
+        <Animated.View key={i} style={[s.dot, { opacity: d.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }), transform: [{ translateY: d.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />
+      ))}
+    </View>
+  );
 }
 
 function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, colors }: Props) {
@@ -80,6 +105,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               ) : (
                 <MarkdownText colors={colors}>{item.content}</MarkdownText>
               )}
+              {item.isCreatingFile && <AnimatedDots />}
             </View>
           ) : (
             <View style={item.role === 'system' ? s.bubbleSystem : undefined}>
@@ -112,6 +138,8 @@ const s = StyleSheet.create({
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
   msgText: { fontSize: 17, lineHeight: 27, color: '#1f2937', letterSpacing: 0.1 },
   msgTextUser: { color: '#111827' },
+  dotsRow: { flexDirection: 'row', gap: 5, paddingTop: 8 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#999' },
   fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
   fileBtnText: { fontSize: 15, fontWeight: '600', color: '#1a1a1a' },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },

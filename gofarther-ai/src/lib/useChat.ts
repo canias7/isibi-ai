@@ -114,7 +114,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle file creation — download and open natively
       if (finalAction?.type === 'create_file') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating file...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating file', isCreatingFile: true } : m));
         setLoading(false);
         createFile(finalAction.target || '', finalAction.text || 'pdf', finalAction.key || 'standard').then(async (result) => {
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
@@ -127,6 +127,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             ...m,
             content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**`,
             fileUrl: filePath,
+            isCreatingFile: false,
           } : m));
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || '') + '\n\n(File creation failed: ' + e.message + ')' } : m));
