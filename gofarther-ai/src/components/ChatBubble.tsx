@@ -1,7 +1,8 @@
 /** Memoized chat message bubble — prevents unnecessary re-renders in FlatList */
 
-import React, { useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated, Modal, SafeAreaView } from 'react-native';
+import WebView from 'react-native-webview';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,32 +25,28 @@ interface Props {
   colors: { text: string; textMid: string; textDim: string; bubbleAI: string; bubbleBorder: string };
 }
 
-/** Animated bouncing dots for loading states */
-function AnimatedDots() {
-  const d1 = useRef(new Animated.Value(0)).current;
-  const d2 = useRef(new Animated.Value(0)).current;
-  const d3 = useRef(new Animated.Value(0)).current;
+/** Pulsing shimmer text for loading states */
+function PulsingText({ text }: { text: string }) {
+  const pulse = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
-    const anim = Animated.loop(Animated.stagger(150, [
-      Animated.sequence([Animated.timing(d1, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(d1, { toValue: 0, duration: 300, useNativeDriver: true })]),
-      Animated.sequence([Animated.timing(d2, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(d2, { toValue: 0, duration: 300, useNativeDriver: true })]),
-      Animated.sequence([Animated.timing(d3, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(d3, { toValue: 0, duration: 300, useNativeDriver: true })]),
-    ]));
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0.4, duration: 800, useNativeDriver: true }),
+      ])
+    );
     anim.start();
     return () => anim.stop();
   }, []);
 
   return (
-    <View style={s.dotsRow}>
-      {[d1, d2, d3].map((d, i) => (
-        <Animated.View key={i} style={[s.dot, { opacity: d.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }), transform: [{ translateY: d.interpolate({ inputRange: [0, 1], outputRange: [0, -4] }) }] }]} />
-      ))}
-    </View>
+    <Animated.Text style={[s.pulsingText, { opacity: pulse }]}>{text}</Animated.Text>
   );
 }
 
 function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, colors }: Props) {
+  const [showFileViewer, setShowFileViewer] = useState(false);
   const onLongPress = () => {
     if (Platform.OS === 'ios') {
       const options = ['Copy', item.role === 'user' ? 'Edit' : 'Regenerate', 'Cancel'];
@@ -100,12 +97,13 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
         <View style={isUser ? { maxWidth: '82%' } : { flex: 1 }}>
           {item.role === 'assistant' ? (
             <View>
-              {isAnimating ? (
+              {item.isCreatingFile ? (
+                <PulsingText text="Creating file" />
+              ) : isAnimating ? (
                 <TypewriterText text={item.content} speed={25} style={{ fontSize: 17, color: '#1f2937', lineHeight: 27, letterSpacing: 0.1 }} onDone={onStopAnimating} />
               ) : (
                 <MarkdownText colors={colors}>{item.content}</MarkdownText>
               )}
-              {item.isCreatingFile && <AnimatedDots />}
             </View>
           ) : (
             <View style={item.role === 'system' ? s.bubbleSystem : undefined}>
@@ -113,14 +111,36 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
             </View>
           )}
           {item.fileUrl && (
-            <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
-              if (await Sharing.isAvailableAsync()) {
-                await Sharing.shareAsync(item.fileUrl!, { UTI: 'public.item', mimeType: 'application/octet-stream', dialogTitle: 'Open or Save File' });
-              }
-            }}>
-              <Ionicons name="open-outline" size={18} color="#1a1a1a" />
-              <Text style={s.fileBtnText}>Open / Save File</Text>
-            </TouchableOpacity>
+            <View style={s.fileBtns}>
+              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={() => setShowFileViewer(true)}>
+                <Ionicons name="eye-outline" size={18} color="#1a1a1a" />
+                <Text style={s.fileBtnText}>View</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
+                if (await Sharing.isAvailableAsync()) {
+                  await Sharing.shareAsync(item.fileUrl!);
+                }
+              }}>
+                <Ionicons name="share-outline" size={18} color="#1a1a1a" />
+                <Text style={s.fileBtnText}>Save / Share</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {item.fileUrl && showFileViewer && (
+            <Modal visible animationType="slide" presentationStyle="pageSheet">
+              <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
+                <View style={s.fileViewerHeader}>
+                  <TouchableOpacity onPress={() => setShowFileViewer(false)}>
+                    <Text style={s.fileViewerClose}>Done</Text>
+                  </TouchableOpacity>
+                </View>
+                <WebView
+                  source={{ uri: item.fileUrl! }}
+                  style={{ flex: 1 }}
+                  originWhitelist={['*']}
+                />
+              </SafeAreaView>
+            </Modal>
           )}
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
           {renderAction()}
@@ -138,10 +158,12 @@ const s = StyleSheet.create({
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
   msgText: { fontSize: 17, lineHeight: 27, color: '#1f2937', letterSpacing: 0.1 },
   msgTextUser: { color: '#111827' },
-  dotsRow: { flexDirection: 'row', gap: 5, paddingTop: 8 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#999' },
-  fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
-  fileBtnText: { fontSize: 15, fontWeight: '600', color: '#1a1a1a' },
+  pulsingText: { fontSize: 17, color: '#1f2937', fontWeight: '500', lineHeight: 27 },
+  fileBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
+  fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: '#f0f0f0' },
+  fileBtnText: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
+  fileViewerHeader: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e0e0e0' },
+  fileViewerClose: { fontSize: 17, fontWeight: '600', color: '#007AFF' },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
   actionConfirm: { marginTop: 10, padding: 14, borderRadius: 16, backgroundColor: '#f5f5f5' },
   actionConfirmText: { fontSize: 14, fontWeight: '500', marginBottom: 10 },
