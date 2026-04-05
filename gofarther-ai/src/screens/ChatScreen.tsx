@@ -367,7 +367,7 @@ RULES:
               <Ionicons name="add" size={20} color="#1a1a1a" />
             </View>
           </TouchableOpacity>
-          <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#f0f0f0', borderColor: tc.border }]}>
+          <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#efefef' }]}>
             <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
               placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
               placeholderTextColor={tc.textDim} multiline maxLength={2000}
@@ -382,19 +382,22 @@ RULES:
                 </View>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity style={s.inputIconBtn} onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
-                <View style={s.voiceBtn}>
-                  <View style={s.waveformContainer}>
-                    <View style={[s.waveBar, { height: 8 }]} />
-                    <View style={[s.waveBar, { height: 14 }]} />
-                    <View style={[s.waveBar, { height: 10 }]} />
-                    <View style={[s.waveBar, { height: 16 }]} />
-                    <View style={[s.waveBar, { height: 6 }]} />
-                  </View>
-                </View>
+              <TouchableOpacity style={s.micInsideBtn} activeOpacity={0.6}>
+                <Ionicons name="mic-outline" size={20} color="#8e8e93" />
               </TouchableOpacity>
             )}
           </View>
+          <TouchableOpacity onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
+            <View style={s.voiceBtn}>
+              <View style={s.waveformContainer}>
+                <View style={[s.waveBar, { height: 8 }]} />
+                <View style={[s.waveBar, { height: 14 }]} />
+                <View style={[s.waveBar, { height: 10 }]} />
+                <View style={[s.waveBar, { height: 16 }]} />
+                <View style={[s.waveBar, { height: 6 }]} />
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -472,9 +475,10 @@ const s = StyleSheet.create({
 
   // Input bar
   inputBarOuter: { paddingHorizontal: 12, paddingTop: 6 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
-  inputBar: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', borderRadius: 26, paddingLeft: 14, paddingRight: 4, paddingVertical: 4, borderWidth: 1 },
-  plusCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: '#c5c5c5', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  inputBar: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', borderRadius: 24, paddingLeft: 16, paddingRight: 6, paddingVertical: 6 },
+  plusCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: '#b0b0b0', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
+  micInsideBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
   inputIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
   input: { flex: 1, paddingHorizontal: 6, paddingVertical: 8, fontSize: 16, maxHeight: 120, lineHeight: 22 },
   voiceBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
