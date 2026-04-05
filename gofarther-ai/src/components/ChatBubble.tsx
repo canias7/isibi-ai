@@ -75,7 +75,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
           <View style={[s.bubble, isUser ? s.bubbleUser : item.role === 'system' ? s.bubbleSystem : s.bubbleAI]}>
             {item.role === 'assistant' ? (
               isAnimating ? (
-                <TypewriterText text={item.content} speed={25} style={{ fontSize: 15, color: colors.text, lineHeight: 23 }} onDone={onStopAnimating} />
+                <TypewriterText text={item.content} speed={25} style={{ fontSize: 16, color: '#000000', lineHeight: 24 }} onDone={onStopAnimating} />
               ) : (
                 <MarkdownText colors={colors}>{item.content}</MarkdownText>
               )
@@ -100,7 +100,7 @@ const s = StyleSheet.create({
   bubbleUser: { backgroundColor: '#e9e9eb', paddingHorizontal: 16, paddingVertical: 10, borderBottomRightRadius: 4 },
   bubbleAI: { backgroundColor: 'transparent', paddingVertical: 2 },
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
-  msgText: { fontSize: 16, lineHeight: 23, color: '#1a1a1a' },
+  msgText: { fontSize: 16, lineHeight: 24, color: '#000000' },
   msgTextUser: { color: '#000000' },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
   actionConfirm: { marginTop: 10, padding: 14, borderRadius: 16, backgroundColor: '#f5f5f5' },
