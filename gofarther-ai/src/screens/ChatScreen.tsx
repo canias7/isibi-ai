@@ -324,19 +324,7 @@ RULES:
 
       {/* Messages or empty */}
       {messages.length === 0 ? (
-        <View style={s.empty}>
-          <View style={s.emptyInner}>
-            <Text style={[s.emptyTitle, { color: tc.text }]}>What can I help with?</Text>
-            <View style={s.suggestionGrid}>
-              {suggestions.map(c => (
-                <TouchableOpacity key={c.label} style={[s.suggestionCard, { backgroundColor: tc.surface || tc.card, borderColor: tc.border }]} onPress={() => setInput(c.label)} activeOpacity={0.7}>
-                  <Ionicons name={c.icon as any} size={20} color={tc.textMid} style={{ marginBottom: 8 }} />
-                  <Text style={[s.suggestionLabel, { color: tc.text }]}>{c.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        </View>
+        <View style={s.empty} />
       ) : (
         <>
           <FlatList
@@ -378,7 +366,7 @@ RULES:
             <Ionicons name="add-circle" size={26} color={tc.textDim} />
           </TouchableOpacity>
           <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
-            placeholder={editingMsgId ? 'Edit your message...' : 'Message'}
+            placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
             placeholderTextColor={tc.textDim} multiline maxLength={2000}
             onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
           {input.trim() ? (
