@@ -475,12 +475,12 @@ const s = StyleSheet.create({
 
   // Input bar
   inputBarOuter: { paddingHorizontal: 12, paddingTop: 6 },
-  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
-  inputBar: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', borderRadius: 24, paddingLeft: 16, paddingRight: 6, paddingVertical: 6 },
-  plusCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: '#b0b0b0', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  micInsideBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
-  inputIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
-  input: { flex: 1, paddingHorizontal: 6, paddingVertical: 8, fontSize: 16, maxHeight: 120, lineHeight: 22 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  inputBar: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 24, paddingLeft: 16, paddingRight: 6, minHeight: 44 },
+  plusCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: '#b0b0b0', alignItems: 'center', justifyContent: 'center' },
+  micInsideBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  inputIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  input: { flex: 1, paddingHorizontal: 6, paddingVertical: 10, fontSize: 16, maxHeight: 120, lineHeight: 22 },
   voiceBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
   waveformContainer: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   waveBar: { width: 2.5, borderRadius: 2, backgroundColor: '#ffffff' },
