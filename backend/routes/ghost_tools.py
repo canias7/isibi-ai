@@ -70,15 +70,35 @@ class CreateFileRequest(BaseModel):
 async def create_file(req: CreateFileRequest, authorization: str = Header(...)):
     _verify_auth(authorization)
 
-    # Ask AI to generate the content
-    system = f"""You are a document creation assistant. Generate the content for a {req.file_type.upper()} file based on the user's description.
+    # Ask AI to generate the content with professional quality
+    format_instructions = {
+        "csv": "Return raw CSV data with headers. Use proper column names. Include realistic, detailed data.",
+        "txt": "Return well-written plain text with clear structure.",
+        "xlsx": "Return a JSON array of objects where keys are column headers. Include realistic data with at least 10 rows. Use proper number formatting.",
+        "pdf": "Return well-structured text using markdown-style headings (# for H1, ## for H2, ### for H3). Use - for bullet points. Use **bold** for emphasis.",
+        "docx": "Return well-structured text using markdown-style headings (# for H1, ## for H2, ### for H3). Use - for bullet points.",
+    }
 
-For CSV: return raw CSV data with headers.
-For TXT: return plain text.
-For PDF/DOCX: return well-structured text with headings (use # for headings).
-For XLSX: return JSON array of objects where keys are column headers.
+    system = f"""You are an expert professional writer and document creator. You write with the quality of a top-tier consultant at McKinsey, Goldman Sachs, or a Big 4 firm.
 
-Return ONLY the content, no explanations."""
+DOCUMENT TYPE: {req.file_type.upper()}
+
+WRITING RULES:
+- Write with authority, precision, and professionalism
+- Use industry-standard terminology and frameworks
+- Include specific details, numbers, metrics, and examples — never vague
+- Structure content with clear hierarchy: sections, subsections, bullet points
+- For resumes: use strong action verbs, quantify achievements, tailor to the role
+- For business documents: include executive summary, key findings, recommendations
+- For proposals: lead with value proposition, include timeline, budget, deliverables
+- For reports: use data-driven language, cite sources where relevant
+- For invoices: use proper formatting with line items, rates, subtotals, tax, total
+- Content should be thorough and detailed — aim for 2-4 pages of real content
+- Write as if this document will be presented to a CEO or client
+
+FORMAT: {format_instructions.get(req.file_type, 'Return well-structured text with headings.')}
+
+Return ONLY the document content. No explanations, no preamble, no "here is your document". Start directly with the content."""
 
     content = await _ask_claude(req.description, system)
 

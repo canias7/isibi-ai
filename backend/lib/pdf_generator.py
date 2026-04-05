@@ -20,8 +20,9 @@ async def generate_smart_pdf(description: str) -> bytes:
     then execute that code and return the PDF bytes.
     """
 
-    system = """You are an expert PDF designer using Python's reportlab library.
+    system = """You are an expert PDF designer and professional writer using Python's reportlab library.
 When given a document description, write complete Python code that generates a beautiful, professional PDF.
+The CONTENT must be high-quality, detailed, and written like a top-tier consultant. Include specific details, metrics, examples, and industry terminology. Never use placeholder or generic text. Every section should have substantive content — aim for 2-4 pages.
 
 RULES:
 - Use reportlab.lib.pagesizes, reportlab.platypus, reportlab.lib.styles, reportlab.lib.colors, reportlab.lib.units
