@@ -120,16 +120,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
           const localPath = `${Paths.cache}/${result.filename}`;
 
-          // Download file using fetch + write
-          const response = await fetch(downloadUrl);
-          const blob = await response.blob();
-          const reader = new FileReader();
-          const base64 = await new Promise<string>((resolve) => {
-            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-            reader.readAsDataURL(blob);
-          });
+          // Download file locally
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
-          await FileSystem.writeAsStringAsync(filePath, base64, { encoding: FileSystem.EncodingType.Base64 });
+          await FileSystem.downloadAsync(downloadUrl, filePath);
 
           // Show in chat with tap-to-open
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? {
