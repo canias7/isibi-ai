@@ -79,9 +79,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       }));
       history.push({ role: 'user', content: text });
 
-      // Stream response with progressive reveal
+      // Create placeholder message, then animate after response arrives
       const aiMsgIdStream = genId();
-      setAnimatingIds(prev => new Set(prev).add(aiMsgIdStream));
       setMessages(prev => [...prev, { id: aiMsgIdStream, role: 'assistant' as const, content: '', timestamp: Date.now() }]);
 
       const response = await chatStream(history, systemPromptRef.current, (chunk) => {
@@ -91,6 +90,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       const { cleanText, action } = parseAction(response);
       let finalAction = action;
       let finalText = cleanText;
+
+      // Start typewriter animation NOW that we have the final text
+      setAnimatingIds(prev => new Set(prev).add(aiMsgIdStream));
 
       // Handle memory
       if (finalAction?.type === 'remember') {

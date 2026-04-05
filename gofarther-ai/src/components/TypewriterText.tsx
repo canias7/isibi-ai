@@ -17,6 +17,9 @@ export default function TypewriterText({ text, speed = 12, style, onDone }: Prop
   const doneRef = useRef(false);
 
   useEffect(() => {
+    // Skip animation for empty text
+    if (!text || text.length === 0) return;
+
     setCharCount(0);
     doneRef.current = false;
 
