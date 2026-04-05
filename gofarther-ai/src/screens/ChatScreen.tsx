@@ -381,13 +381,18 @@ RULES:
             placeholder={editingMsgId ? 'Edit your message...' : 'Message'}
             placeholderTextColor={tc.textDim} multiline maxLength={2000}
             onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
-          {!input.trim() ? (
-            <TouchableOpacity style={s.inputIconBtn} onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
-              <View style={s.voiceBtn}>
-                <Ionicons name="mic" size={18} color="#fff" />
+          <TouchableOpacity style={s.inputIconBtn} onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
+            <View style={s.voiceBtn}>
+              <View style={s.waveformContainer}>
+                <View style={[s.waveBar, { height: 8 }]} />
+                <View style={[s.waveBar, { height: 14 }]} />
+                <View style={[s.waveBar, { height: 10 }]} />
+                <View style={[s.waveBar, { height: 16 }]} />
+                <View style={[s.waveBar, { height: 6 }]} />
               </View>
-            </TouchableOpacity>
-          ) : (
+            </View>
+          </TouchableOpacity>
+          {input.trim() ? (
             <TouchableOpacity style={s.inputIconBtn}
               onPress={() => editingMsgId ? handleSubmitEdit() : send()} disabled={loading} activeOpacity={0.7}>
               <View style={[s.sendBtn, loading && s.sendBtnOff]}>
@@ -396,7 +401,7 @@ RULES:
                 )}
               </View>
             </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
 
@@ -478,7 +483,9 @@ const s = StyleSheet.create({
   plusBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
   inputIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
   input: { flex: 1, paddingHorizontal: 6, paddingVertical: 8, fontSize: 16, maxHeight: 120, lineHeight: 22 },
-  voiceBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
+  voiceBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
+  waveformContainer: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  waveBar: { width: 2.5, borderRadius: 2, backgroundColor: '#ffffff' },
   sendBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1a1a1a', justifyContent: 'center', alignItems: 'center' },
   sendBtnOff: { opacity: 0.3 },
 
