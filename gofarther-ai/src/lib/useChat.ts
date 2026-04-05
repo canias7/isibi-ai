@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { ChatMsg, genId, parseAction, actionLabel } from './types';
 import { chatStream, Message, generateImage, analyzeImage, createFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup } from './ai';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
 import { getChatHistory, saveChatHistory, addMemoryFact, trackEvent } from './storage';
@@ -118,22 +118,30 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         setLoading(false);
         createFile(finalAction.target || '', finalAction.text || 'pdf', finalAction.key || 'standard').then(async (result) => {
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
-          const localPath = `${FileSystem.documentDirectory}${result.filename}`;
+          const localPath = `${Paths.cache}/${result.filename}`;
 
-          // Download file locally
-          await FileSystem.downloadAsync(downloadUrl, localPath);
+          // Download file using fetch + write
+          const response = await fetch(downloadUrl);
+          const blob = await response.blob();
+          const reader = new FileReader();
+          const base64 = await new Promise<string>((resolve) => {
+            reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+            reader.readAsDataURL(blob);
+          });
+          const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
+          await FileSystem.writeAsStringAsync(filePath, base64, { encoding: FileSystem.EncodingType.Base64 });
 
           // Show in chat with tap-to-open
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? {
             ...m,
             content: `${finalText || 'File created:'}\n\n**${result.filename}**\nTap to open`,
-            action: { type: 'open_file', target: localPath },
+            action: { type: 'open_file', target: filePath },
             actionStatus: 'done',
           } : m));
 
           // Auto-open the file with native viewer
           if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(localPath);
+            await Sharing.shareAsync(filePath);
           }
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || '') + '\n\n(File creation failed: ' + e.message + ')' } : m));

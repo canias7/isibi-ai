@@ -16,7 +16,7 @@ import { pickCamera, pickPhotos, pickFile, Attachment } from '../lib/attachments
 import ChatBubble from '../components/ChatBubble';
 import { analyzeImage } from '../lib/ai';
 import { exportChatAsPDF } from '../lib/chatExport';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
 import {
