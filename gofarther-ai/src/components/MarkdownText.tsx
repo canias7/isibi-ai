@@ -8,7 +8,7 @@ interface Props {
 
 /** Simple markdown renderer — handles bold, italic, code, code blocks, lists, headings */
 export default function MarkdownText({ children, colors }: Props) {
-  const textColor = colors?.text === '#f2f2f2' ? '#f2f2f2' : '#374151';
+  const textColor = colors?.text === '#f2f2f2' ? '#f2f2f2' : '#1f2937';
   const dimColor = colors?.textDim || '#666';
   const isDark = textColor === '#f2f2f2';
   const lines = children.split('\n');
@@ -169,19 +169,19 @@ function parseLine(text: string, isDark = false): React.ReactNode {
 }
 
 const ms = StyleSheet.create({
-  body: { fontSize: 16, color: '#374151', lineHeight: 26, letterSpacing: 0.1 },
+  body: { fontSize: 17, color: '#1f2937', lineHeight: 27, letterSpacing: 0.1 },
   bold: { fontWeight: '700' },
   italic: { fontStyle: 'italic' },
   link: { color: '#0066cc', textDecorationLine: 'underline' as any },
-  inlineCode: { backgroundColor: '#f0f0f0', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, color: '#374151', overflow: 'hidden' },
+  inlineCode: { backgroundColor: '#f0f0f0', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 5, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontSize: 14, color: '#1f2937', overflow: 'hidden' },
   inlineCodeDark: { backgroundColor: '#2a2a2a', color: '#e0e0e0' },
-  h1: { fontSize: 24, fontWeight: '700', color: '#374151', marginTop: 8, marginBottom: 4 },
-  h2: { fontSize: 20, fontWeight: '700', color: '#374151', marginTop: 6, marginBottom: 4 },
-  h3: { fontSize: 17, fontWeight: '600', color: '#374151', marginTop: 4, marginBottom: 2 },
+  h1: { fontSize: 24, fontWeight: '700', color: '#1f2937', marginTop: 8, marginBottom: 4 },
+  h2: { fontSize: 20, fontWeight: '700', color: '#1f2937', marginTop: 6, marginBottom: 4 },
+  h3: { fontSize: 17, fontWeight: '600', color: '#1f2937', marginTop: 4, marginBottom: 2 },
   listItem: { flexDirection: 'row', marginVertical: 3, paddingRight: 16 },
-  bullet: { fontSize: 16, color: '#666', lineHeight: 26, width: 20 },
-  numBullet: { fontSize: 16, color: '#666', lineHeight: 26, width: 24 },
-  listText: { flex: 1, fontSize: 16, color: '#374151', lineHeight: 26 },
+  bullet: { fontSize: 17, color: '#666', lineHeight: 27, width: 20 },
+  numBullet: { fontSize: 17, color: '#666', lineHeight: 27, width: 24 },
+  listText: { flex: 1, fontSize: 17, color: '#1f2937', lineHeight: 27 },
   codeBlock: { backgroundColor: '#1e1e1e', padding: 16, borderRadius: 12, marginVertical: 10 },
   codeBlockDark: { backgroundColor: '#111111' },
   codeBlockLang: { fontSize: 11, color: '#666', fontWeight: '500', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
