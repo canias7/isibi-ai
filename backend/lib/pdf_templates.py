@@ -1,9 +1,10 @@
 """
-Professional PDF Templates for GoFarther AI.
-Uses reportlab for high-quality PDF generation with custom styling.
+Level 2 Professional PDF Templates for GoFarther AI.
+Tables, colored sections, multi-column layouts, accent bars, highlight boxes.
 """
 
 import io
+import re
 from datetime import datetime
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
@@ -12,229 +13,245 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
 from reportlab.platypus import (
     SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
-    PageBreak, HRFlowable, Frame, PageTemplate
+    HRFlowable, KeepTogether,
 )
-from reportlab.pdfgen import canvas
-
 
 # Brand colors
 PRIMARY = HexColor('#ec4899')
+PRIMARY_LIGHT = HexColor('#fce7f3')
 DARK = HexColor('#1a1a1a')
-MID = HexColor('#666666')
-LIGHT = HexColor('#f5f5f5')
+MID = HexColor('#555555')
+LIGHT_BG = HexColor('#f8f8f8')
 BORDER = HexColor('#e0e0e0')
 WHITE = white
+ACCENT_BLUE = HexColor('#3b82f6')
+ACCENT_GREEN = HexColor('#22c55e')
+ACCENT_AMBER = HexColor('#f59e0b')
 
 
-def _create_styles():
-    """Create professional paragraph styles."""
-    styles = getSampleStyleSheet()
-
-    styles.add(ParagraphStyle(
-        'DocTitle', parent=styles['Title'],
-        fontSize=28, leading=34, textColor=DARK,
-        spaceAfter=6, fontName='Helvetica-Bold',
-    ))
-    styles.add(ParagraphStyle(
-        'DocSubtitle', parent=styles['Normal'],
-        fontSize=12, leading=16, textColor=MID,
-        spaceAfter=24, fontName='Helvetica',
-    ))
-    styles.add(ParagraphStyle(
-        'H1', parent=styles['Heading1'],
-        fontSize=20, leading=26, textColor=DARK,
-        spaceBefore=20, spaceAfter=10,
-        fontName='Helvetica-Bold',
-        borderColor=PRIMARY, borderWidth=0, borderPadding=0,
-    ))
-    styles.add(ParagraphStyle(
-        'H2', parent=styles['Heading2'],
-        fontSize=16, leading=22, textColor=DARK,
-        spaceBefore=16, spaceAfter=8,
-        fontName='Helvetica-Bold',
-    ))
-    styles.add(ParagraphStyle(
-        'H3', parent=styles['Heading3'],
-        fontSize=13, leading=18, textColor=DARK,
-        spaceBefore=12, spaceAfter=6,
-        fontName='Helvetica-Bold',
-    ))
-    styles.add(ParagraphStyle(
-        'Body', parent=styles['Normal'],
-        fontSize=11, leading=16, textColor=DARK,
-        spaceAfter=8, fontName='Helvetica',
-    ))
-    styles.add(ParagraphStyle(
-        'BulletItem', parent=styles['Normal'],
-        fontSize=11, leading=16, textColor=DARK,
-        spaceAfter=4, fontName='Helvetica',
-        leftIndent=20, bulletIndent=8,
-    ))
-    styles.add(ParagraphStyle(
-        'Footer', parent=styles['Normal'],
-        fontSize=8, leading=10, textColor=MID,
-        fontName='Helvetica', alignment=TA_CENTER,
-    ))
-
-    return styles
+def _styles():
+    s = getSampleStyleSheet()
+    add = s.add
+    add(ParagraphStyle('DocTitle', fontSize=26, leading=32, textColor=DARK, fontName='Helvetica-Bold', spaceAfter=4))
+    add(ParagraphStyle('DocSub', fontSize=11, leading=14, textColor=MID, fontName='Helvetica', spaceAfter=20))
+    add(ParagraphStyle('H1', fontSize=18, leading=24, textColor=DARK, fontName='Helvetica-Bold', spaceBefore=16, spaceAfter=8))
+    add(ParagraphStyle('H2', fontSize=14, leading=20, textColor=DARK, fontName='Helvetica-Bold', spaceBefore=12, spaceAfter=6))
+    add(ParagraphStyle('H3', fontSize=12, leading=16, textColor=MID, fontName='Helvetica-Bold', spaceBefore=8, spaceAfter=4))
+    add(ParagraphStyle('Body', fontSize=10.5, leading=15, textColor=DARK, fontName='Helvetica', spaceAfter=6))
+    add(ParagraphStyle('Bullet', fontSize=10.5, leading=15, textColor=DARK, fontName='Helvetica', spaceAfter=3, leftIndent=16, bulletIndent=6))
+    add(ParagraphStyle('SmallMuted', fontSize=9, leading=12, textColor=MID, fontName='Helvetica'))
+    add(ParagraphStyle('FooterStyle', fontSize=7.5, leading=10, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    add(ParagraphStyle('BoxText', fontSize=10.5, leading=15, textColor=DARK, fontName='Helvetica', spaceAfter=4))
+    add(ParagraphStyle('MetricValue', fontSize=22, leading=26, textColor=PRIMARY, fontName='Helvetica-Bold', alignment=TA_CENTER))
+    add(ParagraphStyle('MetricLabel', fontSize=9, leading=12, textColor=MID, fontName='Helvetica', alignment=TA_CENTER))
+    return s
 
 
-class HeaderFooter:
-    """Draws header and footer on every page."""
+def _header_footer(canvas_obj, doc):
+    """Draw header and footer on every page."""
+    canvas_obj.saveState()
+    w, h = letter
 
-    def __init__(self, title: str = "GoFarther AI"):
-        self.title = title
+    # Header accent line
+    canvas_obj.setStrokeColor(PRIMARY)
+    canvas_obj.setLineWidth(2.5)
+    canvas_obj.line(0.6 * inch, h - 0.55 * inch, w - 0.6 * inch, h - 0.55 * inch)
 
-    def __call__(self, canvas_obj, doc):
-        canvas_obj.saveState()
-        width, height = letter
+    # Footer
+    canvas_obj.setStrokeColor(BORDER)
+    canvas_obj.setLineWidth(0.5)
+    canvas_obj.line(0.6 * inch, 0.55 * inch, w - 0.6 * inch, 0.55 * inch)
+    canvas_obj.setFont('Helvetica', 7.5)
+    canvas_obj.setFillColor(MID)
+    canvas_obj.drawString(0.6 * inch, 0.38 * inch, "Generated by GoFarther AI")
+    canvas_obj.drawRightString(w - 0.6 * inch, 0.38 * inch, f"Page {doc.page}")
 
-        # Header line
-        canvas_obj.setStrokeColor(PRIMARY)
-        canvas_obj.setLineWidth(2)
-        canvas_obj.line(0.75 * inch, height - 0.6 * inch, width - 0.75 * inch, height - 0.6 * inch)
+    canvas_obj.restoreState()
 
-        # Header text
-        canvas_obj.setFont('Helvetica', 8)
-        canvas_obj.setFillColor(MID)
-        canvas_obj.drawString(0.75 * inch, height - 0.5 * inch, self.title)
-        canvas_obj.drawRightString(width - 0.75 * inch, height - 0.5 * inch, datetime.now().strftime('%B %d, %Y'))
 
-        # Footer
-        canvas_obj.setStrokeColor(BORDER)
-        canvas_obj.setLineWidth(0.5)
-        canvas_obj.line(0.75 * inch, 0.6 * inch, width - 0.75 * inch, 0.6 * inch)
+def _fmt(text: str) -> str:
+    """Convert markdown inline to reportlab XML."""
+    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
+    text = re.sub(r'\*(.+?)\*', r'<i>\1</i>', text)
+    text = re.sub(r'`(.+?)`', r'<font face="Courier" size="9" color="#c7254e">\1</font>', text)
+    return text
 
-        canvas_obj.setFont('Helvetica', 8)
-        canvas_obj.setFillColor(MID)
-        canvas_obj.drawString(0.75 * inch, 0.4 * inch, "Generated by GoFarther AI")
-        canvas_obj.drawRightString(width - 0.75 * inch, 0.4 * inch, f"Page {doc.page}")
 
-        canvas_obj.restoreState()
+def _highlight_box(content_lines: list, styles, color=PRIMARY_LIGHT) -> Table:
+    """Create a colored background box with text."""
+    paras = [Paragraph(_fmt(line), styles['BoxText']) for line in content_lines if line.strip()]
+    t = Table([[paras]], colWidths=[6.3 * inch])
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), color),
+        ('ROUNDEDCORNERS', [6, 6, 6, 6]),
+        ('TOPPADDING', (0, 0), (-1, -1), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('LEFTPADDING', (0, 0), (-1, -1), 14),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 14),
+    ]))
+    return t
+
+
+def _metrics_row(metrics: list, styles) -> Table:
+    """Create a row of metric highlight cards. Each metric is (value, label)."""
+    cells = []
+    for val, label in metrics[:4]:
+        cell = [Paragraph(str(val), styles['MetricValue']), Paragraph(label, styles['MetricLabel'])]
+        cells.append(cell)
+
+    col_w = 6.3 * inch / len(cells)
+    t = Table([cells], colWidths=[col_w] * len(cells))
+    t.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), LIGHT_BG),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ('LEFTPADDING', (0, 0), (-1, -1), 8),
+        ('RIGHTPADDING', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+        ('ROUNDEDCORNERS', [4, 4, 4, 4]),
+    ]))
+    return t
+
+
+def _data_table(headers: list, rows: list) -> Table:
+    """Create a styled data table with colored header."""
+    data = [headers] + rows
+    col_w = 6.3 * inch / len(headers)
+    t = Table(data, colWidths=[col_w] * len(headers))
+    t.setStyle(TableStyle([
+        # Header
+        ('BACKGROUND', (0, 0), (-1, 0), DARK),
+        ('TEXTCOLOR', (0, 0), (-1, 0), WHITE),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        # Body
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9.5),
+        ('TOPPADDING', (0, 1), (-1, -1), 6),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 6),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [WHITE, LIGHT_BG]),
+        ('GRID', (0, 0), (-1, -1), 0.5, BORDER),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    return t
+
+
+def _section_header(text: str, styles) -> list:
+    """Create a section header with accent bar."""
+    return [
+        Spacer(1, 6),
+        HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=2),
+        Paragraph(_fmt(text), styles['H1']),
+    ]
 
 
 def create_professional_pdf(content: str, title: str = None) -> bytes:
-    """
-    Create a professionally styled PDF from markdown-like content.
-
-    Supports:
-    - # Heading 1, ## Heading 2, ### Heading 3
-    - - Bullet points
-    - 1. Numbered items
-    - Regular paragraphs
-    - --- Horizontal rules
-    - **bold** text
-    """
+    """Create a Level 2 professional PDF with tables, boxes, and visual structure."""
     buf = io.BytesIO()
-    styles = _create_styles()
+    styles = _styles()
 
     doc = SimpleDocTemplate(
-        buf,
-        pagesize=letter,
-        leftMargin=0.75 * inch,
-        rightMargin=0.75 * inch,
-        topMargin=0.85 * inch,
-        bottomMargin=0.85 * inch,
+        buf, pagesize=letter,
+        leftMargin=0.6 * inch, rightMargin=0.6 * inch,
+        topMargin=0.75 * inch, bottomMargin=0.75 * inch,
     )
 
     story = []
-
-    # Auto-detect title from first heading
     lines = content.split('\n')
-    doc_title = title
 
+    # Auto-detect title
+    doc_title = title
     if not doc_title:
         for line in lines:
-            line = line.strip()
-            if line.startswith('# '):
-                doc_title = line[2:].strip()
+            if line.strip().startswith('# '):
+                doc_title = line.strip()[2:].strip()
                 break
         if not doc_title:
             doc_title = "Document"
 
-    # Title section
-    story.append(Spacer(1, 20))
+    # Title
+    story.append(Spacer(1, 16))
     story.append(Paragraph(doc_title, styles['DocTitle']))
-    story.append(Paragraph(f"Generated on {datetime.now().strftime('%B %d, %Y')}", styles['DocSubtitle']))
-
-    # Pink accent bar under title
-    story.append(HRFlowable(width="30%", thickness=3, color=PRIMARY, spaceAfter=20))
+    story.append(Paragraph(f"Created {datetime.now().strftime('%B %d, %Y')}", styles['DocSub']))
+    story.append(HRFlowable(width="25%", thickness=3, color=PRIMARY, spaceAfter=16))
 
     # Parse content
-    skip_first_heading = True
-    for line in lines:
-        line = line.strip()
+    skip_first_h1 = True
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        i += 1
 
         if not line:
-            story.append(Spacer(1, 6))
+            story.append(Spacer(1, 4))
             continue
 
         # Horizontal rule
         if line.startswith('---'):
-            story.append(Spacer(1, 8))
-            story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=8))
+            story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceBefore=6, spaceAfter=6))
             continue
 
-        # Headings
+        # H1
         if line.startswith('# ') and not line.startswith('## '):
-            if skip_first_heading:
-                skip_first_heading = False
-                continue  # Already used as title
-            text = _format_inline(line[2:].strip())
-            story.append(Spacer(1, 4))
-            story.append(HRFlowable(width="100%", thickness=0.5, color=BORDER, spaceAfter=4))
-            story.append(Paragraph(text, styles['H1']))
+            if skip_first_h1:
+                skip_first_h1 = False
+                continue
+            story.extend(_section_header(line[2:].strip(), styles))
             continue
 
+        # H2
         if line.startswith('## '):
-            text = _format_inline(line[3:].strip())
-            story.append(Paragraph(text, styles['H2']))
+            story.append(Spacer(1, 4))
+            story.append(Paragraph(_fmt(line[3:].strip()), styles['H2']))
             continue
 
+        # H3
         if line.startswith('### '):
-            text = _format_inline(line[4:].strip())
-            story.append(Paragraph(text, styles['H3']))
+            story.append(Paragraph(_fmt(line[4:].strip()), styles['H3']))
             continue
 
-        # Bullet points
+        # Bullet
         if line.startswith('- ') or line.startswith('• ') or line.startswith('* '):
-            text = _format_inline(line[2:].strip())
-            story.append(Paragraph(f"•  {text}", styles['BulletItem']))
+            story.append(Paragraph(f"•  {_fmt(line[2:].strip())}", styles['Bullet']))
             continue
 
-        # Numbered items
-        import re
+        # Numbered
         num_match = re.match(r'^(\d+)\.\s+(.+)$', line)
         if num_match:
-            text = _format_inline(num_match.group(2))
-            story.append(Paragraph(f"{num_match.group(1)}.  {text}", styles['BulletItem']))
+            story.append(Paragraph(f"{num_match.group(1)}.  {_fmt(num_match.group(2))}", styles['Bullet']))
             continue
 
+        # Table detection — if line has | separators
+        if '|' in line and not line.startswith('#'):
+            table_lines = [line]
+            while i < len(lines) and '|' in lines[i]:
+                if lines[i].strip().startswith('---') or lines[i].strip().startswith('|---'):
+                    i += 1
+                    continue
+                table_lines.append(lines[i].strip())
+                i += 1
+
+            if len(table_lines) >= 2:
+                headers = [c.strip() for c in table_lines[0].split('|') if c.strip()]
+                rows = []
+                for tl in table_lines[1:]:
+                    row = [c.strip() for c in tl.split('|') if c.strip()]
+                    if row:
+                        rows.append(row)
+                if headers and rows:
+                    story.append(Spacer(1, 6))
+                    story.append(_data_table(headers, rows))
+                    story.append(Spacer(1, 6))
+                    continue
+
         # Regular paragraph
-        text = _format_inline(line)
-        story.append(Paragraph(text, styles['Body']))
+        story.append(Paragraph(_fmt(line), styles['Body']))
 
-    # Build with header/footer
-    hf = HeaderFooter(doc_title)
-    doc.build(story, onFirstPage=hf, onLaterPages=hf)
-
+    # Build
+    doc.build(story, onFirstPage=_header_footer, onLaterPages=_header_footer)
     return buf.getvalue()
-
-
-def _format_inline(text: str) -> str:
-    """Convert markdown inline formatting to reportlab XML tags."""
-    import re
-
-    # Bold **text**
-    text = re.sub(r'\*\*(.+?)\*\*', r'<b>\1</b>', text)
-
-    # Italic *text*
-    text = re.sub(r'\*(.+?)\*', r'<i>\1</i>', text)
-
-    # Inline code `text`
-    text = re.sub(r'`(.+?)`', r'<font face="Courier" size="10" color="#c7254e">\1</font>', text)
-
-    # Escape any remaining XML-unsafe characters
-    # (but don't escape our intentional tags)
-
-    return text

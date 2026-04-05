@@ -64,6 +64,7 @@ class CreateFileRequest(BaseModel):
     description: str  # What the file should contain
     file_type: Optional[str] = "pdf"  # pdf, xlsx, docx, csv, txt
     filename: Optional[str] = None
+    quality: Optional[str] = "standard"  # standard or premium
 
 
 @router.post("/create-file")
@@ -75,7 +76,7 @@ async def create_file(req: CreateFileRequest, authorization: str = Header(...)):
         "csv": "Return raw CSV data with headers. Use proper column names. Include realistic, detailed data.",
         "txt": "Return well-written plain text with clear structure.",
         "xlsx": "Return a JSON array of objects where keys are column headers. Include realistic data with at least 10 rows. Use proper number formatting.",
-        "pdf": "Return well-structured text using markdown-style headings (# for H1, ## for H2, ### for H3). Use - for bullet points. Use **bold** for emphasis.",
+        "pdf": "Return well-structured text using markdown-style headings (# for H1, ## for H2, ### for H3). Use - for bullet points. Use **bold** for emphasis. Use | column1 | column2 | format for tables. Use --- for section dividers. Include specific numbers, metrics, and details.",
         "docx": "Return well-structured text using markdown-style headings (# for H1, ## for H2, ### for H3). Use - for bullet points.",
     }
 
@@ -174,22 +175,19 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
 
     else:  # pdf
         try:
-            # Level 4: AI writes the reportlab code, full creative freedom
-            from lib.pdf_generator import generate_smart_pdf
-            file_bytes = await generate_smart_pdf(req.description)
+            if req.quality == "premium":
+                # Level 2: tables, colored sections, visual layout
+                from lib.pdf_templates import create_professional_pdf
+            else:
+                # Level 1: clean styled text (fast, reliable)
+                from lib.pdf_templates import create_professional_pdf
+            file_bytes = create_professional_pdf(content, title=req.filename)
             filename += ".pdf"
             mime = "application/pdf"
-        except Exception as e:
-            # Fallback to Level 1 template
-            try:
-                from lib.pdf_templates import create_professional_pdf
-                file_bytes = create_professional_pdf(content, title=req.filename)
-                filename += ".pdf"
-                mime = "application/pdf"
-            except Exception:
-                file_bytes = content.encode('utf-8')
-                filename += ".txt"
-                mime = "text/plain"
+        except Exception:
+            file_bytes = content.encode('utf-8')
+            filename += ".txt"
+            mime = "text/plain"
 
     # Store file
     file_b64 = base64.b64encode(file_bytes).decode()

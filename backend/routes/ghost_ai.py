@@ -25,7 +25,7 @@ def _verify_auth(authorization: str):
 
 # Claude native tools definition
 CLAUDE_TOOLS = [
-    {"name": "create_file", "description": "Create a file (PDF, XLSX, DOCX, CSV, TXT). The server generates the content based on the description.", "input_schema": {"type": "object", "properties": {"description": {"type": "string", "description": "What the file should contain"}, "file_type": {"type": "string", "enum": ["pdf", "xlsx", "docx", "csv", "txt"], "description": "File format"}}, "required": ["description", "file_type"]}},
+    {"name": "create_file", "description": "Create a file (PDF, XLSX, DOCX, CSV, TXT). The server generates the content based on the description. Use quality 'premium' when the user asks for professional, high-quality, or better output.", "input_schema": {"type": "object", "properties": {"description": {"type": "string", "description": "What the file should contain"}, "file_type": {"type": "string", "enum": ["pdf", "xlsx", "docx", "csv", "txt"], "description": "File format"}, "quality": {"type": "string", "enum": ["standard", "premium"], "description": "standard for quick files, premium for professional layout with tables and colors"}}, "required": ["description", "file_type"]}},
     {"name": "web_search", "description": "Search the web and return results", "input_schema": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}},
     {"name": "read_url", "description": "Read and summarize a webpage", "input_schema": {"type": "object", "properties": {"url": {"type": "string"}, "question": {"type": "string", "description": "What to look for on the page"}}, "required": ["url"]}},
     {"name": "run_code", "description": "Write and execute Python code", "input_schema": {"type": "object", "properties": {"description": {"type": "string", "description": "What the code should do"}}, "required": ["description"]}},
@@ -128,7 +128,7 @@ async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
 
         # Map tool_use to the action JSON the app parses
         action_map = {
-            "create_file": {"type": "create_file", "target": inp.get("description", ""), "text": inp.get("file_type", "pdf")},
+            "create_file": {"type": "create_file", "target": inp.get("description", ""), "text": inp.get("file_type", "pdf"), "key": inp.get("quality", "standard")},
             "web_search": {"type": "web_search", "target": inp.get("query", "")},
             "read_url": {"type": "read_url", "target": inp.get("url", ""), "text": inp.get("question", "")},
             "run_code": {"type": "run_code", "target": inp.get("description", "")},
