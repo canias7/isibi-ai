@@ -72,17 +72,19 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
     <TouchableOpacity activeOpacity={0.8} onLongPress={onLongPress} delayLongPress={400} accessibilityLabel={`${isUser ? 'You' : aiName}: ${item.content.slice(0, 50)}`} accessibilityRole="text">
       <View style={[s.msgRow, isUser && s.msgRowUser]}>
         <View style={isUser ? { maxWidth: '82%' } : { flex: 1 }}>
-          <View style={[s.bubble, isUser ? s.bubbleUser : item.role === 'system' ? s.bubbleSystem : s.bubbleAI]}>
-            {item.role === 'assistant' ? (
-              isAnimating ? (
+          {item.role === 'assistant' ? (
+            <View>
+              {isAnimating ? (
                 <TypewriterText text={item.content} speed={25} style={{ fontSize: 16, color: '#000000', lineHeight: 24 }} onDone={onStopAnimating} />
               ) : (
                 <MarkdownText colors={colors}>{item.content}</MarkdownText>
-              )
-            ) : (
+              )}
+            </View>
+          ) : (
+            <View style={[item.role === 'system' ? s.bubbleSystem : s.bubbleUser]}>
               <Text style={[s.msgText, isUser && s.msgTextUser]} selectable>{item.content}</Text>
-            )}
-          </View>
+            </View>
+          )}
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
           {renderAction()}
         </View>
@@ -96,9 +98,7 @@ export default React.memo(ChatBubble);
 const s = StyleSheet.create({
   msgRow: { marginBottom: 20, flexDirection: 'row', alignItems: 'flex-start' },
   msgRowUser: { justifyContent: 'flex-end' },
-  bubble: { borderRadius: 20 },
-  bubbleUser: { backgroundColor: '#e9e9eb', paddingHorizontal: 16, paddingVertical: 10, borderBottomRightRadius: 4 },
-  bubbleAI: { backgroundColor: 'transparent', paddingVertical: 2 },
+  bubbleUser: { backgroundColor: '#e9e9eb', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, borderBottomRightRadius: 4 },
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
   msgText: { fontSize: 16, lineHeight: 24, color: '#000000' },
   msgTextUser: { color: '#000000' },
