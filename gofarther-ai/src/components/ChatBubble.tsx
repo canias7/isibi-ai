@@ -81,7 +81,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               )}
             </View>
           ) : (
-            <View style={[item.role === 'system' ? s.bubbleSystem : s.bubbleUser]}>
+            <View style={item.role === 'system' ? s.bubbleSystem : undefined}>
               <Text style={[s.msgText, isUser && s.msgTextUser]} selectable>{item.content}</Text>
             </View>
           )}
@@ -98,7 +98,6 @@ export default React.memo(ChatBubble);
 const s = StyleSheet.create({
   msgRow: { marginBottom: 20, flexDirection: 'row', alignItems: 'flex-start' },
   msgRowUser: { justifyContent: 'flex-end' },
-  bubbleUser: { backgroundColor: '#e9e9eb', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, borderBottomRightRadius: 4 },
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
   msgText: { fontSize: 16, lineHeight: 24, color: '#000000' },
   msgTextUser: { color: '#000000' },
