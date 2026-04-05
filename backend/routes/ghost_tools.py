@@ -154,36 +154,19 @@ Return ONLY the content, no explanations."""
 
     else:  # pdf
         try:
-            from lib.pdf_templates import create_professional_pdf
-            file_bytes = create_professional_pdf(content, title=req.filename)
+            # Level 4: AI writes the reportlab code, full creative freedom
+            from lib.pdf_generator import generate_smart_pdf
+            file_bytes = await generate_smart_pdf(req.description)
             filename += ".pdf"
             mime = "application/pdf"
-        except Exception:
-            # Fallback to basic reportlab
+        except Exception as e:
+            # Fallback to Level 1 template
             try:
-                from reportlab.lib.pagesizes import letter
-                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-                from reportlab.lib.styles import getSampleStyleSheet
-
-                buf = io.BytesIO()
-                doc = SimpleDocTemplate(buf, pagesize=letter)
-                styles = getSampleStyleSheet()
-                story = []
-                for line in content.split('\n'):
-                    line = line.strip()
-                    if line.startswith('# '):
-                        story.append(Paragraph(line[2:], styles['Heading1']))
-                    elif line.startswith('## '):
-                        story.append(Paragraph(line[3:], styles['Heading2']))
-                    elif line:
-                        story.append(Paragraph(line, styles['Normal']))
-                    else:
-                        story.append(Spacer(1, 12))
-                doc.build(story)
-                file_bytes = buf.getvalue()
+                from lib.pdf_templates import create_professional_pdf
+                file_bytes = create_professional_pdf(content, title=req.filename)
                 filename += ".pdf"
                 mime = "application/pdf"
-            except ImportError:
+            except Exception:
                 file_bytes = content.encode('utf-8')
                 filename += ".txt"
                 mime = "text/plain"
