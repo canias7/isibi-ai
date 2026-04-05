@@ -118,8 +118,6 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         setLoading(false);
         createFile(finalAction.target || '', finalAction.text || 'pdf', finalAction.key || 'standard').then(async (result) => {
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
-          const localPath = `${Paths.cache}/${result.filename}`;
-
           // Download file locally
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           await FileSystem.downloadAsync(downloadUrl, filePath);
