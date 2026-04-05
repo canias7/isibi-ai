@@ -1,37 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Text, View, StyleSheet, Platform } from 'react-native';
+import { Text, Animated } from 'react-native';
 
 interface Props {
   text: string;
-  speed?: number; // ms per character
+  speed?: number;
   style?: any;
   onDone?: () => void;
 }
 
-/** Reveals text character by character with a blinking cursor */
-export default function TypewriterText({ text, speed = 12, style, onDone }: Props) {
+/** Fast character-by-character reveal with fade-in chunks and pulsing cursor */
+export default function TypewriterText({ text, speed = 6, style, onDone }: Props) {
   const [charCount, setCharCount] = useState(0);
-  const [showCursor, setShowCursor] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const cursorRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const doneRef = useRef(false);
+  const cursorOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Skip animation for empty text
     if (!text || text.length === 0) return;
 
     setCharCount(0);
     doneRef.current = false;
 
-    // Character reveal timer
+    // Blinking cursor animation
+    const cursorAnim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(cursorOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+        Animated.timing(cursorOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+      ])
+    );
+    cursorAnim.start();
+
+    // Fast character reveal — burst 2-3 chars at a time for speed
     timerRef.current = setInterval(() => {
       setCharCount(prev => {
-        const next = prev + 1;
+        const burst = Math.random() > 0.3 ? 3 : 2; // variable burst for natural feel
+        const next = Math.min(prev + burst, text.length);
         if (next >= text.length) {
           if (timerRef.current) clearInterval(timerRef.current);
+          cursorAnim.stop();
           if (!doneRef.current) {
             doneRef.current = true;
-            setTimeout(() => onDone?.(), 200);
+            setTimeout(() => onDone?.(), 150);
           }
           return text.length;
         }
@@ -39,14 +48,9 @@ export default function TypewriterText({ text, speed = 12, style, onDone }: Prop
       });
     }, speed);
 
-    // Blinking cursor
-    cursorRef.current = setInterval(() => {
-      setShowCursor(prev => !prev);
-    }, 500);
-
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (cursorRef.current) clearInterval(cursorRef.current);
+      cursorAnim.stop();
     };
   }, [text]);
 
@@ -56,7 +60,11 @@ export default function TypewriterText({ text, speed = 12, style, onDone }: Prop
   return (
     <Text style={style}>
       {visible}
-      {!isDone && <Text style={[style, { opacity: showCursor ? 1 : 0 }]}>{'\u258C'}</Text>}
+      {!isDone && (
+        <Animated.Text style={[style, { opacity: cursorOpacity, color: '#3b82f6' }]}>
+          {'\u2588'}
+        </Animated.Text>
+      )}
     </Text>
   );
 }
