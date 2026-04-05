@@ -16,6 +16,7 @@ export interface ChatMsg {
   action?: ActionPayload;
   actionStatus?: 'confirm' | 'running' | 'done' | 'failed' | 'cancelled';
   imageUrl?: string;
+  fileUrl?: string;
   timestamp?: number;
 }
 

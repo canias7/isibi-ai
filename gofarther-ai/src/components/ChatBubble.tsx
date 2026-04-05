@@ -3,6 +3,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import { ChatMsg } from '../lib/types';
 import { successHaptic } from '../lib/haptics';
@@ -85,6 +86,16 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               <Text style={[s.msgText, isUser && s.msgTextUser]} selectable>{item.content}</Text>
             </View>
           )}
+          {item.fileUrl && (
+            <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
+              if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(item.fileUrl!);
+              }
+            }}>
+              <Ionicons name="document-outline" size={18} color="#1a1a1a" />
+              <Text style={s.fileBtnText}>Open File</Text>
+            </TouchableOpacity>
+          )}
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
           {renderAction()}
         </View>
@@ -101,6 +112,8 @@ const s = StyleSheet.create({
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
   msgText: { fontSize: 17, lineHeight: 27, color: '#1f2937', letterSpacing: 0.1 },
   msgTextUser: { color: '#111827' },
+  fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 12, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
+  fileBtnText: { fontSize: 15, fontWeight: '600', color: '#1a1a1a' },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
   actionConfirm: { marginTop: 10, padding: 14, borderRadius: 16, backgroundColor: '#f5f5f5' },
   actionConfirmText: { fontSize: 14, fontWeight: '500', marginBottom: 10 },

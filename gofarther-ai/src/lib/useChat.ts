@@ -122,19 +122,11 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           await FileSystem.downloadAsync(downloadUrl, filePath);
 
-          // Show in chat — clean message, no raw path
-          const openFile = async () => {
-            if (await Sharing.isAvailableAsync()) {
-              await Sharing.shareAsync(filePath);
-            }
-          };
-
-          // Store the open function for tap-to-open
-          (globalThis as any).__lastFilePath = filePath;
-
+          // Show in chat with file path for tap-to-open
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? {
             ...m,
-            content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**`,
+            content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**\nTap to open`,
+            fileUrl: filePath,
           } : m));
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || '') + '\n\n(File creation failed: ' + e.message + ')' } : m));
