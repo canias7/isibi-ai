@@ -5,11 +5,11 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "dark",
+    "userInterfaceStyle": "light",
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#0a0a0a"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "supportsTablet": true,
@@ -23,7 +23,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.gofarther.ai",
-      "buildNumber": "2"
+      "buildNumber": "3"
     },
     "android": {
       "permissions": [
@@ -37,11 +37,12 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#0a0a0a"
+        "backgroundColor": "#ffffff"
       },
       "package": "com.gofarther.ai",
       "versionCode": 1
     },
+    "scheme": "gofarther",
     "plugins": [
       [
         "expo-notifications",
@@ -49,7 +50,41 @@
           "color": "#ec4899",
           "defaultChannel": "default"
         }
-      ]
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "GoFarther AI needs your location for directions and nearby search."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "GoFarther AI needs camera access for photo attachments.",
+          "photosPermission": "GoFarther AI needs photo library access to attach images."
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "GoFarther AI uses Face ID to unlock the app."
+        }
+      ],
+      "expo-sharing",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "GoFarther AI needs camera access for AR mode and photos."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "GoFarther AI needs contacts access to find people when calling or texting."
+        }
+      ],
+      "expo-audio",
+      ["@sentry/react-native", {"organization": "anias-capital-corp", "project": "gofarther-ai"}]
     ],
     "updates": {
       "url": "https://u.expo.dev/de7252a0-40c1-4cb5-b6f3-eac7cc1f3b5e"

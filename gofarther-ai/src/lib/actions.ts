@@ -1,34 +1,85 @@
-/** GoFarther AI — Mobile Action Handlers */
+/** GoFarther AI — Silent Action Handlers (all through backend, no screen opens) */
 
-import { Linking, Alert } from 'react-native';
+import { Alert, Linking } from 'react-native';
+import * as Sharing from 'expo-sharing';
+import { findContactNumber, findContactEmail } from './contacts';
+import { getToken } from './api';
 
-/** Make a phone call */
-export function makeCall(number: string) {
-  Linking.openURL(`tel:${number}`);
+const TOOLS_V2 = 'https://isibi-backend.onrender.com/api/ghost/tools/v2';
+
+async function authHeaders(): Promise<Record<string, string>> {
+  const token = await getToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
-/** Send SMS */
-export function sendSMS(number: string, body?: string) {
-  const url = body ? `sms:${number}&body=${encodeURIComponent(body)}` : `sms:${number}`;
-  Linking.openURL(url);
+/** Check if string is a phone number */
+function isPhoneNumber(s: string): boolean {
+  const cleaned = s.replace(/[\s\-\(\)\+]/g, '');
+  return /^\d{7,}$/.test(cleaned);
 }
 
-/** Send email */
-export function sendEmail(to: string, subject?: string, body?: string) {
-  let url = `mailto:${to}`;
-  const params: string[] = [];
-  if (subject) params.push(`subject=${encodeURIComponent(subject)}`);
-  if (body) params.push(`body=${encodeURIComponent(body)}`);
-  if (params.length) url += '?' + params.join('&');
-  Linking.openURL(url);
+/** Send SMS silently via backend (Twilio) */
+export async function sendSMS(target: string, body?: string) {
+  let number = target;
+  if (!isPhoneNumber(target)) {
+    const found = await findContactNumber(target);
+    if (found) { number = found; }
+    else { Alert.alert('Contact not found', `Could not find "${target}" in your contacts.`); return; }
+  }
+
+  const headers = await authHeaders();
+  const res = await fetch(`${TOOLS_V2}/send-sms`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ to: number, body: body || '' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || 'SMS failed');
+  }
 }
 
-/** Open URL in browser */
+/** Make call silently via backend (Twilio) */
+export async function makeCall(target: string, message?: string) {
+  let number = target;
+  if (!isPhoneNumber(target)) {
+    const found = await findContactNumber(target);
+    if (found) { number = found; }
+    else { Alert.alert('Contact not found', `Could not find "${target}" in your contacts.`); return; }
+  }
+
+  const headers = await authHeaders();
+  const res = await fetch(`${TOOLS_V2}/ai-call`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ to: number, message: message || 'Hello, this is a call from GoFarther AI.' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || 'Call failed');
+  }
+}
+
+/** Send email silently via backend (SendGrid) */
+export async function sendEmail(to: string, subject?: string, body?: string) {
+  const headers = await authHeaders();
+  const res = await fetch(`${TOOLS_V2}/send-email`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ to, subject: subject || 'No subject', body: body || '' }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || 'Email failed');
+  }
+}
+
+/** Open URL in browser — this one still opens a screen (intentional) */
 export function openURL(url: string) {
   Linking.openURL(url);
 }
 
-/** Open Maps with search */
+/** Open Maps — still opens Maps app (intentional for navigation) */
 export function openMaps(query: string) {
   Linking.openURL(`maps://?q=${encodeURIComponent(query)}`);
 }
@@ -38,34 +89,28 @@ export function openDirections(from: string, to: string) {
   Linking.openURL(`maps://?saddr=${encodeURIComponent(from)}&daddr=${encodeURIComponent(to)}`);
 }
 
-/** Search Google */
-export function searchGoogle(query: string) {
+/** Search Google — now uses backend web search instead of opening browser */
+export async function searchGoogle(query: string) {
+  // This is handled by the web_search action in useChat now
+  // Fallback: open browser
   Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(query)}`);
 }
 
-/** Search YouTube */
-export function searchYouTube(query: string) {
-  Linking.openURL(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`);
-}
-
-/** Open app by URL scheme */
-export function openApp(scheme: string) {
-  Linking.openURL(scheme).catch(() => {
-    Alert.alert('App not found', 'The requested app is not installed.');
-  });
-}
-
 /** Parse and execute an action from AI response */
-export function executeAction(action: { type: string; target?: string; text?: string; key?: string }) {
+export async function executeAction(action: { type: string; target?: string; text?: string; key?: string }) {
   switch (action.type) {
-    case 'call': makeCall(action.target || ''); break;
-    case 'sms': sendSMS(action.target || '', action.text); break;
-    case 'email': sendEmail(action.target || '', action.key, action.text); break;
+    case 'call': await makeCall(action.target || '', action.text); break;
+    case 'sms': await sendSMS(action.target || '', action.text); break;
+    case 'email': await sendEmail(action.target || '', action.key, action.text); break;
     case 'open_url': openURL(action.target || ''); break;
     case 'maps': openMaps(action.target || ''); break;
     case 'directions': openDirections(action.text || 'current location', action.target || ''); break;
     case 'search': searchGoogle(action.target || ''); break;
-    case 'youtube': searchYouTube(action.target || ''); break;
-    default: console.log('Unknown action:', action.type);
+    case 'open_file':
+      if (action.target && await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(action.target);
+      }
+      break;
+    default: throw new Error(`Unknown action: ${action.type}`);
   }
 }

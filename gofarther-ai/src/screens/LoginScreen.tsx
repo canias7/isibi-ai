@@ -8,17 +8,30 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
-import { C, F, R } from '../lib/theme';
-import { login, signup, socialLogin } from '../lib/api';
+import { C } from '../lib/theme';
+import { login, signup, socialLogin, forgotPassword, resetPassword } from '../lib/api';
 
 WebBrowser.maybeCompleteAuthSession();
 
 const GOOGLE_CLIENT_ID_WEB = '321209982665-uboadljp5d0hl426rrntnnmg8c6l5v2f.apps.googleusercontent.com';
 const GOOGLE_CLIENT_ID_IOS = '321209982665-agd7dabtpq1jujo8fqsf6j7o70hva44b.apps.googleusercontent.com';
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SW } = Dimensions.get('window');
+
+const PHRASES = [
+  { text: 'GoFarther', highlight: 'AI' },
+  { text: 'Send an', highlight: 'email' },
+  { text: 'Make a', highlight: 'call' },
+  { text: 'Get', highlight: 'directions' },
+  { text: 'Manage your', highlight: 'tasks' },
+  { text: 'Talk to your', highlight: 'agent' },
+  { text: 'Search the', highlight: 'web' },
+  { text: "Let's", highlight: 'go' },
+];
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [mode, setMode] = useState<'welcome' | 'email-login' | 'email-signup'>('welcome');
+  const [mode, setMode] = useState<'welcome' | 'email-login' | 'email-signup' | 'forgot' | 'reset'>('welcome');
+  const [resetCode, setResetCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,29 +39,55 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [loading, setLoading] = useState(false);
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [focusedField, setFocusedField] = useState('');
+  const [phraseIdx, setPhraseIdx] = useState(0);
 
   // Animations
-  const orbPulse = useRef(new Animated.Value(1)).current;
-  const fadeIn = useRef(new Animated.Value(0)).current;
-  const slideUp = useRef(new Animated.Value(30)).current;
+  const phraseOpacity = useRef(new Animated.Value(1)).current;
+  const phraseSlide = useRef(new Animated.Value(0)).current;
+  const panelSlide = useRef(new Animated.Value(1)).current;
+  const contentFade = useRef(new Animated.Value(0)).current;
+  const orbGlow = useRef(new Animated.Value(0.4)).current;
+  const orbScale = useRef(new Animated.Value(1)).current;
 
+  // Rotating text
   useEffect(() => {
-    // Orb breathing animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(orbPulse, { toValue: 1.08, duration: 2000, useNativeDriver: true }),
-        Animated.timing(orbPulse, { toValue: 1, duration: 2000, useNativeDriver: true }),
-      ])
-    ).start();
-
-    // Fade in content
-    Animated.parallel([
-      Animated.timing(fadeIn, { toValue: 1, duration: 800, useNativeDriver: true }),
-      Animated.timing(slideUp, { toValue: 0, duration: 800, useNativeDriver: true }),
-    ]).start();
+    const timer = setInterval(() => {
+      Animated.parallel([
+        Animated.timing(phraseOpacity, { toValue: 0, duration: 250, useNativeDriver: true }),
+        Animated.timing(phraseSlide, { toValue: -24, duration: 250, useNativeDriver: true }),
+      ]).start(() => {
+        setPhraseIdx(p => (p + 1) % PHRASES.length);
+        phraseSlide.setValue(24);
+        Animated.parallel([
+          Animated.timing(phraseOpacity, { toValue: 1, duration: 350, useNativeDriver: true }),
+          Animated.timing(phraseSlide, { toValue: 0, duration: 350, useNativeDriver: true }),
+        ]).start();
+      });
+    }, 2400);
+    return () => clearInterval(timer);
   }, []);
 
-  // Animate mode transitions
+  // Entry
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(contentFade, { toValue: 1, duration: 700, useNativeDriver: true }),
+      Animated.spring(panelSlide, { toValue: 0, useNativeDriver: true, tension: 40, friction: 10 }),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(orbGlow, { toValue: 0.7, duration: 2000, useNativeDriver: true }),
+          Animated.timing(orbScale, { toValue: 1.12, duration: 2000, useNativeDriver: true }),
+        ]),
+        Animated.parallel([
+          Animated.timing(orbGlow, { toValue: 0.4, duration: 2000, useNativeDriver: true }),
+          Animated.timing(orbScale, { toValue: 1, duration: 2000, useNativeDriver: true }),
+        ]),
+      ])
+    ).start();
+  }, []);
+
   const transitionFade = useRef(new Animated.Value(1)).current;
   const switchMode = (newMode: typeof mode) => {
     Animated.timing(transitionFade, { toValue: 0, duration: 150, useNativeDriver: true }).start(() => {
@@ -134,164 +173,221 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     finally { setLoading(false); }
   };
 
-  // Loading screen with animated orb
+  const handleForgotPassword = async () => {
+    if (!email || !isValidEmail(email)) { Alert.alert('Enter email', 'Please enter your email address first'); return; }
+    setLoading(true);
+    try {
+      await forgotPassword(email.toLowerCase().trim());
+      Alert.alert('Code sent', 'Check your email for the reset code');
+      switchMode('reset');
+    } catch (e: any) { Alert.alert('Error', e.message || 'Could not send reset code'); }
+    finally { setLoading(false); }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetCode || !newPassword) { Alert.alert('Missing fields', 'Enter the code and new password'); return; }
+    if (newPassword.length < 6) { Alert.alert('Weak password', 'Password must be at least 6 characters'); return; }
+    setLoading(true);
+    try {
+      await resetPassword(email.toLowerCase().trim(), resetCode.trim(), newPassword);
+      Alert.alert('Password reset', 'You can now log in with your new password');
+      switchMode('email-login');
+      setResetCode('');
+      setNewPassword('');
+    } catch (e: any) { Alert.alert('Error', e.message || 'Reset failed'); }
+    finally { setLoading(false); }
+  };
+
+  // ==================== LOADING ====================
   if (loading) {
     return (
-      <SafeAreaView style={[s.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <Animated.View style={[s.orbLoading, { transform: [{ scale: orbPulse }] }]} />
+      <View style={s.loadingWrap}>
+        <Animated.View style={[s.loadingOrbOuter, { transform: [{ scale: orbScale }], opacity: orbGlow }]} />
+        <View style={s.loadingOrbInner} />
         <Text style={s.loadingText}>Signing in...</Text>
         <Text style={s.loadingHint}>First login may take a moment</Text>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  // Welcome screen
+  // ==================== WELCOME ====================
   if (mode === 'welcome') {
+    const panelY = panelSlide.interpolate({ inputRange: [0, 1], outputRange: [0, 350] });
+    const phrase = PHRASES[phraseIdx];
+
     return (
-      <SafeAreaView style={s.container}>
-        <Animated.View style={[s.welcomeContent, { opacity: fadeIn, transform: [{ translateY: slideUp }] }]}>
-          {/* Logo area — centered */}
-          <View style={s.logoArea}>
-            <Animated.View style={[s.orb, { transform: [{ scale: orbPulse }] }]} />
-            <Text style={s.title}>GoFarther AI</Text>
-            <Text style={s.sub}>Your AI agent, everywhere</Text>
-          </View>
-
-          {/* Buttons pinned to bottom */}
-          <View style={s.buttonArea}>
-            {appleAvailable && (
-              <TouchableOpacity style={s.appleBtn} onPress={handleAppleAuth} activeOpacity={0.8}>
-                <Text style={s.appleLogo}>{'\uF8FF'}</Text>
-                <Text style={s.appleBtnText}>Continue with Apple</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity style={s.googleBtn} onPress={() => googlePromptAsync()} disabled={!googleRequest} activeOpacity={0.8}>
-              <View style={s.googleLogoWrap}>
-                <Text style={s.googleG}>G</Text>
-              </View>
-              <Text style={s.googleBtnText}>Continue with Google</Text>
-            </TouchableOpacity>
-
-            <View style={s.divider}>
-              <View style={s.dividerLine} />
-              <Text style={s.dividerText}>or</Text>
-              <View style={s.dividerLine} />
-            </View>
-
-            <TouchableOpacity style={s.emailBtn} onPress={() => switchMode('email-signup')} activeOpacity={0.8}>
-              <Text style={s.emailBtnText}>Sign up with email</Text>
-            </TouchableOpacity>
-
-            <View style={s.loginRow}>
-              <Text style={s.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={() => switchMode('email-login')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={s.loginLink}>Log in</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity onPress={() => Linking.openURL('https://isibi.ai/privacy')} style={s.termsBtn}>
-              <Text style={s.terms}>By continuing, you agree to our Terms of Service and Privacy Policy</Text>
-            </TouchableOpacity>
+      <View style={s.root}>
+        {/* Top white area — rotating phrases */}
+        <Animated.View style={[s.whiteArea, { opacity: contentFade }]}>
+          <View style={s.phraseRow}>
+            <Animated.View style={{ opacity: phraseOpacity, transform: [{ translateY: phraseSlide }], flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={s.phraseNormal}>{phrase.text} </Text>
+              <Text style={s.phraseHighlight}>{phrase.highlight}</Text>
+            </Animated.View>
+            {/* Glowing orb next to text */}
+            <Animated.View style={[s.orbDot, { transform: [{ scale: orbScale }] }]}>
+              <View style={s.orbDotInner} />
+            </Animated.View>
           </View>
         </Animated.View>
+
+        {/* Bottom panel */}
+        <Animated.View style={[s.bottomPanel, { transform: [{ translateY: panelY }] }]}>
+          <SafeAreaView edges={['bottom']} style={s.panelContent}>
+            {/* Apple */}
+            {appleAvailable && (
+              <TouchableOpacity style={s.btnApple} onPress={handleAppleAuth} activeOpacity={0.8}>
+                <Text style={s.appleIcon}>{'\uF8FF'}</Text>
+                <Text style={s.btnAppleText}>Continue with Apple</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Google */}
+            <TouchableOpacity style={s.btnGoogle} onPress={() => googlePromptAsync()} disabled={!googleRequest} activeOpacity={0.8}>
+              <View style={s.gBadge}>
+                <Text style={s.gLetter}>G</Text>
+              </View>
+              <Text style={s.btnGoogleText}>Continue with Google</Text>
+            </TouchableOpacity>
+
+            {/* Sign up */}
+            <TouchableOpacity style={s.btnSignup} onPress={() => switchMode('email-signup')} activeOpacity={0.8}>
+              <Text style={s.btnSignupText}>Sign up</Text>
+            </TouchableOpacity>
+
+            {/* Log in */}
+            <TouchableOpacity style={s.btnLogin} onPress={() => switchMode('email-login')} activeOpacity={0.8}>
+              <Text style={s.btnLoginText}>Log in</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => Linking.openURL('https://isibi.ai/privacy')} style={{ alignItems: 'center', paddingTop: 12 }}>
+              <Text style={s.termsText}>By continuing, you agree to our{'\n'}Terms of Service & Privacy Policy</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </Animated.View>
+      </View>
+    );
+  }
+
+  // ==================== FORGOT PASSWORD ====================
+  if (mode === 'forgot') {
+    return (
+      <SafeAreaView style={s.formRoot}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView contentContainerStyle={s.formScroll} keyboardShouldPersistTaps="handled">
+              <View style={s.formNav}>
+                <TouchableOpacity onPress={() => switchMode('email-login')}><Text style={s.navBack}>{'<'}</Text></TouchableOpacity>
+                <Text style={s.navTitle}>Reset Password</Text>
+                <View style={{ width: 28 }} />
+              </View>
+              <View style={s.formCenter}>
+                <Text style={s.formHeading}>Forgot password?</Text>
+                <Text style={s.formSub}>Enter your email and we'll send you a reset code</Text>
+                <View style={[s.inputBox, focusedField === 'email' && s.inputBoxFocus]}>
+                  <TextInput style={s.formInput} placeholder="Email address" placeholderTextColor="#999" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField('')} accessibilityLabel="Email address" />
+                </View>
+                <TouchableOpacity style={[s.submitBtn, !email && { opacity: 0.4 }]} onPress={handleForgotPassword} disabled={!email} activeOpacity={0.8}>
+                  <Text style={s.submitText}>Send Reset Code</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
       </SafeAreaView>
     );
   }
 
-  // Email form screen
+  // ==================== RESET PASSWORD ====================
+  if (mode === 'reset') {
+    return (
+      <SafeAreaView style={s.formRoot}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView contentContainerStyle={s.formScroll} keyboardShouldPersistTaps="handled">
+              <View style={s.formNav}>
+                <TouchableOpacity onPress={() => switchMode('forgot')}><Text style={s.navBack}>{'<'}</Text></TouchableOpacity>
+                <Text style={s.navTitle}>New Password</Text>
+                <View style={{ width: 28 }} />
+              </View>
+              <View style={s.formCenter}>
+                <Text style={s.formHeading}>Enter reset code</Text>
+                <Text style={s.formSub}>Check your email for the 6-digit code</Text>
+                <View style={[s.inputBox, focusedField === 'code' && s.inputBoxFocus]}>
+                  <TextInput style={s.formInput} placeholder="6-digit code" placeholderTextColor="#999" value={resetCode} onChangeText={setResetCode} keyboardType="number-pad" maxLength={6} onFocus={() => setFocusedField('code')} onBlur={() => setFocusedField('')} accessibilityLabel="Reset code" />
+                </View>
+                <View style={[s.inputBox, focusedField === 'newpw' && s.inputBoxFocus]}>
+                  <TextInput style={s.formInput} placeholder="New password" placeholderTextColor="#999" value={newPassword} onChangeText={setNewPassword} secureTextEntry onFocus={() => setFocusedField('newpw')} onBlur={() => setFocusedField('')} accessibilityLabel="New password" />
+                </View>
+                <TouchableOpacity style={[s.submitBtn, (!resetCode || !newPassword) && { opacity: 0.4 }]} onPress={handleResetPassword} disabled={!resetCode || !newPassword} activeOpacity={0.8}>
+                  <Text style={s.submitText}>Reset Password</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </SafeAreaView>
+    );
+  }
+
+  // ==================== EMAIL FORM ====================
   return (
-    <SafeAreaView style={s.container}>
+    <SafeAreaView style={s.formRoot}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-          <Animated.ScrollView contentContainerStyle={s.scrollContent} keyboardShouldPersistTaps="handled" style={{ opacity: transitionFade }}>
-            <TouchableOpacity style={s.backBtn} onPress={() => switchMode('welcome')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={s.backChevron}>‹</Text>
-              <Text style={s.backText}>Back</Text>
-            </TouchableOpacity>
-
-            <View style={s.formLogo}>
-              <Animated.View style={[s.orbSmall, { transform: [{ scale: orbPulse }] }]} />
-              <Text style={s.formTitle}>{mode === 'email-login' ? 'Welcome back' : 'Create your account'}</Text>
-              <Text style={s.formSub}>{mode === 'email-login' ? 'Log in to GoFarther AI' : 'Start your AI journey'}</Text>
+          <Animated.ScrollView contentContainerStyle={s.formScroll} keyboardShouldPersistTaps="handled" style={{ opacity: transitionFade }}>
+            {/* Nav */}
+            <View style={s.formNav}>
+              <TouchableOpacity onPress={() => switchMode('welcome')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={s.navBack}>‹</Text>
+              </TouchableOpacity>
+              <Text style={s.navTitle}>{mode === 'email-login' ? 'Log in' : 'Create account'}</Text>
+              <View style={{ width: 28 }} />
             </View>
 
-            {mode === 'email-signup' && (
-              <View style={[s.inputWrap, focusedField === 'name' && s.inputWrapFocused]}>
-                <TextInput
-                  style={s.input}
-                  placeholder="Full name"
-                  placeholderTextColor={C.textDim}
-                  value={name}
-                  onChangeText={setName}
-                  autoCapitalize="words"
-                  onFocus={() => setFocusedField('name')}
-                  onBlur={() => setFocusedField('')}
-                  returnKeyType="next"
-                />
+            <View style={s.formCenter}>
+              <Animated.View style={[s.formOrb, { transform: [{ scale: orbScale }] }]} />
+              <Text style={s.formHeading}>{mode === 'email-login' ? 'Welcome back' : 'Start your journey'}</Text>
+              <Text style={s.formSub}>{mode === 'email-login' ? 'Sign in to GoFarther AI' : 'Create your GoFarther AI account'}</Text>
+
+              {mode === 'email-signup' && (
+                <View style={[s.inputBox, focusedField === 'name' && s.inputBoxFocus]}>
+                  <TextInput style={s.formInput} placeholder="Full name" placeholderTextColor="#999" value={name} onChangeText={setName} autoCapitalize="words" onFocus={() => setFocusedField('name')} onBlur={() => setFocusedField('')} returnKeyType="next" />
+                </View>
+              )}
+
+              <View style={[s.inputBox, focusedField === 'email' && s.inputBoxFocus]}>
+                <TextInput style={s.formInput} placeholder="Email address" placeholderTextColor="#999" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField('')} returnKeyType="next" />
               </View>
-            )}
 
-            <View style={[s.inputWrap, focusedField === 'email' && s.inputWrapFocused]}>
-              <TextInput
-                style={s.input}
-                placeholder="Email address"
-                placeholderTextColor={C.textDim}
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-                onFocus={() => setFocusedField('email')}
-                onBlur={() => setFocusedField('')}
-                returnKeyType="next"
-              />
-            </View>
+              <View style={[s.inputBox, focusedField === 'password' && s.inputBoxFocus]}>
+                <TextInput style={[s.formInput, { paddingRight: 50 }]} placeholder={mode === 'email-signup' ? 'Create password' : 'Password'} placeholderTextColor="#999" value={password} onChangeText={setPassword} secureTextEntry={!showPassword} onFocus={() => setFocusedField('password')} onBlur={() => setFocusedField('')} returnKeyType="done" onSubmitEditing={mode === 'email-login' ? handleEmailLogin : handleEmailSignup} />
+                <TouchableOpacity style={s.eye} onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={{ fontSize: 18 }}>{showPassword ? '👁' : '👁‍🗨'}</Text>
+                </TouchableOpacity>
+              </View>
 
-            <View style={[s.inputWrap, focusedField === 'password' && s.inputWrapFocused]}>
-              <TextInput
-                style={[s.input, { paddingRight: 50 }]}
-                placeholder={mode === 'email-signup' ? 'Create password' : 'Password'}
-                placeholderTextColor={C.textDim}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                onFocus={() => setFocusedField('password')}
-                onBlur={() => setFocusedField('')}
-                returnKeyType="done"
-                onSubmitEditing={mode === 'email-login' ? handleEmailLogin : handleEmailSignup}
-              />
-              <TouchableOpacity style={s.eyeBtn} onPress={() => setShowPassword(!showPassword)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={s.eyeIcon}>{showPassword ? '👁' : '👁‍🗨'}</Text>
+              {mode === 'email-login' && (
+                <TouchableOpacity style={{ alignSelf: 'flex-end', marginBottom: 8, marginTop: -6 }} onPress={() => switchMode('forgot')}>
+                  <Text style={{ fontSize: 12, color: C.primary, fontWeight: '500' }}>Forgot password?</Text>
+                </TouchableOpacity>
+              )}
+              {mode === 'email-signup' && (
+                <Text style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 8, marginLeft: 4 }}>Must be at least 6 characters</Text>
+              )}
+
+              <TouchableOpacity style={[s.submitBtn, (!email || !password) && { opacity: 0.4 }]} onPress={mode === 'email-login' ? handleEmailLogin : handleEmailSignup} activeOpacity={0.8} disabled={!email || !password}>
+                <Text style={s.submitText}>{mode === 'email-login' ? 'Log In' : 'Create Account'}</Text>
               </TouchableOpacity>
-            </View>
 
-            {mode === 'email-login' && (
-              <TouchableOpacity style={s.forgotBtn} onPress={() => Alert.alert('Reset Password', 'Password reset coming soon')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={s.forgotText}>Forgot password?</Text>
-              </TouchableOpacity>
-            )}
-
-            {mode === 'email-signup' && (
-              <Text style={s.passwordHint}>Must be at least 6 characters</Text>
-            )}
-
-            <TouchableOpacity
-              style={[s.submitBtn, (!email || !password) && s.submitBtnDisabled]}
-              onPress={mode === 'email-login' ? handleEmailLogin : handleEmailSignup}
-              activeOpacity={0.8}
-              disabled={!email || !password}
-            >
-              <Text style={s.submitBtnText}>{mode === 'email-login' ? 'Log In' : 'Create Account'}</Text>
-            </TouchableOpacity>
-
-            <View style={s.switchRow}>
-              <Text style={s.switchText}>
-                {mode === 'email-login' ? "Don't have an account? " : 'Already have an account? '}
-              </Text>
-              <TouchableOpacity onPress={() => switchMode(mode === 'email-login' ? 'email-signup' : 'email-login')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Text style={s.switchLink}>{mode === 'email-login' ? 'Sign up' : 'Log in'}</Text>
-              </TouchableOpacity>
+              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+                <Text style={{ fontSize: 13, color: '#666' }}>
+                  {mode === 'email-login' ? "Don't have an account? " : 'Already have an account? '}
+                </Text>
+                <TouchableOpacity onPress={() => switchMode(mode === 'email-login' ? 'email-signup' : 'email-login')}>
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: C.primary }}>{mode === 'email-login' ? 'Sign up' : 'Log in'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </Animated.ScrollView>
         </KeyboardAvoidingView>
@@ -301,104 +397,182 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 }
 
 const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+  // ============ WELCOME ============
+  root: { flex: 1, backgroundColor: '#f5f5f5' },
 
-  // Welcome
-  welcomeContent: { flex: 1, justifyContent: 'space-between' },
-  logoArea: { alignItems: 'center', paddingTop: SCREEN_HEIGHT * 0.12 },
-  orb: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: C.primary,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.5, shadowRadius: 24,
-    marginBottom: 24,
+  whiteArea: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    overflow: 'hidden',
   },
-  title: { fontSize: 32, fontWeight: '800', color: C.text, letterSpacing: -0.5, marginBottom: 8 },
-  sub: { fontSize: F.md, color: C.textMid, letterSpacing: 0.2 },
-
-  buttonArea: { paddingHorizontal: 24, paddingBottom: 16 },
-
-  // Apple button — black with white text (Apple HIG)
-  appleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: '#fff', borderRadius: R.lg, height: 54, marginBottom: 12,
+  phraseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 50,
+    paddingHorizontal: 24,
   },
-  appleLogo: { fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif', fontSize: 22, color: '#000', marginRight: 8 },
-  appleBtnText: { fontSize: 16, fontWeight: '600', color: '#000' },
-
-  // Google button
-  googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.card, borderRadius: R.lg, height: 54, marginBottom: 24,
-    borderWidth: 1, borderColor: C.border,
+  phraseNormal: {
+    fontSize: 30,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    letterSpacing: -0.3,
   },
-  googleLogoWrap: {
+  phraseHighlight: {
+    fontSize: 30,
+    fontWeight: '800',
+    color: '#ec4899',
+    letterSpacing: -0.3,
+  },
+  orbDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#ec489925',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  orbDotInner: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#ec4899',
+  },
+
+  bottomPanel: {
+    backgroundColor: '#f5f5f5',
+    paddingTop: 24,
+  },
+  panelContent: {
+    paddingHorizontal: 22,
+    paddingBottom: 8,
+  },
+
+  // Apple — black button
+  btnApple: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#000000',
+    borderRadius: 28,
+    height: 56,
+    marginBottom: 10,
+  },
+  appleIcon: {
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+    fontSize: 20,
+    color: '#ffffff',
+    marginRight: 10,
+  },
+  btnAppleText: { fontSize: 16, fontWeight: '600', color: '#ffffff' },
+
+  // Google — white button with border
+  btnGoogle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderRadius: 28,
+    height: 56,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  gBadge: {
     width: 24, height: 24, borderRadius: 12,
-    backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginRight: 10,
+    backgroundColor: '#ffffff',
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: 10,
   },
-  googleG: { fontSize: 15, fontWeight: '800', color: '#4285F4' },
-  googleBtnText: { fontSize: 16, fontWeight: '600', color: C.text },
+  gLetter: { fontSize: 15, fontWeight: '800', color: '#4285F4' },
+  btnGoogleText: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
 
-  divider: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: C.border },
-  dividerText: { paddingHorizontal: 16, fontSize: F.sm, color: C.textDim, fontWeight: '500' },
-
-  emailBtn: {
-    borderRadius: R.lg, height: 54, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1.5, borderColor: C.primary, marginBottom: 20,
+  // Sign up — pink
+  btnSignup: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ec4899',
+    borderRadius: 28,
+    height: 56,
+    marginBottom: 10,
+    shadowColor: '#ec4899',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
   },
-  emailBtnText: { fontSize: 16, fontWeight: '600', color: C.primary },
+  btnSignupText: { fontSize: 16, fontWeight: '700', color: '#ffffff' },
 
-  loginRow: { flexDirection: 'row', justifyContent: 'center', marginBottom: 16 },
-  loginText: { fontSize: F.sm, color: C.textMid },
-  loginLink: { fontSize: F.sm, fontWeight: '700', color: C.primary },
-
-  termsBtn: { alignItems: 'center', paddingTop: 8, paddingBottom: 4 },
-  terms: { fontSize: 11, color: C.textDim, textAlign: 'center', lineHeight: 16, textDecorationLine: 'underline' },
-
-  // Loading
-  orbLoading: {
-    width: 64, height: 64, borderRadius: 32, backgroundColor: C.primary,
-    shadowColor: C.primary, shadowOpacity: 0.6, shadowRadius: 24, marginBottom: 24,
+  // Log in — outlined
+  btnLogin: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 28,
+    height: 56,
+    borderWidth: 1.5,
+    borderColor: '#d0d0d0',
+    backgroundColor: '#ffffff',
   },
-  loadingText: { color: C.text, fontSize: F.md, fontWeight: '600' },
-  loadingHint: { color: C.textDim, fontSize: F.xs, marginTop: 8 },
+  btnLoginText: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
 
-  // Form
-  scrollContent: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 32 },
-  backChevron: { fontSize: 28, color: C.primary, fontWeight: '300', marginRight: 4, marginTop: -2 },
-  backText: { fontSize: F.md, color: C.primary, fontWeight: '500' },
+  termsText: { fontSize: 11, color: '#999', textAlign: 'center', lineHeight: 16 },
 
-  formLogo: { alignItems: 'center', marginBottom: 36 },
-  orbSmall: {
-    width: 52, height: 52, borderRadius: 26, backgroundColor: C.primary,
-    shadowColor: C.primary, shadowOpacity: 0.4, shadowRadius: 16, marginBottom: 20,
+  // ============ LOADING ============
+  loadingWrap: {
+    flex: 1, backgroundColor: '#ffffff',
+    justifyContent: 'center', alignItems: 'center',
   },
-  formTitle: { fontSize: 24, fontWeight: '700', color: C.text, marginBottom: 6 },
-  formSub: { fontSize: F.sm, color: C.textMid },
-
-  inputWrap: {
-    width: '100%', backgroundColor: C.card, borderWidth: 1.5, borderColor: C.border,
-    borderRadius: R.lg, marginBottom: 14, flexDirection: 'row', alignItems: 'center',
+  loadingOrbOuter: {
+    position: 'absolute',
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: '#ec4899',
   },
-  inputWrapFocused: { borderColor: C.primary },
-  input: { flex: 1, padding: 16, color: C.text, fontSize: F.md },
-  eyeBtn: { position: 'absolute', right: 16 },
-  eyeIcon: { fontSize: 18 },
+  loadingOrbInner: {
+    width: 64, height: 64, borderRadius: 32,
+    backgroundColor: '#ec4899',
+    marginBottom: 28,
+    shadowColor: '#ec4899', shadowOpacity: 0.3, shadowRadius: 24,
+  },
+  loadingText: { color: '#1a1a1a', fontSize: 16, fontWeight: '600' },
+  loadingHint: { color: '#999', fontSize: 12, marginTop: 8 },
 
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: 12, marginTop: -4 },
-  forgotText: { fontSize: F.xs, color: C.primary, fontWeight: '500' },
-  passwordHint: { fontSize: F.xs, color: C.textDim, marginTop: -8, marginBottom: 12, marginLeft: 4 },
+  // ============ EMAIL FORM ============
+  formRoot: { flex: 1, backgroundColor: '#ffffff' },
+  formScroll: { flexGrow: 1, padding: 24, paddingTop: 0 },
+  formNav: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingVertical: 12,
+  },
+  navBack: { fontSize: 32, color: '#1a1a1a', fontWeight: '300' },
+  navTitle: { fontSize: 16, fontWeight: '600', color: '#1a1a1a' },
+
+  formCenter: { flex: 1, justifyContent: 'center' },
+  formOrb: {
+    width: 48, height: 48, borderRadius: 24,
+    backgroundColor: '#ec4899', alignSelf: 'center', marginBottom: 20,
+    shadowColor: '#ec4899', shadowOpacity: 0.25, shadowRadius: 16,
+  },
+  formHeading: { fontSize: 24, fontWeight: '700', color: '#1a1a1a', textAlign: 'center', marginBottom: 6 },
+  formSub: { fontSize: 13, color: '#888', textAlign: 'center', marginBottom: 32 },
+
+  inputBox: {
+    width: '100%', backgroundColor: '#f5f5f5',
+    borderWidth: 1.5, borderColor: '#e0e0e0',
+    borderRadius: 16, marginBottom: 14,
+    flexDirection: 'row', alignItems: 'center',
+  },
+  inputBoxFocus: { borderColor: '#ec4899' },
+  formInput: { flex: 1, padding: 16, color: '#1a1a1a', fontSize: 15 },
+  eye: { position: 'absolute', right: 16 },
 
   submitBtn: {
-    width: '100%', height: 54, borderRadius: R.lg,
-    backgroundColor: C.primary, alignItems: 'center', justifyContent: 'center', marginTop: 8,
-    shadowColor: C.primary, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 12,
+    width: '100%', height: 56, borderRadius: 28,
+    backgroundColor: '#ec4899', alignItems: 'center', justifyContent: 'center', marginTop: 8,
+    shadowColor: '#ec4899', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 12,
   },
-  submitBtnDisabled: { opacity: 0.5, shadowOpacity: 0 },
-  submitBtnText: { color: 'white', fontSize: 16, fontWeight: '700' },
-
-  switchRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
-  switchText: { fontSize: F.sm, color: C.textMid },
-  switchLink: { fontSize: F.sm, fontWeight: '700', color: C.primary },
+  submitText: { color: '#ffffff', fontSize: 16, fontWeight: '700' },
 });
