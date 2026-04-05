@@ -4,7 +4,7 @@ import { getToken } from './api';
 import NetInfo from '@react-native-community/netinfo';
 
 const BASE = 'https://isibi-backend.onrender.com/api/ghost/ai';
-const TIMEOUT_MS = 30000;
+const TIMEOUT_MS = 120000;
 
 /** Check network before requests */
 async function checkNetwork() {
@@ -138,7 +138,7 @@ export async function createFile(description: string, fileType: string = 'pdf', 
   const res = await fetchWithTimeout(`${TOOLS_BASE}/create-file`, {
     method: 'POST', headers,
     body: JSON.stringify({ description, file_type: fileType, quality }),
-  }, 90000);
+  }, 180000);
   if (!res.ok) throw new Error('File creation failed');
   return res.json();
 }
