@@ -381,17 +381,6 @@ RULES:
             placeholder={editingMsgId ? 'Edit your message...' : 'Message'}
             placeholderTextColor={tc.textDim} multiline maxLength={2000}
             onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
-          <TouchableOpacity style={s.inputIconBtn} onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
-            <View style={s.voiceBtn}>
-              <View style={s.waveformContainer}>
-                <View style={[s.waveBar, { height: 8 }]} />
-                <View style={[s.waveBar, { height: 14 }]} />
-                <View style={[s.waveBar, { height: 10 }]} />
-                <View style={[s.waveBar, { height: 16 }]} />
-                <View style={[s.waveBar, { height: 6 }]} />
-              </View>
-            </View>
-          </TouchableOpacity>
           {input.trim() ? (
             <TouchableOpacity style={s.inputIconBtn}
               onPress={() => editingMsgId ? handleSubmitEdit() : send()} disabled={loading} activeOpacity={0.7}>
@@ -401,7 +390,19 @@ RULES:
                 )}
               </View>
             </TouchableOpacity>
-          ) : null}
+          ) : (
+            <TouchableOpacity style={s.inputIconBtn} onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
+              <View style={s.voiceBtn}>
+                <View style={s.waveformContainer}>
+                  <View style={[s.waveBar, { height: 8 }]} />
+                  <View style={[s.waveBar, { height: 14 }]} />
+                  <View style={[s.waveBar, { height: 10 }]} />
+                  <View style={[s.waveBar, { height: 16 }]} />
+                  <View style={[s.waveBar, { height: 6 }]} />
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
