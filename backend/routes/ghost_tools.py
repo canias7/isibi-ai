@@ -18,6 +18,7 @@ Routes:
 from __future__ import annotations
 import os
 import io
+import re
 import json
 import base64
 import tempfile
@@ -175,19 +176,42 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
 
     else:  # pdf
         try:
-            if req.quality == "premium":
-                # Level 2: tables, colored sections, visual layout
-                from lib.pdf_templates import create_professional_pdf
-            else:
-                # Level 1: clean styled text (fast, reliable)
-                from lib.pdf_templates import create_professional_pdf
+            from lib.pdf_templates import create_professional_pdf
             file_bytes = create_professional_pdf(content, title=req.filename)
             filename += ".pdf"
             mime = "application/pdf"
-        except Exception:
-            file_bytes = content.encode('utf-8')
-            filename += ".txt"
-            mime = "text/plain"
+        except Exception as e:
+            import traceback
+            print(f"[PDF ERROR] Failed to create PDF: {e}")
+            traceback.print_exc()
+            # Fallback: still try basic PDF with reportlab
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                from reportlab.lib.styles import getSampleStyleSheet
+                buf = io.BytesIO()
+                doc = SimpleDocTemplate(buf, pagesize=letter)
+                styles = getSampleStyleSheet()
+                story = []
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if not line:
+                        story.append(Spacer(1, 12))
+                    else:
+                        # Strip markdown bold/italic
+                        clean = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+                        clean = re.sub(r'\*(.+?)\*', r'\1', clean)
+                        clean = re.sub(r'^#+\s*', '', clean)
+                        story.append(Paragraph(clean, styles['Normal']))
+                doc.build(story)
+                file_bytes = buf.getvalue()
+                filename += ".pdf"
+                mime = "application/pdf"
+            except Exception as e2:
+                print(f"[PDF FALLBACK ERROR] {e2}")
+                file_bytes = content.encode('utf-8')
+                filename += ".txt"
+                mime = "text/plain"
 
     # Store file
     file_b64 = base64.b64encode(file_bytes).decode()
