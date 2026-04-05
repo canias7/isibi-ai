@@ -361,38 +361,40 @@ RULES:
 
       {/* Input bar */}
       <View style={[s.inputBarOuter, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#f0f0f0', borderColor: tc.border }]}>
-          <TouchableOpacity style={s.plusBtn} onPress={openMenu} activeOpacity={0.6} accessibilityLabel="Actions menu" accessibilityRole="button">
+        <View style={s.inputRow}>
+          <TouchableOpacity onPress={openMenu} activeOpacity={0.6} accessibilityLabel="Actions menu" accessibilityRole="button">
             <View style={s.plusCircle}>
               <Ionicons name="add" size={20} color="#1a1a1a" />
             </View>
           </TouchableOpacity>
-          <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
-            placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
-            placeholderTextColor={tc.textDim} multiline maxLength={2000}
-            onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
-          {input.trim() ? (
-            <TouchableOpacity style={s.inputIconBtn}
-              onPress={() => editingMsgId ? handleSubmitEdit() : send()} disabled={loading} activeOpacity={0.7}>
-              <View style={[s.sendBtn, loading && s.sendBtnOff]}>
-                {loading ? <ActivityIndicator color="white" size="small" /> : (
-                  <Ionicons name="arrow-up" size={18} color="#ffffff" />
-                )}
-              </View>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity style={s.inputIconBtn} onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
-              <View style={s.voiceBtn}>
-                <View style={s.waveformContainer}>
-                  <View style={[s.waveBar, { height: 8 }]} />
-                  <View style={[s.waveBar, { height: 14 }]} />
-                  <View style={[s.waveBar, { height: 10 }]} />
-                  <View style={[s.waveBar, { height: 16 }]} />
-                  <View style={[s.waveBar, { height: 6 }]} />
+          <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#f0f0f0', borderColor: tc.border }]}>
+            <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
+              placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
+              placeholderTextColor={tc.textDim} multiline maxLength={2000}
+              onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
+            {input.trim() ? (
+              <TouchableOpacity style={s.inputIconBtn}
+                onPress={() => editingMsgId ? handleSubmitEdit() : send()} disabled={loading} activeOpacity={0.7}>
+                <View style={[s.sendBtn, loading && s.sendBtnOff]}>
+                  {loading ? <ActivityIndicator color="white" size="small" /> : (
+                    <Ionicons name="arrow-up" size={18} color="#ffffff" />
+                  )}
                 </View>
-              </View>
-            </TouchableOpacity>
-          )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={s.inputIconBtn} onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
+                <View style={s.voiceBtn}>
+                  <View style={s.waveformContainer}>
+                    <View style={[s.waveBar, { height: 8 }]} />
+                    <View style={[s.waveBar, { height: 14 }]} />
+                    <View style={[s.waveBar, { height: 10 }]} />
+                    <View style={[s.waveBar, { height: 16 }]} />
+                    <View style={[s.waveBar, { height: 6 }]} />
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
       </View>
 
@@ -470,9 +472,9 @@ const s = StyleSheet.create({
 
   // Input bar
   inputBarOuter: { paddingHorizontal: 12, paddingTop: 6 },
-  inputBar: { flexDirection: 'row', alignItems: 'flex-end', borderRadius: 26, paddingLeft: 4, paddingRight: 4, paddingVertical: 4, borderWidth: 1 },
-  plusBtn: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
-  plusCircle: { width: 30, height: 30, borderRadius: 15, borderWidth: 1.5, borderColor: '#c5c5c5', alignItems: 'center', justifyContent: 'center' },
+  inputRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8 },
+  inputBar: { flex: 1, flexDirection: 'row', alignItems: 'flex-end', borderRadius: 26, paddingLeft: 14, paddingRight: 4, paddingVertical: 4, borderWidth: 1 },
+  plusCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: '#c5c5c5', alignItems: 'center', justifyContent: 'center', marginBottom: 2 },
   inputIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginBottom: 0 },
   input: { flex: 1, paddingHorizontal: 6, paddingVertical: 8, fontSize: 16, maxHeight: 120, lineHeight: 22 },
   voiceBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
