@@ -154,36 +154,39 @@ Return ONLY the content, no explanations."""
 
     else:  # pdf
         try:
-            from reportlab.lib.pagesizes import letter
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-            from reportlab.lib.styles import getSampleStyleSheet
-
-            buf = io.BytesIO()
-            doc = SimpleDocTemplate(buf, pagesize=letter)
-            styles = getSampleStyleSheet()
-            story = []
-
-            for line in content.split('\n'):
-                line = line.strip()
-                if line.startswith('# '):
-                    story.append(Paragraph(line[2:], styles['Heading1']))
-                elif line.startswith('## '):
-                    story.append(Paragraph(line[3:], styles['Heading2']))
-                elif line.startswith('### '):
-                    story.append(Paragraph(line[4:], styles['Heading3']))
-                elif line:
-                    story.append(Paragraph(line, styles['Normal']))
-                else:
-                    story.append(Spacer(1, 12))
-
-            doc.build(story)
-            file_bytes = buf.getvalue()
+            from lib.pdf_templates import create_professional_pdf
+            file_bytes = create_professional_pdf(content, title=req.filename)
             filename += ".pdf"
             mime = "application/pdf"
-        except ImportError:
-            file_bytes = content.encode('utf-8')
-            filename += ".txt"
-            mime = "text/plain"
+        except Exception:
+            # Fallback to basic reportlab
+            try:
+                from reportlab.lib.pagesizes import letter
+                from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                from reportlab.lib.styles import getSampleStyleSheet
+
+                buf = io.BytesIO()
+                doc = SimpleDocTemplate(buf, pagesize=letter)
+                styles = getSampleStyleSheet()
+                story = []
+                for line in content.split('\n'):
+                    line = line.strip()
+                    if line.startswith('# '):
+                        story.append(Paragraph(line[2:], styles['Heading1']))
+                    elif line.startswith('## '):
+                        story.append(Paragraph(line[3:], styles['Heading2']))
+                    elif line:
+                        story.append(Paragraph(line, styles['Normal']))
+                    else:
+                        story.append(Spacer(1, 12))
+                doc.build(story)
+                file_bytes = buf.getvalue()
+                filename += ".pdf"
+                mime = "application/pdf"
+            except ImportError:
+                file_bytes = content.encode('utf-8')
+                filename += ".txt"
+                mime = "text/plain"
 
     # Store file
     file_b64 = base64.b64encode(file_bytes).decode()
