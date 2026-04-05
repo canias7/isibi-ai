@@ -75,7 +75,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
           {item.role === 'assistant' ? (
             <View>
               {isAnimating ? (
-                <TypewriterText text={item.content} speed={25} style={{ fontSize: 16, color: '#000000', lineHeight: 24 }} onDone={onStopAnimating} />
+                <TypewriterText text={item.content} speed={25} style={{ fontSize: 16, color: '#374151', lineHeight: 26, letterSpacing: 0.1 }} onDone={onStopAnimating} />
               ) : (
                 <MarkdownText colors={colors}>{item.content}</MarkdownText>
               )}
@@ -99,8 +99,8 @@ const s = StyleSheet.create({
   msgRow: { marginBottom: 20, flexDirection: 'row', alignItems: 'flex-start' },
   msgRowUser: { justifyContent: 'flex-end' },
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
-  msgText: { fontSize: 16, lineHeight: 24, color: '#000000' },
-  msgTextUser: { color: '#000000' },
+  msgText: { fontSize: 16, lineHeight: 26, color: '#374151', letterSpacing: 0.1 },
+  msgTextUser: { color: '#1f2937' },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
   actionConfirm: { marginTop: 10, padding: 14, borderRadius: 16, backgroundColor: '#f5f5f5' },
   actionConfirmText: { fontSize: 14, fontWeight: '500', marginBottom: 10 },
