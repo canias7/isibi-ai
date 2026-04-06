@@ -21,6 +21,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
   const [loading, setLoading] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
   const [animatingIds, setAnimatingIds] = useState<Set<string>>(new Set());
+  const [isCreating, setIsCreating] = useState(false);
+  const cancelRef = useRef(false);
   const messagesRef = useRef<ChatMsg[]>([]);
   const currentSessionId = useRef<string | null>(sessionId);
   const systemPromptRef = useRef(systemPrompt);
@@ -136,7 +138,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'create_file') {
         updateAndPersist(aiMsgIdStream, { content: finalText || 'Creating file', isCreatingFile: true });
         setLoading(false);
+        setIsCreating(true);
+        cancelRef.current = false;
         createFile(finalAction.target || '', finalAction.text || 'pdf', finalAction.key || 'standard').then(async (result) => {
+          if (cancelRef.current) { setIsCreating(false); return; }
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
           // Download file locally
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
@@ -147,11 +152,12 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             fileUrl: filePath,
             isCreatingFile: false,
           });
+          setIsCreating(false);
           scheduleLocalNotification('File Ready', `${result.filename} has been created`, 1);
         }).catch(e => {
-          const errorMsg = e.message?.includes('Network')
-            ? 'File creation was interrupted. Please stay in the app while files are being created, then try again.'
-            : 'File creation failed: ' + e.message;
+          setIsCreating(false);
+          if (cancelRef.current) return;
+          const errorMsg = 'File creation failed: ' + (e.message || 'Unknown error');
           updateAndPersist(aiMsgIdStream, { content: errorMsg, isCreatingFile: false });
           scheduleLocalNotification('GoFarther AI', errorMsg, 1);
         });
@@ -383,6 +389,13 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
     trackEvent('edit_message');
   }, [editingMsgId, send]);
 
+  const cancelCreation = useCallback(() => {
+    cancelRef.current = true;
+    setIsCreating(false);
+    // Update any creating message to show cancelled
+    setMessages(prev => prev.map(m => m.isCreatingFile ? { ...m, content: 'File creation cancelled.', isCreatingFile: false } : m));
+  }, []);
+
   return {
     messages,
     setMessages,
@@ -391,6 +404,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
     editingMsgId,
     setEditingMsgId,
     animatingIds,
+    isCreating,
     addAnimatingId: (id: string) => setAnimatingIds(prev => new Set(prev).add(id)),
     removeAnimatingId: (id: string) => setAnimatingIds(prev => { const next = new Set(prev); next.delete(id); return next; }),
     messagesRef,
@@ -398,6 +412,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
     send,
     confirmAction,
     cancelAction,
+    cancelCreation,
     regenerate,
     editMessage,
     submitEdit,

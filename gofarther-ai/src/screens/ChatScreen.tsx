@@ -72,8 +72,8 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
 
   // Use shared chat hook
   const {
-    messages, setMessages, loading, setLoading, editingMsgId, setEditingMsgId, animatingIds, removeAnimatingId,
-    currentSessionId, send: chatSend, confirmAction, cancelAction, regenerate, editMessage, submitEdit,
+    messages, setMessages, loading, setLoading, editingMsgId, setEditingMsgId, animatingIds, isCreating, removeAnimatingId,
+    currentSessionId, send: chatSend, confirmAction, cancelAction, cancelCreation, regenerate, editMessage, submitEdit,
   } = useChat({
     sessionId,
     systemPrompt,
@@ -382,10 +382,16 @@ RULES:
           </TouchableOpacity>
           <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#efefef' }]}>
             <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
-              placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
+              placeholder={editingMsgId ? 'Edit your message...' : isCreating ? 'Add details...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
               placeholderTextColor={tc.textDim} multiline maxLength={2000}
               onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
-            {input.trim() ? (
+            {isCreating && !input.trim() ? (
+              <TouchableOpacity style={s.inputIconBtn} onPress={cancelCreation} activeOpacity={0.7}>
+                <View style={s.stopBtn}>
+                  <View style={s.stopSquare} />
+                </View>
+              </TouchableOpacity>
+            ) : input.trim() ? (
               <TouchableOpacity style={s.inputIconBtn}
                 onPress={() => editingMsgId ? handleSubmitEdit() : send()} disabled={loading} activeOpacity={0.7}>
                 <View style={[s.sendBtn, loading && s.sendBtnOff]}>
@@ -499,6 +505,8 @@ const s = StyleSheet.create({
   waveBar: { width: 2.5, borderRadius: 2, backgroundColor: '#ffffff' },
   sendBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1a1a1a', justifyContent: 'center', alignItems: 'center' },
   sendBtnOff: { opacity: 0.3 },
+  stopBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1a1a1a', justifyContent: 'center', alignItems: 'center' },
+  stopSquare: { width: 12, height: 12, borderRadius: 2, backgroundColor: '#ffffff' },
 
   // Menu
   menuBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: '#000' },
