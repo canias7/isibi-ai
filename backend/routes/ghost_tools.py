@@ -238,13 +238,29 @@ async def create_file_async(req: CreateFileRequest, authorization: str = Header(
             format_instructions = {
                 "csv": "Return raw CSV data with headers.",
                 "txt": "Return well-written plain text with clear structure.",
-                "xlsx": "Return a JSON array of objects where keys are column headers. Include realistic data.",
-                "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis.",
+                "xlsx": """Return a JSON object: {"headers": [...], "rows": [[...], ...], "formulas": {"C10": "=SUM(C2:C9)"}}
+Use real Excel formulas for totals, averages, calculations. Include proper headers. For accounting docs (P&L, balance sheet, expense report), use standard accounting categories and formulas.""",
+                "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis. For financial documents, include tables using | pipes.",
                 "docx": "Return well-structured text using markdown-style headings.",
             }
-            system = f"""You are an expert professional writer. Create high-quality content.
+
+            # Detect accounting templates and enhance the description
+            desc_lower = req.description.lower()
+            accounting_hint = ""
+            if any(term in desc_lower for term in ["p&l", "profit and loss", "profit & loss", "income statement"]):
+                accounting_hint = "\nThis is a Profit & Loss statement. Include: Revenue, Cost of Goods Sold, Gross Profit, Operating Expenses (broken down), Operating Income, Net Income. Use formulas for all calculated rows."
+            elif any(term in desc_lower for term in ["balance sheet"]):
+                accounting_hint = "\nThis is a Balance Sheet. Include: Assets (Current + Non-current), Liabilities (Current + Long-term), Equity. Assets must equal Liabilities + Equity. Use formulas."
+            elif any(term in desc_lower for term in ["expense report"]):
+                accounting_hint = "\nThis is an Expense Report. Include: Date, Description, Category, Amount, Receipt columns. Add category subtotals and grand total with formulas."
+            elif any(term in desc_lower for term in ["tax summary", "tax report", "deductible"]):
+                accounting_hint = "\nThis is a Tax Summary. Group expenses by deductible category. Include totals per category and overall deductible total with formulas."
+            elif any(term in desc_lower for term in ["invoice"]):
+                accounting_hint = "\nThis is an Invoice. Include: Item, Description, Quantity, Unit Price, Amount. Add subtotal, tax, and total with formulas."
+
+            system = f"""You are an expert professional writer and accountant. Create high-quality content.
 DOCUMENT TYPE: {req.file_type.upper()}
-FORMAT: {format_instructions.get(req.file_type, 'Return clean text.')}
+FORMAT: {format_instructions.get(req.file_type, 'Return clean text.')}{accounting_hint}
 Return ONLY the document content, no explanations."""
 
             content = await _ask_claude(req.description, system)
@@ -284,9 +300,23 @@ Return ONLY the document content, no explanations."""
                         file_bytes = content.encode('utf-8')
                         filename += ".txt"
                         mime = "text/plain"
+            elif req.file_type == "xlsx":
+                try:
+                    file_bytes, fname, mime = _content_to_xlsx_with_formulas(content, filename)
+                    filename = fname
+                except Exception:
+                    file_bytes, fname, mime = _content_to_file(content, "xlsx", filename)
+                    filename = fname
+            elif req.file_type == "docx":
+                file_bytes, fname, mime = _content_to_file(content, "docx", filename)
+                filename = fname
+            elif req.file_type == "csv":
+                file_bytes = content.encode('utf-8')
+                filename += ".csv"
+                mime = "text/csv"
             else:
                 file_bytes = content.encode('utf-8')
-                filename += f".{req.file_type}" if req.file_type != "txt" else ".txt"
+                filename += ".txt"
                 mime = "text/plain"
 
             file_b64 = base64.b64encode(file_bytes).decode()
@@ -320,7 +350,7 @@ async def download_file(file_id: str):
 # ─── FILE MODIFICATION (edit, chart, convert, merge, filter) ──────────────
 
 class ModifyFileRequest(BaseModel):
-    operation: str  # edit, chart, convert, merge, filter
+    operation: str  # edit, chart, convert, merge, filter, compare
     file_id: Optional[str] = None
     file_ids: Optional[list[str]] = None
     instructions: Optional[str] = ""
@@ -357,15 +387,31 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
             file_id = str(uuid.uuid4())[:8]
 
             if req.operation == "edit":
-                # Parse original file content
                 text_content = _extract_text(original_bytes, original_mime)
-                system = """You are a document editor. The user has an existing document and wants modifications.
-Return ONLY the complete modified document content. Keep the same format and structure unless told otherwise.
-For XLSX: return JSON array of objects. For CSV: return raw CSV. For others: return text with markdown formatting."""
-                prompt = f"Original document content:\n\n{text_content}\n\nModifications requested: {req.instructions}\n\nReturn the complete modified document."
-                modified_content = await _ask_claude(prompt, system)
                 ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'txt'
-                file_bytes, filename, mime = _content_to_file(modified_content, ext, f"modified_{file_id}")
+                is_spreadsheet = ext in ('xlsx', 'xls', 'csv')
+
+                if is_spreadsheet:
+                    # For spreadsheets: ask Claude to return JSON with formulas
+                    system = """You are an Excel expert. The user has a spreadsheet and wants modifications.
+Return a JSON object with this structure:
+{"headers": ["col1", "col2", ...], "rows": [["val1", "val2", ...], ...], "formulas": {"C10": "=SUM(C2:C9)", "D10": "=AVERAGE(D2:D9)"}}
+
+IMPORTANT:
+- "rows" contains the DATA rows (not headers)
+- "formulas" is a dict mapping cell references (like "C10") to Excel formula strings
+- Use real Excel formulas (=SUM, =AVERAGE, =IF, =VLOOKUP, etc.) wherever appropriate
+- For totals rows, running balances, calculated columns — ALWAYS use formulas, never static values
+- Return ONLY valid JSON, no explanations."""
+                    prompt = f"Current spreadsheet data:\n{text_content}\n\nModifications: {req.instructions}"
+                    modified_content = await _ask_claude(prompt, system)
+                    file_bytes, filename, mime = _content_to_xlsx_with_formulas(modified_content, f"modified_{file_id}")
+                else:
+                    system = """You are a document editor. The user has an existing document and wants modifications.
+Return ONLY the complete modified document content. Keep the same format and structure unless told otherwise."""
+                    prompt = f"Original document content:\n\n{text_content}\n\nModifications requested: {req.instructions}\n\nReturn the complete modified document."
+                    modified_content = await _ask_claude(prompt, system)
+                    file_bytes, filename, mime = _content_to_file(modified_content, ext, f"modified_{file_id}")
 
             elif req.operation == "chart":
                 text_content = _extract_text(original_bytes, original_mime)
@@ -415,6 +461,30 @@ Return ONLY the filtered data in the same format (CSV for CSV, JSON array for XL
                 ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
                 file_bytes, filename, mime = _content_to_file(filtered, ext, f"filtered_{file_id}")
 
+            elif req.operation == "compare":
+                if not req.file_ids or len(req.file_ids) < 2:
+                    raise ValueError("Compare requires at least 2 file IDs")
+                texts = []
+                for fid in req.file_ids[:2]:
+                    if fid not in FILE_STORE:
+                        raise ValueError(f"File {fid} not found")
+                    f = FILE_STORE[fid]
+                    content = base64.b64decode(f["data"])
+                    texts.append({"name": f["filename"], "content": _extract_text(content, f["mime"])})
+                system = """You are a spreadsheet analyst. Compare two spreadsheets and produce a detailed comparison report.
+For each difference found, show: row/column location, old value, new value.
+Group changes by type: Added rows, Removed rows, Modified values, New columns, Removed columns.
+Use markdown formatting with tables where appropriate. Be thorough but concise."""
+                prompt = f"File 1 ({texts[0]['name']}):\n{texts[0]['content']}\n\nFile 2 ({texts[1]['name']}):\n{texts[1]['content']}\n\n{req.instructions or 'Compare these files and highlight all differences.'}"
+                comparison = await _ask_claude(prompt, system)
+                try:
+                    from lib.pdf_templates import create_professional_pdf
+                    file_bytes = create_professional_pdf(comparison, title=f"Comparison Report")
+                except Exception:
+                    file_bytes = comparison.encode('utf-8')
+                filename = f"comparison_{file_id}.pdf"
+                mime = "application/pdf"
+
             else:
                 raise ValueError(f"Unknown operation: {req.operation}")
 
@@ -426,6 +496,75 @@ Return ONLY the filtered data in the same format (CSV for CSV, JSON array for XL
 
     asyncio.create_task(_background_modify())
     return {"job_id": job_id, "status": "processing"}
+
+
+def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
+    """Convert Claude's JSON response to Excel with real formulas."""
+    try:
+        import json as _json
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+        data = _json.loads(content)
+        headers = data.get("headers", [])
+        rows = data.get("rows", [])
+        formulas = data.get("formulas", {})
+
+        wb = Workbook()
+        ws = wb.active
+
+        # Style headers
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        header_fill = PatternFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
+        thin_border = Border(
+            left=Side(style='thin', color='D9D9D9'),
+            right=Side(style='thin', color='D9D9D9'),
+            top=Side(style='thin', color='D9D9D9'),
+            bottom=Side(style='thin', color='D9D9D9'),
+        )
+
+        # Write headers
+        if headers:
+            ws.append(headers)
+            for cell in ws[1]:
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = Alignment(horizontal='center')
+                cell.border = thin_border
+
+        # Write data rows
+        for row in rows:
+            ws.append(row)
+
+        # Apply borders to all data cells
+        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
+            for cell in row:
+                cell.border = thin_border
+
+        # Insert formulas
+        for cell_ref, formula in formulas.items():
+            ws[cell_ref] = formula
+            ws[cell_ref].font = Font(bold=True)
+            ws[cell_ref].border = thin_border
+
+        # Auto-width columns
+        for col in ws.columns:
+            max_len = 0
+            col_letter = col[0].column_letter
+            for cell in col:
+                try:
+                    val = str(cell.value) if cell.value else ""
+                    max_len = max(max_len, len(val))
+                except Exception:
+                    pass
+            ws.column_dimensions[col_letter].width = min(max_len + 3, 30)
+
+        buf = io.BytesIO()
+        wb.save(buf)
+        return buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    except Exception:
+        # Fallback to regular content_to_file
+        return _content_to_file(content, "xlsx", base_name)
 
 
 def _extract_text(file_bytes: bytes, mime: str) -> str:
