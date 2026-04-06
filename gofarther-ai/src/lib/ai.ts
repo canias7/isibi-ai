@@ -135,12 +135,38 @@ const TOOLS_BASE = 'https://isibi-backend.onrender.com/api/ghost/tools';
 export async function createFile(description: string, fileType: string = 'pdf', quality: string = 'standard'): Promise<{ file_id: string; filename: string; download_url: string }> {
   await checkNetwork();
   const headers = await authHeaders();
-  const res = await fetchWithTimeout(`${TOOLS_BASE}/create-file`, {
+
+  // Start async job (fast — returns immediately)
+  const startRes = await fetchWithTimeout(`${TOOLS_BASE}/create-file-async`, {
     method: 'POST', headers,
     body: JSON.stringify({ description, file_type: fileType, quality }),
-  }, 180000);
-  if (!res.ok) throw new Error('File creation failed');
-  return res.json();
+  }, 30000);
+  if (!startRes.ok) throw new Error('File creation failed to start');
+  const { job_id } = await startRes.json();
+
+  // Poll for result — works even if app was backgrounded
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 3000)); // Wait 3 seconds between polls
+    try {
+      const pollRes = await fetchWithTimeout(`${TOOLS_BASE}/job-status/${job_id}`, {
+        method: 'GET', headers,
+      }, 10000);
+      if (!pollRes.ok) continue;
+      const job = await pollRes.json();
+      if (job.status === 'done') {
+        return { file_id: job.file_id, filename: job.filename, download_url: job.download_url };
+      }
+      if (job.status === 'failed') {
+        throw new Error(job.error || 'File creation failed');
+      }
+      // Still processing — continue polling
+    } catch (e: any) {
+      if (e.message?.includes('File creation failed')) throw e;
+      // Network error during poll — keep trying
+      continue;
+    }
+  }
+  throw new Error('File creation timed out');
 }
 
 /** Search the web */

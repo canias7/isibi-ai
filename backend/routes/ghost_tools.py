@@ -220,6 +220,94 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
     return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes)}
 
 
+# ─── ASYNC FILE CREATION (for mobile background support) ─────────────────
+
+JOB_STORE: dict[str, dict] = {}  # job_id -> {status, file_id, error}
+
+@router.post("/create-file-async")
+async def create_file_async(req: CreateFileRequest, authorization: str = Header(...)):
+    """Start file creation in background. Returns job_id immediately."""
+    _verify_auth(authorization)
+    import asyncio
+    job_id = str(uuid.uuid4())[:8]
+    JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None}
+
+    async def _background_create():
+        try:
+            # Reuse the same logic as create_file
+            format_instructions = {
+                "csv": "Return raw CSV data with headers.",
+                "txt": "Return well-written plain text with clear structure.",
+                "xlsx": "Return a JSON array of objects where keys are column headers. Include realistic data.",
+                "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis.",
+                "docx": "Return well-structured text using markdown-style headings.",
+            }
+            system = f"""You are an expert professional writer. Create high-quality content.
+DOCUMENT TYPE: {req.file_type.upper()}
+FORMAT: {format_instructions.get(req.file_type, 'Return clean text.')}
+Return ONLY the document content, no explanations."""
+
+            content = await _ask_claude(req.description, system)
+            file_id = str(uuid.uuid4())[:8]
+            filename = req.filename or f"document_{file_id}"
+
+            # Generate file bytes (same as sync endpoint)
+            if req.file_type == "pdf":
+                try:
+                    from lib.pdf_templates import create_professional_pdf
+                    file_bytes = create_professional_pdf(content, title=filename)
+                    filename += ".pdf"
+                    mime = "application/pdf"
+                except Exception:
+                    try:
+                        from reportlab.lib.pagesizes import letter
+                        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                        from reportlab.lib.styles import getSampleStyleSheet
+                        buf = io.BytesIO()
+                        doc = SimpleDocTemplate(buf, pagesize=letter)
+                        styles = getSampleStyleSheet()
+                        story = []
+                        for line in content.split('\n'):
+                            line = line.strip()
+                            if not line:
+                                story.append(Spacer(1, 12))
+                            else:
+                                clean = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+                                clean = re.sub(r'\*(.+?)\*', r'\1', clean)
+                                clean = re.sub(r'^#+\s*', '', clean)
+                                story.append(Paragraph(clean, styles['Normal']))
+                        doc.build(story)
+                        file_bytes = buf.getvalue()
+                        filename += ".pdf"
+                        mime = "application/pdf"
+                    except Exception:
+                        file_bytes = content.encode('utf-8')
+                        filename += ".txt"
+                        mime = "text/plain"
+            else:
+                file_bytes = content.encode('utf-8')
+                filename += f".{req.file_type}" if req.file_type != "txt" else ".txt"
+                mime = "text/plain"
+
+            file_b64 = base64.b64encode(file_bytes).decode()
+            FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+            JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
+        except Exception as e:
+            JOB_STORE[job_id] = {"status": "failed", "file_id": None, "error": str(e)}
+
+    asyncio.create_task(_background_create())
+    return {"job_id": job_id, "status": "processing"}
+
+
+@router.get("/job-status/{job_id}")
+async def job_status(job_id: str):
+    """Check if an async file creation job is done."""
+    job = JOB_STORE.get(job_id)
+    if not job:
+        raise HTTPException(404, "Job not found")
+    return job
+
+
 @router.get("/download/{file_id}")
 async def download_file(file_id: str):
     if file_id not in FILE_STORE:
