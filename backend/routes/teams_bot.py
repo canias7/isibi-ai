@@ -49,6 +49,7 @@ TEAMS_APP_PASSWORD = os.getenv("TEAMS_APP_PASSWORD", "")
 ADAPTER_SETTINGS = BotFrameworkAdapterSettings(
     app_id=TEAMS_APP_ID,
     app_password=TEAMS_APP_PASSWORD,
+    channel_auth_tenant="botframework.com",
 )
 ADAPTER = BotFrameworkAdapter(ADAPTER_SETTINGS)
 
