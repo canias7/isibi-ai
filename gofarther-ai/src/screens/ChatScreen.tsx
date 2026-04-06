@@ -20,7 +20,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
 import {
-  getAgents, Agent, getAIName,
+  getAgents, Agent, getAIName, getUserNickname,
   getChatSessions, saveChatSessions, ChatSession,
   getMemory, getCustomInstructions, getLanguage, trackEvent,
 } from '../lib/storage';
@@ -65,7 +65,8 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
   const [voiceMode, setVoiceMode] = useState<'off' | 'picker' | 'active'>('off');
   const [showAR, setShowAR] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState<VoiceOption>(VOICES[0]);
-  const [aiName, setAiName] = useState('GoFarther AI');
+  const [aiName] = useState('GoFarther');
+  const [userNickname, setUserNickname] = useState('');
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
   const flatList = useRef<FlatList>(null);
 
@@ -109,9 +110,10 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
       setAgents(a);
       if (a.length > 0) setActiveAgent(a.find(x => x.isActive) || a[0]);
     });
-    getAIName().then(n => setAiName(n || 'GoFarther AI'));
+    getUserNickname().then(n => setUserNickname(n || ''));
     // Build system prompt with memory, instructions, language
-    Promise.all([getMemory(), getCustomInstructions(), getLanguage()]).then(([memory, custom, lang]) => {
+    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname()]).then(([memory, custom, lang, nick]) => {
+      setUserNickname(nick || '');
       const langMap: Record<string, string> = { en: '', es: '\n\nIMPORTANT: Always respond in Spanish.', fr: '\n\nIMPORTANT: Always respond in French.', pt: '\n\nIMPORTANT: Always respond in Portuguese.', de: '\n\nIMPORTANT: Always respond in German.' };
       const memoryStr = memory.length > 0 ? '\n\nYou remember these facts about the user:\n' + memory.map((m: any) => '- ' + m.fact).join('\n') : '';
       const customStr = custom ? '\n\nCustom instructions from user: ' + custom : '';
@@ -167,7 +169,8 @@ RULES:
 - NEVER say you cannot do something. Use your tools.
 - When user says a person's name, use it directly as target.
 - Be conversational. Short responses. No essays unless asked.`;
-      setSystemPrompt(base + actions + memoryStr + customStr + (langMap[lang] || ''));
+      const nicknameStr = nick ? `\n\nIMPORTANT: The user's name/nickname is "${nick}". Use it naturally — greet them by name, refer to them by name occasionally. For example: "Hey ${nick}!", "Sure thing ${nick}", etc.` : '';
+      setSystemPrompt(base + actions + memoryStr + customStr + nicknameStr + (langMap[lang] || ''));
     });
   }, []);
 

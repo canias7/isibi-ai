@@ -129,6 +129,14 @@ export async function saveAIName(name: string) {
   await save('ai_name', name);
 }
 
+export async function getUserNickname(): Promise<string> {
+  return load('user_nickname', '');
+}
+
+export async function saveUserNickname(name: string) {
+  await save('user_nickname', name);
+}
+
 // Selected voice
 export async function getSelectedVoice(): Promise<string | null> {
   return load('selected_voice', null);

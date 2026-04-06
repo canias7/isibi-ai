@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getAIName, saveAIName, ChatSession, deleteChatSession, renameChatSession } from '../lib/storage';
+import { getAIName, saveAIName, getUserNickname, saveUserNickname, ChatSession, deleteChatSession, renameChatSession } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 
 const DRAWER_W = 300;
@@ -59,7 +59,7 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
   const translateX = useRef(new Animated.Value(-DRAWER_W)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
-  const [aiName, setAiName] = useState('GoFarther');
+  const [nickname, setNickname] = useState('');
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
   const [search, setSearch] = useState('');
@@ -67,7 +67,7 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
   const [renameSession, setRenameSession] = useState<ChatSession | null>(null);
   const [renameText, setRenameText] = useState('');
 
-  useEffect(() => { getAIName().then(setAiName); }, []);
+  useEffect(() => { getUserNickname().then(setNickname); }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -77,8 +77,8 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
     if (!isOpen) { setSearch(''); setShowSearch(false); }
   }, [isOpen]);
 
-  const startEditName = () => { setTempName(aiName); setEditingName(true); };
-  const saveName = () => { const n = tempName.trim() || 'GoFarther'; setAiName(n); saveAIName(n); setEditingName(false); Keyboard.dismiss(); };
+  const startEditName = () => { setTempName(nickname); setEditingName(true); };
+  const saveName = () => { const n = tempName.trim(); setNickname(n); saveUserNickname(n); setEditingName(false); Keyboard.dismiss(); };
 
   const handleSessionLongPress = (session: ChatSession) => {
     const actions = ['Rename', 'Delete', 'Cancel'];
@@ -226,15 +226,15 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
         <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
           <View style={s.divider} />
           <View style={s.aiNameSection}>
-            <Text style={s.aiNameLabel}>Your AI name</Text>
+            <Text style={s.aiNameLabel}>Your nickname</Text>
             {editingName ? (
               <View style={s.aiNameEditRow}>
-                <TextInput style={s.aiNameInput} value={tempName} onChangeText={setTempName} placeholder="e.g. Chris" placeholderTextColor="#bbb" autoFocus maxLength={20} returnKeyType="done" onSubmitEditing={saveName} />
+                <TextInput style={s.aiNameInput} value={tempName} onChangeText={setTempName} placeholder="e.g. Boss, Mommy, Chris" placeholderTextColor="#bbb" autoFocus maxLength={20} returnKeyType="done" onSubmitEditing={saveName} />
                 <TouchableOpacity onPress={saveName} style={s.aiNameSaveBtn}><Text style={s.aiNameSaveText}>Save</Text></TouchableOpacity>
               </View>
             ) : (
               <TouchableOpacity onPress={startEditName} style={s.aiNameDisplay} activeOpacity={0.6}>
-                <Text style={s.aiNameValue}>"Hey {aiName}"</Text>
+                <Text style={s.aiNameValue}>{nickname ? `"Hey ${nickname}"` : 'Set a nickname'}</Text>
                 <Text style={s.aiNameEdit}>Edit</Text>
               </TouchableOpacity>
             )}
