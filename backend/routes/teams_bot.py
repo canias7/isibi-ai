@@ -71,45 +71,33 @@ async def _get_bot_token() -> str:
         return _token_cache["token"]
 
 
-async def _send_reply(service_url: str, conversation_id: str, activity_id: str, text: str, attachments: list = None):
+async def _send_reply(service_url: str, conversation_id: str, activity_id: str, text: str, bot_id: str = None, attachments: list = None):
     """Send a reply to a Teams conversation."""
     token = await _get_bot_token()
-
-    # Try reply-to-activity first, fall back to create new activity
-    reply_url = f"{service_url}v3/conversations/{conversation_id}/activities/{activity_id}"
-    create_url = f"{service_url}v3/conversations/{conversation_id}/activities"
+    url = f"{service_url}v3/conversations/{conversation_id}/activities"
 
     body = {
         "type": "message",
         "text": text,
-        "from": {"id": TEAMS_APP_ID, "name": "GoFarther AI"},
+        "from": {"id": bot_id or TEAMS_APP_ID, "name": "GoFarther AI"},
+        "conversation": {"id": conversation_id},
         "replyToId": activity_id,
     }
     if attachments:
         body["attachments"] = attachments
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
+    print(f"[TEAMS REPLY] URL={url} bot_id={bot_id or TEAMS_APP_ID} conv={conversation_id}", flush=True)
 
     async with httpx.AsyncClient(timeout=30) as client:
-        # Try reply first
-        res = await client.post(reply_url, headers=headers, json=body)
-        print(f"[TEAMS REPLY] reply_to_activity status={res.status_code}", flush=True)
-
-        if res.status_code not in (200, 201):
-            print(f"[TEAMS REPLY] reply failed, trying create. Error: {res.text[:200]}", flush=True)
-            # Fall back to creating a new activity
-            res = await client.post(create_url, headers=headers, json=body)
-            print(f"[TEAMS REPLY] create_activity status={res.status_code}", flush=True)
-
-            if res.status_code not in (200, 201):
-                print(f"[TEAMS REPLY ERROR] {res.status_code}: {res.text[:200]}", flush=True)
-            else:
-                print(f"[TEAMS] Reply sent via create_activity", flush=True)
-        else:
-            print(f"[TEAMS] Reply sent successfully", flush=True)
+        res = await client.post(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            json=body,
+        )
+        print(f"[TEAMS REPLY] status={res.status_code} headers={dict(res.headers)} body={res.text[:300]}", flush=True)
 
 
 async def _send_typing(service_url: str, conversation_id: str, activity_id: str):
@@ -330,6 +318,9 @@ async def _handle_message(body: dict):
     conversation_id = body.get("conversation", {}).get("id", "")
     activity_id = body.get("id", "")
     user_id = body.get("from", {}).get("id", "unknown")
+    bot_id = body.get("recipient", {}).get("id", TEAMS_APP_ID)
+
+    print(f"[TEAMS DEBUG] recipient={body.get('recipient', {})} conversation={body.get('conversation', {})}", flush=True)
 
     # Strip @mention
     if body.get("entities"):
@@ -394,7 +385,7 @@ async def _handle_message(body: dict):
                 session.messages.append({"role": "user", "content": f"[File created: {tool_result['filename']}]"})
                 followup = await call_claude(messages=session.messages[-20:], system=TEAMS_SYSTEM_PROMPT, max_tokens=1024)
 
-                await _send_reply(service_url, conversation_id, activity_id, followup["text"] or "Here's your file!", attachments)
+                await _send_reply(service_url, conversation_id, activity_id, followup["text"] or "Here's your file!", bot_id=bot_id, attachments=attachments)
                 session.messages.append({"role": "assistant", "content": followup["text"] or "File created."})
             else:
                 # Non-file tool result
@@ -402,16 +393,16 @@ async def _handle_message(body: dict):
                 session.messages.append({"role": "user", "content": f"[Tool result: {tool_result['text']}]"})
                 followup = await call_claude(messages=session.messages[-20:], system=TEAMS_SYSTEM_PROMPT, max_tokens=4096)
 
-                await _send_reply(service_url, conversation_id, activity_id, followup["text"] or tool_result["text"])
+                await _send_reply(service_url, conversation_id, activity_id, followup["text"] or tool_result["text"], bot_id=bot_id)
                 session.messages.append({"role": "assistant", "content": followup["text"] or tool_result["text"]})
         else:
-            await _send_reply(service_url, conversation_id, activity_id, response_text or "I'm not sure what to say.")
+            await _send_reply(service_url, conversation_id, activity_id, response_text or "I'm not sure what to say.", bot_id=bot_id)
             session.messages.append({"role": "assistant", "content": response_text})
 
     except Exception as e:
         print(f"[TEAMS BOT ERROR] {e}", flush=True)
         traceback.print_exc()
-        await _send_reply(service_url, conversation_id, activity_id, "Sorry, something went wrong. Please try again.")
+        await _send_reply(service_url, conversation_id, activity_id, "Sorry, something went wrong.", bot_id=bot_id)
 
 
 # ─── Auth Validation ──────────────────────────────────────────────────────
