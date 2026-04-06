@@ -36,10 +36,12 @@ router = APIRouter(prefix="/teams", tags=["teams-bot"])
 
 TEAMS_APP_ID = os.getenv("TEAMS_APP_ID", "")
 TEAMS_APP_PASSWORD = os.getenv("TEAMS_APP_PASSWORD", "")
+TEAMS_TENANT_ID = os.getenv("TEAMS_TENANT_ID", "")
 
 ADAPTER_SETTINGS = BotFrameworkAdapterSettings(
     app_id=TEAMS_APP_ID,
     app_password=TEAMS_APP_PASSWORD,
+    channel_auth_tenant=TEAMS_TENANT_ID or None,
 )
 ADAPTER = BotFrameworkAdapter(ADAPTER_SETTINGS)
 
