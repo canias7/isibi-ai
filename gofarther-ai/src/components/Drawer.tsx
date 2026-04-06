@@ -154,41 +154,41 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
       </TouchableWithoutFeedback>
 
       <Animated.View style={[s.panel, { transform: [{ translateX }], paddingTop: insets.top + 12, backgroundColor: tc.bg2, borderRightColor: tc.border }]}>
-        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {/* Header */}
-          <View style={s.header}>
-            <Text style={[s.brand, { color: tc.text }]}>GoFarther AI</Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={s.headerBtn} activeOpacity={0.7} accessibilityLabel="Search chats" accessibilityRole="button">
-                <Ionicons name="search-outline" size={18} color={tc.textMid} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={onNewChat} style={s.headerBtn} activeOpacity={0.7} accessibilityLabel="New chat" accessibilityRole="button">
-                <Ionicons name="add" size={20} color={tc.textMid} />
-              </TouchableOpacity>
-            </View>
+        {/* Header — fixed at top */}
+        <View style={s.header}>
+          <Text style={[s.brand, { color: tc.text }]}>GoFarther AI</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity onPress={() => setShowSearch(!showSearch)} style={s.headerBtn} activeOpacity={0.7} accessibilityLabel="Search chats" accessibilityRole="button">
+              <Ionicons name="search-outline" size={18} color={tc.textMid} />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={onNewChat} style={s.headerBtn} activeOpacity={0.7} accessibilityLabel="New chat" accessibilityRole="button">
+              <Ionicons name="add" size={20} color={tc.textMid} />
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Search bar */}
-          {showSearch && (
-            <View style={s.searchBar}>
-              <TextInput style={s.searchInput} value={search} onChangeText={setSearch} placeholder="Search chats..." placeholderTextColor="#bbb" autoFocus />
-              {search.length > 0 && (
-                <TouchableOpacity onPress={() => setSearch('')} style={s.searchClear}>
-                  <Text style={s.searchClearText}>x</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+        {/* Search bar */}
+        {showSearch && (
+          <View style={s.searchBar}>
+            <TextInput style={s.searchInput} value={search} onChangeText={setSearch} placeholder="Search chats..." placeholderTextColor="#bbb" autoFocus />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')} style={s.searchClear}>
+                <Text style={s.searchClearText}>x</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
 
-          {/* New Chat */}
-          <TouchableOpacity style={[s.navItem, activeScreen === 'chat' && !activeSessionId && s.navItemActive]} onPress={onNewChat} activeOpacity={0.6} accessibilityLabel="New chat" accessibilityRole="button">
-            <Ionicons name="chatbubble-outline" size={18} color={tc.text} style={{ marginRight: 12 }} />
-            <Text style={[s.navLabel, { color: tc.text }, activeScreen === 'chat' && !activeSessionId && s.navLabelActive]}>New chat</Text>
-          </TouchableOpacity>
+        {/* New Chat */}
+        <TouchableOpacity style={[s.navItem, activeScreen === 'chat' && !activeSessionId && s.navItemActive]} onPress={onNewChat} activeOpacity={0.6} accessibilityLabel="New chat" accessibilityRole="button">
+          <Ionicons name="chatbubble-outline" size={18} color={tc.text} style={{ marginRight: 12 }} />
+          <Text style={[s.navLabel, { color: tc.text }, activeScreen === 'chat' && !activeSessionId && s.navLabelActive]}>New chat</Text>
+        </TouchableOpacity>
 
-          <View style={s.divider} />
+        <View style={s.divider} />
 
-          {/* Sessions */}
+        {/* Chat list — scrollable */}
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {grouped.map(group => (
             <View key={group.label}>
               <Text style={[s.sectionTitle, { color: tc.textDim }]}>{group.label}</Text>
@@ -211,16 +211,16 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
           {filteredSessions.length === 0 && (
             <Text style={s.noSessions}>{search ? 'No matches' : 'No chats yet'}</Text>
           )}
-
-          <View style={s.divider} />
-
-          {/* Nav */}
-          {navItems.map(item => (
-            <TouchableOpacity key={item.key} style={[s.navItem, activeScreen === item.key && { backgroundColor: tc.card }]} onPress={() => onNavigate(item.key)} activeOpacity={0.6} accessibilityLabel={item.label} accessibilityRole="button">
-              <Text style={[s.navLabel, { color: tc.text }, activeScreen === item.key && s.navLabelActive]}>{item.label}</Text>
-            </TouchableOpacity>
-          ))}
         </ScrollView>
+
+        <View style={s.divider} />
+
+        {/* Nav — fixed at bottom */}
+        {navItems.map(item => (
+          <TouchableOpacity key={item.key} style={[s.navItem, activeScreen === item.key && { backgroundColor: tc.card }]} onPress={() => onNavigate(item.key)} activeOpacity={0.6} accessibilityLabel={item.label} accessibilityRole="button">
+            <Text style={[s.navLabel, { color: tc.text }, activeScreen === item.key && s.navLabelActive]}>{item.label}</Text>
+          </TouchableOpacity>
+        ))}
 
         {/* Footer */}
         <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
