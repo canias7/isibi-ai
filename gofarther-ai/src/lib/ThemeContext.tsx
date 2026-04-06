@@ -18,17 +18,17 @@ export const LIGHT = {
 };
 
 export const DARK = {
-  bg: '#0a0a0a',
-  bg2: '#111111',
-  card: '#1a1a1a',
-  border: '#2a2a2a',
-  text: '#f2f2f2',
-  textMid: '#888888',
-  textDim: '#555555',
-  inputBg: '#1a1a1a',
+  bg: '#000000',
+  bg2: '#0a0a0a',
+  card: '#1c1c1e',
+  border: '#2c2c2e',
+  text: '#f5f5f7',
+  textMid: '#98989f',
+  textDim: '#636366',
+  inputBg: '#1c1c1e',
   surface: '#141414',
-  bubbleAI: '#1a1a1a',
-  bubbleBorder: '#2a2a2a',
+  bubbleAI: '#1c1c1e',
+  bubbleBorder: '#2c2c2e',
 };
 
 const ThemeContext = createContext<{
