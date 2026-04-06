@@ -71,6 +71,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
     messagesRef.current = [...messagesRef.current, userMsg];
     setLoading(true);
 
+    // Capture session ID for async operations that may outlive a chat switch
+    const operationSessionId = sid;
+
     try {
       const currentMsgs = messagesRef.current;
       const history: Message[] = currentMsgs.slice(-20).map(m => ({
@@ -82,6 +85,20 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       // Create placeholder message, then animate after response arrives
       const aiMsgIdStream = genId();
       setMessages(prev => [...prev, { id: aiMsgIdStream, role: 'assistant' as const, content: '', timestamp: Date.now() }]);
+
+      // Helper: update message and persist — works even if user switched chats
+      const updateAndPersist = (msgId: string, updates: Partial<ChatMsg>) => {
+        setMessages(prev => {
+          const updated = prev.map(m => m.id === msgId ? { ...m, ...updates } : m);
+          // Save to storage so it persists across chat switches
+          if (operationSessionId) {
+            saveChatHistory(operationSessionId, updated.map(m => ({
+              role: m.role, content: m.content, timestamp: m.timestamp || Date.now(),
+            })));
+          }
+          return updated;
+        });
+      };
 
       const response = await chatStream(history, systemPromptRef.current, (chunk) => {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: chunk } : m));
@@ -115,7 +132,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle file creation — download and open natively
       if (finalAction?.type === 'create_file') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating file', isCreatingFile: true } : m));
+        updateAndPersist(aiMsgIdStream, { content: finalText || 'Creating file', isCreatingFile: true });
         setLoading(false);
         createFile(finalAction.target || '', finalAction.text || 'pdf', finalAction.key || 'standard').then(async (result) => {
           const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
@@ -123,15 +140,13 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
           await FileSystem.downloadAsync(downloadUrl, filePath);
 
-          // Show in chat with file path for tap-to-open
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? {
-            ...m,
+          updateAndPersist(aiMsgIdStream, {
             content: `${finalText || 'Your file is ready!'}\n\n**${result.filename}**`,
             fileUrl: filePath,
             isCreatingFile: false,
-          } : m));
+          });
         }).catch(e => {
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || '') + '\n\n(File creation failed: ' + e.message + ')' } : m));
+          updateAndPersist(aiMsgIdStream, { content: (finalText || '') + '\n\n(File creation failed: ' + e.message + ')', isCreatingFile: false });
         });
         return;
       }
