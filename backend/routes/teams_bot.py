@@ -52,6 +52,9 @@ ADAPTER_SETTINGS = BotFrameworkAdapterSettings(
 )
 ADAPTER = BotFrameworkAdapter(ADAPTER_SETTINGS)
 
+# Debug: log if credentials are loaded (never log the actual values)
+print(f"[TEAMS CONFIG] App ID set: {bool(TEAMS_APP_ID)}, App ID length: {len(TEAMS_APP_ID)}, Password set: {bool(TEAMS_APP_PASSWORD)}, Password length: {len(TEAMS_APP_PASSWORD)}")
+
 # ─── Conversation State ──────────────────────────────────────────────────
 
 SESSION_TTL_MINUTES = 30
