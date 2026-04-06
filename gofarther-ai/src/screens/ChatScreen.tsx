@@ -382,7 +382,7 @@ RULES:
           </TouchableOpacity>
           <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#efefef' }]}>
             <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
-              placeholder={editingMsgId ? 'Edit your message...' : isCreating ? 'Add details...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
+              placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
               placeholderTextColor={tc.textDim} multiline maxLength={2000}
               onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
             {isCreating && !input.trim() ? (
