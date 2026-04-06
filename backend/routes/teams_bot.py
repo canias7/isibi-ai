@@ -318,21 +318,20 @@ class GoFartherBot(ActivityHandler):
                 tool_result = await _execute_tool(tool_use["name"], tool_use["input"])
                 print(f"[TEAMS BOT] Tool result: {tool_result['text'][:80]}", flush=True)
 
-                # If file was created, send as attachment
+                # If file was created, store it and send download link
                 if tool_result["file_bytes"]:
-                    file_b64 = base64.b64encode(tool_result["file_bytes"]).decode()
-                    attachment = Attachment(
-                        name=tool_result["filename"],
-                        content_type=tool_result["mime"],
-                        content_url=f"data:{tool_result['mime']};base64,{file_b64}",
+                    from routes.ghost_tools import FILE_STORE
+                    file_id = str(uuid.uuid4())
+                    FILE_STORE[file_id] = {
+                        "filename": tool_result["filename"],
+                        "mime": tool_result["mime"],
+                        "data": base64.b64encode(tool_result["file_bytes"]).decode(),
+                        "created": datetime.utcnow().isoformat(),
+                    }
+                    download_url = f"https://api.isibi.ai/api/ghost/tools/download/{file_id}"
+                    await turn_context.send_activity(
+                        f"Your file is ready: **{tool_result['filename']}**\n\n[Download File]({download_url})"
                     )
-
-                    reply = Activity(
-                        type=ActivityTypes.message,
-                        text=f"Here's your file: **{tool_result['filename']}**",
-                        attachments=[attachment],
-                    )
-                    await turn_context.send_activity(reply)
                     session.messages.append({"role": "assistant", "content": f"Created file: {tool_result['filename']}"})
                 else:
                     # Feed tool result back to Claude for a natural response
