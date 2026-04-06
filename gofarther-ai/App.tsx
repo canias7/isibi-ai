@@ -22,6 +22,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/ErrorBoundary';
 import OfflineBanner from './src/components/OfflineBanner';
 import { startScheduler } from './src/lib/scheduler';
+import { registerForPushNotifications } from './src/lib/notifications';
 
 function App() {
   const [auth, setAuth] = useState<'loading' | 'yes' | 'no'>('loading');
@@ -36,7 +37,7 @@ function App() {
       getBiometricEnabled(),
     ]).then(async ([t, ob, bioEnabled]) => {
       setOnboarded(ob);
-      if (t) startScheduler();
+      if (t) { startScheduler(); registerForPushNotifications(); }
       if (t && bioEnabled) {
         setLocked(true);
         setAuth('yes');

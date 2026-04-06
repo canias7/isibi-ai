@@ -149,8 +149,11 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           });
           scheduleLocalNotification('File Ready', `${result.filename} has been created`, 1);
         }).catch(e => {
-          updateAndPersist(aiMsgIdStream, { content: (finalText || '') + '\n\n(File creation failed: ' + e.message + ')', isCreatingFile: false });
-          scheduleLocalNotification('File Creation Failed', e.message || 'Something went wrong', 1);
+          const errorMsg = e.message?.includes('Network')
+            ? 'File creation was interrupted. Please stay in the app while files are being created, then try again.'
+            : 'File creation failed: ' + e.message;
+          updateAndPersist(aiMsgIdStream, { content: errorMsg, isCreatingFile: false });
+          scheduleLocalNotification('GoFarther AI', errorMsg, 1);
         });
         return;
       }
