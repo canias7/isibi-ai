@@ -98,6 +98,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'remember') {
         await addMemoryFact(finalAction.target || '');
         finalAction = null;
+        if (!finalText) finalText = "Got it, I'll remember that!";
       }
 
       // Handle image generation
