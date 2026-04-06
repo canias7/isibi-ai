@@ -311,6 +311,7 @@ Return ONLY the document content, no explanations."""
 
 class GoFartherBot(ActivityHandler):
     async def on_message_activity(self, turn_context: TurnContext):
+        print(f"[TEAMS BOT] on_message_activity called")
         # Strip @mention from text
         text = turn_context.activity.text or ""
         if turn_context.activity.entities:
@@ -425,14 +426,21 @@ async def teams_messages(request: Request):
     body = await request.json()
     auth_header = request.headers.get("Authorization", "")
 
+    print(f"[TEAMS] Received activity type: {body.get('type', 'unknown')}, text: {body.get('text', '')[:50]}")
+
     activity = Activity().deserialize(body)
 
     async def _aux_func(turn_context: TurnContext):
         await BOT.on_turn(turn_context)
 
     try:
-        await ADAPTER.process_activity(activity, auth_header, _aux_func)
+        response = await ADAPTER.process_activity(activity, auth_header, _aux_func)
+        if response:
+            return JSONResponse(content=response.body, status_code=response.status)
         return JSONResponse(content={}, status_code=200)
+    except PermissionError as pe:
+        print(f"[TEAMS AUTH ERROR] {pe}")
+        return JSONResponse(content={"error": "Unauthorized"}, status_code=401)
     except Exception as e:
         print(f"[TEAMS ADAPTER ERROR] {e}")
         traceback.print_exc()
