@@ -9,12 +9,20 @@ from __future__ import annotations
 import os
 import io
 import re
+import sys
 import json
 import base64
 import uuid
+import logging
 import traceback
 from datetime import datetime, timedelta
 from dataclasses import dataclass, field
+
+logger = logging.getLogger("teams_bot")
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler(sys.stdout)
+handler.flush = lambda: sys.stdout.flush()
+logger.addHandler(handler)
 
 import httpx
 from fastapi import APIRouter, Request
@@ -30,7 +38,7 @@ router = APIRouter(prefix="/teams", tags=["teams-bot"])
 TEAMS_APP_ID = os.getenv("TEAMS_APP_ID", "")
 TEAMS_APP_PASSWORD = os.getenv("TEAMS_APP_PASSWORD", "")
 
-print(f"[TEAMS CONFIG] App ID set: {bool(TEAMS_APP_ID)}, Password set: {bool(TEAMS_APP_PASSWORD)}")
+logger.info(f"[TEAMS CONFIG] App ID set: {bool(TEAMS_APP_ID)}, Password set: {bool(TEAMS_APP_PASSWORD)}")
 
 # ─── Token Cache ──────────────────────────────────────────────────────────
 
@@ -54,7 +62,7 @@ async def _get_bot_token() -> str:
             },
         )
         if res.status_code != 200:
-            print(f"[TEAMS TOKEN ERROR] {res.status_code}: {res.text}")
+            logger.info(f"[TEAMS TOKEN ERROR] {res.status_code}: {res.text}")
             raise RuntimeError(f"Failed to get bot token: {res.text}")
         data = res.json()
         _token_cache["token"] = data["access_token"]
@@ -86,9 +94,9 @@ async def _send_reply(service_url: str, conversation_id: str, activity_id: str, 
             json=body,
         )
         if res.status_code not in (200, 201):
-            print(f"[TEAMS REPLY ERROR] {res.status_code}: {res.text}")
+            logger.info(f"[TEAMS REPLY ERROR] {res.status_code}: {res.text}")
         else:
-            print(f"[TEAMS] Reply sent successfully")
+            logger.info(f"[TEAMS] Reply sent successfully")
 
 
 async def _send_typing(service_url: str, conversation_id: str, activity_id: str):
@@ -293,7 +301,7 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> dict:
             result["text"] = f"Tool '{tool_name}' executed."
 
     except Exception as e:
-        print(f"[TEAMS TOOL ERROR] {tool_name}: {e}")
+        logger.info(f"[TEAMS TOOL ERROR] {tool_name}: {e}")
         traceback.print_exc()
         result["text"] = f"Tool failed: {str(e)}"
 
@@ -323,7 +331,7 @@ async def _handle_message(body: dict):
     if not text:
         return
 
-    print(f"[TEAMS] Message from {user_id}: {text[:50]}")
+    logger.info(f"[TEAMS] Message from {user_id}: {text[:50]}")
 
     # Ensure service_url ends with /
     if service_url and not service_url.endswith("/"):
@@ -381,7 +389,7 @@ async def _handle_message(body: dict):
             session.messages.append({"role": "assistant", "content": response_text})
 
     except Exception as e:
-        print(f"[TEAMS BOT ERROR] {e}")
+        logger.info(f"[TEAMS BOT ERROR] {e}")
         traceback.print_exc()
         await _send_reply(service_url, conversation_id, activity_id, "Sorry, something went wrong. Please try again.")
 
@@ -408,7 +416,7 @@ async def teams_messages(request: Request):
     auth_header = request.headers.get("Authorization", "")
     activity_type = body.get("type", "")
 
-    print(f"[TEAMS] Activity: {activity_type}, text: {body.get('text', '')[:50]}")
+    logger.info(f"[TEAMS] Activity: {activity_type}, text: {body.get('text', '')[:50]}")
 
     # Validate auth
     if not await _validate_teams_auth(auth_header):
