@@ -8,6 +8,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
 import { getChatHistory, saveChatHistory, addMemoryFact, trackEvent } from './storage';
+import { scheduleLocalNotification } from './notifications';
 
 interface UseChatOptions {
   sessionId: string | null;
@@ -120,12 +121,13 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle image generation
       if (finalAction?.type === 'generate_image') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Generating image...' } : m));
+        updateAndPersist(aiMsgIdStream, { content: finalText || 'Generating image...' });
         setLoading(false);
         generateImage(finalAction.target || '').then(imageUrl => {
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Here\'s your image:', imageUrl } : m));
+          updateAndPersist(aiMsgIdStream, { content: finalText || 'Here\'s your image:', imageUrl });
+          scheduleLocalNotification('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
-          setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || '') + '\n\n(Image generation failed: ' + e.message + ')' } : m));
+          updateAndPersist(aiMsgIdStream, { content: (finalText || '') + '\n\n(Image generation failed: ' + e.message + ')' });
         });
         return;
       }
@@ -145,8 +147,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             fileUrl: filePath,
             isCreatingFile: false,
           });
+          scheduleLocalNotification('File Ready', `${result.filename} has been created`, 1);
         }).catch(e => {
           updateAndPersist(aiMsgIdStream, { content: (finalText || '') + '\n\n(File creation failed: ' + e.message + ')', isCreatingFile: false });
+          scheduleLocalNotification('File Creation Failed', e.message || 'Something went wrong', 1);
         });
         return;
       }
