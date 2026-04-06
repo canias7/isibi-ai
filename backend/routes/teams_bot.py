@@ -74,27 +74,40 @@ async def _get_bot_token() -> str:
 async def _send_reply(service_url: str, conversation_id: str, activity_id: str, text: str, attachments: list = None):
     """Send a reply to a Teams conversation."""
     token = await _get_bot_token()
-    url = f"{service_url}v3/conversations/{conversation_id}/activities/{activity_id}"
+
+    # Try reply-to-activity first, fall back to create new activity
+    reply_url = f"{service_url}v3/conversations/{conversation_id}/activities/{activity_id}"
+    create_url = f"{service_url}v3/conversations/{conversation_id}/activities"
 
     body = {
         "type": "message",
         "text": text,
         "from": {"id": TEAMS_APP_ID, "name": "GoFarther AI"},
+        "replyToId": activity_id,
     }
     if attachments:
         body["attachments"] = attachments
 
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
     async with httpx.AsyncClient(timeout=30) as client:
-        res = await client.post(
-            url,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-            },
-            json=body,
-        )
+        # Try reply first
+        res = await client.post(reply_url, headers=headers, json=body)
+        print(f"[TEAMS REPLY] reply_to_activity status={res.status_code}", flush=True)
+
         if res.status_code not in (200, 201):
-            print(f"[TEAMS REPLY ERROR] {res.status_code}: {res.text}", flush=True)
+            print(f"[TEAMS REPLY] reply failed, trying create. Error: {res.text[:200]}", flush=True)
+            # Fall back to creating a new activity
+            res = await client.post(create_url, headers=headers, json=body)
+            print(f"[TEAMS REPLY] create_activity status={res.status_code}", flush=True)
+
+            if res.status_code not in (200, 201):
+                print(f"[TEAMS REPLY ERROR] {res.status_code}: {res.text[:200]}", flush=True)
+            else:
+                print(f"[TEAMS] Reply sent via create_activity", flush=True)
         else:
             print(f"[TEAMS] Reply sent successfully", flush=True)
 
