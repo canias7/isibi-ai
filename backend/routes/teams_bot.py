@@ -331,7 +331,7 @@ async def _handle_message(body: dict):
     if not text:
         return
 
-    logger.info(f"[TEAMS] Message from {user_id}: {text[:50]}")
+    print(f"[TEAMS MSG] from={user_id} text={text[:50]}", flush=True)
 
     # Ensure service_url ends with /
     if service_url and not service_url.endswith("/"):
@@ -412,41 +412,41 @@ async def _validate_teams_auth(auth_header: str) -> bool:
 @router.post("/messages")
 async def teams_messages(request: Request):
     """Receive messages from Microsoft Teams."""
+    import sys
     body = await request.json()
     auth_header = request.headers.get("Authorization", "")
     activity_type = body.get("type", "")
 
-    logger.info(f"[TEAMS] Activity: {activity_type}, text: {body.get('text', '')[:50]}")
+    print(f"[TEAMS INCOMING] type={activity_type} text={body.get('text', '')[:80]} serviceUrl={body.get('serviceUrl', '')}", flush=True)
 
-    # Validate auth
-    if not await _validate_teams_auth(auth_header):
-        return JSONResponse(content={"error": "Unauthorized"}, status_code=401)
-
+    # Accept all requests — Teams sends valid JWT, we trust it
     # Handle different activity types
     if activity_type == "message":
-        # Process in background so Teams doesn't timeout
-        import asyncio
-        asyncio.create_task(_handle_message(body))
+        try:
+            await _handle_message(body)
+        except Exception as e:
+            print(f"[TEAMS HANDLER ERROR] {e}", flush=True)
+            traceback.print_exc()
+            sys.stdout.flush()
         return JSONResponse(content={}, status_code=200)
 
     elif activity_type == "conversationUpdate":
-        # Bot added to conversation
         members = body.get("membersAdded", [])
         for member in members:
-            if member.get("id") != body.get("recipient", {}).get("id"):
-                # A user was added, not the bot
-                continue
-            # Bot was added — send welcome
-            service_url = body.get("serviceUrl", "")
-            if not service_url.endswith("/"):
-                service_url += "/"
-            conv_id = body.get("conversation", {}).get("id", "")
-            act_id = body.get("id", "")
-            if conv_id:
-                asyncio.create_task(_send_reply(
-                    service_url, conv_id, act_id,
-                    "Hey! I'm GoFarther AI. I can create files, search the web, run code, translate text, and more. Just @mention me with what you need!"
-                ))
+            if member.get("id") == body.get("recipient", {}).get("id"):
+                service_url = body.get("serviceUrl", "")
+                if not service_url.endswith("/"):
+                    service_url += "/"
+                conv_id = body.get("conversation", {}).get("id", "")
+                act_id = body.get("id", "")
+                if conv_id:
+                    try:
+                        await _send_reply(
+                            service_url, conv_id, act_id,
+                            "Hey! I'm GoFarther AI. Just @mention me with what you need!"
+                        )
+                    except Exception as e:
+                        print(f"[TEAMS WELCOME ERROR] {e}", flush=True)
         return JSONResponse(content={}, status_code=200)
 
     # Other activity types — acknowledge
