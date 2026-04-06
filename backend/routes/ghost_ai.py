@@ -8,7 +8,8 @@ import os
 import json
 import base64
 import httpx
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import Optional
 
@@ -46,6 +47,8 @@ CLAUDE_TOOLS = [
     {"name": "create_meme", "description": "Create a meme image", "input_schema": {"type": "object", "properties": {"top_text": {"type": "string"}, "bottom_text": {"type": "string"}}, "required": ["top_text"]}},
     {"name": "barcode_lookup", "description": "Look up a product by barcode", "input_schema": {"type": "object", "properties": {"barcode": {"type": "string"}}, "required": ["barcode"]}},
     {"name": "compare_urls", "description": "Compare multiple URLs or products", "input_schema": {"type": "object", "properties": {"urls": {"type": "string", "description": "Comma-separated URLs"}, "question": {"type": "string"}}, "required": ["urls"]}},
+    {"name": "modify_file", "description": "Modify an existing file. Operations: edit (change content), chart (create visualization from data), convert (change format), merge (combine files), filter (extract matching rows). Use when the user has uploaded a file and wants to change, visualize, convert, merge, or filter it.", "input_schema": {"type": "object", "properties": {"operation": {"type": "string", "enum": ["edit", "chart", "convert", "merge", "filter"], "description": "What to do with the file"}, "instructions": {"type": "string", "description": "What changes to make, what chart to create, or what to filter"}, "target_format": {"type": "string", "enum": ["pdf", "xlsx", "docx", "csv", "txt"], "description": "Target format for convert operation"}}, "required": ["operation", "instructions"]}},
+    {"name": "save_contact", "description": "Save a contact to the user's contact list", "input_schema": {"type": "object", "properties": {"label": {"type": "string", "description": "Relationship label e.g. My boss"}, "name": {"type": "string"}, "contact_info": {"type": "string", "description": "Email or phone number"}}, "required": ["label", "name"]}},
 ]
 
 
@@ -149,6 +152,8 @@ async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
             "create_meme": {"type": "create_meme", "target": inp.get("top_text", ""), "text": inp.get("bottom_text", "")},
             "barcode_lookup": {"type": "barcode_lookup", "target": inp.get("barcode", "")},
             "compare_urls": {"type": "compare_urls", "target": inp.get("urls", ""), "text": inp.get("question", "")},
+            "modify_file": {"type": "modify_file", "target": inp.get("operation", "edit"), "text": inp.get("instructions", ""), "key": inp.get("target_format", "")},
+            "save_contact": {"type": "save_contact", "target": inp.get("label", ""), "text": inp.get("name", ""), "key": inp.get("contact_info", "")},
         }
 
         action_json = action_map.get(name)
@@ -157,6 +162,119 @@ async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
             response_text = response_text + "\n" + json.dumps(action_json) if response_text else json.dumps(action_json)
 
     return {"text": response_text or "No response"}
+
+
+@router.post("/chat-stream")
+async def chat_stream_proxy(req: ChatRequest, authorization: str = Header(...)):
+    """Streaming chat — returns Server-Sent Events with text deltas and tool calls."""
+    _verify_auth(authorization)
+    if not ANTHROPIC_KEY:
+        raise HTTPException(500, "Anthropic API key not configured on server")
+
+    async def event_generator():
+        text_so_far = ""
+        tool_name = None
+        tool_input_json = ""
+
+        async with httpx.AsyncClient(timeout=120) as client:
+            async with client.stream(
+                "POST",
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "Content-Type": "application/json",
+                    "x-api-key": ANTHROPIC_KEY,
+                    "anthropic-version": "2023-06-01",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": req.max_tokens,
+                    "system": req.system,
+                    "messages": req.messages,
+                    "tools": CLAUDE_TOOLS,
+                    "stream": True,
+                },
+            ) as resp:
+                if resp.status_code != 200:
+                    error_body = await resp.aread()
+                    try:
+                        detail = json.loads(error_body).get("error", {}).get("message", "API error")
+                    except Exception:
+                        detail = "API error"
+                    yield f"data: {json.dumps({'type': 'error', 'text': detail})}\n\n"
+                    return
+
+                async for line in resp.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        event = json.loads(data_str)
+                    except json.JSONDecodeError:
+                        continue
+
+                    event_type = event.get("type", "")
+
+                    if event_type == "content_block_start":
+                        block = event.get("content_block", {})
+                        if block.get("type") == "tool_use":
+                            tool_name = block.get("name")
+                            tool_input_json = ""
+
+                    elif event_type == "content_block_delta":
+                        delta = event.get("delta", {})
+                        if delta.get("type") == "text_delta":
+                            text = delta.get("text", "")
+                            text_so_far += text
+                            yield f"data: {json.dumps({'type': 'text', 'text': text})}\n\n"
+                        elif delta.get("type") == "input_json_delta":
+                            tool_input_json += delta.get("partial_json", "")
+
+                    elif event_type == "content_block_stop":
+                        if tool_name and tool_input_json:
+                            try:
+                                inp = json.loads(tool_input_json)
+                            except json.JSONDecodeError:
+                                inp = {}
+                            # Map to mobile app action format
+                            action_map = {
+                                "create_file": {"type": "create_file", "target": inp.get("description", ""), "text": inp.get("file_type", "pdf"), "key": inp.get("quality", "standard")},
+                                "web_search": {"type": "web_search", "target": inp.get("query", "")},
+                                "read_url": {"type": "read_url", "target": inp.get("url", ""), "text": inp.get("question", "")},
+                                "run_code": {"type": "run_code", "target": inp.get("description", "")},
+                                "translate": {"type": "translate", "target": inp.get("text", ""), "text": inp.get("target_language", "")},
+                                "generate_image": {"type": "generate_image", "target": inp.get("description", "")},
+                                "call": {"type": "call", "target": inp.get("target", "")},
+                                "sms": {"type": "sms", "target": inp.get("target", ""), "text": inp.get("text", "")},
+                                "email": {"type": "email", "target": inp.get("target", ""), "key": inp.get("subject", ""), "text": inp.get("body", "")},
+                                "maps": {"type": "maps", "target": inp.get("query", "")},
+                                "remember": {"type": "remember", "target": inp.get("fact", "")},
+                                "youtube_summary": {"type": "youtube_summary", "target": inp.get("url", "")},
+                                "research": {"type": "research", "target": inp.get("topic", ""), "text": inp.get("type", "general")},
+                                "generate_qr": {"type": "generate_qr", "target": inp.get("data", "")},
+                                "create_event": {"type": "create_event", "target": inp.get("title", ""), "text": inp.get("date", "")},
+                                "create_invoice": {"type": "create_invoice", "target": inp.get("client_name", ""), "text": inp.get("items", "")},
+                                "crypto_portfolio": {"type": "crypto_portfolio", "target": inp.get("symbols", "")},
+                                "social_post": {"type": "social_post", "target": inp.get("content", ""), "text": inp.get("platform", "twitter")},
+                                "create_meme": {"type": "create_meme", "target": inp.get("top_text", ""), "text": inp.get("bottom_text", "")},
+                                "barcode_lookup": {"type": "barcode_lookup", "target": inp.get("barcode", "")},
+                                "compare_urls": {"type": "compare_urls", "target": inp.get("urls", ""), "text": inp.get("question", "")},
+                                "modify_file": {"type": "modify_file", "target": inp.get("operation", "edit"), "text": inp.get("instructions", ""), "key": inp.get("target_format", "")},
+                                "save_contact": {"type": "save_contact", "target": inp.get("label", ""), "text": inp.get("name", ""), "key": inp.get("contact_info", "")},
+                            }
+                            action_json = action_map.get(tool_name)
+                            if action_json:
+                                yield f"data: {json.dumps({'type': 'action', 'action': action_json})}\n\n"
+                            tool_name = None
+                            tool_input_json = ""
+
+                    elif event_type == "message_stop":
+                        break
+
+        yield f"data: {json.dumps({'type': 'done', 'text': text_so_far})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @router.post("/vision")

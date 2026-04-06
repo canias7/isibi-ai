@@ -317,6 +317,201 @@ async def download_file(file_id: str):
     return Response(content=base64.b64decode(f["data"]), media_type=f["mime"], headers={"Content-Disposition": f'attachment; filename="{f["filename"]}"'})
 
 
+# ─── FILE MODIFICATION (edit, chart, convert, merge, filter) ──────────────
+
+class ModifyFileRequest(BaseModel):
+    operation: str  # edit, chart, convert, merge, filter
+    file_id: Optional[str] = None
+    file_ids: Optional[list[str]] = None
+    instructions: Optional[str] = ""
+    target_format: Optional[str] = None  # for convert: pdf, xlsx, docx, csv, txt
+
+
+@router.post("/modify-file-async")
+async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(...)):
+    """Modify an existing file: edit, chart, convert, merge, or filter."""
+    _verify_auth(authorization)
+    import asyncio
+    job_id = str(uuid.uuid4())[:8]
+    JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None}
+
+    async def _background_modify():
+        try:
+            # Load original file(s)
+            if req.operation == "merge" and req.file_ids:
+                sources = []
+                for fid in req.file_ids:
+                    if fid not in FILE_STORE:
+                        raise ValueError(f"File {fid} not found")
+                    f = FILE_STORE[fid]
+                    content = base64.b64decode(f["data"])
+                    sources.append({"filename": f["filename"], "content": content, "mime": f["mime"]})
+            elif req.file_id and req.file_id in FILE_STORE:
+                f = FILE_STORE[req.file_id]
+                original_bytes = base64.b64decode(f["data"])
+                original_filename = f["filename"]
+                original_mime = f["mime"]
+            else:
+                raise ValueError("File not found")
+
+            file_id = str(uuid.uuid4())[:8]
+
+            if req.operation == "edit":
+                # Parse original file content
+                text_content = _extract_text(original_bytes, original_mime)
+                system = """You are a document editor. The user has an existing document and wants modifications.
+Return ONLY the complete modified document content. Keep the same format and structure unless told otherwise.
+For XLSX: return JSON array of objects. For CSV: return raw CSV. For others: return text with markdown formatting."""
+                prompt = f"Original document content:\n\n{text_content}\n\nModifications requested: {req.instructions}\n\nReturn the complete modified document."
+                modified_content = await _ask_claude(prompt, system)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'txt'
+                file_bytes, filename, mime = _content_to_file(modified_content, ext, f"modified_{file_id}")
+
+            elif req.operation == "chart":
+                text_content = _extract_text(original_bytes, original_mime)
+                system = """You are a data analyst. Given spreadsheet/CSV data, generate Python code that uses matplotlib to create the requested chart.
+The code must:
+1. Parse the data (provided as a string variable called DATA)
+2. Create the chart using matplotlib
+3. Save to a BytesIO buffer called 'buf'
+4. Use plt.tight_layout() before saving
+Return ONLY the Python code, no explanations."""
+                prompt = f"Data:\n{text_content}\n\nCreate this chart: {req.instructions or 'Create an appropriate chart for this data'}"
+                code = await _ask_claude(prompt, system)
+                # Execute the chart code
+                import matplotlib
+                matplotlib.use('Agg')
+                import matplotlib.pyplot as plt
+                buf = io.BytesIO()
+                local_vars = {"DATA": text_content, "buf": buf, "plt": plt, "io": io}
+                clean_code = code.replace("```python", "").replace("```", "").strip()
+                exec(clean_code, {"__builtins__": __builtins__}, local_vars)
+                buf = local_vars.get("buf", buf)
+                buf.seek(0)
+                file_bytes = buf.getvalue()
+                filename = f"chart_{file_id}.png"
+                mime = "image/png"
+
+            elif req.operation == "convert":
+                target = req.target_format or "pdf"
+                text_content = _extract_text(original_bytes, original_mime)
+                file_bytes, filename, mime = _content_to_file(text_content, target, f"converted_{file_id}")
+
+            elif req.operation == "merge":
+                combined_text = ""
+                for src in sources:
+                    text = _extract_text(src["content"], src["mime"])
+                    combined_text += f"\n\n--- {src['filename']} ---\n\n{text}"
+                # Determine output format from first file
+                ext = sources[0]["filename"].rsplit('.', 1)[-1] if '.' in sources[0]["filename"] else 'txt'
+                file_bytes, filename, mime = _content_to_file(combined_text, ext, f"merged_{file_id}")
+
+            elif req.operation == "filter":
+                text_content = _extract_text(original_bytes, original_mime)
+                system = """You are a data processor. Filter the data according to the user's criteria.
+Return ONLY the filtered data in the same format (CSV for CSV, JSON array for XLSX)."""
+                prompt = f"Data:\n{text_content}\n\nFilter criteria: {req.instructions}"
+                filtered = await _ask_claude(prompt, system)
+                ext = original_filename.rsplit('.', 1)[-1] if '.' in original_filename else 'csv'
+                file_bytes, filename, mime = _content_to_file(filtered, ext, f"filtered_{file_id}")
+
+            else:
+                raise ValueError(f"Unknown operation: {req.operation}")
+
+            file_b64 = base64.b64encode(file_bytes).decode()
+            FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+            JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
+        except Exception as e:
+            JOB_STORE[job_id] = {"status": "failed", "file_id": None, "error": str(e)}
+
+    asyncio.create_task(_background_modify())
+    return {"job_id": job_id, "status": "processing"}
+
+
+def _extract_text(file_bytes: bytes, mime: str) -> str:
+    """Extract readable text from file bytes based on mime type."""
+    if mime == "application/pdf":
+        try:
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            return "\n".join(page.get_text() for page in doc)
+        except Exception:
+            return file_bytes.decode('utf-8', errors='ignore')
+    elif mime in ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.ms-excel"):
+        try:
+            from openpyxl import load_workbook
+            wb = load_workbook(io.BytesIO(file_bytes))
+            ws = wb.active
+            rows = []
+            for row in ws.iter_rows(values_only=True):
+                rows.append(",".join(str(c) if c is not None else "" for c in row))
+            return "\n".join(rows)
+        except Exception:
+            return file_bytes.decode('utf-8', errors='ignore')
+    elif mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        try:
+            from docx import Document
+            doc = Document(io.BytesIO(file_bytes))
+            return "\n".join(p.text for p in doc.paragraphs)
+        except Exception:
+            return file_bytes.decode('utf-8', errors='ignore')
+    else:
+        return file_bytes.decode('utf-8', errors='ignore')
+
+
+def _content_to_file(content: str, ext: str, base_name: str) -> tuple:
+    """Convert text content to file bytes in the specified format."""
+    if ext == "pdf":
+        try:
+            from lib.pdf_templates import create_professional_pdf
+            file_bytes = create_professional_pdf(content, title=base_name)
+        except Exception:
+            file_bytes = content.encode('utf-8')
+        return file_bytes, f"{base_name}.pdf", "application/pdf"
+    elif ext == "xlsx":
+        try:
+            from openpyxl import Workbook
+            wb = Workbook()
+            ws = wb.active
+            # Try parsing as JSON array
+            try:
+                import json as _json
+                data = _json.loads(content)
+                if isinstance(data, list) and len(data) > 0:
+                    headers = list(data[0].keys())
+                    ws.append(headers)
+                    for row in data:
+                        ws.append([row.get(h, "") for h in headers])
+            except Exception:
+                # Fall back to CSV-style parsing
+                for line in content.strip().split('\n'):
+                    ws.append(line.split(','))
+            buf = io.BytesIO()
+            wb.save(buf)
+            return buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        except Exception:
+            return content.encode('utf-8'), f"{base_name}.csv", "text/csv"
+    elif ext == "docx":
+        try:
+            from docx import Document
+            doc = Document()
+            for line in content.split('\n'):
+                line = line.strip()
+                if line.startswith('# '): doc.add_heading(line[2:], level=1)
+                elif line.startswith('## '): doc.add_heading(line[3:], level=2)
+                elif line.startswith('- '): doc.add_paragraph(line[2:], style='List Bullet')
+                elif line: doc.add_paragraph(line)
+            buf = io.BytesIO()
+            doc.save(buf)
+            return buf.getvalue(), f"{base_name}.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        except Exception:
+            return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
+    elif ext == "csv":
+        return content.encode('utf-8'), f"{base_name}.csv", "text/csv"
+    else:
+        return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
+
+
 # ─── PRESENTATION ─────────────────────────────────────────────────────────
 
 class PresentationRequest(BaseModel):
