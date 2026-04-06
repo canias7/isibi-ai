@@ -38,7 +38,7 @@ router = APIRouter(prefix="/teams", tags=["teams-bot"])
 TEAMS_APP_ID = os.getenv("TEAMS_APP_ID", "")
 TEAMS_APP_PASSWORD = os.getenv("TEAMS_APP_PASSWORD", "")
 
-logger.info(f"[TEAMS CONFIG] App ID set: {bool(TEAMS_APP_ID)}, Password set: {bool(TEAMS_APP_PASSWORD)}")
+print(f"[TEAMS CONFIG] App ID set: {bool(TEAMS_APP_ID)}, Password set: {bool(TEAMS_APP_PASSWORD)}", flush=True)
 
 # ─── Token Cache ──────────────────────────────────────────────────────────
 
@@ -62,12 +62,12 @@ async def _get_bot_token() -> str:
             },
         )
         if res.status_code != 200:
-            logger.info(f"[TEAMS TOKEN ERROR] {res.status_code}: {res.text}")
+            print(f"[TEAMS TOKEN ERROR] {res.status_code}: {res.text}", flush=True)
             raise RuntimeError(f"Failed to get bot token: {res.text}")
         data = res.json()
         _token_cache["token"] = data["access_token"]
         _token_cache["expires"] = now + timedelta(seconds=data.get("expires_in", 3600))
-        print("[TEAMS] Got fresh bot token")
+        print("[TEAMS] Got fresh bot token", flush=True)
         return _token_cache["token"]
 
 
@@ -94,9 +94,9 @@ async def _send_reply(service_url: str, conversation_id: str, activity_id: str, 
             json=body,
         )
         if res.status_code not in (200, 201):
-            logger.info(f"[TEAMS REPLY ERROR] {res.status_code}: {res.text}")
+            print(f"[TEAMS REPLY ERROR] {res.status_code}: {res.text}", flush=True)
         else:
-            logger.info(f"[TEAMS] Reply sent successfully")
+            print(f"[TEAMS] Reply sent successfully", flush=True)
 
 
 async def _send_typing(service_url: str, conversation_id: str, activity_id: str):
@@ -301,7 +301,7 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> dict:
             result["text"] = f"Tool '{tool_name}' executed."
 
     except Exception as e:
-        logger.info(f"[TEAMS TOOL ERROR] {tool_name}: {e}")
+        print(f"[TEAMS TOOL ERROR] {tool_name}: {e}", flush=True)
         traceback.print_exc()
         result["text"] = f"Tool failed: {str(e)}"
 
@@ -338,7 +338,12 @@ async def _handle_message(body: dict):
         service_url += "/"
 
     # Send typing indicator
-    await _send_typing(service_url, conversation_id, activity_id)
+    print(f"[TEAMS STEP 1] Sending typing indicator to {service_url}", flush=True)
+    try:
+        await _send_typing(service_url, conversation_id, activity_id)
+        print("[TEAMS STEP 1] Typing sent OK", flush=True)
+    except Exception as e:
+        print(f"[TEAMS STEP 1] Typing failed: {e}", flush=True)
 
     # Get conversation session
     session = _get_session(conversation_id, user_id)
@@ -347,6 +352,7 @@ async def _handle_message(body: dict):
 
     try:
         # Call Claude
+        print("[TEAMS STEP 2] Calling Claude...", flush=True)
         response = await call_claude(
             messages=messages,
             system=TEAMS_SYSTEM_PROMPT,
@@ -356,6 +362,7 @@ async def _handle_message(body: dict):
 
         response_text = response["text"]
         tool_use = response["tool_use"]
+        print(f"[TEAMS STEP 3] Claude responded: {response_text[:80]}", flush=True)
 
         if tool_use and response["stop_reason"] == "tool_use":
             tool_result = await _execute_tool(tool_use["name"], tool_use["input"])
@@ -389,7 +396,7 @@ async def _handle_message(body: dict):
             session.messages.append({"role": "assistant", "content": response_text})
 
     except Exception as e:
-        logger.info(f"[TEAMS BOT ERROR] {e}")
+        print(f"[TEAMS BOT ERROR] {e}", flush=True)
         traceback.print_exc()
         await _send_reply(service_url, conversation_id, activity_id, "Sorry, something went wrong. Please try again.")
 
