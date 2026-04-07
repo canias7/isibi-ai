@@ -254,10 +254,12 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
           </TouchableOpacity>
           {showSmtp && (
             <View style={s.expandedSection}>
-              <Text style={s.expandedHint}>Send emails from your own address. Just enter your email and password.</Text>
+              <Text style={[s.expandedHint, { fontSize: 13, marginBottom: 12 }]}>Send emails directly from your own email address. Takes 2 minutes to set up.</Text>
+
+              {/* Step 1 */}
+              <Text style={[s.smtpStep, { color: tc.text }]}>Step 1: Enter your email</Text>
               <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpUser} onChangeText={(val) => {
                 setSmtpUser(val);
-                // Auto-detect SMTP host and port from email domain
                 const domain = val.split('@')[1]?.toLowerCase();
                 const providers: Record<string, { host: string; port: string }> = {
                   'gmail.com': { host: 'smtp.gmail.com', port: '587' },
@@ -277,15 +279,60 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                   setSmtpHost(providers[domain].host);
                   setSmtpPort(providers[domain].port);
                 }
-              }} placeholder="Your email address" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPass} onChangeText={setSmtpPass} placeholder="Password or App Password" placeholderTextColor="#bbb" secureTextEntry />
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpFrom} onChangeText={setSmtpFrom} placeholder="Your name" placeholderTextColor="#bbb" />
+              }} placeholder="you@gmail.com" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
               {smtpHost ? (
-                <Text style={[s.expandedHint, { marginTop: 4, color: '#22c55e' }]}>Detected: {smtpHost} (port {smtpPort})</Text>
+                <Text style={[s.expandedHint, { color: '#22c55e', marginTop: 2 }]}>Detected: {smtpHost}</Text>
               ) : null}
-              {smtpUser.includes('@gmail.com') && (
-                <Text style={[s.expandedHint, { marginTop: 4 }]}>Gmail requires an App Password. Create one at myaccount.google.com/apppasswords</Text>
+
+              {/* Step 2 — provider-specific instructions */}
+              {smtpUser.includes('@') && (
+                <>
+                  <Text style={[s.smtpStep, { color: tc.text, marginTop: 14 }]}>Step 2: Get your App Password</Text>
+                  {smtpUser.includes('@gmail.com') || smtpUser.includes('@googlemail.com') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to myaccount.google.com</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Security</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Tap 2-Step Verification (turn it on if it's off)</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Scroll down and tap App passwords</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Name it "GoFarther" and tap Create</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>6. Copy the 16-character password and paste it below</Text>
+                    </View>
+                  ) : smtpUser.includes('@outlook.com') || smtpUser.includes('@hotmail.com') || smtpUser.includes('@live.com') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to account.microsoft.com/security</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Advanced security options</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Turn on Two-step verification if it's off</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Tap Create a new app password</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Copy the password and paste it below</Text>
+                    </View>
+                  ) : smtpUser.includes('@yahoo.com') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to login.yahoo.com/account/security</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Turn on Two-step verification if it's off</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Tap Generate app password</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Select "Other App", name it "GoFarther"</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Copy the password and paste it below</Text>
+                    </View>
+                  ) : smtpUser.includes('@icloud.com') || smtpUser.includes('@me.com') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to appleid.apple.com/sign-in</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Sign in and go to App-Specific Passwords</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Generate a password for "GoFarther"</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Copy the password and paste it below</Text>
+                    </View>
+                  ) : (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Check your email provider's settings for an "App Password" or "Third-party app access" option. Use that password below.</Text>
+                    </View>
+                  )}
+                </>
               )}
+
+              {/* Step 3 */}
+              <Text style={[s.smtpStep, { color: tc.text, marginTop: 14 }]}>{smtpUser.includes('@') ? 'Step 3' : 'Step 2'}: Paste your App Password</Text>
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPass} onChangeText={setSmtpPass} placeholder="Paste app password here" placeholderTextColor="#bbb" secureTextEntry />
+
+              <TextInput style={[s.contactInput, { color: tc.text, marginTop: 8 }]} value={smtpFrom} onChangeText={setSmtpFrom} placeholder="Your name (shown in emails)" placeholderTextColor="#bbb" />
               <TouchableOpacity style={s.saveBtn} onPress={handleSaveSmtp}>
                 <Text style={s.saveBtnText}>Save Email Settings</Text>
               </TouchableOpacity>
@@ -390,6 +437,9 @@ const s = StyleSheet.create({
   clearMemBtn: { marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#fef2f2', alignSelf: 'flex-start' },
   clearMemText: { fontSize: 13, color: '#ef4444', fontWeight: '500' },
 
+  smtpStep: { fontSize: 14, fontWeight: '700', marginBottom: 6 },
+  smtpInstructions: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: 12, marginTop: 4, gap: 6 },
+  smtpInstructionText: { fontSize: 13, lineHeight: 20 },
   contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
   contactLabel: { fontSize: 14, fontWeight: '600' },
   contactDetail: { fontSize: 12, color: '#888', marginTop: 1 },
