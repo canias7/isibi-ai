@@ -741,6 +741,8 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
                 if isinstance(cell.value, (int, float)):
                     cell.number_format = '#,##0' if isinstance(cell.value, int) else '#,##0.00'
                     cell.alignment = Alignment(horizontal='right', vertical='center')
+                elif isinstance(cell.value, str) and len(cell.value) > 30:
+                    cell.alignment = Alignment(wrap_text=True, vertical='center')
                     # Red for negative
                     if cell.value < 0:
                         cell.font = Font(color="CC0000")
@@ -779,19 +781,34 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
         # --- Freeze panes (freeze headers) ---
         ws.freeze_panes = f'A{header_row + 1}'
 
-        # --- Auto-width columns ---
+        # --- Auto-width columns (generous padding to prevent overlap) ---
         for col in ws.columns:
             max_len = 0
             col_letter = col[0].column_letter
             for cell in col:
                 try:
-                    val = str(cell.value) if cell.value else ""
-                    if cell.number_format and cell.number_format != 'General' and isinstance(cell.value, (int, float)):
-                        val = f"{cell.value:,.0f}"
-                    max_len = max(max_len, len(val))
+                    if cell.value is None:
+                        continue
+                    if isinstance(cell.value, (int, float)):
+                        # Format numbers as they'll appear with commas
+                        val = f"{cell.value:,.2f}" if isinstance(cell.value, float) else f"{cell.value:,}"
+                    elif isinstance(cell.value, str) and cell.value.startswith('='):
+                        # Formulas — estimate result width
+                        val = "000,000,000"
+                    else:
+                        val = str(cell.value)
+                    # Account for bold text being wider
+                    width = len(val)
+                    if cell.font and cell.font.bold:
+                        width = int(width * 1.15)
+                    max_len = max(max_len, width)
                 except Exception:
                     pass
-            ws.column_dimensions[col_letter].width = max(min(max_len + 4, 35), 10)
+            # First column (labels) gets extra space, number columns get padding for commas
+            if col_letter == 'A':
+                ws.column_dimensions[col_letter].width = max(min(max_len + 6, 40), 18)
+            else:
+                ws.column_dimensions[col_letter].width = max(min(max_len + 4, 20), 14)
 
         # --- Print setup ---
         ws.sheet_properties.pageSetUpPr = None
