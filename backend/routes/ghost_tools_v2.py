@@ -85,41 +85,31 @@ async def send_email(req: SendEmailRequest, authorization: str = Header(...)):
     payload_data = _verify_auth(authorization)
 
     # Check if user has custom SMTP configured
-    try:
-        from database import get_db as _get_db
-        from sqlalchemy import select
-        from routes.ghost_auth import GhostUser
-        # Get a db session
-        async for db in _get_db():
-            result = await db.execute(select(GhostUser).where(GhostUser.email == payload_data["email"]))
-            user = result.scalar_one_or_none()
-            if user and user.smtp_host and user.smtp_user and user.smtp_pass:
-                # Send via user's SMTP
-                import smtplib
-                from email.mime.text import MIMEText
-                from email.mime.multipart import MIMEMultipart
+    from routes.ghost_auth import SMTP_STORE
+    settings = SMTP_STORE.get(payload_data.get("email", ""), {})
 
-                msg = MIMEMultipart()
-                msg["From"] = f"{user.smtp_from or user.name} <{user.smtp_user}>"
-                msg["To"] = req.to
-                msg["Subject"] = req.subject
-                msg.attach(MIMEText(req.body, "plain"))
+    if settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass"):
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
 
-                try:
-                    with smtplib.SMTP(user.smtp_host, user.smtp_port or 587) as server:
-                        server.ehlo()
-                        server.starttls()
-                        server.ehlo()
-                        server.login(user.smtp_user, user.smtp_pass)
-                        server.sendmail(user.smtp_user, req.to, msg.as_string())
-                    return {"status": "sent", "to": req.to, "from": user.smtp_user}
-                except Exception as smtp_err:
-                    raise HTTPException(400, f"SMTP failed: {str(smtp_err)}")
-            break
-    except ImportError:
-        pass  # Database not available, fall through to SendGrid
+        msg = MIMEMultipart()
+        msg["From"] = f"{settings.get('smtp_from', '')} <{settings['smtp_user']}>"
+        msg["To"] = req.to
+        msg["Subject"] = req.subject
+        msg.attach(MIMEText(req.body, "plain"))
 
-    # No SMTP configured — tell user to set it up
+        try:
+            with smtplib.SMTP(settings["smtp_host"], settings.get("smtp_port", 587)) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(settings["smtp_user"], settings["smtp_pass"])
+                server.sendmail(settings["smtp_user"], req.to, msg.as_string())
+            return {"status": "sent", "to": req.to, "from": settings["smtp_user"]}
+        except Exception as smtp_err:
+            raise HTTPException(400, f"SMTP failed: {str(smtp_err)}")
+
     raise HTTPException(400, "Set up your email in Settings first to send emails.")
 
 

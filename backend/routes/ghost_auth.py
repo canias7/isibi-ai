@@ -49,12 +49,6 @@ class GhostUser(Base):
     verification_expires = Column(DateTime(timezone=True), nullable=True)
     reset_code = Column(String, nullable=True)
     reset_expires = Column(DateTime(timezone=True), nullable=True)
-    # SMTP settings for sending emails from user's own address
-    smtp_host = Column(String, nullable=True)
-    smtp_port = Column(Integer, nullable=True)
-    smtp_user = Column(String, nullable=True)
-    smtp_pass = Column(String, nullable=True)
-    smtp_from = Column(String, nullable=True)  # "From Name"
 
 # ── Login Logs & Trusted Devices ──────────────────────────────────────
 
@@ -389,6 +383,10 @@ async def ghost_add_credits(body: GhostAddCreditsRequest, authorization: str = H
     return {"credits": user.credits, "plan": user.plan}
 
 
+# SMTP settings stored in memory (no DB columns needed)
+SMTP_STORE: dict[str, dict] = {}
+
+
 class SmtpSettingsRequest(BaseModel):
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = 587
@@ -398,37 +396,31 @@ class SmtpSettingsRequest(BaseModel):
 
 
 @router.post("/smtp")
-async def save_smtp_settings(body: SmtpSettingsRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Save user's SMTP settings for sending emails from their own address."""
+async def save_smtp_settings(body: SmtpSettingsRequest, authorization: str = Header(...)):
+    """Save user's SMTP settings."""
     token = authorization.replace("Bearer ", "")
     payload = verify_ghost_token(token)
-    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    user.smtp_host = body.smtp_host
-    user.smtp_port = body.smtp_port or 587
-    user.smtp_user = body.smtp_user
-    user.smtp_pass = body.smtp_pass
-    user.smtp_from = body.smtp_from
-    await db.commit()
+    SMTP_STORE[payload["email"]] = {
+        "smtp_host": body.smtp_host,
+        "smtp_port": body.smtp_port or 587,
+        "smtp_user": body.smtp_user,
+        "smtp_pass": body.smtp_pass,
+        "smtp_from": body.smtp_from,
+    }
     return {"status": "saved"}
 
 
 @router.get("/smtp")
-async def get_smtp_settings(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+async def get_smtp_settings(authorization: str = Header(...)):
     """Get user's SMTP settings (password masked)."""
     token = authorization.replace("Bearer ", "")
     payload = verify_ghost_token(token)
-    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
-    user = result.scalar_one_or_none()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+    settings = SMTP_STORE.get(payload["email"], {})
     return {
-        "smtp_host": user.smtp_host,
-        "smtp_port": user.smtp_port,
-        "smtp_user": user.smtp_user,
-        "smtp_pass": "••••••••" if user.smtp_pass else None,
-        "smtp_from": user.smtp_from,
-        "configured": bool(user.smtp_host and user.smtp_user and user.smtp_pass),
+        "smtp_host": settings.get("smtp_host"),
+        "smtp_port": settings.get("smtp_port"),
+        "smtp_user": settings.get("smtp_user"),
+        "smtp_pass": "••••••••" if settings.get("smtp_pass") else None,
+        "smtp_from": settings.get("smtp_from"),
+        "configured": bool(settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass")),
     }
