@@ -254,13 +254,38 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
           </TouchableOpacity>
           {showSmtp && (
             <View style={s.expandedSection}>
-              <Text style={s.expandedHint}>Configure your email server to send emails from your own address</Text>
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpHost} onChangeText={setSmtpHost} placeholder="SMTP Host (e.g. smtp.gmail.com)" placeholderTextColor="#bbb" autoCapitalize="none" />
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPort} onChangeText={setSmtpPort} placeholder="Port (587)" placeholderTextColor="#bbb" keyboardType="number-pad" />
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpUser} onChangeText={setSmtpUser} placeholder="Email address" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
+              <Text style={s.expandedHint}>Send emails from your own address. Just enter your email and password.</Text>
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpUser} onChangeText={(val) => {
+                setSmtpUser(val);
+                // Auto-detect SMTP host and port from email domain
+                const domain = val.split('@')[1]?.toLowerCase();
+                const providers: Record<string, { host: string; port: string }> = {
+                  'gmail.com': { host: 'smtp.gmail.com', port: '587' },
+                  'googlemail.com': { host: 'smtp.gmail.com', port: '587' },
+                  'outlook.com': { host: 'smtp-mail.outlook.com', port: '587' },
+                  'hotmail.com': { host: 'smtp-mail.outlook.com', port: '587' },
+                  'live.com': { host: 'smtp-mail.outlook.com', port: '587' },
+                  'yahoo.com': { host: 'smtp.mail.yahoo.com', port: '587' },
+                  'yahoo.co.uk': { host: 'smtp.mail.yahoo.com', port: '587' },
+                  'aol.com': { host: 'smtp.aol.com', port: '587' },
+                  'icloud.com': { host: 'smtp.mail.me.com', port: '587' },
+                  'me.com': { host: 'smtp.mail.me.com', port: '587' },
+                  'zoho.com': { host: 'smtp.zoho.com', port: '587' },
+                  'protonmail.com': { host: 'smtp.protonmail.ch', port: '587' },
+                };
+                if (domain && providers[domain]) {
+                  setSmtpHost(providers[domain].host);
+                  setSmtpPort(providers[domain].port);
+                }
+              }} placeholder="Your email address" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
               <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPass} onChangeText={setSmtpPass} placeholder="Password or App Password" placeholderTextColor="#bbb" secureTextEntry />
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpFrom} onChangeText={setSmtpFrom} placeholder="From Name (e.g. Mario)" placeholderTextColor="#bbb" />
-              <Text style={[s.expandedHint, { marginTop: 4 }]}>Gmail users: use an App Password from myaccount.google.com/apppasswords</Text>
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpFrom} onChangeText={setSmtpFrom} placeholder="Your name" placeholderTextColor="#bbb" />
+              {smtpHost ? (
+                <Text style={[s.expandedHint, { marginTop: 4, color: '#22c55e' }]}>Detected: {smtpHost} (port {smtpPort})</Text>
+              ) : null}
+              {smtpUser.includes('@gmail.com') && (
+                <Text style={[s.expandedHint, { marginTop: 4 }]}>Gmail requires an App Password. Create one at myaccount.google.com/apppasswords</Text>
+              )}
               <TouchableOpacity style={s.saveBtn} onPress={handleSaveSmtp}>
                 <Text style={s.saveBtnText}>Save Email Settings</Text>
               </TouchableOpacity>
