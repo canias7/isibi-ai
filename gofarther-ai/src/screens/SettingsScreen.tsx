@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings } from '../lib/api';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -32,6 +32,13 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [showSmtp, setShowSmtp] = useState(false);
+  const [smtpHost, setSmtpHost] = useState('');
+  const [smtpPort, setSmtpPort] = useState('587');
+  const [smtpUser, setSmtpUser] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [smtpFrom, setSmtpFrom] = useState('');
+  const [smtpConfigured, setSmtpConfigured] = useState(false);
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricAvail, setBiometricAvail] = useState(false);
   const [bioType, setBioType] = useState('Biometric');
@@ -44,6 +51,15 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
     getMemory().then(setMemory);
     getLanguage().then(setLanguage);
     getSavedContacts().then(setContacts);
+    getSmtpSettings().then((s: any) => {
+      if (s) {
+        setSmtpHost(s.smtp_host || '');
+        setSmtpPort(String(s.smtp_port || 587));
+        setSmtpUser(s.smtp_user || '');
+        setSmtpFrom(s.smtp_from || '');
+        setSmtpConfigured(s.configured || false);
+      }
+    }).catch(() => {});
     isBiometricAvailable().then(setBiometricAvail);
     getBiometricType().then(setBioType);
     getBiometricEnabled().then(setBiometricOn);
@@ -85,6 +101,23 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
     await saveSavedContacts(updated);
   };
 
+  const handleSaveSmtp = async () => {
+    try {
+      await saveSmtpSettings({
+        smtp_host: smtpHost.trim() || undefined,
+        smtp_port: parseInt(smtpPort) || 587,
+        smtp_user: smtpUser.trim() || undefined,
+        smtp_pass: smtpPass.trim() || undefined,
+        smtp_from: smtpFrom.trim() || undefined,
+      });
+      setSmtpConfigured(!!smtpHost.trim() && !!smtpUser.trim() && !!smtpPass.trim());
+      Alert.alert('Saved', 'Email settings updated');
+      setShowSmtp(false);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not save settings');
+    }
+  };
+
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : (loadingUser ? '...' : '?');
 
   return (
@@ -116,7 +149,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
             <View style={s.expandedSection}>
               <Text style={s.expandedHint}>Tell the AI how to behave across all chats</Text>
               <TextInput
-                style={s.instructionsInput}
+                style={[s.instructionsInput, { color: tc.text }]}
                 value={customInstructions}
                 onChangeText={setCustomInstructions}
                 placeholder="e.g. Always respond in Spanish. Be very concise. My name is Mario."
@@ -141,7 +174,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                 <Text style={s.memoryEmpty}>No memories yet. Tell the AI "remember that..." in chat.</Text>
               ) : (
                 memory.slice(0, 20).map(m => (
-                  <Text key={m.id} style={s.memoryFact}>- {m.fact}</Text>
+                  <Text key={m.id} style={[s.memoryFact, { color: tc.textMid }]}>- {m.fact}</Text>
                 ))
               )}
               {memory.length > 0 && (
@@ -165,7 +198,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
               {contacts.map(c => (
                 <View key={c.id} style={s.contactRow}>
                   <View style={{ flex: 1 }}>
-                    <Text style={s.contactLabel}>{c.label}</Text>
+                    <Text style={[s.contactLabel, { color: tc.text }]}>{c.label}</Text>
                     <Text style={s.contactDetail}>{c.name}{c.email ? ` · ${c.email}` : ''}{c.phone ? ` · ${c.phone}` : ''}</Text>
                   </View>
                   <TouchableOpacity onPress={() => deleteContact(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -210,6 +243,29 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
             <Text style={s.rowLabel}>AI Language</Text>
             <Text style={s.rowValue}>{language === 'en' ? 'English' : language === 'es' ? 'Spanish' : language === 'fr' ? 'French' : language === 'pt' ? 'Portuguese' : 'German'}</Text>
           </TouchableOpacity>
+        </View>
+
+        {/* Email Settings */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Email</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <TouchableOpacity style={s.row} onPress={() => setShowSmtp(!showSmtp)}>
+            <Text style={[s.rowLabel, { color: tc.text }]}>Send from My Email</Text>
+            <Text style={[s.rowValue, { color: smtpConfigured ? '#22c55e' : tc.textMid }]}>{smtpConfigured ? 'Connected' : 'Not set up'}</Text>
+          </TouchableOpacity>
+          {showSmtp && (
+            <View style={s.expandedSection}>
+              <Text style={s.expandedHint}>Configure your email server to send emails from your own address</Text>
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpHost} onChangeText={setSmtpHost} placeholder="SMTP Host (e.g. smtp.gmail.com)" placeholderTextColor="#bbb" autoCapitalize="none" />
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPort} onChangeText={setSmtpPort} placeholder="Port (587)" placeholderTextColor="#bbb" keyboardType="number-pad" />
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpUser} onChangeText={setSmtpUser} placeholder="Email address" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPass} onChangeText={setSmtpPass} placeholder="Password or App Password" placeholderTextColor="#bbb" secureTextEntry />
+              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpFrom} onChangeText={setSmtpFrom} placeholder="From Name (e.g. Mario)" placeholderTextColor="#bbb" />
+              <Text style={[s.expandedHint, { marginTop: 4 }]}>Gmail users: use an App Password from myaccount.google.com/apppasswords</Text>
+              <TouchableOpacity style={s.saveBtn} onPress={handleSaveSmtp}>
+                <Text style={s.saveBtnText}>Save Email Settings</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* App */}
@@ -294,26 +350,26 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 16 },
   rowLast: {},
   rowDivider: { height: StyleSheet.hairlineWidth, backgroundColor: '#eee', marginLeft: 16 },
-  rowLabel: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },
+  rowLabel: { fontSize: 15, fontWeight: '500' },
   rowValue: { fontSize: 14, color: '#888', marginRight: 4 },
   chevron: { fontSize: 16, color: '#ccc', fontWeight: '300' },
 
   // Expanded sections
   expandedSection: { paddingHorizontal: 16, paddingBottom: 16 },
   expandedHint: { fontSize: 12, color: '#999', marginBottom: 8 },
-  instructionsInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 12, padding: 12, fontSize: 14, color: '#1a1a1a', height: 100, textAlignVertical: 'top' },
+  instructionsInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 12, padding: 12, fontSize: 14, height: 100, textAlignVertical: 'top' },
   saveBtn: { marginTop: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#1a1a1a', alignSelf: 'flex-start' },
   saveBtnText: { fontSize: 13, fontWeight: '600', color: '#ffffff' },
   memoryEmpty: { fontSize: 13, color: '#bbb', fontStyle: 'italic' },
-  memoryFact: { fontSize: 13, color: '#444', lineHeight: 20, marginBottom: 2 },
+  memoryFact: { fontSize: 13, lineHeight: 20, marginBottom: 2 },
   clearMemBtn: { marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#fef2f2', alignSelf: 'flex-start' },
   clearMemText: { fontSize: 13, color: '#ef4444', fontWeight: '500' },
 
   contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
-  contactLabel: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
+  contactLabel: { fontSize: 14, fontWeight: '600' },
   contactDetail: { fontSize: 12, color: '#888', marginTop: 1 },
   addContactForm: { marginTop: 8, gap: 8 },
-  contactInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 10, padding: 10, fontSize: 14, color: '#1a1a1a' },
+  contactInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 10, padding: 10, fontSize: 14 },
 
   logoutCard: { backgroundColor: '#ffffff', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, marginTop: 24, alignItems: 'center' },
   logoutText: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },

@@ -81,10 +81,47 @@ class SendEmailRequest(BaseModel):
 
 @router.post("/send-email")
 async def send_email(req: SendEmailRequest, authorization: str = Header(...)):
-    """Send email silently via SendGrid."""
-    _verify_auth(authorization)
+    """Send email via user's SMTP if configured, otherwise SendGrid."""
+    payload_data = _verify_auth(authorization)
+
+    # Check if user has custom SMTP configured
+    try:
+        from database import get_db as _get_db
+        from sqlalchemy import select
+        from routes.ghost_auth import GhostUser
+        # Get a db session
+        async for db in _get_db():
+            result = await db.execute(select(GhostUser).where(GhostUser.email == payload_data["email"]))
+            user = result.scalar_one_or_none()
+            if user and user.smtp_host and user.smtp_user and user.smtp_pass:
+                # Send via user's SMTP
+                import smtplib
+                from email.mime.text import MIMEText
+                from email.mime.multipart import MIMEMultipart
+
+                msg = MIMEMultipart()
+                msg["From"] = f"{user.smtp_from or user.name} <{user.smtp_user}>"
+                msg["To"] = req.to
+                msg["Subject"] = req.subject
+                msg.attach(MIMEText(req.body, "plain"))
+
+                try:
+                    with smtplib.SMTP(user.smtp_host, user.smtp_port or 587) as server:
+                        server.ehlo()
+                        server.starttls()
+                        server.ehlo()
+                        server.login(user.smtp_user, user.smtp_pass)
+                        server.sendmail(user.smtp_user, req.to, msg.as_string())
+                    return {"status": "sent", "to": req.to, "from": user.smtp_user}
+                except Exception as smtp_err:
+                    raise HTTPException(400, f"SMTP failed: {str(smtp_err)}")
+            break
+    except ImportError:
+        pass  # Database not available, fall through to SendGrid
+
+    # Fallback to SendGrid
     if not SENDGRID_KEY:
-        raise HTTPException(500, "SendGrid not configured. Add SENDGRID_API_KEY to environment.")
+        raise HTTPException(500, "Email not configured. Set up SMTP in Settings or add SENDGRID_API_KEY.")
 
     payload: dict = {
         "personalizations": [{"to": [{"email": req.to}]}],
