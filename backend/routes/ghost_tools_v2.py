@@ -119,24 +119,8 @@ async def send_email(req: SendEmailRequest, authorization: str = Header(...)):
     except ImportError:
         pass  # Database not available, fall through to SendGrid
 
-    # Fallback to SendGrid
-    if not SENDGRID_KEY:
-        raise HTTPException(500, "Email not configured. Set up SMTP in Settings or add SENDGRID_API_KEY.")
-
-    payload: dict = {
-        "personalizations": [{"to": [{"email": req.to}]}],
-        "from": {"email": "ai@gofarther.ai", "name": "GoFarther AI"},
-        "subject": req.subject,
-        "content": [{"type": "text/plain", "value": req.body}],
-    }
-    if req.attachment_b64 and req.attachment_name:
-        payload["attachments"] = [{"content": req.attachment_b64, "filename": req.attachment_name, "type": "application/octet-stream"}]
-
-    async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.post("https://api.sendgrid.com/v3/mail/send", headers={"Authorization": f"Bearer {SENDGRID_KEY}", "Content-Type": "application/json"}, json=payload)
-        if res.status_code not in (200, 202):
-            raise HTTPException(400, f"Email failed: {res.text}")
-    return {"status": "sent", "to": req.to}
+    # No SMTP configured — tell user to set it up
+    raise HTTPException(400, "Set up your email in Settings first to send emails.")
 
 
 class SendWhatsAppRequest(BaseModel):
