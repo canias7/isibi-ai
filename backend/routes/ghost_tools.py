@@ -305,9 +305,25 @@ Return ONLY the document content, no explanations."""
                 try:
                     file_bytes, fname, mime = _content_to_xlsx_with_formulas(content, filename)
                     filename = fname
-                except Exception:
-                    file_bytes, fname, mime = _content_to_file(content, "xlsx", filename)
-                    filename = fname
+                except Exception as xlsx_err:
+                    import traceback
+                    print(f"XLSX formula builder failed: {xlsx_err}\n{traceback.format_exc()}")
+                    # Fallback: try to make a basic Excel from the content
+                    try:
+                        from openpyxl import Workbook as _Wb
+                        _wb = _Wb()
+                        _ws = _wb.active
+                        for line in content.split('\n'):
+                            _ws.append(line.split(',') if ',' in line else [line])
+                        _buf = io.BytesIO()
+                        _wb.save(_buf)
+                        file_bytes = _buf.getvalue()
+                        filename += ".xlsx"
+                        mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    except Exception:
+                        file_bytes = content.encode('utf-8')
+                        filename += ".txt"
+                        mime = "text/plain"
             elif req.file_type == "docx":
                 file_bytes, fname, mime = _content_to_file(content, "docx", filename)
                 filename = fname
@@ -645,15 +661,33 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
 
         # Strip markdown code fences if present
         cleaned = content.strip()
-        if cleaned.startswith("```"):
-            # Remove first line (```json) and last line (```)
-            lines = cleaned.split('\n')
-            cleaned = '\n'.join(lines[1:-1] if lines[-1].strip() == '```' else lines[1:])
+        # Remove all possible markdown fence variations
+        for fence in ['```json', '```JSON', '```']:
+            if cleaned.startswith(fence):
+                cleaned = cleaned[len(fence):]
+                break
+        if cleaned.rstrip().endswith('```'):
+            cleaned = cleaned.rstrip()[:-3]
+        cleaned = cleaned.strip()
+
+        # Try to find JSON object in the content
+        json_start = cleaned.find('{')
+        json_end = cleaned.rfind('}')
+        if json_start >= 0 and json_end > json_start:
+            cleaned = cleaned[json_start:json_end + 1]
 
         data = _json.loads(cleaned)
-        headers = data.get("headers", [])
-        rows = data.get("rows", [])
-        formulas = data.get("formulas", {})
+
+        # Handle both {"headers":[], "rows":[]} and [{"col":"val"}] formats
+        if isinstance(data, list):
+            # Array of objects format
+            headers = list(data[0].keys()) if data else []
+            rows = [[row.get(h, "") for h in headers] for row in data]
+            formulas = {}
+        else:
+            headers = data.get("headers", [])
+            rows = data.get("rows", [])
+            formulas = data.get("formulas", {})
         title = data.get("title", base_name.replace("_", " ").title())
 
         wb = Workbook()
