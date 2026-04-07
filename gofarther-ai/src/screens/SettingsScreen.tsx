@@ -12,6 +12,7 @@ import {
   getCustomInstructions, saveCustomInstructions,
   getMemory, clearMemory, MemoryFact,
   getLanguage, saveLanguage,
+  getSavedContacts, saveSavedContacts, SavedContact,
 } from '../lib/storage';
 
 interface UserInfo { name?: string; email?: string; }
@@ -24,17 +25,25 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [memory, setMemory] = useState<MemoryFact[]>([]);
   const [showMemory, setShowMemory] = useState(false);
   const [language, setLanguage] = useState('en');
+  const [contacts, setContacts] = useState<SavedContact[]>([]);
+  const [showContacts, setShowContacts] = useState(false);
+  const [addingContact, setAddingContact] = useState(false);
+  const [newLabel, setNewLabel] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPhone, setNewPhone] = useState('');
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricAvail, setBiometricAvail] = useState(false);
   const [bioType, setBioType] = useState('Biometric');
   const [pushToken, setPushToken] = useState<string | null>(null);
-  const { mode: themeMode, toggle: toggleTheme } = useTheme();
+  const { mode: themeMode, toggle: toggleTheme, colors: tc } = useTheme();
 
   useEffect(() => {
     getMe().then(setUser).catch(() => {}).finally(() => setLoadingUser(false));
     getCustomInstructions().then(setCustomInstructions);
     getMemory().then(setMemory);
     getLanguage().then(setLanguage);
+    getSavedContacts().then(setContacts);
     isBiometricAvailable().then(setBiometricAvail);
     getBiometricType().then(setBioType);
     getBiometricEnabled().then(setBiometricOn);
@@ -59,6 +68,21 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
       { text: 'Cancel', style: 'cancel' },
       { text: 'Clear', style: 'destructive', onPress: async () => { await clearMemory(); setMemory([]); } },
     ]);
+  };
+
+  const saveContact = async () => {
+    if (!newLabel.trim() || !newName.trim()) return Alert.alert('Required', 'Label and name are required');
+    const updated = [...contacts, { id: Date.now().toString(), label: newLabel.trim(), name: newName.trim(), email: newEmail.trim() || undefined, phone: newPhone.trim() || undefined }];
+    setContacts(updated);
+    await saveSavedContacts(updated);
+    setNewLabel(''); setNewName(''); setNewEmail(''); setNewPhone('');
+    setAddingContact(false);
+  };
+
+  const deleteContact = async (id: string) => {
+    const updated = contacts.filter(c => c.id !== id);
+    setContacts(updated);
+    await saveSavedContacts(updated);
   };
 
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : (loadingUser ? '...' : '?');
@@ -123,6 +147,50 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
               {memory.length > 0 && (
                 <TouchableOpacity style={s.clearMemBtn} onPress={handleClearMemory}>
                   <Text style={s.clearMemText}>Clear all memory</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+          <TouchableOpacity style={s.row} onPress={() => setShowContacts(!showContacts)}>
+            <Text style={s.rowLabel}>My Contacts</Text>
+            <Text style={s.rowValue}>{contacts.length} saved</Text>
+          </TouchableOpacity>
+          {showContacts && (
+            <View style={s.expandedSection}>
+              <Text style={s.expandedHint}>People the AI should know — "my boss", "my mom", etc.</Text>
+              {contacts.length === 0 && !addingContact && (
+                <Text style={s.memoryEmpty}>No contacts yet. Add someone the AI should know.</Text>
+              )}
+              {contacts.map(c => (
+                <View key={c.id} style={s.contactRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={s.contactLabel}>{c.label}</Text>
+                    <Text style={s.contactDetail}>{c.name}{c.email ? ` · ${c.email}` : ''}{c.phone ? ` · ${c.phone}` : ''}</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => deleteContact(c.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <Ionicons name="close-circle" size={20} color="#ccc" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+              {addingContact ? (
+                <View style={s.addContactForm}>
+                  <TextInput style={s.contactInput} value={newLabel} onChangeText={setNewLabel} placeholder='Label (e.g. "My boss")' placeholderTextColor="#bbb" autoFocus />
+                  <TextInput style={s.contactInput} value={newName} onChangeText={setNewName} placeholder="Name" placeholderTextColor="#bbb" />
+                  <TextInput style={s.contactInput} value={newEmail} onChangeText={setNewEmail} placeholder="Email (optional)" placeholderTextColor="#bbb" keyboardType="email-address" autoCapitalize="none" />
+                  <TextInput style={s.contactInput} value={newPhone} onChangeText={setNewPhone} placeholder="Phone (optional)" placeholderTextColor="#bbb" keyboardType="phone-pad" />
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+                    <TouchableOpacity style={s.saveBtn} onPress={saveContact}>
+                      <Text style={s.saveBtnText}>Save</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[s.saveBtn, { backgroundColor: '#eee' }]} onPress={() => { setAddingContact(false); setNewLabel(''); setNewName(''); setNewEmail(''); setNewPhone(''); }}>
+                      <Text style={[s.saveBtnText, { color: '#666' }]}>Cancel</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <TouchableOpacity style={[s.saveBtn, { marginTop: 10 }]} onPress={() => setAddingContact(true)}>
+                  <Text style={s.saveBtnText}>+ Add Contact</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -240,6 +308,12 @@ const s = StyleSheet.create({
   memoryFact: { fontSize: 13, color: '#444', lineHeight: 20, marginBottom: 2 },
   clearMemBtn: { marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#fef2f2', alignSelf: 'flex-start' },
   clearMemText: { fontSize: 13, color: '#ef4444', fontWeight: '500' },
+
+  contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
+  contactLabel: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
+  contactDetail: { fontSize: 12, color: '#888', marginTop: 1 },
+  addContactForm: { marginTop: 8, gap: 8 },
+  contactInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 10, padding: 10, fontSize: 14, color: '#1a1a1a' },
 
   logoutCard: { backgroundColor: '#ffffff', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, marginTop: 24, alignItems: 'center' },
   logoutText: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },

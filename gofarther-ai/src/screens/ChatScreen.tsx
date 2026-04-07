@@ -15,14 +15,14 @@ import { getCurrentLocation } from '../lib/location';
 import { pickCamera, pickPhotos, pickFile, Attachment } from '../lib/attachments';
 import ChatBubble from '../components/ChatBubble';
 import { analyzeImage } from '../lib/ai';
-import { exportChatAsPDF } from '../lib/chatExport';
+import { exportChatAsPDF, copyAllChat, exportChatAsMarkdown } from '../lib/chatExport';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
 import {
   getAgents, Agent, getAIName, getUserNickname,
   getChatSessions, saveChatSessions, ChatSession,
-  getMemory, getCustomInstructions, getLanguage, trackEvent,
+  getMemory, getCustomInstructions, getLanguage, getSavedContacts, trackEvent,
 } from '../lib/storage';
 import { HamburgerButton } from '../components/Drawer';
 import VoicePicker, { VoiceOption, VOICES } from '../components/VoicePicker';
@@ -112,7 +112,7 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
     });
     getUserNickname().then(n => setUserNickname(n || ''));
     // Build system prompt with memory, instructions, language
-    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname()]).then(([memory, custom, lang, nick]) => {
+    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts()]).then(([memory, custom, lang, nick, savedContacts]) => {
       setUserNickname(nick || '');
       const langMap: Record<string, string> = { en: '', es: '\n\nIMPORTANT: Always respond in Spanish.', fr: '\n\nIMPORTANT: Always respond in French.', pt: '\n\nIMPORTANT: Always respond in Portuguese.', de: '\n\nIMPORTANT: Always respond in German.' };
       const memoryStr = memory.length > 0 ? '\n\nYou remember these facts about the user:\n' + memory.map((m: any) => '- ' + m.fact).join('\n') : '';
@@ -153,6 +153,13 @@ The "text" field is the file type: pdf, xlsx, docx, csv, or txt.
 Do NOT put actual file content in the JSON. Just describe what the file should contain. The server creates it.
 Example: User says "create a PDF about marketing" → {"type":"create_file","target":"comprehensive marketing strategies guide","text":"pdf"}
 
+ACCOUNTING TEMPLATES (use create_file with xlsx):
+- P&L / Income Statement: {"type":"create_file","target":"profit and loss statement for Q1 2024 with revenue, COGS, expenses","text":"xlsx"}
+- Balance Sheet: {"type":"create_file","target":"balance sheet with assets, liabilities, equity","text":"xlsx"}
+- Expense Report: {"type":"create_file","target":"monthly expense report with categories","text":"xlsx"}
+- Tax Summary: {"type":"create_file","target":"tax deductible expenses summary","text":"xlsx"}
+All Excel files include real formulas (SUM, AVERAGE, etc.), not static values.
+
 OTHER TOOLS:
 {"type":"remember","target":"fact to remember"}
 {"type":"generate_image","target":"image description"}
@@ -170,17 +177,30 @@ OTHER TOOLS:
 {"type":"compare_urls","target":"url1,url2","text":"comparison question"}
 {"type":"create_meme","target":"top text","text":"bottom text"}
 {"type":"barcode_lookup","target":"barcode number"}
+{"type":"save_contact","target":"label (e.g. My boss)","text":"name","key":"email or phone"}
+{"type":"modify_file","target":"edit|chart|convert|merge|filter","text":"instructions","key":"target_format (for convert)"}
+
+FILE MODIFICATION (when user has uploaded a file and wants changes):
+- "edit": modify content (add rows, change text, update data, ADD FORMULAS like =SUM, =AVERAGE)
+- "chart": create a visualization from data (bar chart, pie chart, line chart, etc.)
+- "convert": change format (Excel to PDF, CSV to Excel, etc.)
+- "merge": combine multiple files into one
+- "filter": extract specific rows/data matching criteria
+- "compare": compare two spreadsheets and generate a diff report
+- "reconcile": bank reconciliation — match bank statement vs book records, flag unmatched transactions. Returns styled Excel with Summary, Matched (green), Bank Only (red), Books Only (orange) sheets
 
 RULES:
 - Include ONE action JSON per response.
 - Before device actions (call, sms, email), confirm with user first.
 - For file creation (PDF, resume, report), ask 2-3 quick questions first to get details. Don't create blindly.
+- For file modification, just do it — the user already uploaded the file and told you what to change.
 - For web search, code, translate, weather: just do it immediately, no need to ask.
 - NEVER say you cannot do something. Use your tools.
 - When user says a person's name, use it directly as target.
 - Be conversational. Short responses. No essays unless asked.`;
+      const contactsStr = savedContacts.length > 0 ? '\n\nThe user has saved these contacts. When they refer to someone by label (e.g. "my boss"), use the matching contact info:\n' + savedContacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n') : '';
       const nicknameStr = nick ? `\n\nIMPORTANT: The user's name/nickname is "${nick}". Use it naturally — greet them by name, refer to them by name occasionally. For example: "Hey ${nick}!", "Sure thing ${nick}", etc.` : '';
-      setSystemPrompt(base + actions + memoryStr + customStr + nicknameStr + (langMap[lang] || ''));
+      setSystemPrompt(base + actions + contactsStr + memoryStr + customStr + nicknameStr + (langMap[lang] || ''));
     });
   }, []);
 
@@ -239,18 +259,36 @@ RULES:
     trackEvent('copy_message');
   };
 
-  // Handle image attachment — send to Claude Vision
-  const handleImageAttach = async (uri: string) => {
-    const userMsg: ChatMsg = { id: genId(), role: 'user', content: 'Analyze this image', imageUrl: uri };
+  // Handle image attachment(s) — send to Claude Vision
+  const handleImageAttach = async (uris: string | string[]) => {
+    const uriList = Array.isArray(uris) ? uris : [uris];
+    const label = uriList.length === 1 ? 'Analyze this image' : `Analyze these ${uriList.length} images`;
+    const userMsg: ChatMsg = { id: genId(), role: 'user', content: label, imageUrl: uriList[0] };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
     const aiMsgId = genId();
     setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: '' }]);
 
     try {
-      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
-      const analysis = await analyzeImage(base64, 'What do you see in this image? Be specific and helpful.');
-      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: analysis } : m));
+      // For single image, use vision endpoint; for multiple, combine base64s
+      if (uriList.length === 1) {
+        const base64 = await FileSystem.readAsStringAsync(uriList[0], { encoding: FileSystem.EncodingType.Base64 });
+        const analysis = await analyzeImage(base64, 'What do you see in this image? Be specific and helpful.');
+        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: analysis } : m));
+      } else {
+        // Multiple images — build content array and send through chat
+        const contentBlocks: any[] = [];
+        for (const uri of uriList) {
+          const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+          contentBlocks.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } });
+        }
+        contentBlocks.push({ type: 'text', text: 'Analyze all of these images. Describe what you see in each one.' });
+        const { chat: chatDirect } = await import('../lib/ai');
+        const history = messagesRef.current.slice(-10).map(m => ({ role: m.role === 'system' ? 'assistant' as const : m.role, content: m.content }));
+        history.push({ role: 'user', content: contentBlocks });
+        const result = await chatDirect(history, systemPrompt);
+        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: result } : m));
+      }
     } catch (e: any) {
       setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: 'Could not analyze image: ' + (e.message || 'Error') } : m));
     } finally {
@@ -262,14 +300,14 @@ RULES:
   const shareChat = () => {
     if (!currentSessionId.current || messages.length === 0) return;
     if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options: ['Share as Text', 'Export as PDF', 'Cancel'], cancelButtonIndex: 2 }, async (idx) => {
+      ActionSheetIOS.showActionSheetWithOptions({ options: ['Share as Text', 'Export as PDF', 'Copy All', 'Export as Markdown', 'Cancel'], cancelButtonIndex: 4 }, async (idx) => {
         if (idx === 0) {
           const text = messages.map(m => `${m.role === 'user' ? 'You' : aiName}: ${m.content}`).join('\n\n');
           Share.share({ message: text, title: 'GoFarther AI Chat' });
         }
-        if (idx === 1) {
-          await exportChatAsPDF(currentSessionId.current!, aiName);
-        }
+        if (idx === 1) await exportChatAsPDF(currentSessionId.current!, aiName);
+        if (idx === 2) { await copyAllChat(currentSessionId.current!, aiName); Alert.alert('Copied', 'Chat copied to clipboard'); }
+        if (idx === 3) { const md = await exportChatAsMarkdown(currentSessionId.current!, aiName); Share.share({ message: md, title: 'GoFarther AI Chat' }); }
         trackEvent('share_chat');
       });
     } else {
@@ -432,8 +470,63 @@ RULES:
             <View style={[s.attachRow, { borderColor: tc.border }]}>
               {[
                 { label: 'Camera', icon: 'camera-outline', onPress: async () => { closeMenu(); tapHaptic(); const a = await pickCamera(); if (a) handleImageAttach(a.uri); } },
-                { label: 'Photos', icon: 'images-outline', onPress: async () => { closeMenu(); tapHaptic(); const a = await pickPhotos(); if (a) handleImageAttach(a.uri); } },
-                { label: 'Files', icon: 'folder-outline', onPress: async () => { closeMenu(); tapHaptic(); const a = await pickFile(); if (a) { setMessages(prev => [...prev, { id: genId(), role: 'user', content: 'Attached: ' + a.name }]); } } },
+                { label: 'Photos', icon: 'images-outline', onPress: async () => { closeMenu(); tapHaptic(); const a = await pickPhotos(); if (a.length) handleImageAttach(a.map(img => img.uri)); } },
+                { label: 'Files', icon: 'folder-outline', onPress: async () => {
+                  closeMenu(); tapHaptic();
+                  const a = await pickFile();
+                  if (!a) return;
+                  try {
+                    const ext = a.name.split('.').pop()?.toLowerCase() || '';
+                    const mimeMap: Record<string, string> = {
+                      pdf: 'application/pdf',
+                      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                      xls: 'application/vnd.ms-excel',
+                      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                      doc: 'application/msword',
+                      csv: 'text/csv',
+                      txt: 'text/plain',
+                      png: 'image/png',
+                      jpg: 'image/jpeg',
+                      jpeg: 'image/jpeg',
+                      gif: 'image/gif',
+                      webp: 'image/webp',
+                      mp3: 'audio/mpeg',
+                      m4a: 'audio/mp4',
+                      wav: 'audio/wav',
+                      aac: 'audio/aac',
+                      ogg: 'audio/ogg',
+                    };
+                    const mimeType = a.mimeType || mimeMap[ext] || 'application/octet-stream';
+                    if (mimeType.startsWith('image/')) {
+                      handleImageAttach(a.uri);
+                      return;
+                    }
+                    // Audio files — transcribe
+                    if (mimeType.startsWith('audio/')) {
+                      const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
+                      const userMsg: ChatMsg = { id: genId(), role: 'user', content: `Transcribe: ${a.name}`, timestamp: Date.now() };
+                      setMessages(prev => [...prev, userMsg]);
+                      messagesRef.current = [...messagesRef.current, userMsg];
+                      setLoading(true);
+                      const aiMsgId = genId();
+                      setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: 'Transcribing audio...' }]);
+                      try {
+                        const { transcribeAudio } = await import('../lib/ai');
+                        const result = await transcribeAudio(base64);
+                        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: `**Transcription:**\n\n${result.text}` } : m));
+                      } catch (e: any) {
+                        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: 'Transcription failed: ' + e.message } : m));
+                      } finally {
+                        setLoading(false);
+                      }
+                      return;
+                    }
+                    const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
+                    send(`Analyze this file: ${a.name}`, undefined, undefined, { base64, mimeType, name: a.name, uri: a.uri });
+                  } catch (e: any) {
+                    Alert.alert('Error', 'Could not read file: ' + (e.message || 'Unknown error'));
+                  }
+                } },
               ].map(att => (
                 <TouchableOpacity key={att.label} style={[s.attachPill, { backgroundColor: tc.surface || tc.card }]} activeOpacity={0.7} onPress={att.onPress}>
                   <Ionicons name={att.icon as any} size={22} color={tc.text} />

@@ -2,9 +2,26 @@
 
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const BASE = 'https://isibi-backend.onrender.com/api/ghost';
 const TOKEN_KEY = 'gofurther_token';
+const INSTALLED_KEY = 'gofurther_installed';
+
+/** Clear Keychain token on fresh install (Keychain survives app deletion, AsyncStorage does not) */
+export async function clearTokenIfReinstalled() {
+  const installed = await AsyncStorage.getItem(INSTALLED_KEY);
+  if (!installed) {
+    // Check if this is an existing user getting the update (has other AsyncStorage data)
+    // vs a true fresh reinstall (AsyncStorage is completely empty)
+    const hasExistingData = await AsyncStorage.getItem('onboarding_done');
+    if (!hasExistingData) {
+      // Fresh install — clear any leftover Keychain token
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+    }
+    await AsyncStorage.setItem(INSTALLED_KEY, '1');
+  }
+}
 
 export async function getToken(): Promise<string | null> {
   return SecureStore.getItemAsync(TOKEN_KEY);

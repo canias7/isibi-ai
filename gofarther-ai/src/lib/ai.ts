@@ -2,6 +2,7 @@
 
 import { getToken } from './api';
 import NetInfo from '@react-native-community/netinfo';
+import { AppState } from 'react-native';
 
 const BASE = 'https://isibi-backend.onrender.com/api/ghost/ai';
 const TIMEOUT_MS = 120000;
@@ -12,19 +13,39 @@ async function checkNetwork() {
   if (!state.isConnected) throw new Error('No internet connection. Check your network and try again.');
 }
 
-/** Fetch with timeout */
+/** Wait for app to return to foreground */
+function waitForForeground(): Promise<void> {
+  if (AppState.currentState === 'active') return Promise.resolve();
+  return new Promise(resolve => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') { sub.remove(); resolve(); }
+    });
+  });
+}
+
+/** Fetch with timeout — retries once if killed by iOS background suspension */
 async function fetchWithTimeout(url: string, options: RequestInit, timeout = TIMEOUT_MS): Promise<Response> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeout);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    return res;
-  } catch (e: any) {
-    if (e.name === 'AbortError') throw new Error('Request timed out. The server may be starting up — try again in a moment.');
-    throw e;
-  } finally {
-    clearTimeout(timer);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const res = await fetch(url, { ...options, signal: controller.signal });
+      return res;
+    } catch (e: any) {
+      if (e.name === 'AbortError') throw new Error('Request timed out. The server may be starting up — try again in a moment.');
+      // Network error likely caused by iOS suspending the app — wait for foreground and retry once
+      if (attempt === 0) {
+        clearTimeout(timer);
+        await waitForForeground();
+        await checkNetwork();
+        continue;
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  throw new Error('Request failed');
 }
 
 /** Get auth headers */
@@ -62,15 +83,75 @@ export async function chat(messages: Message[], systemPrompt?: string): Promise<
   return data.text || 'No response';
 }
 
-/** chatStream — calls chat and delivers full response immediately */
+/** chatStream — real-time SSE streaming from backend */
 export async function chatStream(
   messages: Message[],
   systemPrompt: string,
   onChunk: (text: string) => void,
+  onAction?: (action: any) => void,
 ): Promise<string> {
-  const full = await chat(messages, systemPrompt);
-  onChunk(full);
-  return full;
+  await checkNetwork();
+  const headers = await authHeaders();
+
+  const res = await fetchWithTimeout(`${BASE}/chat-stream`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      messages,
+      system: systemPrompt || 'You are GoFarther AI, a helpful mobile assistant.',
+      max_tokens: 1024,
+    }),
+  }, 120000);
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || `API error (${res.status})`);
+  }
+
+  // Read SSE stream
+  let fullText = '';
+  const reader = res.body?.getReader();
+  if (!reader) {
+    // Fallback: no streaming support, read as JSON
+    const data = await res.json();
+    fullText = data.text || 'No response';
+    onChunk(fullText);
+    return fullText;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      try {
+        const event = JSON.parse(line.slice(6));
+        if (event.type === 'text') {
+          fullText += event.text;
+          onChunk(fullText);
+        } else if (event.type === 'action' && onAction) {
+          onAction(event.action);
+        } else if (event.type === 'error') {
+          throw new Error(event.text);
+        } else if (event.type === 'done') {
+          fullText = event.text || fullText;
+        }
+      } catch (e: any) {
+        if (e.message && !e.message.includes('JSON')) throw e;
+      }
+    }
+  }
+
+  if (!fullText) fullText = 'No response';
+  return fullText;
 }
 
 /** Send image to Claude Vision via backend proxy */
@@ -167,6 +248,36 @@ export async function createFile(description: string, fileType: string = 'pdf', 
     }
   }
   throw new Error('File creation timed out');
+}
+
+/** Modify an existing file (edit, chart, convert, merge, filter) */
+export async function modifyFile(operation: string, instructions: string, fileId?: string, targetFormat?: string): Promise<{ file_id: string; filename: string; download_url: string }> {
+  await checkNetwork();
+  const headers = await authHeaders();
+
+  const startRes = await fetchWithTimeout(`${TOOLS_BASE}/modify-file-async`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ operation, instructions, file_id: fileId, target_format: targetFormat }),
+  }, 30000);
+  if (!startRes.ok) throw new Error('File modification failed to start');
+  const { job_id } = await startRes.json();
+
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const pollRes = await fetchWithTimeout(`${TOOLS_BASE}/job-status/${job_id}`, {
+        method: 'GET', headers,
+      }, 10000);
+      if (!pollRes.ok) continue;
+      const job = await pollRes.json();
+      if (job.status === 'done') return { file_id: job.file_id, filename: job.filename, download_url: job.download_url };
+      if (job.status === 'failed') throw new Error(job.error || 'File modification failed');
+    } catch (e: any) {
+      if (e.message?.includes('failed')) throw e;
+      continue;
+    }
+  }
+  throw new Error('File modification timed out');
 }
 
 /** Search the web */

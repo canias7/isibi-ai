@@ -24,19 +24,22 @@ export async function pickCamera(): Promise<Attachment | null> {
   return { uri: asset.uri, type: 'image', name: asset.fileName || 'photo.jpg', mimeType: asset.mimeType };
 }
 
-export async function pickPhotos(): Promise<Attachment | null> {
+export async function pickPhotos(): Promise<Attachment[]> {
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (status !== 'granted') return null;
+  if (status !== 'granted') return [];
 
   const result = await ImagePicker.launchImageLibraryAsync({
     quality: 0.8,
     allowsEditing: false,
     mediaTypes: ['images'],
+    allowsMultipleSelection: true,
+    selectionLimit: 5,
   });
 
-  if (result.canceled || !result.assets[0]) return null;
-  const asset = result.assets[0];
-  return { uri: asset.uri, type: 'image', name: asset.fileName || 'photo.jpg', mimeType: asset.mimeType };
+  if (result.canceled || !result.assets?.length) return [];
+  return result.assets.map(asset => ({
+    uri: asset.uri, type: 'image' as const, name: asset.fileName || 'photo.jpg', mimeType: asset.mimeType,
+  }));
 }
 
 export async function pickFile(): Promise<Attachment | null> {

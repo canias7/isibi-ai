@@ -1,5 +1,6 @@
-/** Chat export — text + PDF */
+/** Chat export — text, PDF, Markdown */
 import { Share } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { getChatHistory, ChatMessage } from './storage';
@@ -73,4 +74,22 @@ export async function exportChatAsPDF(sessionId: string, aiName: string = 'GoFar
       await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Share Chat PDF' });
     }
   } catch {}
+}
+
+export async function exportChatAsMarkdown(sessionId: string, aiName: string = 'GoFarther AI'): Promise<string> {
+  const messages = await getChatHistory(sessionId);
+  if (!messages.length) return 'No messages.';
+
+  const header = `# GoFarther AI Chat\n*${new Date().toLocaleDateString()}*\n\n---\n\n`;
+  const body = messages.map(m => {
+    const sender = m.role === 'user' ? '**You**' : m.role === 'system' ? '**System**' : `**${aiName}**`;
+    return `${sender}:\n${m.content}`;
+  }).join('\n\n---\n\n');
+
+  return header + body;
+}
+
+export async function copyAllChat(sessionId: string, aiName: string = 'GoFarther AI') {
+  const text = await exportChatAsText(sessionId, aiName);
+  await Clipboard.setStringAsync(text);
 }

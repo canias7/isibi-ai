@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getAIName, saveAIName, getUserNickname, saveUserNickname, ChatSession, deleteChatSession, renameChatSession } from '../lib/storage';
+import { getAIName, saveAIName, getUserNickname, saveUserNickname, ChatSession, deleteChatSession, renameChatSession, pinChatSession, tagChatSession, searchAllChats } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 
 const DRAWER_W = 300;
@@ -35,18 +35,23 @@ export function HamburgerButton({ onPress, color }: { onPress: () => void; color
   );
 }
 
+const TAGS = ['Work', 'Personal', 'School'];
+
 function groupSessions(sessions: ChatSession[]) {
   const now = Date.now();
   const day = 86400000;
   const groups: { label: string; items: ChatSession[] }[] = [];
+  const pinned: ChatSession[] = [];
   const today: ChatSession[] = [], yesterday: ChatSession[] = [], week: ChatSession[] = [], older: ChatSession[] = [];
   for (const s of sessions) {
+    if (s.pinned) { pinned.push(s); continue; }
     const age = now - s.createdAt;
     if (age < day) today.push(s);
     else if (age < day * 2) yesterday.push(s);
     else if (age < day * 7) week.push(s);
     else older.push(s);
   }
+  if (pinned.length) groups.push({ label: 'Pinned', items: pinned });
   if (today.length) groups.push({ label: 'Today', items: today });
   if (yesterday.length) groups.push({ label: 'Yesterday', items: yesterday });
   if (week.length) groups.push({ label: 'This week', items: week });
@@ -64,6 +69,8 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
   const [tempName, setTempName] = useState('');
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [searchResults, setSearchResults] = useState<{ session: ChatSession; matchedMessage?: string }[] | null>(null);
+  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [renameSession, setRenameSession] = useState<ChatSession | null>(null);
   const [renameText, setRenameText] = useState('');
 
@@ -81,17 +88,43 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
   const saveName = () => { const n = tempName.trim(); setNickname(n); saveUserNickname(n); setEditingName(false); Keyboard.dismiss(); };
 
   const handleSessionLongPress = (session: ChatSession) => {
-    const actions = ['Rename', 'Delete', 'Cancel'];
+    const pinLabel = session.pinned ? 'Unpin' : 'Pin';
+    const actions = [pinLabel, 'Tag', 'Rename', 'Delete', 'Cancel'];
     if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options: actions, destructiveButtonIndex: 1, cancelButtonIndex: 2 }, (idx) => {
-        if (idx === 0) promptRename(session);
-        if (idx === 1) promptDelete(session);
+      ActionSheetIOS.showActionSheetWithOptions({ options: actions, destructiveButtonIndex: 3, cancelButtonIndex: 4 }, (idx) => {
+        if (idx === 0) handlePin(session);
+        if (idx === 1) handleTag(session);
+        if (idx === 2) promptRename(session);
+        if (idx === 3) promptDelete(session);
       });
     } else {
       Alert.alert(session.title, '', [
+        { text: pinLabel, onPress: () => handlePin(session) },
+        { text: 'Tag', onPress: () => handleTag(session) },
         { text: 'Rename', onPress: () => promptRename(session) },
         { text: 'Delete', style: 'destructive', onPress: () => promptDelete(session) },
         { text: 'Cancel', style: 'cancel' },
+      ]);
+    }
+  };
+
+  const handlePin = async (session: ChatSession) => {
+    await pinChatSession(session.id, !session.pinned);
+    onSessionRenamed?.(session.id, session.title); // trigger refresh
+  };
+
+  const handleTag = (session: ChatSession) => {
+    const options = [...TAGS, 'Clear Tag', 'Cancel'];
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: options.length - 1 }, async (idx) => {
+        if (idx < TAGS.length) { await tagChatSession(session.id, TAGS[idx]); onSessionRenamed?.(session.id, session.title); }
+        else if (idx === TAGS.length) { await tagChatSession(session.id, undefined); onSessionRenamed?.(session.id, session.title); }
+      });
+    } else {
+      Alert.alert('Tag', 'Choose a tag', [
+        ...TAGS.map(t => ({ text: t + (session.tag === t ? ' ✓' : ''), onPress: async () => { await tagChatSession(session.id, t); onSessionRenamed?.(session.id, session.title); } })),
+        { text: 'Clear Tag', onPress: async () => { await tagChatSession(session.id, undefined); onSessionRenamed?.(session.id, session.title); } },
+        { text: 'Cancel', style: 'cancel' as const },
       ]);
     }
   };
@@ -134,11 +167,31 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
 
   const backdropOpacity = backdrop.interpolate({ inputRange: [0, 1], outputRange: [0, 0.4] });
 
-  // Filter sessions by search
-  const filteredSessions = search.trim()
-    ? sessions.filter(s => s.title.toLowerCase().includes(search.toLowerCase()))
-    : sessions;
+  // Full-text search with debounce
+  useEffect(() => {
+    if (!search.trim()) { setSearchResults(null); return; }
+    const timer = setTimeout(async () => {
+      const results = await searchAllChats(search.trim());
+      setSearchResults(results);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // Filter sessions by tag and search
+  let filteredSessions = activeTag ? sessions.filter(s => s.tag === activeTag) : sessions;
+  if (search.trim() && searchResults) {
+    const matchedIds = new Set(searchResults.map(r => r.session.id));
+    filteredSessions = filteredSessions.filter(s => matchedIds.has(s.id));
+  }
   const grouped = groupSessions(filteredSessions);
+
+  // Build snippet map for search results
+  const snippetMap = new Map<string, string>();
+  if (searchResults) {
+    for (const r of searchResults) {
+      if (r.matchedMessage) snippetMap.set(r.session.id, r.matchedMessage);
+    }
+  }
 
   const navItems: { key: NavScreen; label: string }[] = [
     { key: 'agents', label: 'Agents' },
@@ -179,6 +232,18 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
           </View>
         )}
 
+        {/* Tag filters */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 36, marginBottom: 8 }} contentContainerStyle={{ gap: 6, paddingHorizontal: 4 }}>
+          <TouchableOpacity onPress={() => setActiveTag(null)} style={[s.tagChip, !activeTag && { backgroundColor: tc.text }]}>
+            <Text style={[s.tagChipText, !activeTag && { color: tc.bg }]}>All</Text>
+          </TouchableOpacity>
+          {TAGS.map(t => (
+            <TouchableOpacity key={t} onPress={() => setActiveTag(activeTag === t ? null : t)} style={[s.tagChip, activeTag === t && { backgroundColor: tc.text }]}>
+              <Text style={[s.tagChipText, activeTag === t && { color: tc.bg }]}>{t}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
         {/* New Chat */}
         <TouchableOpacity style={[s.navItem, activeScreen === 'chat' && !activeSessionId && s.navItemActive]} onPress={onNewChat} activeOpacity={0.6} accessibilityLabel="New chat" accessibilityRole="button">
           <Ionicons name="chatbubble-outline" size={18} color={tc.text} style={{ marginRight: 12 }} />
@@ -202,7 +267,12 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
                   activeOpacity={0.6}
                   accessibilityLabel={`Chat: ${session.title}`}
                 >
-                  <Text style={[s.sessionText, { color: tc.textMid }, activeSessionId === session.id && { color: tc.text, fontWeight: '600' }]} numberOfLines={1}>{session.title}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {session.pinned && <Ionicons name="pin" size={12} color={tc.textDim} />}
+                    <Text style={[s.sessionText, { color: tc.textMid, flex: 1 }, activeSessionId === session.id && { color: tc.text, fontWeight: '600' }]} numberOfLines={1}>{session.title}</Text>
+                    {session.tag && <Text style={[s.tagBadge, { color: tc.textDim }]}>{session.tag}</Text>}
+                  </View>
+                  {snippetMap.has(session.id) && <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }} numberOfLines={1}>{snippetMap.get(session.id)}</Text>}
                 </TouchableOpacity>
               ))}
             </View>
@@ -224,21 +294,6 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
 
         {/* Footer */}
         <View style={[s.footer, { paddingBottom: insets.bottom + 12 }]}>
-          <View style={s.divider} />
-          <View style={s.aiNameSection}>
-            <Text style={s.aiNameLabel}>Your nickname</Text>
-            {editingName ? (
-              <View style={s.aiNameEditRow}>
-                <TextInput style={s.aiNameInput} value={tempName} onChangeText={setTempName} placeholder="e.g. Boss, Mommy, Chris" placeholderTextColor="#bbb" autoFocus maxLength={20} returnKeyType="done" onSubmitEditing={saveName} />
-                <TouchableOpacity onPress={saveName} style={s.aiNameSaveBtn}><Text style={s.aiNameSaveText}>Save</Text></TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity onPress={startEditName} style={s.aiNameDisplay} activeOpacity={0.6}>
-                <Text style={s.aiNameValue}>{nickname ? `"Hey ${nickname}"` : 'Set a nickname'}</Text>
-                <Text style={s.aiNameEdit}>Edit</Text>
-              </TouchableOpacity>
-            )}
-          </View>
           <View style={s.divider} />
           <TouchableOpacity style={s.logoutItem} onPress={onLogout} activeOpacity={0.6}>
             <Text style={s.logoutText}>Log out</Text>
@@ -297,6 +352,9 @@ const s = StyleSheet.create({
   sessionItemActive: { backgroundColor: '#e8e8e8' },
   sessionText: { fontSize: 14, color: '#444' },
   sessionTextActive: { fontWeight: '600', color: '#1a1a1a' },
+  tagChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: '#e8e8e8' },
+  tagChipText: { fontSize: 12, fontWeight: '600', color: '#666' },
+  tagBadge: { fontSize: 10, fontWeight: '500' },
   noSessions: { fontSize: 13, color: '#bbb', paddingHorizontal: 12, paddingVertical: 8 },
   footer: { paddingTop: 4 },
   aiNameSection: { paddingHorizontal: 4, paddingVertical: 8 },

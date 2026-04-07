@@ -23,7 +23,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.gofarther.ai",
-      "buildNumber": "3"
+      "buildNumber": "12"
     },
     "android": {
       "permissions": [
@@ -84,7 +84,13 @@
         }
       ],
       "expo-audio",
-      ["@sentry/react-native", {"organization": "anias-capital-corp", "project": "gofarther-ai"}]
+      [
+        "@sentry/react-native",
+        {
+          "organization": "anias-capital-corp",
+          "project": "gofarther-ai"
+        }
+      ]
     ],
     "updates": {
       "url": "https://u.expo.dev/de7252a0-40c1-4cb5-b6f3-eac7cc1f3b5e"

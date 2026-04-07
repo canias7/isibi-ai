@@ -55,6 +55,8 @@ export interface ChatSession {
   title: string;      // First user message or "New Chat"
   createdAt: number;
   agentId: string | null;
+  pinned?: boolean;
+  tag?: string;        // e.g. "Work", "Personal", "School"
 }
 
 export async function getChatSessions(): Promise<ChatSession[]> {
@@ -63,6 +65,41 @@ export async function getChatSessions(): Promise<ChatSession[]> {
 
 export async function saveChatSessions(sessions: ChatSession[]) {
   await save('chat_sessions', sessions.slice(0, 50)); // Keep last 50
+}
+
+export async function pinChatSession(sessionId: string, pinned: boolean) {
+  const sessions = await getChatSessions();
+  await saveChatSessions(sessions.map(s => s.id === sessionId ? { ...s, pinned } : s));
+}
+
+export async function tagChatSession(sessionId: string, tag: string | undefined) {
+  const sessions = await getChatSessions();
+  await saveChatSessions(sessions.map(s => s.id === sessionId ? { ...s, tag } : s));
+}
+
+export async function searchAllChats(query: string): Promise<{ session: ChatSession; matchedMessage?: string }[]> {
+  const q = query.toLowerCase();
+  const sessions = await getChatSessions();
+  const results: { session: ChatSession; matchedMessage?: string }[] = [];
+  for (const session of sessions) {
+    // Check title match
+    if (session.title.toLowerCase().includes(q)) {
+      results.push({ session });
+      continue;
+    }
+    // Check message content match
+    const msgs = await getChatHistory(session.id);
+    const match = msgs.find(m => m.content.toLowerCase().includes(q));
+    if (match) {
+      // Extract snippet around the match
+      const idx = match.content.toLowerCase().indexOf(q);
+      const start = Math.max(0, idx - 30);
+      const end = Math.min(match.content.length, idx + query.length + 30);
+      const snippet = (start > 0 ? '...' : '') + match.content.slice(start, end) + (end < match.content.length ? '...' : '');
+      results.push({ session, matchedMessage: snippet });
+    }
+  }
+  return results;
 }
 
 export async function deleteChatSession(sessionId: string) {
@@ -223,4 +260,32 @@ export async function getBiometricEnabled(): Promise<boolean> {
 
 export async function saveBiometricEnabled(enabled: boolean) {
   await save('biometric_lock', enabled);
+}
+
+// Saved contacts — "my boss", "my mom", etc.
+export interface SavedContact {
+  id: string;
+  label: string;   // e.g. "My boss", "Mom"
+  name: string;     // e.g. "John Smith"
+  email?: string;
+  phone?: string;
+}
+
+export async function getSavedContacts(): Promise<SavedContact[]> {
+  return load('saved_contacts', []);
+}
+
+export async function saveSavedContacts(contacts: SavedContact[]) {
+  await save('saved_contacts', contacts);
+}
+
+export async function addSavedContact(contact: Omit<SavedContact, 'id'>) {
+  const contacts = await getSavedContacts();
+  contacts.push({ ...contact, id: Date.now().toString() });
+  await saveSavedContacts(contacts);
+}
+
+export async function deleteSavedContact(id: string) {
+  const contacts = await getSavedContacts();
+  await saveSavedContacts(contacts.filter(c => c.id !== id));
 }

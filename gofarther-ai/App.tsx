@@ -11,7 +11,7 @@ Sentry.init({
 import { View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { getToken } from './src/lib/api';
+import { getToken, clearTokenIfReinstalled } from './src/lib/api';
 import { C } from './src/lib/theme';
 import { ThemeProvider } from './src/lib/ThemeContext';
 import { hasCompletedOnboarding, getBiometricEnabled } from './src/lib/storage';
@@ -31,11 +31,11 @@ function App() {
 
   useEffect(() => {
     fetch('https://isibi-backend.onrender.com/api/ghost/me').catch(() => {});
-    Promise.all([
+    clearTokenIfReinstalled().then(() => Promise.all([
       getToken(),
       hasCompletedOnboarding(),
       getBiometricEnabled(),
-    ]).then(async ([t, ob, bioEnabled]) => {
+    ])).then(async ([t, ob, bioEnabled]) => {
       setOnboarded(ob);
       if (t) { startScheduler(); registerForPushNotifications(); }
       if (t && bioEnabled) {

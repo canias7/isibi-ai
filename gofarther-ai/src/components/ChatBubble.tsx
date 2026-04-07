@@ -1,8 +1,8 @@
 /** Memoized chat message bubble — prevents unnecessary re-renders in FlatList */
 
-import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated, Modal, SafeAreaView } from 'react-native';
-import WebView from 'react-native-webview';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Image, StyleSheet, Platform, ActionSheetIOS, Alert, Animated } from 'react-native';
+import FileViewer from 'react-native-file-viewer';
 import * as Clipboard from 'expo-clipboard';
 import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,6 +22,8 @@ interface Props {
   onRegenerate: () => void;
   onEdit: (id: string) => void;
   onCopy: (text: string) => void;
+  onOpenCanvas?: (content: string, language?: string) => void;
+  onReviseFile?: (originalDescription: string) => void;
   colors: { text: string; textMid: string; textDim: string; bubbleAI: string; bubbleBorder: string };
 }
 
@@ -45,8 +47,7 @@ function PulsingText({ text }: { text: string }) {
   );
 }
 
-function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, colors }: Props) {
-  const [showFileViewer, setShowFileViewer] = useState(false);
+function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, onOpenCanvas, onReviseFile, colors }: Props) {
   const onLongPress = () => {
     if (Platform.OS === 'ios') {
       const options = ['Copy', item.role === 'user' ? 'Edit' : 'Regenerate', 'Cancel'];
@@ -110,36 +111,54 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               <Text style={[s.msgText, isUser && s.msgTextUser]} selectable>{item.content}</Text>
             </View>
           )}
+          {!isUser && onOpenCanvas && item.content.includes('```') && (
+            <TouchableOpacity style={s.canvasBtn} activeOpacity={0.7} onPress={() => {
+              const match = item.content.match(/```(\w*)\n([\s\S]*?)```/);
+              if (match) onOpenCanvas(match[2].trim(), match[1] || undefined);
+              else onOpenCanvas(item.content);
+            }}>
+              <Ionicons name="code-slash-outline" size={14} color="#666" />
+              <Text style={s.canvasBtnText}>Open in Canvas</Text>
+            </TouchableOpacity>
+          )}
           {item.fileUrl && (
-            <>
-              <View style={s.fileBtns}>
-                <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={() => setShowFileViewer(true)}>
-                  <Ionicons name="eye-outline" size={18} color="#1a1a1a" />
-                  <Text style={s.fileBtnText}>View</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
-                  if (await Sharing.isAvailableAsync()) {
-                    await Sharing.shareAsync(item.fileUrl!);
+            <View style={s.fileBtns}>
+              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
+                try {
+                  // Strip file:// prefix — FileViewer needs a plain path
+                  const path = item.fileUrl!.startsWith('file://') ? item.fileUrl!.replace('file://', '') : item.fileUrl!;
+                  await FileViewer.open(path, { showOpenWithDialog: false });
+                } catch (e: any) {
+                  Alert.alert('Error', e.message || 'Could not open file');
+                }
+              }}>
+                <Ionicons name="eye-outline" size={18} color="#1a1a1a" />
+                <Text style={s.fileBtnText}>View</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
+                if (await Sharing.isAvailableAsync()) {
+                  await Sharing.shareAsync(item.fileUrl!);
+                }
+              }}>
+                <Ionicons name="share-outline" size={18} color="#1a1a1a" />
+                <Text style={s.fileBtnText}>Share</Text>
+              </TouchableOpacity>
+              {onReviseFile && (
+                <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={() => {
+                  if (Platform.OS === 'ios' && Alert.prompt) {
+                    Alert.prompt('Revise File', 'What changes do you want?', [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Revise', onPress: (text) => { if (text?.trim()) onReviseFile(text.trim()); } },
+                    ], 'plain-text');
+                  } else {
+                    Alert.alert('Revise', 'Type your revision in chat, e.g. "revise the file to add a table"');
                   }
                 }}>
-                  <Ionicons name="share-outline" size={18} color="#1a1a1a" />
-                  <Text style={s.fileBtnText}>Share</Text>
+                  <Ionicons name="create-outline" size={18} color="#1a1a1a" />
+                  <Text style={s.fileBtnText}>Revise</Text>
                 </TouchableOpacity>
-              </View>
-              {showFileViewer && (
-                <Modal visible animationType="slide" presentationStyle="pageSheet">
-                  <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }}>
-                    <View style={s.fileViewerHeader}>
-                      <Text style={s.fileViewerTitle}>{item.content.match(/\*\*(.+?)\*\*/)?.[1] || 'File'}</Text>
-                      <TouchableOpacity onPress={() => setShowFileViewer(false)}>
-                        <Text style={s.fileViewerClose}>Done</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <WebView source={{ uri: item.fileUrl! }} style={{ flex: 1 }} />
-                  </SafeAreaView>
-                </Modal>
               )}
-            </>
+            </View>
           )}
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
           {renderAction()}
@@ -158,6 +177,8 @@ const s = StyleSheet.create({
   msgText: { fontSize: 17, lineHeight: 27, color: '#1f2937', letterSpacing: 0.1 },
   msgTextUser: { color: '#111827' },
   pulsingText: { fontSize: 17, color: '#1f2937', fontWeight: '500', lineHeight: 27 },
+  canvasBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
+  canvasBtnText: { fontSize: 12, fontWeight: '500', color: '#666' },
   fileBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
   fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: '#f0f0f0' },
   fileBtnText: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
