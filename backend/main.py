@@ -87,6 +87,17 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     logger.info("All database tables created")
 
+    # Add SMTP columns if they don't exist (safe to run multiple times)
+    async with engine.begin() as conn:
+        for col in ['smtp_host VARCHAR', 'smtp_port INTEGER', 'smtp_user VARCHAR', 'smtp_pass VARCHAR', 'smtp_from VARCHAR']:
+            col_name = col.split()[0]
+            try:
+                await conn.execute(text(f"ALTER TABLE ghost_users ADD COLUMN IF NOT EXISTS {col}"))
+            except Exception:
+                pass  # Column already exists or table doesn't exist
+        await conn.commit()
+    logger.info("SMTP columns ensured")
+
     # Run Alembic migrations (idempotent — safe to run on every startup)
     try:
         from alembic.config import Config
