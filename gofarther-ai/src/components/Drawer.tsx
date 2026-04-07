@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { ChatSession, deleteChatSession, renameChatSession, pinChatSession, tagChatSession, searchAllChats } from '../lib/storage';
+import { ChatSession, deleteChatSession, renameChatSession, pinChatSession, searchAllChats } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 
 const DRAWER_W = 300;
@@ -34,8 +34,6 @@ export function HamburgerButton({ onPress, color }: { onPress: () => void; color
     </TouchableOpacity>
   );
 }
-
-const TAGS = ['Work', 'Personal', 'School'];
 
 function groupSessions(sessions: ChatSession[]) {
   const now = Date.now();
@@ -67,7 +65,6 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<{ session: ChatSession; matchedMessage?: string }[] | null>(null);
-  const [activeTag, setActiveTag] = useState<string | null>(null);
   const [renameSession, setRenameSession] = useState<ChatSession | null>(null);
   const [renameText, setRenameText] = useState('');
 
@@ -81,18 +78,16 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
 
   const handleSessionLongPress = (session: ChatSession) => {
     const pinLabel = session.pinned ? 'Unpin' : 'Pin';
-    const actions = [pinLabel, 'Tag', 'Rename', 'Delete', 'Cancel'];
+    const actions = [pinLabel, 'Rename', 'Delete', 'Cancel'];
     if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options: actions, destructiveButtonIndex: 3, cancelButtonIndex: 4 }, (idx) => {
+      ActionSheetIOS.showActionSheetWithOptions({ options: actions, destructiveButtonIndex: 2, cancelButtonIndex: 3 }, (idx) => {
         if (idx === 0) handlePin(session);
-        if (idx === 1) handleTag(session);
-        if (idx === 2) promptRename(session);
-        if (idx === 3) promptDelete(session);
+        if (idx === 1) promptRename(session);
+        if (idx === 2) promptDelete(session);
       });
     } else {
       Alert.alert(session.title, '', [
         { text: pinLabel, onPress: () => handlePin(session) },
-        { text: 'Tag', onPress: () => handleTag(session) },
         { text: 'Rename', onPress: () => promptRename(session) },
         { text: 'Delete', style: 'destructive', onPress: () => promptDelete(session) },
         { text: 'Cancel', style: 'cancel' },
@@ -103,22 +98,6 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
   const handlePin = async (session: ChatSession) => {
     await pinChatSession(session.id, !session.pinned);
     onSessionRenamed?.(session.id, session.title); // trigger refresh
-  };
-
-  const handleTag = (session: ChatSession) => {
-    const options = [...TAGS, 'Clear Tag', 'Cancel'];
-    if (Platform.OS === 'ios') {
-      ActionSheetIOS.showActionSheetWithOptions({ options, cancelButtonIndex: options.length - 1 }, async (idx) => {
-        if (idx < TAGS.length) { await tagChatSession(session.id, TAGS[idx]); onSessionRenamed?.(session.id, session.title); }
-        else if (idx === TAGS.length) { await tagChatSession(session.id, undefined); onSessionRenamed?.(session.id, session.title); }
-      });
-    } else {
-      Alert.alert('Tag', 'Choose a tag', [
-        ...TAGS.map(t => ({ text: t + (session.tag === t ? ' ✓' : ''), onPress: async () => { await tagChatSession(session.id, t); onSessionRenamed?.(session.id, session.title); } })),
-        { text: 'Clear Tag', onPress: async () => { await tagChatSession(session.id, undefined); onSessionRenamed?.(session.id, session.title); } },
-        { text: 'Cancel', style: 'cancel' as const },
-      ]);
-    }
   };
 
   const promptRename = (session: ChatSession) => {
@@ -169,8 +148,8 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Filter sessions by tag and search
-  let filteredSessions = activeTag ? sessions.filter(s => s.tag === activeTag) : sessions;
+  // Filter sessions by search
+  let filteredSessions = sessions;
   if (search.trim() && searchResults) {
     const matchedIds = new Set(searchResults.map(r => r.session.id));
     filteredSessions = filteredSessions.filter(s => matchedIds.has(s.id));
@@ -224,18 +203,6 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
           </View>
         )}
 
-        {/* Tag filters */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ maxHeight: 36, marginBottom: 8 }} contentContainerStyle={{ gap: 6, paddingHorizontal: 4 }}>
-          <TouchableOpacity onPress={() => setActiveTag(null)} style={[s.tagChip, !activeTag && { backgroundColor: tc.text }]}>
-            <Text style={[s.tagChipText, !activeTag && { color: tc.bg }]}>All</Text>
-          </TouchableOpacity>
-          {TAGS.map(t => (
-            <TouchableOpacity key={t} onPress={() => setActiveTag(activeTag === t ? null : t)} style={[s.tagChip, activeTag === t && { backgroundColor: tc.text }]}>
-              <Text style={[s.tagChipText, activeTag === t && { color: tc.bg }]}>{t}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
         {/* New Chat */}
         <TouchableOpacity style={[s.navItem, activeScreen === 'chat' && !activeSessionId && s.navItemActive]} onPress={onNewChat} activeOpacity={0.6} accessibilityLabel="New chat" accessibilityRole="button">
           <Ionicons name="chatbubble-outline" size={18} color={tc.text} style={{ marginRight: 12 }} />
@@ -262,7 +229,6 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     {session.pinned && <Ionicons name="pin" size={12} color={tc.textDim} />}
                     <Text style={[s.sessionText, { color: tc.textMid, flex: 1 }, activeSessionId === session.id && { color: tc.text, fontWeight: '600' }]} numberOfLines={1}>{session.title}</Text>
-                    {session.tag && <Text style={[s.tagBadge, { color: tc.textDim }]}>{session.tag}</Text>}
                   </View>
                   {snippetMap.has(session.id) && <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }} numberOfLines={1}>{snippetMap.get(session.id)}</Text>}
                 </TouchableOpacity>
@@ -344,9 +310,6 @@ const s = StyleSheet.create({
   sessionItemActive: { backgroundColor: '#e8e8e8' },
   sessionText: { fontSize: 14, color: '#444' },
   sessionTextActive: { fontWeight: '600', color: '#1a1a1a' },
-  tagChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: '#e8e8e8' },
-  tagChipText: { fontSize: 12, fontWeight: '600', color: '#666' },
-  tagBadge: { fontSize: 10, fontWeight: '500' },
   noSessions: { fontSize: 13, color: '#bbb', paddingHorizontal: 12, paddingVertical: 8 },
   footer: { paddingTop: 4 },
   aiNameSection: { paddingHorizontal: 4, paddingVertical: 8 },

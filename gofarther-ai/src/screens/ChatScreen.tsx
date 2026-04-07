@@ -71,9 +71,11 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
   const flatList = useRef<FlatList>(null);
 
   // Use shared chat hook
+  const [pendingAttachment, setPendingAttachment] = useState<{ base64: string; mimeType: string; name: string; uri: string; previewUri?: string } | null>(null);
+
   const {
     messages, setMessages, loading, setLoading, editingMsgId, setEditingMsgId, animatingIds, isCreating, removeAnimatingId,
-    currentSessionId, send: chatSend, confirmAction, cancelAction, cancelCreation, regenerate, editMessage, submitEdit,
+    messagesRef, currentSessionId, send: chatSend, confirmAction, cancelAction, cancelCreation, regenerate, editMessage, submitEdit,
   } = useChat({
     sessionId,
     systemPrompt,
@@ -232,12 +234,21 @@ RULES:
     setTimeout(() => setInput(prompt), 250);
   };
 
-  // Wrapper to send from input
+  // Wrapper to send from input — includes pending attachment if any
   const send = (overrideText?: string) => {
     const text = (overrideText || input).trim();
-    if (!text) return;
+    if (!text && !pendingAttachment) return;
     if (!overrideText) setInput('');
-    chatSend(text);
+    if (pendingAttachment) {
+      if (pendingAttachment.mimeType.startsWith('image/')) {
+        handleImageAttach(pendingAttachment.uri);
+      } else {
+        chatSend(text || `Analyze this file: ${pendingAttachment.name}`, undefined, undefined, pendingAttachment);
+      }
+      setPendingAttachment(null);
+    } else {
+      chatSend(text);
+    }
   };
 
   // Edit message — set input to old text
@@ -413,6 +424,22 @@ RULES:
 
       {/* Input bar */}
       <View style={[s.inputBarOuter, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+        {/* Pending attachment preview */}
+        {pendingAttachment && (
+          <View style={s.attachPreview}>
+            {pendingAttachment.previewUri ? (
+              <Image source={{ uri: pendingAttachment.previewUri }} style={s.attachThumb} />
+            ) : (
+              <View style={s.attachFileIcon}>
+                <Ionicons name="document-outline" size={18} color="#666" />
+              </View>
+            )}
+            <Text style={s.attachName} numberOfLines={1}>{pendingAttachment.name}</Text>
+            <TouchableOpacity onPress={() => setPendingAttachment(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
+        )}
         <View style={s.inputRow}>
           <TouchableOpacity onPress={openMenu} activeOpacity={0.6} accessibilityLabel="Actions menu" accessibilityRole="button">
             <View style={s.plusCircle}>
@@ -470,8 +497,21 @@ RULES:
             <Text style={[s.menuTitle, { color: tc.text }]}>Actions</Text>
             <View style={[s.attachRow, { borderColor: tc.border }]}>
               {[
-                { label: 'Camera', icon: 'camera-outline', onPress: async () => { closeMenu(); tapHaptic(); const a = await pickCamera(); if (a) handleImageAttach(a.uri); } },
-                { label: 'Photos', icon: 'images-outline', onPress: async () => { closeMenu(); tapHaptic(); const a = await pickPhotos(); if (a.length) handleImageAttach(a.map(img => img.uri)); } },
+                { label: 'Camera', icon: 'camera-outline', onPress: async () => {
+                  closeMenu(); tapHaptic();
+                  const a = await pickCamera();
+                  if (!a) return;
+                  const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
+                  setPendingAttachment({ base64, mimeType: a.mimeType || 'image/jpeg', name: a.name, uri: a.uri, previewUri: a.uri });
+                } },
+                { label: 'Photos', icon: 'images-outline', onPress: async () => {
+                  closeMenu(); tapHaptic();
+                  const a = await pickPhotos();
+                  if (!a.length) return;
+                  const first = a[0];
+                  const base64 = await FileSystem.readAsStringAsync(first.uri, { encoding: FileSystem.EncodingType.Base64 });
+                  setPendingAttachment({ base64, mimeType: first.mimeType || 'image/jpeg', name: first.name, uri: first.uri, previewUri: first.uri });
+                } },
                 { label: 'Files', icon: 'folder-outline', onPress: async () => {
                   closeMenu(); tapHaptic();
                   const a = await pickFile();
@@ -479,66 +519,17 @@ RULES:
                   try {
                     const ext = a.name.split('.').pop()?.toLowerCase() || '';
                     const mimeMap: Record<string, string> = {
-                      pdf: 'application/pdf',
-                      xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                      xls: 'application/vnd.ms-excel',
-                      docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                      doc: 'application/msword',
-                      csv: 'text/csv',
-                      txt: 'text/plain',
-                      png: 'image/png',
-                      jpg: 'image/jpeg',
-                      jpeg: 'image/jpeg',
-                      gif: 'image/gif',
-                      webp: 'image/webp',
-                      mp3: 'audio/mpeg',
-                      m4a: 'audio/mp4',
-                      wav: 'audio/wav',
-                      aac: 'audio/aac',
-                      ogg: 'audio/ogg',
-                      json: 'application/json',
-                      xml: 'application/xml',
-                      html: 'text/html',
-                      htm: 'text/html',
-                      js: 'text/plain',
-                      ts: 'text/plain',
-                      py: 'text/plain',
-                      md: 'text/plain',
-                      rtf: 'text/rtf',
-                      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                      pdf: 'application/pdf', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                      xls: 'application/vnd.ms-excel', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                      doc: 'application/msword', csv: 'text/csv', txt: 'text/plain',
+                      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
+                      mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', aac: 'audio/aac', ogg: 'audio/ogg',
+                      json: 'application/json', xml: 'application/xml', html: 'text/html', js: 'text/plain',
+                      ts: 'text/plain', py: 'text/plain', md: 'text/plain', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                     };
                     const mimeType = a.mimeType || mimeMap[ext] || 'text/plain';
-                    if (mimeType.startsWith('image/')) {
-                      handleImageAttach(a.uri);
-                      return;
-                    }
-                    // Audio files — transcribe
-                    if (mimeType.startsWith('audio/')) {
-                      const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
-                      const userMsg: ChatMsg = { id: genId(), role: 'user', content: `Transcribe: ${a.name}`, timestamp: Date.now() };
-                      setMessages(prev => [...prev, userMsg]);
-                      messagesRef.current = [...messagesRef.current, userMsg];
-                      setLoading(true);
-                      const aiMsgId = genId();
-                      setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: 'Transcribing audio...' }]);
-                      try {
-                        const { transcribeAudio } = await import('../lib/ai');
-                        const result = await transcribeAudio(base64);
-                        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: `**Transcription:**\n\n${result.text}` } : m));
-                      } catch (e: any) {
-                        setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: 'Transcription failed: ' + e.message } : m));
-                      } finally {
-                        setLoading(false);
-                      }
-                      return;
-                    }
-                    // Show file in chat first
-                    const userMsg: ChatMsg = { id: genId(), role: 'user', content: `📎 ${a.name}`, timestamp: Date.now() };
-                    setMessages(prev => [...prev, userMsg]);
-                    messagesRef.current = [...messagesRef.current, userMsg];
-                    // Then read and analyze
                     const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
-                    send(`Analyze this file: ${a.name}`, undefined, undefined, { base64, mimeType, name: a.name, uri: a.uri });
+                    setPendingAttachment({ base64, mimeType, name: a.name, uri: a.uri, previewUri: mimeType.startsWith('image/') ? a.uri : undefined });
                   } catch (e: any) {
                     Alert.alert('Error', 'Could not read file: ' + (e.message || 'Unknown error'));
                   }
@@ -602,6 +593,10 @@ const s = StyleSheet.create({
   suggestText: { fontSize: 14, fontWeight: '500' },
 
   // Input bar
+  attachPreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6, marginBottom: 4, backgroundColor: '#f0f0f0', borderRadius: 10 },
+  attachThumb: { width: 36, height: 36, borderRadius: 6 },
+  attachFileIcon: { width: 36, height: 36, borderRadius: 6, backgroundColor: '#e0e0e0', alignItems: 'center', justifyContent: 'center' },
+  attachName: { flex: 1, fontSize: 13, color: '#444' },
   inputBarOuter: { paddingHorizontal: 12, paddingTop: 6 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   inputBar: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 24, paddingLeft: 16, paddingRight: 6, minHeight: 44 },
