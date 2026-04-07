@@ -743,8 +743,8 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
             headers = []
         if not isinstance(rows, list):
             rows = []
-        # Filter out empty/None rows
-        rows = [r for r in rows if isinstance(r, list) and any(v is not None and v != "" for v in r)]
+        # Keep all rows that are lists (don't filter — empty cells are normal for formula rows)
+        rows = [r for r in rows if isinstance(r, list)]
 
         print(f"XLSX DATA: {len(headers)} headers, {len(rows)} rows, {len(formulas)} formulas")
         print(f"XLSX HEADERS: {headers[:5]}")
