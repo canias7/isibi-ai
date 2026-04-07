@@ -238,9 +238,16 @@ async def create_file_async(req: CreateFileRequest, authorization: str = Header(
             format_instructions = {
                 "csv": "Return raw CSV data with headers.",
                 "txt": "Return well-written plain text with clear structure.",
-                "xlsx": """Return a JSON object: {"title": "Report Title", "headers": [...], "rows": [[...], ...], "formulas": {"C10": "=SUM(C2:C9)"}}
-IMPORTANT: "title" is the report name shown at the top (e.g. "Profit & Loss Statement - 2024").
-Use real Excel formulas for totals, averages, calculations. Include proper headers. Use realistic professional data with proper categories. For accounting docs, use standard accounting categories and formulas.""",
+                "xlsx": """You MUST return ONLY a valid JSON object with NO markdown fences, NO explanation, NO extra text. Just the raw JSON:
+{"title":"Report Title","headers":["Column A","Column B"],"rows":[["row1val1","row1val2"],["row2val1",12345]],"formulas":{"B5":"=SUM(B2:B4)"}}
+Rules:
+- "title": report name (e.g. "Profit & Loss Statement - 2024")
+- "headers": array of column header strings
+- "rows": array of arrays (each inner array is one row of data). Use numbers (not strings) for numeric values.
+- "formulas": object mapping cell references to Excel formulas
+- Do NOT wrap in markdown code fences
+- Do NOT include any text before or after the JSON
+- Use real Excel formulas (=SUM, =AVERAGE, etc.) for calculated rows""",
                 "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis. For financial documents, include tables using | pipes.",
                 "docx": "Return well-structured text using markdown-style headings.",
             }
@@ -853,9 +860,44 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
         buf = io.BytesIO()
         wb.save(buf)
         return buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    except Exception:
-        # Fallback to regular content_to_file
-        return _content_to_file(content, "xlsx", base_name)
+    except Exception as e:
+        import traceback
+        print(f"XLSX FORMULA BUILDER FAILED: {e}\n{traceback.format_exc()}\nContent preview: {content[:500]}")
+        # Fallback: try to make a decent Excel from whatever content we got
+        try:
+            from openpyxl import Workbook as _FbWb
+            from openpyxl.styles import Font as _FbFont, PatternFill as _FbFill, Border as _FbBorder, Side as _FbSide, Alignment as _FbAlign
+            _wb = _FbWb()
+            _ws = _wb.active
+            _hfont = _FbFont(bold=True, color="FFFFFF", size=11)
+            _hfill = _FbFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
+            _border = _FbBorder(left=_FbSide(style='thin', color='D0D0D0'), right=_FbSide(style='thin', color='D0D0D0'), top=_FbSide(style='thin', color='D0D0D0'), bottom=_FbSide(style='thin', color='D0D0D0'))
+            # Try CSV-style parsing
+            lines = [l.strip() for l in content.split('\n') if l.strip() and not l.strip().startswith('{') and not l.strip().startswith('[') and not l.strip().startswith('"') and not l.strip().startswith('}') and not l.strip().startswith(']')]
+            if not lines:
+                lines = [l.strip() for l in content.split('\n') if l.strip()]
+            for row_idx, line in enumerate(lines):
+                cells = [c.strip().strip('"').strip("'") for c in line.split(',')]
+                for col_idx, val in enumerate(cells):
+                    cell = _ws.cell(row=row_idx + 1, column=col_idx + 1)
+                    try:
+                        cell.value = int(val) if val.replace('-','').isdigit() else float(val) if val.replace('-','').replace('.','').isdigit() else val
+                    except (ValueError, AttributeError):
+                        cell.value = val
+                    cell.border = _border
+                    if row_idx == 0:
+                        cell.font = _hfont
+                        cell.fill = _hfill
+                        cell.alignment = _FbAlign(horizontal='center')
+                    elif isinstance(cell.value, (int, float)):
+                        cell.number_format = '#,##0'
+            for col in _ws.columns:
+                _ws.column_dimensions[col[0].column_letter].width = 15
+            _buf = io.BytesIO()
+            _wb.save(_buf)
+            return _buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        except Exception:
+            return content.encode('utf-8'), f"{base_name}.txt", "text/plain"
 
 
 def _extract_text(file_bytes: bytes, mime: str) -> str:
