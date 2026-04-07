@@ -659,35 +659,74 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
     return {"job_id": job_id, "status": "processing"}
 
 
+def _extract_json_from_content(content: str):
+    """Extract JSON from Claude's response, handling all possible formats."""
+    import json as _json
+    import re
+
+    cleaned = content.strip()
+
+    # Remove markdown fences aggressively
+    cleaned = re.sub(r'^```\w*\s*\n?', '', cleaned)
+    cleaned = re.sub(r'\n?```\s*$', '', cleaned)
+    cleaned = cleaned.strip()
+
+    # Find the outermost JSON object or array
+    # Track brace depth to find matching close
+    start = -1
+    for i, ch in enumerate(cleaned):
+        if ch in ('{', '['):
+            start = i
+            break
+
+    if start < 0:
+        raise ValueError("No JSON found in content")
+
+    open_ch = cleaned[start]
+    close_ch = '}' if open_ch == '{' else ']'
+    depth = 0
+    end = -1
+    in_string = False
+    escape = False
+
+    for i in range(start, len(cleaned)):
+        ch = cleaned[i]
+        if escape:
+            escape = False
+            continue
+        if ch == '\\':
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == open_ch:
+            depth += 1
+        elif ch == close_ch:
+            depth -= 1
+            if depth == 0:
+                end = i
+                break
+
+    if end < 0:
+        raise ValueError("Unbalanced JSON")
+
+    json_str = cleaned[start:end + 1]
+    return _json.loads(json_str)
+
+
 def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
     """Convert Claude's JSON response to Excel with real formulas."""
     try:
-        import json as _json
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
-        # Strip markdown code fences if present
-        cleaned = content.strip()
-        # Remove all possible markdown fence variations
-        for fence in ['```json', '```JSON', '```']:
-            if cleaned.startswith(fence):
-                cleaned = cleaned[len(fence):]
-                break
-        if cleaned.rstrip().endswith('```'):
-            cleaned = cleaned.rstrip()[:-3]
-        cleaned = cleaned.strip()
-
-        # Try to find JSON object in the content
-        json_start = cleaned.find('{')
-        json_end = cleaned.rfind('}')
-        if json_start >= 0 and json_end > json_start:
-            cleaned = cleaned[json_start:json_end + 1]
-
-        data = _json.loads(cleaned)
+        data = _extract_json_from_content(content)
 
         # Handle both {"headers":[], "rows":[]} and [{"col":"val"}] formats
         if isinstance(data, list):
-            # Array of objects format
             headers = list(data[0].keys()) if data else []
             rows = [[row.get(h, "") for h in headers] for row in data]
             formulas = {}
