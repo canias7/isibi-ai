@@ -485,6 +485,143 @@ Use markdown formatting with tables where appropriate. Be thorough but concise."
                 filename = f"comparison_{file_id}.pdf"
                 mime = "application/pdf"
 
+            elif req.operation == "reconcile":
+                if not req.file_ids or len(req.file_ids) < 2:
+                    raise ValueError("Reconcile requires 2 file IDs (bank statement + your records)")
+                texts = []
+                for fid in req.file_ids[:2]:
+                    if fid not in FILE_STORE:
+                        raise ValueError(f"File {fid} not found")
+                    f = FILE_STORE[fid]
+                    content = base64.b64decode(f["data"])
+                    texts.append({"name": f["filename"], "content": _extract_text(content, f["mime"])})
+
+                system = """You are an expert accountant performing a bank reconciliation.
+You have two data sources:
+1. BANK STATEMENT — official transactions from the bank
+2. BOOK RECORDS — the user's own accounting records
+
+Your job:
+1. Match transactions between the two sources by amount AND approximate date (±3 days). Descriptions may differ (e.g. "AMZN*123" vs "Amazon supplies" are the same).
+2. Classify every transaction into: MATCHED, BANK ONLY (in bank but not in books), BOOKS ONLY (in books but not in bank).
+
+Return a JSON object with this EXACT structure:
+{
+  "matched": [{"bank_date": "...", "bank_desc": "...", "book_date": "...", "book_desc": "...", "amount": 0.00}],
+  "bank_only": [{"date": "...", "description": "...", "amount": 0.00}],
+  "books_only": [{"date": "...", "description": "...", "amount": 0.00}],
+  "bank_total": 0.00,
+  "books_total": 0.00,
+  "difference": 0.00,
+  "matched_count": 0,
+  "unmatched_count": 0
+}
+
+Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
+
+                prompt = f"BANK STATEMENT ({texts[0]['name']}):\n{texts[0]['content']}\n\nBOOK RECORDS ({texts[1]['name']}):\n{texts[1]['content']}\n\n{req.instructions or 'Reconcile these two sources.'}"
+                result_json = await _ask_claude(prompt, system)
+
+                # Build a styled Excel reconciliation report
+                try:
+                    import json as _json
+                    from openpyxl import Workbook
+                    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+                    data = _json.loads(result_json)
+                    wb = Workbook()
+
+                    thin_border = Border(
+                        left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'),
+                        top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9'),
+                    )
+                    header_font = Font(bold=True, color="FFFFFF", size=11)
+
+                    # Summary sheet
+                    ws_summary = wb.active
+                    ws_summary.title = "Summary"
+                    summary_fill = PatternFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
+                    for r, (label, value) in enumerate([
+                        ("Bank Statement Total", data.get("bank_total", 0)),
+                        ("Book Records Total", data.get("books_total", 0)),
+                        ("Difference", data.get("difference", 0)),
+                        ("", ""),
+                        ("Matched Transactions", data.get("matched_count", len(data.get("matched", [])))),
+                        ("Bank Only (not in books)", len(data.get("bank_only", []))),
+                        ("Books Only (not in bank)", len(data.get("books_only", []))),
+                    ], 1):
+                        ws_summary.cell(row=r, column=1, value=label).font = Font(bold=True, size=12)
+                        cell = ws_summary.cell(row=r, column=2, value=value)
+                        if label == "Difference" and value != 0:
+                            cell.font = Font(bold=True, color="FF0000", size=12)
+                        else:
+                            cell.font = Font(size=12)
+                    ws_summary.column_dimensions['A'].width = 30
+                    ws_summary.column_dimensions['B'].width = 20
+
+                    # Matched sheet (green)
+                    ws_matched = wb.create_sheet("Matched")
+                    green_fill = PatternFill(start_color="22C55E", end_color="22C55E", fill_type="solid")
+                    headers = ["Bank Date", "Bank Description", "Book Date", "Book Description", "Amount"]
+                    for c, h in enumerate(headers, 1):
+                        cell = ws_matched.cell(row=1, column=c, value=h)
+                        cell.font = header_font
+                        cell.fill = green_fill
+                        cell.border = thin_border
+                    for r, item in enumerate(data.get("matched", []), 2):
+                        ws_matched.cell(row=r, column=1, value=item.get("bank_date", "")).border = thin_border
+                        ws_matched.cell(row=r, column=2, value=item.get("bank_desc", "")).border = thin_border
+                        ws_matched.cell(row=r, column=3, value=item.get("book_date", "")).border = thin_border
+                        ws_matched.cell(row=r, column=4, value=item.get("book_desc", "")).border = thin_border
+                        ws_matched.cell(row=r, column=5, value=item.get("amount", 0)).border = thin_border
+                    for col in ws_matched.columns:
+                        ws_matched.column_dimensions[col[0].column_letter].width = 25
+
+                    # Bank Only sheet (red)
+                    ws_bank = wb.create_sheet("Bank Only")
+                    red_fill = PatternFill(start_color="EF4444", end_color="EF4444", fill_type="solid")
+                    for c, h in enumerate(["Date", "Description", "Amount"], 1):
+                        cell = ws_bank.cell(row=1, column=c, value=h)
+                        cell.font = header_font
+                        cell.fill = red_fill
+                        cell.border = thin_border
+                    for r, item in enumerate(data.get("bank_only", []), 2):
+                        ws_bank.cell(row=r, column=1, value=item.get("date", "")).border = thin_border
+                        ws_bank.cell(row=r, column=2, value=item.get("description", "")).border = thin_border
+                        ws_bank.cell(row=r, column=3, value=item.get("amount", 0)).border = thin_border
+                    for col in ws_bank.columns:
+                        ws_bank.column_dimensions[col[0].column_letter].width = 25
+
+                    # Books Only sheet (orange)
+                    ws_books = wb.create_sheet("Books Only")
+                    orange_fill = PatternFill(start_color="F59E0B", end_color="F59E0B", fill_type="solid")
+                    for c, h in enumerate(["Date", "Description", "Amount"], 1):
+                        cell = ws_books.cell(row=1, column=c, value=h)
+                        cell.font = header_font
+                        cell.fill = orange_fill
+                        cell.border = thin_border
+                    for r, item in enumerate(data.get("books_only", []), 2):
+                        ws_books.cell(row=r, column=1, value=item.get("date", "")).border = thin_border
+                        ws_books.cell(row=r, column=2, value=item.get("description", "")).border = thin_border
+                        ws_books.cell(row=r, column=3, value=item.get("amount", 0)).border = thin_border
+                    for col in ws_books.columns:
+                        ws_books.column_dimensions[col[0].column_letter].width = 25
+
+                    buf = io.BytesIO()
+                    wb.save(buf)
+                    file_bytes = buf.getvalue()
+                    filename = f"reconciliation_{file_id}.xlsx"
+                    mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                except Exception:
+                    # Fallback to PDF
+                    try:
+                        from lib.pdf_templates import create_professional_pdf
+                        file_bytes = create_professional_pdf(result_json, title="Reconciliation Report")
+                    except Exception:
+                        file_bytes = result_json.encode('utf-8')
+                    filename = f"reconciliation_{file_id}.pdf"
+                    mime = "application/pdf"
+
             else:
                 raise ValueError(f"Unknown operation: {req.operation}")
 
