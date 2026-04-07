@@ -724,17 +724,32 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
         data = _extract_json_from_content(content)
+        print(f"XLSX PARSED JSON type={type(data).__name__}, keys={list(data.keys()) if isinstance(data, dict) else 'N/A'}")
 
         # Handle both {"headers":[], "rows":[]} and [{"col":"val"}] formats
         if isinstance(data, list):
             headers = list(data[0].keys()) if data else []
             rows = [[row.get(h, "") for h in headers] for row in data]
             formulas = {}
+            title = base_name.replace("_", " ").title()
         else:
             headers = data.get("headers", [])
             rows = data.get("rows", [])
             formulas = data.get("formulas", {})
-        title = data.get("title", base_name.replace("_", " ").title())
+            title = data.get("title", base_name.replace("_", " ").title())
+
+        # Ensure headers and rows are clean lists
+        if not isinstance(headers, list):
+            headers = []
+        if not isinstance(rows, list):
+            rows = []
+        # Filter out empty/None rows
+        rows = [r for r in rows if isinstance(r, list) and any(v is not None and v != "" for v in r)]
+
+        print(f"XLSX DATA: {len(headers)} headers, {len(rows)} rows, {len(formulas)} formulas")
+        print(f"XLSX HEADERS: {headers[:5]}")
+        if rows:
+            print(f"XLSX FIRST ROW: {rows[0][:5]}")
 
         wb = Workbook()
         ws = wb.active
