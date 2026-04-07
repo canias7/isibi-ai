@@ -461,8 +461,15 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       await executeAction(msg.action);
       trackEvent('action_' + msg.action.type);
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionStatus: 'done' } : m));
-    } catch {
+      // Notify on email sent
+      if (msg.action.type === 'email') {
+        scheduleLocalNotification('Email Sent', `Email to ${msg.action.target} was sent successfully`, 1);
+      }
+    } catch (e: any) {
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionStatus: 'failed' } : m));
+      if (msg.action.type === 'email') {
+        scheduleLocalNotification('Email Failed', e.message || 'Could not send email', 1);
+      }
     }
   }, []);
 
