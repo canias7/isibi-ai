@@ -238,8 +238,9 @@ async def create_file_async(req: CreateFileRequest, authorization: str = Header(
             format_instructions = {
                 "csv": "Return raw CSV data with headers.",
                 "txt": "Return well-written plain text with clear structure.",
-                "xlsx": """Return a JSON object: {"headers": [...], "rows": [[...], ...], "formulas": {"C10": "=SUM(C2:C9)"}}
-Use real Excel formulas for totals, averages, calculations. Include proper headers. For accounting docs (P&L, balance sheet, expense report), use standard accounting categories and formulas.""",
+                "xlsx": """Return a JSON object: {"title": "Report Title", "headers": [...], "rows": [[...], ...], "formulas": {"C10": "=SUM(C2:C9)"}}
+IMPORTANT: "title" is the report name shown at the top (e.g. "Profit & Loss Statement - 2024").
+Use real Excel formulas for totals, averages, calculations. Include proper headers. Use realistic professional data with proper categories. For accounting docs, use standard accounting categories and formulas.""",
                 "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis. For financial documents, include tables using | pipes.",
                 "docx": "Return well-structured text using markdown-style headings.",
             }
@@ -653,77 +654,150 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
         headers = data.get("headers", [])
         rows = data.get("rows", [])
         formulas = data.get("formulas", {})
+        title = data.get("title", base_name.replace("_", " ").title())
 
         wb = Workbook()
         ws = wb.active
+        ws.title = "Report"
+        from openpyxl.utils import get_column_letter
+        from datetime import datetime
 
-        # Style headers
+        num_cols = max(len(headers), max((len(r) for r in rows), default=1)) if rows else len(headers)
+        last_col = get_column_letter(num_cols) if num_cols > 0 else 'A'
+
+        # --- Title section ---
+        ws.merge_cells(f'A1:{last_col}1')
+        title_cell = ws['A1']
+        title_cell.value = title
+        title_cell.font = Font(bold=True, size=16, color="2B579A")
+        title_cell.alignment = Alignment(horizontal='left', vertical='center')
+        ws.row_dimensions[1].height = 30
+
+        ws.merge_cells(f'A2:{last_col}2')
+        date_cell = ws['A2']
+        date_cell.value = f"Generated {datetime.utcnow().strftime('%B %d, %Y')}"
+        date_cell.font = Font(size=10, color="888888", italic=True)
+        date_cell.alignment = Alignment(horizontal='left')
+        ws.row_dimensions[2].height = 18
+
+        # Empty spacer row
+        ws.row_dimensions[3].height = 8
+
+        # --- Styles ---
         header_font = Font(bold=True, color="FFFFFF", size=11)
         header_fill = PatternFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
         thin_border = Border(
-            left=Side(style='thin', color='D9D9D9'),
-            right=Side(style='thin', color='D9D9D9'),
-            top=Side(style='thin', color='D9D9D9'),
-            bottom=Side(style='thin', color='D9D9D9'),
+            left=Side(style='thin', color='D0D0D0'),
+            right=Side(style='thin', color='D0D0D0'),
+            top=Side(style='thin', color='D0D0D0'),
+            bottom=Side(style='thin', color='D0D0D0'),
         )
+        bottom_border = Border(bottom=Side(style='medium', color='2B579A'))
+        alt_fill = PatternFill(start_color="F7F9FC", end_color="F7F9FC", fill_type="solid")
+        total_fill = PatternFill(start_color="E8EDF5", end_color="E8EDF5", fill_type="solid")
 
-        # Write headers
+        header_row = 4
+
+        # --- Write headers ---
         if headers:
-            ws.append(headers)
-            for cell in ws[1]:
+            for col_idx, h in enumerate(headers, 1):
+                cell = ws.cell(row=header_row, column=col_idx, value=h)
                 cell.font = header_font
                 cell.fill = header_fill
-                cell.alignment = Alignment(horizontal='center')
+                cell.alignment = Alignment(horizontal='center', vertical='center')
                 cell.border = thin_border
+            ws.row_dimensions[header_row].height = 28
 
-        # Write data rows with alternating colors
-        alt_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        # --- Write data rows ---
+        data_start = header_row + 1
         for i, row in enumerate(rows):
-            # Convert numeric strings to actual numbers
             converted = []
             for val in row:
                 if isinstance(val, str):
                     try:
-                        if '.' in val: converted.append(float(val))
-                        else: converted.append(int(val))
+                        cleaned_val = val.replace(',', '').replace('$', '').strip()
+                        if '.' in cleaned_val: converted.append(float(cleaned_val))
+                        else: converted.append(int(cleaned_val))
                     except (ValueError, TypeError):
                         converted.append(val)
                 else:
                     converted.append(val)
-            ws.append(converted)
+            for col_idx, val in enumerate(converted, 1):
+                ws.cell(row=data_start + i, column=col_idx, value=val)
 
-        # Apply styling to all data cells
-        for row_idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column)):
+        # --- Style data cells ---
+        for row_idx, row in enumerate(ws.iter_rows(min_row=data_start, max_row=ws.max_row, max_col=num_cols)):
+            is_total_row = False
+            first_val = row[0].value if row[0].value else ""
+            if isinstance(first_val, str):
+                lower = first_val.lower()
+                is_total_row = any(kw in lower for kw in ['total', 'gross', 'net', 'subtotal'])
+
             for cell in row:
                 cell.border = thin_border
-                if row_idx % 2 == 1:
-                    cell.fill = alt_fill
-                # Format numbers with commas
+                cell.alignment = Alignment(vertical='center')
+
+                # Number formatting
                 if isinstance(cell.value, (int, float)):
                     cell.number_format = '#,##0' if isinstance(cell.value, int) else '#,##0.00'
-                # Bold category/label rows (first column text that looks like a header)
-                if cell.column == 1 and isinstance(cell.value, str) and cell.value.isupper():
-                    for c in row:
-                        c.font = Font(bold=True)
+                    cell.alignment = Alignment(horizontal='right', vertical='center')
+                    # Red for negative
+                    if cell.value < 0:
+                        cell.font = Font(color="CC0000")
 
-        # Insert formulas
+                # Total/summary rows
+                if is_total_row:
+                    cell.fill = total_fill
+                    cell.font = Font(bold=True, size=11)
+                    if isinstance(cell.value, (int, float)) and cell.value < 0:
+                        cell.font = Font(bold=True, color="CC0000", size=11)
+                elif row_idx % 2 == 1:
+                    cell.fill = alt_fill
+
+                # Section headers (ALL CAPS in first column)
+                if cell.column == 1 and isinstance(cell.value, str) and cell.value.isupper() and not is_total_row:
+                    cell.font = Font(bold=True, size=11, color="2B579A")
+
+        # --- Insert formulas ---
+        # Adjust formula cell references to account for title rows (shift down by 3)
         for cell_ref, formula in formulas.items():
-            ws[cell_ref] = formula
-            ws[cell_ref].font = Font(bold=True, color="2B579A")
-            ws[cell_ref].border = thin_border
-            ws[cell_ref].number_format = '#,##0'
+            # Adjust the row numbers in formulas
+            import re
+            col_letter = re.match(r'([A-Z]+)', cell_ref).group(1) if re.match(r'([A-Z]+)', cell_ref) else cell_ref[0]
+            row_num = int(re.search(r'(\d+)', cell_ref).group(1)) if re.search(r'(\d+)', cell_ref) else 1
+            new_ref = f"{col_letter}{row_num + 3}"
+            # Also adjust references inside the formula
+            def shift_ref(m):
+                return f"{m.group(1)}{int(m.group(2)) + 3}"
+            adjusted_formula = re.sub(r'([A-Z]+)(\d+)', shift_ref, formula)
+            ws[new_ref] = adjusted_formula
+            ws[new_ref].font = Font(bold=True, color="2B579A")
+            ws[new_ref].border = thin_border
+            ws[new_ref].number_format = '#,##0'
+            ws[new_ref].fill = total_fill
 
-        # Auto-width columns
+        # --- Freeze panes (freeze headers) ---
+        ws.freeze_panes = f'A{header_row + 1}'
+
+        # --- Auto-width columns ---
         for col in ws.columns:
             max_len = 0
             col_letter = col[0].column_letter
             for cell in col:
                 try:
                     val = str(cell.value) if cell.value else ""
+                    if cell.number_format and cell.number_format != 'General' and isinstance(cell.value, (int, float)):
+                        val = f"{cell.value:,.0f}"
                     max_len = max(max_len, len(val))
                 except Exception:
                     pass
-            ws.column_dimensions[col_letter].width = min(max_len + 3, 30)
+            ws.column_dimensions[col_letter].width = max(min(max_len + 4, 35), 10)
+
+        # --- Print setup ---
+        ws.sheet_properties.pageSetUpPr = None
+        ws.page_setup.orientation = 'landscape'
+        ws.page_setup.fitToWidth = 1
+        ws.page_setup.fitToHeight = 0
 
         buf = io.BytesIO()
         wb.save(buf)
