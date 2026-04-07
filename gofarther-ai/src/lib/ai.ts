@@ -89,7 +89,7 @@ export async function chatStream(
   systemPrompt: string,
   onChunk: (text: string) => void,
   onAction?: (action: any) => void,
-): Promise<string> {
+): Promise<{ text: string; tokens?: number }> {
   await checkNetwork();
   const headers = await authHeaders();
 
@@ -110,13 +110,14 @@ export async function chatStream(
 
   // Read SSE stream
   let fullText = '';
+  let totalTokens = 0;
   const reader = res.body?.getReader();
   if (!reader) {
     // Fallback: no streaming support, read as JSON
     const data = await res.json();
     fullText = data.text || 'No response';
     onChunk(fullText);
-    return fullText;
+    return { text: fullText, tokens: (data.input_tokens || 0) + (data.output_tokens || 0) };
   }
 
   const decoder = new TextDecoder();
@@ -143,6 +144,7 @@ export async function chatStream(
           throw new Error(event.text);
         } else if (event.type === 'done') {
           fullText = event.text || fullText;
+          totalTokens = (event.input_tokens || 0) + (event.output_tokens || 0);
         }
       } catch (e: any) {
         if (e.message && !e.message.includes('JSON')) throw e;
@@ -151,7 +153,7 @@ export async function chatStream(
   }
 
   if (!fullText) fullText = 'No response';
-  return fullText;
+  return { text: fullText, tokens: totalTokens };
 }
 
 /** Send image to Claude Vision via backend proxy */

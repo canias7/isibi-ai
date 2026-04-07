@@ -20,6 +20,7 @@ export interface ChatMsg {
   fileMimeType?: string;
   isCreatingFile?: boolean;
   timestamp?: number;
+  stats?: { tokens: number; durationMs: number };
 }
 
 /** Action payload from AI response */

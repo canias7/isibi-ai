@@ -157,16 +157,24 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       }
 
       let streamedAction: any = null;
-      const response = await chatStream(history, systemPromptRef.current, (chunk) => {
+      const startTime = Date.now();
+      const result = await chatStream(history, systemPromptRef.current, (chunk) => {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: chunk } : m));
       }, (action) => {
         streamedAction = action;
       });
+      const durationMs = Date.now() - startTime;
+      const responseText = typeof result === 'string' ? result : result.text;
+      const tokens = typeof result === 'string' ? 0 : (result.tokens || 0);
 
       // Use streamed action if available, otherwise parse from response text
-      const { cleanText, action } = streamedAction ? { cleanText: response, action: streamedAction } : parseAction(response);
+      const { cleanText, action } = streamedAction ? { cleanText: responseText, action: streamedAction } : parseAction(responseText);
       let finalAction = action;
       let finalText = cleanText;
+
+      // Store stats for tool actions (not casual chat)
+      const hasAction = !!finalAction;
+      const msgStats = (hasAction || tokens > 500) ? { tokens, durationMs } : undefined;
 
       // Handle memory
       if (finalAction?.type === 'remember') {
@@ -432,9 +440,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         const cleared = prev.map(m => m.actionStatus === 'confirm' ? { ...m, actionStatus: 'cancelled' as const } : m);
         return cleared.map(m => m.id === aiMsgIdStream ? {
           ...m,
-          content: finalText || (finalAction ? actionLabel(finalAction) : response),
+          content: finalText || (finalAction ? actionLabel(finalAction) : responseText),
           action: finalAction || undefined,
           actionStatus: finalAction ? 'confirm' : undefined,
+          stats: msgStats,
         } : m);
       });
     } catch (e: any) {

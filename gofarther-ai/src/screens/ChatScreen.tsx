@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
   TouchableWithoutFeedback, Dimensions, Alert, Share, ScrollView,
-  ActionSheetIOS,
+  ActionSheetIOS, Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Clipboard from 'expo-clipboard';
@@ -205,6 +205,7 @@ RULES:
   }, []);
 
   const openMenu = () => {
+    Keyboard.dismiss();
     setShowMenu(true);
     Animated.parallel([
       Animated.spring(menuSlide, { toValue: 0, useNativeDriver: true, tension: 60, friction: 12 }),
@@ -259,10 +260,10 @@ RULES:
     trackEvent('copy_message');
   };
 
-  // Handle image attachment(s) — send to Claude Vision
+  // Handle image attachment(s) — show preview first, then send to Claude Vision
   const handleImageAttach = async (uris: string | string[]) => {
     const uriList = Array.isArray(uris) ? uris : [uris];
-    const label = uriList.length === 1 ? 'Analyze this image' : `Analyze these ${uriList.length} images`;
+    const label = uriList.length === 1 ? '' : `${uriList.length} images`;
     const userMsg: ChatMsg = { id: genId(), role: 'user', content: label, imageUrl: uriList[0] };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
@@ -495,8 +496,18 @@ RULES:
                       wav: 'audio/wav',
                       aac: 'audio/aac',
                       ogg: 'audio/ogg',
+                      json: 'application/json',
+                      xml: 'application/xml',
+                      html: 'text/html',
+                      htm: 'text/html',
+                      js: 'text/plain',
+                      ts: 'text/plain',
+                      py: 'text/plain',
+                      md: 'text/plain',
+                      rtf: 'text/rtf',
+                      pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
                     };
-                    const mimeType = a.mimeType || mimeMap[ext] || 'application/octet-stream';
+                    const mimeType = a.mimeType || mimeMap[ext] || 'text/plain';
                     if (mimeType.startsWith('image/')) {
                       handleImageAttach(a.uri);
                       return;
@@ -521,6 +532,11 @@ RULES:
                       }
                       return;
                     }
+                    // Show file in chat first
+                    const userMsg: ChatMsg = { id: genId(), role: 'user', content: `📎 ${a.name}`, timestamp: Date.now() };
+                    setMessages(prev => [...prev, userMsg]);
+                    messagesRef.current = [...messagesRef.current, userMsg];
+                    // Then read and analyze
                     const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
                     send(`Analyze this file: ${a.name}`, undefined, undefined, { base64, mimeType, name: a.name, uri: a.uri });
                   } catch (e: any) {

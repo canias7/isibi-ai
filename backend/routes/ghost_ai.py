@@ -161,7 +161,8 @@ async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
             # Embed the action JSON in the response text so the mobile app can parse it
             response_text = response_text + "\n" + json.dumps(action_json) if response_text else json.dumps(action_json)
 
-    return {"text": response_text or "No response"}
+    usage = data.get("usage", {})
+    return {"text": response_text or "No response", "input_tokens": usage.get("input_tokens", 0), "output_tokens": usage.get("output_tokens", 0)}
 
 
 @router.post("/chat-stream")
@@ -175,6 +176,8 @@ async def chat_stream_proxy(req: ChatRequest, authorization: str = Header(...)):
         text_so_far = ""
         tool_name = None
         tool_input_json = ""
+        input_tokens = 0
+        output_tokens = 0
 
         async with httpx.AsyncClient(timeout=120) as client:
             async with client.stream(
@@ -269,10 +272,18 @@ async def chat_stream_proxy(req: ChatRequest, authorization: str = Header(...)):
                             tool_name = None
                             tool_input_json = ""
 
+                    elif event_type == "message_start":
+                        usage = event.get("message", {}).get("usage", {})
+                        input_tokens = usage.get("input_tokens", 0)
+
+                    elif event_type == "message_delta":
+                        usage = event.get("usage", {})
+                        output_tokens = usage.get("output_tokens", output_tokens)
+
                     elif event_type == "message_stop":
                         break
 
-        yield f"data: {json.dumps({'type': 'done', 'text': text_so_far})}\n\n"
+        yield f"data: {json.dumps({'type': 'done', 'text': text_so_far, 'input_tokens': input_tokens, 'output_tokens': output_tokens})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 

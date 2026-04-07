@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, TouchableWithoutFeedback,
-  StyleSheet, Animated, ScrollView, TextInput, Keyboard, Alert,
+  StyleSheet, Animated, ScrollView, TextInput, Alert,
   ActionSheetIOS, Platform, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getAIName, saveAIName, getUserNickname, saveUserNickname, ChatSession, deleteChatSession, renameChatSession, pinChatSession, tagChatSession, searchAllChats } from '../lib/storage';
+import { ChatSession, deleteChatSession, renameChatSession, pinChatSession, tagChatSession, searchAllChats } from '../lib/storage';
 import { useTheme } from '../lib/ThemeContext';
 
 const DRAWER_W = 300;
@@ -64,17 +64,12 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
   const translateX = useRef(new Animated.Value(-DRAWER_W)).current;
   const backdrop = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
-  const [nickname, setNickname] = useState('');
-  const [editingName, setEditingName] = useState(false);
-  const [tempName, setTempName] = useState('');
   const [search, setSearch] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [searchResults, setSearchResults] = useState<{ session: ChatSession; matchedMessage?: string }[] | null>(null);
   const [activeTag, setActiveTag] = useState<string | null>(null);
   const [renameSession, setRenameSession] = useState<ChatSession | null>(null);
   const [renameText, setRenameText] = useState('');
-
-  useEffect(() => { getUserNickname().then(setNickname); }, []);
 
   useEffect(() => {
     Animated.parallel([
@@ -83,9 +78,6 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
     ]).start();
     if (!isOpen) { setSearch(''); setShowSearch(false); }
   }, [isOpen]);
-
-  const startEditName = () => { setTempName(nickname); setEditingName(true); };
-  const saveName = () => { const n = tempName.trim(); setNickname(n); saveUserNickname(n); setEditingName(false); Keyboard.dismiss(); };
 
   const handleSessionLongPress = (session: ChatSession) => {
     const pinLabel = session.pinned ? 'Unpin' : 'Pin';

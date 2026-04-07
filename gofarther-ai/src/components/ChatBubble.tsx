@@ -162,6 +162,12 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
           )}
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
           {renderAction()}
+          {item.stats && (
+            <Text style={s.statsText}>
+              {item.stats.durationMs >= 1000 ? `${(item.stats.durationMs / 1000).toFixed(1)}s` : `${item.stats.durationMs}ms`}
+              {item.stats.tokens > 0 ? ` · ${item.stats.tokens >= 1000 ? `${(item.stats.tokens / 1000).toFixed(1)}k` : item.stats.tokens} tokens` : ''}
+            </Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -177,6 +183,7 @@ const s = StyleSheet.create({
   msgText: { fontSize: 17, lineHeight: 27, color: '#1f2937', letterSpacing: 0.1 },
   msgTextUser: { color: '#111827' },
   pulsingText: { fontSize: 17, color: '#1f2937', fontWeight: '500', lineHeight: 27 },
+  statsText: { fontSize: 11, color: '#bbb', marginTop: 6 },
   canvasBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
   canvasBtnText: { fontSize: 12, fontWeight: '500', color: '#666' },
   fileBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
