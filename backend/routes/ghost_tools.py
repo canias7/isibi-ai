@@ -238,16 +238,17 @@ async def create_file_async(req: CreateFileRequest, authorization: str = Header(
             format_instructions = {
                 "csv": "Return raw CSV data with headers.",
                 "txt": "Return well-written plain text with clear structure.",
-                "xlsx": """You MUST return ONLY a valid JSON object with NO markdown fences, NO explanation, NO extra text. Just the raw JSON:
-{"title":"Report Title","headers":["Column A","Column B"],"rows":[["row1val1","row1val2"],["row2val1",12345]],"formulas":{"B5":"=SUM(B2:B4)"}}
-Rules:
-- "title": report name (e.g. "Profit & Loss Statement - 2024")
-- "headers": array of column header strings
-- "rows": array of arrays (each inner array is one row of data). Use numbers (not strings) for numeric values.
-- "formulas": object mapping cell references to Excel formulas
-- Do NOT wrap in markdown code fences
-- Do NOT include any text before or after the JSON
-- Use real Excel formulas (=SUM, =AVERAGE, etc.) for calculated rows""",
+                "xlsx": """Return CSV data (comma-separated values). First line is the title/report name. Second line is column headers. Remaining lines are data rows.
+For calculated rows (totals, averages), put the actual calculated number, NOT a formula.
+Use numbers for numeric values (no dollar signs, no quotes around numbers).
+Example:
+Monthly Budget Report
+Category,Budget,Actual,Difference
+Salary,5000,5000,0
+Rent,1800,1800,0
+TOTAL,6800,6800,0
+
+IMPORTANT: Return ONLY the CSV data. No markdown fences. No explanations.""",
                 "pdf": "Return well-structured text using markdown-style headings (# ## ###). Use - for bullet points. Use **bold** for emphasis. For financial documents, include tables using | pipes.",
                 "docx": "Return well-structured text using markdown-style headings.",
             }
@@ -310,27 +311,14 @@ Return ONLY the document content, no explanations."""
                         mime = "text/plain"
             elif req.file_type == "xlsx":
                 try:
-                    file_bytes, fname, mime = _content_to_xlsx_with_formulas(content, filename)
+                    file_bytes, fname, mime = _csv_to_styled_xlsx(content, filename)
                     filename = fname
                 except Exception as xlsx_err:
                     import traceback
-                    print(f"XLSX formula builder failed: {xlsx_err}\n{traceback.format_exc()}")
-                    # Fallback: try to make a basic Excel from the content
-                    try:
-                        from openpyxl import Workbook as _Wb
-                        _wb = _Wb()
-                        _ws = _wb.active
-                        for line in content.split('\n'):
-                            _ws.append(line.split(',') if ',' in line else [line])
-                        _buf = io.BytesIO()
-                        _wb.save(_buf)
-                        file_bytes = _buf.getvalue()
-                        filename += ".xlsx"
-                        mime = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                    except Exception:
-                        file_bytes = content.encode('utf-8')
-                        filename += ".txt"
-                        mime = "text/plain"
+                    print(f"XLSX builder failed: {xlsx_err}\n{traceback.format_exc()}")
+                    file_bytes = content.encode('utf-8')
+                    filename += ".csv"
+                    mime = "text/csv"
             elif req.file_type == "docx":
                 file_bytes, fname, mime = _content_to_file(content, "docx", filename)
                 filename = fname
@@ -657,6 +645,170 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
 
     asyncio.create_task(_background_modify())
     return {"job_id": job_id, "status": "processing"}
+
+
+def _csv_to_styled_xlsx(content: str, base_name: str) -> tuple:
+    """Convert CSV content from Claude into a professional styled Excel file."""
+    import csv as _csv
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from datetime import datetime
+
+    # Clean content — remove markdown fences
+    import re
+    cleaned = re.sub(r'^```\w*\s*\n?', '', content.strip())
+    cleaned = re.sub(r'\n?```\s*$', '', cleaned).strip()
+
+    # Parse lines
+    lines = [l for l in cleaned.split('\n') if l.strip()]
+    if not lines:
+        raise ValueError("No content")
+
+    # First line is the title (if it doesn't contain commas or has fewer than the header line)
+    title = base_name.replace("_", " ").title()
+    data_lines = lines
+
+    # Detect title: first line with fewer commas than second line
+    if len(lines) >= 2:
+        first_commas = lines[0].count(',')
+        second_commas = lines[1].count(',')
+        if first_commas < second_commas or first_commas == 0:
+            title = lines[0].strip()
+            data_lines = lines[1:]
+
+    # Parse CSV
+    reader = _csv.reader(data_lines)
+    all_rows = list(reader)
+    if not all_rows:
+        raise ValueError("No data rows")
+
+    headers = all_rows[0]
+    data_rows = all_rows[1:]
+
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Report"
+    num_cols = len(headers)
+    last_col = get_column_letter(num_cols) if num_cols > 0 else 'A'
+
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill(start_color="2B579A", end_color="2B579A", fill_type="solid")
+    title_font = Font(bold=True, size=16, color="2B579A")
+    date_font = Font(size=10, color="888888", italic=True)
+    border = Border(
+        left=Side(style='thin', color='D0D0D0'), right=Side(style='thin', color='D0D0D0'),
+        top=Side(style='thin', color='D0D0D0'), bottom=Side(style='thin', color='D0D0D0'),
+    )
+    alt_fill = PatternFill(start_color="F7F9FC", end_color="F7F9FC", fill_type="solid")
+    total_fill = PatternFill(start_color="E8EDF5", end_color="E8EDF5", fill_type="solid")
+
+    # Row 1: Title
+    ws.merge_cells(f'A1:{last_col}1')
+    ws['A1'].value = title
+    ws['A1'].font = title_font
+    ws['A1'].alignment = Alignment(horizontal='left', vertical='center')
+    ws.row_dimensions[1].height = 30
+
+    # Row 2: Date
+    ws.merge_cells(f'A2:{last_col}2')
+    ws['A2'].value = f"Generated {datetime.utcnow().strftime('%B %d, %Y')}"
+    ws['A2'].font = date_font
+    ws.row_dimensions[2].height = 18
+
+    # Row 3: Spacer
+    ws.row_dimensions[3].height = 6
+
+    # Row 4: Headers
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col_idx, value=h.strip())
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = Alignment(horizontal='center', vertical='center')
+        cell.border = border
+    ws.row_dimensions[4].height = 28
+
+    # Row 5+: Data
+    for row_idx, row in enumerate(data_rows):
+        excel_row = row_idx + 5
+        is_total = False
+
+        for col_idx, val in enumerate(row):
+            if col_idx >= num_cols:
+                break
+            cell = ws.cell(row=excel_row, column=col_idx + 1)
+            val = val.strip()
+
+            # Try to convert to number
+            try:
+                clean_val = val.replace(',', '').replace('$', '').replace('%', '').strip()
+                if '.' in clean_val:
+                    cell.value = float(clean_val)
+                    cell.number_format = '#,##0.00'
+                elif clean_val.lstrip('-').isdigit():
+                    cell.value = int(clean_val)
+                    cell.number_format = '#,##0'
+                else:
+                    cell.value = val
+            except (ValueError, AttributeError):
+                cell.value = val
+
+            cell.border = border
+
+            # Check if total row
+            if col_idx == 0 and isinstance(cell.value, str):
+                lower = cell.value.lower()
+                if any(kw in lower for kw in ['total', 'gross', 'net', 'subtotal', 'balance']):
+                    is_total = True
+
+            # Number alignment
+            if isinstance(cell.value, (int, float)):
+                cell.alignment = Alignment(horizontal='right', vertical='center')
+                if cell.value < 0:
+                    cell.font = Font(color="CC0000")
+
+        # Row styling
+        for col_idx in range(num_cols):
+            cell = ws.cell(row=excel_row, column=col_idx + 1)
+            if is_total:
+                cell.fill = total_fill
+                cell.font = Font(bold=True, size=11) if not (isinstance(cell.value, (int, float)) and cell.value < 0) else Font(bold=True, color="CC0000", size=11)
+            elif row_idx % 2 == 1:
+                cell.fill = alt_fill
+
+            # Section headers (ALL CAPS first col)
+            if col_idx == 0 and isinstance(cell.value, str) and cell.value.isupper() and not is_total:
+                cell.font = Font(bold=True, size=11, color="2B579A")
+
+    # Freeze headers
+    ws.freeze_panes = 'A5'
+
+    # Auto-width
+    for col_idx in range(1, num_cols + 1):
+        col_letter = get_column_letter(col_idx)
+        max_len = 0
+        for row in ws.iter_rows(min_row=4, max_row=ws.max_row, min_col=col_idx, max_col=col_idx):
+            for cell in row:
+                if cell.value is not None:
+                    if isinstance(cell.value, (int, float)):
+                        val_len = len(f"{cell.value:,}")
+                    else:
+                        val_len = len(str(cell.value))
+                    max_len = max(max_len, val_len)
+        if col_idx == 1:
+            ws.column_dimensions[col_letter].width = max(min(max_len + 4, 35), 20)
+        else:
+            ws.column_dimensions[col_letter].width = max(min(max_len + 4, 22), 14)
+
+    # Print setup
+    ws.page_setup.orientation = 'landscape'
+    ws.page_setup.fitToWidth = 1
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
 
 def _extract_json_from_content(content: str):
