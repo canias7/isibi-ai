@@ -71,7 +71,7 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
   const flatList = useRef<FlatList>(null);
 
   // Use shared chat hook
-  const [pendingAttachment, setPendingAttachment] = useState<{ base64: string; mimeType: string; name: string; uri: string; previewUri?: string } | null>(null);
+  const [pendingAttachments, setPendingAttachments] = useState<{ base64: string; mimeType: string; name: string; uri: string; previewUri?: string }[]>([]);
 
   const {
     messages, setMessages, loading, setLoading, editingMsgId, setEditingMsgId, animatingIds, isCreating, removeAnimatingId,
@@ -234,18 +234,23 @@ RULES:
     setTimeout(() => setInput(prompt), 250);
   };
 
-  // Wrapper to send from input — includes pending attachment if any
+  // Wrapper to send from input — includes pending attachments if any
   const send = (overrideText?: string) => {
     const text = (overrideText || input).trim();
-    if (!text && !pendingAttachment) return;
+    if (!text && !pendingAttachments.length) return;
     if (!overrideText) setInput('');
-    if (pendingAttachment) {
-      if (pendingAttachment.mimeType.startsWith('image/')) {
-        handleImageAttach(pendingAttachment.uri);
-      } else {
-        chatSend(text || `Analyze this file: ${pendingAttachment.name}`, undefined, undefined, pendingAttachment);
+    if (pendingAttachments.length) {
+      const images = pendingAttachments.filter(a => a.mimeType.startsWith('image/'));
+      const files = pendingAttachments.filter(a => !a.mimeType.startsWith('image/'));
+      // Send images through vision — pass base64 directly (URIs may expire)
+      if (images.length) handleImageAttachB64(images.map(a => a.base64), text);
+      // Send each file for analysis
+      for (const file of files) {
+        chatSend(text || `Analyze this file: ${file.name}`, undefined, undefined, file);
       }
-      setPendingAttachment(null);
+      // If only images and user typed text, send text too
+      if (images.length && !files.length && text) chatSend(text);
+      setPendingAttachments([]);
     } else {
       chatSend(text);
     }
@@ -269,6 +274,23 @@ RULES:
     Clipboard.setStringAsync(content);
     successHaptic();
     trackEvent('copy_message');
+  };
+
+  // Handle image from base64 (used by attachment system)
+  const handleImageAttachB64 = async (base64s: string[], prompt?: string) => {
+    const userMsg: ChatMsg = { id: genId(), role: 'user', content: prompt || '', timestamp: Date.now() };
+    setMessages(prev => [...prev, userMsg]);
+    setLoading(true);
+    const aiMsgId = genId();
+    setMessages(prev => [...prev, { id: aiMsgId, role: 'assistant', content: '' }]);
+    try {
+      const analysis = await analyzeImage(base64s[0], prompt || 'What do you see in this image? Be specific and helpful.');
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: analysis } : m));
+    } catch (e: any) {
+      setMessages(prev => prev.map(m => m.id === aiMsgId ? { ...m, content: 'Could not analyze image: ' + (e.message || 'Error') } : m));
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Handle image attachment(s) — show preview first, then send to Claude Vision
@@ -424,53 +446,59 @@ RULES:
 
       {/* Input bar */}
       <View style={[s.inputBarOuter, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        {/* Pending attachment preview */}
-        {pendingAttachment && (
-          <View style={s.attachPreview}>
-            {pendingAttachment.previewUri ? (
-              <Image source={{ uri: pendingAttachment.previewUri }} style={s.attachThumb} />
-            ) : (
-              <View style={s.attachFileIcon}>
-                <Ionicons name="document-outline" size={18} color="#666" />
-              </View>
-            )}
-            <Text style={s.attachName} numberOfLines={1}>{pendingAttachment.name}</Text>
-            <TouchableOpacity onPress={() => setPendingAttachment(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          </View>
-        )}
         <View style={s.inputRow}>
           <TouchableOpacity onPress={openMenu} activeOpacity={0.6} accessibilityLabel="Actions menu" accessibilityRole="button">
             <View style={s.plusCircle}>
-              <Ionicons name="add" size={20} color="#1a1a1a" />
+              <Ionicons name="add" size={20} color={tc.text} />
             </View>
           </TouchableOpacity>
           <View style={[s.inputBar, { backgroundColor: tc.inputBg || '#efefef' }]}>
-            <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
-              placeholder={editingMsgId ? 'Edit your message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
-              placeholderTextColor={tc.textDim} multiline maxLength={2000}
-              onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
-            {isCreating && !input.trim() ? (
-              <TouchableOpacity style={s.inputIconBtn} onPress={cancelCreation} activeOpacity={0.7}>
-                <View style={s.stopBtn}>
-                  <View style={s.stopSquare} />
-                </View>
-              </TouchableOpacity>
-            ) : input.trim() ? (
-              <TouchableOpacity style={s.inputIconBtn}
-                onPress={() => editingMsgId ? handleSubmitEdit() : send()} disabled={loading} activeOpacity={0.7}>
-                <View style={[s.sendBtn, loading && s.sendBtnOff]}>
-                  {loading ? <ActivityIndicator color="white" size="small" /> : (
-                    <Ionicons name="arrow-up" size={18} color="#ffffff" />
-                  )}
-                </View>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={s.micInsideBtn} activeOpacity={0.6}>
-                <Ionicons name="mic-outline" size={20} color="#8e8e93" />
-              </TouchableOpacity>
+            {/* Attachment previews inside input bar */}
+            {pendingAttachments.length > 0 && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.attachPreviewScroll} contentContainerStyle={{ gap: 6, paddingTop: 8, paddingHorizontal: 4 }}>
+                {pendingAttachments.map((att, idx) => (
+                  <View key={idx} style={s.attachChip}>
+                    {att.previewUri ? (
+                      <Image source={{ uri: att.previewUri }} style={s.attachThumb} />
+                    ) : (
+                      <View style={s.attachFileIcon}>
+                        <Ionicons name="document-outline" size={14} color="#666" />
+                      </View>
+                    )}
+                    <Text style={[s.attachName, { color: tc.textMid }]} numberOfLines={1}>{att.name}</Text>
+                    <TouchableOpacity onPress={() => setPendingAttachments(prev => prev.filter((_, i) => i !== idx))} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                      <Ionicons name="close-circle" size={16} color="#999" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </ScrollView>
             )}
+            <View style={s.inputInnerRow}>
+              <TextInput style={[s.input, { color: tc.text }]} value={input} onChangeText={setInput}
+                placeholder={editingMsgId ? 'Edit your message...' : pendingAttachments.length ? 'Add a message...' : messages.length === 0 ? 'How can I help you today?' : 'Reply...'}
+                placeholderTextColor={tc.textDim} multiline maxLength={2000}
+                onSubmitEditing={() => editingMsgId ? handleSubmitEdit() : send()} blurOnSubmit={false} />
+              {isCreating && !input.trim() && !pendingAttachments.length ? (
+                <TouchableOpacity style={s.inputIconBtn} onPress={cancelCreation} activeOpacity={0.7}>
+                  <View style={s.stopBtn}>
+                    <View style={s.stopSquare} />
+                  </View>
+                </TouchableOpacity>
+              ) : (input.trim() || pendingAttachments.length > 0) ? (
+                <TouchableOpacity style={s.inputIconBtn}
+                  onPress={() => editingMsgId ? handleSubmitEdit() : send()} disabled={loading} activeOpacity={0.7}>
+                  <View style={[s.sendBtn, loading && s.sendBtnOff]}>
+                    {loading ? <ActivityIndicator color="white" size="small" /> : (
+                      <Ionicons name="arrow-up" size={18} color="#ffffff" />
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={s.micInsideBtn} activeOpacity={0.6}>
+                  <Ionicons name="mic-outline" size={20} color="#8e8e93" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
           <TouchableOpacity onPress={() => setVoiceMode('picker')} activeOpacity={0.6} accessibilityLabel="Voice mode" accessibilityRole="button">
             <View style={s.voiceBtn}>
@@ -502,15 +530,17 @@ RULES:
                   const a = await pickCamera();
                   if (!a) return;
                   const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
-                  setPendingAttachment({ base64, mimeType: a.mimeType || 'image/jpeg', name: a.name, uri: a.uri, previewUri: a.uri });
+                  setPendingAttachments(prev => [...prev, { base64, mimeType: a.mimeType || 'image/jpeg', name: a.name, uri: a.uri, previewUri: a.uri }]);
                 } },
                 { label: 'Photos', icon: 'images-outline', onPress: async () => {
                   closeMenu(); tapHaptic();
-                  const a = await pickPhotos();
-                  if (!a.length) return;
-                  const first = a[0];
-                  const base64 = await FileSystem.readAsStringAsync(first.uri, { encoding: FileSystem.EncodingType.Base64 });
-                  setPendingAttachment({ base64, mimeType: first.mimeType || 'image/jpeg', name: first.name, uri: first.uri, previewUri: first.uri });
+                  const picked = await pickPhotos();
+                  if (!picked.length) return;
+                  const newAttachments = await Promise.all(picked.map(async (img) => {
+                    const base64 = await FileSystem.readAsStringAsync(img.uri, { encoding: FileSystem.EncodingType.Base64 });
+                    return { base64, mimeType: img.mimeType || 'image/jpeg', name: img.name, uri: img.uri, previewUri: img.uri };
+                  }));
+                  setPendingAttachments(prev => [...prev, ...newAttachments]);
                 } },
                 { label: 'Files', icon: 'folder-outline', onPress: async () => {
                   closeMenu(); tapHaptic();
@@ -529,7 +559,7 @@ RULES:
                     };
                     const mimeType = a.mimeType || mimeMap[ext] || 'text/plain';
                     const base64 = await FileSystem.readAsStringAsync(a.uri, { encoding: FileSystem.EncodingType.Base64 });
-                    setPendingAttachment({ base64, mimeType, name: a.name, uri: a.uri, previewUri: mimeType.startsWith('image/') ? a.uri : undefined });
+                    setPendingAttachments(prev => [...prev, { base64, mimeType, name: a.name, uri: a.uri, previewUri: mimeType.startsWith('image/') ? a.uri : undefined }]);
                   } catch (e: any) {
                     Alert.alert('Error', 'Could not read file: ' + (e.message || 'Unknown error'));
                   }
@@ -593,13 +623,15 @@ const s = StyleSheet.create({
   suggestText: { fontSize: 14, fontWeight: '500' },
 
   // Input bar
-  attachPreview: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 8, paddingVertical: 6, marginBottom: 4, backgroundColor: '#f0f0f0', borderRadius: 10 },
-  attachThumb: { width: 36, height: 36, borderRadius: 6 },
-  attachFileIcon: { width: 36, height: 36, borderRadius: 6, backgroundColor: '#e0e0e0', alignItems: 'center', justifyContent: 'center' },
-  attachName: { flex: 1, fontSize: 13, color: '#444' },
+  inputInnerRow: { flexDirection: 'row', alignItems: 'flex-end', paddingLeft: 10 },
+  attachPreviewScroll: { marginTop: 8, marginHorizontal: 6 },
+  attachChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 4, paddingLeft: 4, paddingRight: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(0,0,0,0.08)' },
+  attachThumb: { width: 40, height: 40, borderRadius: 8 },
+  attachFileIcon: { width: 40, height: 40, borderRadius: 8, backgroundColor: 'rgba(0,0,0,0.06)', alignItems: 'center', justifyContent: 'center' },
+  attachName: { fontSize: 13, fontWeight: '500', maxWidth: 140 },
   inputBarOuter: { paddingHorizontal: 12, paddingTop: 6 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  inputBar: { flex: 1, flexDirection: 'row', alignItems: 'center', borderRadius: 24, paddingLeft: 16, paddingRight: 6, minHeight: 44 },
+  inputBar: { flex: 1, borderRadius: 24, paddingHorizontal: 6, minHeight: 44 },
   plusCircle: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: '#b0b0b0', alignItems: 'center', justifyContent: 'center' },
   micInsideBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   inputIconBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },

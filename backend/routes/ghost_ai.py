@@ -61,6 +61,7 @@ class ChatRequest(BaseModel):
 class VisionRequest(BaseModel):
     image_base64: str
     prompt: Optional[str] = "What do you see in this image?"
+    media_type: Optional[str] = "image/jpeg"
 
 
 class ImageRequest(BaseModel):
@@ -299,12 +300,17 @@ async def vision_proxy(req: VisionRequest, authorization: str = Header(...)):
             "https://api.anthropic.com/v1/messages",
             headers={"Content-Type": "application/json", "x-api-key": ANTHROPIC_KEY, "anthropic-version": "2023-06-01"},
             json={"model": "claude-sonnet-4-20250514", "max_tokens": 1024, "messages": [{"role": "user", "content": [
-                {"type": "image", "source": {"type": "base64", "media_type": "image/jpeg", "data": req.image_base64}},
+                {"type": "image", "source": {"type": "base64", "media_type": req.media_type or "image/jpeg", "data": req.image_base64}},
                 {"type": "text", "text": req.prompt},
             ]}]},
         )
         if res.status_code != 200:
-            raise HTTPException(res.status_code, "Vision API error")
+            detail = "Vision API error"
+            try:
+                detail = res.json().get("error", {}).get("message", detail)
+            except Exception:
+                pass
+            raise HTTPException(res.status_code, detail)
         data = res.json()
         return {"text": data.get("content", [{}])[0].get("text", "Could not analyze")}
 

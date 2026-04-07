@@ -90,23 +90,15 @@ export async function chatStream(
   onChunk: (text: string) => void,
   onAction?: (action: any) => void,
 ): Promise<{ text: string; tokens?: number }> {
+  // Use regular chat endpoint (streaming will be enabled once backend is deployed)
+  const fullText = await chat(messages, systemPrompt);
+  onChunk(fullText);
+  return { text: fullText, tokens: 0 };
+
+  // Streaming code below — uncomment when backend /chat-stream is deployed
+  /*
   await checkNetwork();
   const headers = await authHeaders();
-
-  const res = await fetchWithTimeout(`${BASE}/chat-stream`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({
-      messages,
-      system: systemPrompt || 'You are GoFarther AI, a helpful mobile assistant.',
-      max_tokens: 1024,
-    }),
-  }, 120000);
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => null);
-    throw new Error(err?.detail || `API error (${res.status})`);
-  }
 
   // Read SSE stream
   let fullText = '';
@@ -154,16 +146,24 @@ export async function chatStream(
 
   if (!fullText) fullText = 'No response';
   return { text: fullText, tokens: totalTokens };
+  */
 }
 
 /** Send image to Claude Vision via backend proxy */
-export async function analyzeImage(base64: string, prompt: string = 'What do you see?'): Promise<string> {
+export async function analyzeImage(base64: string, prompt: string = 'What do you see?', mediaType: string = 'image/png'): Promise<string> {
   await checkNetwork();
   const headers = await authHeaders();
+  // Auto-detect media type from base64 header
+  let detectedType = mediaType;
+  if (base64.startsWith('/9j/')) detectedType = 'image/jpeg';
+  else if (base64.startsWith('iVBOR')) detectedType = 'image/png';
+  else if (base64.startsWith('R0lGO')) detectedType = 'image/gif';
+  else if (base64.startsWith('UklGR')) detectedType = 'image/webp';
+
   const res = await fetchWithTimeout(`${BASE}/vision`, {
     method: 'POST',
     headers,
-    body: JSON.stringify({ image_base64: base64, prompt }),
+    body: JSON.stringify({ image_base64: base64, prompt, media_type: detectedType }),
   }, 60000);
   if (!res.ok) {
     const err = await res.json().catch(() => null);
