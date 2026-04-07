@@ -640,9 +640,16 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
     try:
         import json as _json
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+        from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, numbers
 
-        data = _json.loads(content)
+        # Strip markdown code fences if present
+        cleaned = content.strip()
+        if cleaned.startswith("```"):
+            # Remove first line (```json) and last line (```)
+            lines = cleaned.split('\n')
+            cleaned = '\n'.join(lines[1:-1] if lines[-1].strip() == '```' else lines[1:])
+
+        data = _json.loads(cleaned)
         headers = data.get("headers", [])
         rows = data.get("rows", [])
         formulas = data.get("formulas", {})
@@ -669,20 +676,42 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
                 cell.alignment = Alignment(horizontal='center')
                 cell.border = thin_border
 
-        # Write data rows
-        for row in rows:
-            ws.append(row)
+        # Write data rows with alternating colors
+        alt_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
+        for i, row in enumerate(rows):
+            # Convert numeric strings to actual numbers
+            converted = []
+            for val in row:
+                if isinstance(val, str):
+                    try:
+                        if '.' in val: converted.append(float(val))
+                        else: converted.append(int(val))
+                    except (ValueError, TypeError):
+                        converted.append(val)
+                else:
+                    converted.append(val)
+            ws.append(converted)
 
-        # Apply borders to all data cells
-        for row in ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column):
+        # Apply styling to all data cells
+        for row_idx, row in enumerate(ws.iter_rows(min_row=2, max_row=ws.max_row, max_col=ws.max_column)):
             for cell in row:
                 cell.border = thin_border
+                if row_idx % 2 == 1:
+                    cell.fill = alt_fill
+                # Format numbers with commas
+                if isinstance(cell.value, (int, float)):
+                    cell.number_format = '#,##0' if isinstance(cell.value, int) else '#,##0.00'
+                # Bold category/label rows (first column text that looks like a header)
+                if cell.column == 1 and isinstance(cell.value, str) and cell.value.isupper():
+                    for c in row:
+                        c.font = Font(bold=True)
 
         # Insert formulas
         for cell_ref, formula in formulas.items():
             ws[cell_ref] = formula
-            ws[cell_ref].font = Font(bold=True)
+            ws[cell_ref].font = Font(bold=True, color="2B579A")
             ws[cell_ref].border = thin_border
+            ws[cell_ref].number_format = '#,##0'
 
         # Auto-width columns
         for col in ws.columns:
