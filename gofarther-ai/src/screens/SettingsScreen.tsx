@@ -517,6 +517,32 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                         linkedin: '#0A66C2', tiktok: '#000000', buffer: '#168EEA', hootsuite: '#143059',
                         // Healthcare
                         athenahealth: '#50B848', drchrono: '#2196F3', simplepractice: '#0077CC',
+                        // Finance
+                        brex: '#000000', mercury: '#5856D6', ramp: '#0A8548', wise: '#9FE870',
+                        // Real Estate
+                        propertybase: '#00A0E3', boomtown: '#FF6600',
+                        // Legal
+                        clio: '#2962FF', lawpay: '#1A237E', mycase: '#4CAF50', practicepanther: '#3F51B5',
+                        // Education
+                        canvas_lms: '#E13F29', google_classroom: '#0F9D58',
+                        // POS
+                        toast: '#FF4F00', clover: '#00A651', lightspeed: '#FF6B00',
+                        // Field Service
+                        servicetitan: '#003B6F', jobber: '#48C774', housecall_pro: '#0066FF',
+                        // Logistics
+                        shipstation: '#84C225', shippo: '#0066FF', easypost: '#3E7BFA',
+                        // Design
+                        figma: '#A259FF', canva: '#00C4CC',
+                        // Analytics
+                        google_analytics: '#E37400', mixpanel: '#7856FF', segment: '#52BD95',
+                        // Dev Tools
+                        github: '#24292E', gitlab: '#FC6D26', vercel: '#000000',
+                        // Video
+                        youtube: '#FF0000', loom: '#625DF5',
+                        // Surveys
+                        typeform: '#262627', surveymonkey: '#00BF6F', tally: '#000000',
+                        // Appointments
+                        vagaro: '#FF6B00', mindbody: '#00A1E0', fresha: '#1A1A1A', booksy: '#3D5AFE',
                         // Automation
                         zapier: '#FF4F00', make: '#6D00CC', ifttt: '#000000',
                       } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>

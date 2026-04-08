@@ -658,15 +658,271 @@ APP_REGISTRY: dict[str, dict] = {
         "setup": "Go to ifttt.com/maker_webhooks → Settings → Copy URL. Create an Applet with Webhooks trigger.",
         "actions": ["trigger_webhook"],
     },
+
+    # ── Finance & Banking ───────────────────────────────────────────────
+    "brex": {
+        "name": "Brex", "category": "Finance", "icon": "card",
+        "auth_fields": [{"key": "api_key", "label": "API Token", "secure": True}],
+        "setup": "Go to Brex → Settings → Developer → API Keys → Create Token.",
+        "actions": ["get_transactions", "get_accounts", "create_expense"],
+    },
+    "mercury": {
+        "name": "Mercury", "category": "Finance", "icon": "trending-up",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Mercury → Settings → API → Generate API Key.",
+        "actions": ["get_transactions", "get_accounts", "get_balance"],
+    },
+    "ramp": {
+        "name": "Ramp", "category": "Finance", "icon": "card",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Ramp → Settings → Developer → API Keys → Create.",
+        "actions": ["get_transactions", "get_cards", "get_expenses"],
+    },
+    "wise": {
+        "name": "Wise Business", "category": "Finance", "icon": "swap-horizontal",
+        "auth_fields": [{"key": "api_key", "label": "API Token", "secure": True}],
+        "setup": "Go to Wise → Settings → API Tokens → Create Token with full access.",
+        "actions": ["get_transactions", "get_balance", "create_transfer"],
+    },
+
+    # ── Real Estate ─────────────────────────────────────────────────────
+    "propertybase": {
+        "name": "Propertybase", "category": "Real Estate", "icon": "home",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Propertybase → Settings → API → Generate Key.",
+        "actions": ["get_listings", "get_leads", "create_lead", "search"],
+    },
+    "boomtown": {
+        "name": "BoomTown", "category": "Real Estate", "icon": "business",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to BoomTown → Settings → API → Copy Key.",
+        "actions": ["get_leads", "create_lead", "search"],
+    },
+
+    # ── Legal ───────────────────────────────────────────────────────────
+    "clio": {
+        "name": "Clio", "category": "Legal", "icon": "briefcase",
+        "auth_fields": [{"key": "api_key", "label": "Access Token", "secure": True}],
+        "setup": "Go to app.clio.com → Settings → API → Create App → Copy Access Token.",
+        "actions": ["get_matters", "create_matter", "get_contacts", "get_tasks", "create_task"],
+    },
+    "lawpay": {
+        "name": "LawPay", "category": "Legal", "icon": "cash",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to LawPay → Settings → API → Generate Key.",
+        "actions": ["get_transactions", "create_payment_link", "get_invoices"],
+    },
+    "mycase": {
+        "name": "MyCase", "category": "Legal", "icon": "folder",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to MyCase → Settings → Integrations → API → Copy Key.",
+        "actions": ["get_cases", "create_case", "get_contacts", "get_tasks"],
+    },
+    "practicepanther": {
+        "name": "PracticePanther", "category": "Legal", "icon": "shield",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to PracticePanther → Settings → API → Generate Key.",
+        "actions": ["get_matters", "get_contacts", "get_invoices", "create_task"],
+    },
+
+    # ── Education ───────────────────────────────────────────────────────
+    "canvas_lms": {
+        "name": "Canvas LMS", "category": "Education", "icon": "school",
+        "auth_fields": [{"key": "api_key", "label": "Access Token", "secure": True}, {"key": "domain", "label": "Canvas Domain (e.g. school.instructure.com)"}],
+        "setup": "Go to Canvas → Account → Settings → New Access Token → Generate.",
+        "actions": ["get_courses", "get_assignments", "get_grades", "create_assignment"],
+    },
+    "google_classroom": {
+        "name": "Google Classroom", "category": "Education", "icon": "school",
+        "auth_fields": [{"key": "api_key", "label": "OAuth Token", "secure": True}],
+        "setup": "Go to console.cloud.google.com → Enable Classroom API → Create OAuth credentials.",
+        "actions": ["get_courses", "get_assignments", "create_assignment", "get_students"],
+    },
+
+    # ── Restaurants & POS ───────────────────────────────────────────────
+    "toast": {
+        "name": "Toast POS", "category": "POS", "icon": "restaurant",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}, {"key": "restaurant_id", "label": "Restaurant GUID"}],
+        "setup": "Go to Toast → Developer Portal → Create App → Copy API Key and Restaurant GUID.",
+        "actions": ["get_orders", "get_menu", "get_employees", "get_revenue"],
+    },
+    "clover": {
+        "name": "Clover", "category": "POS", "icon": "card",
+        "auth_fields": [{"key": "api_key", "label": "API Token", "secure": True}, {"key": "merchant_id", "label": "Merchant ID"}],
+        "setup": "Go to Clover → Developer Dashboard → Create App → Copy Token and Merchant ID.",
+        "actions": ["get_orders", "get_inventory", "get_employees", "get_revenue"],
+    },
+    "lightspeed": {
+        "name": "Lightspeed", "category": "POS", "icon": "flash",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Lightspeed → Settings → API → Generate Key.",
+        "actions": ["get_sales", "get_inventory", "get_customers", "get_products"],
+    },
+
+    # ── Field Service ───────────────────────────────────────────────────
+    "servicetitan": {
+        "name": "ServiceTitan", "category": "Field Service", "icon": "construct",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}, {"key": "tenant_id", "label": "Tenant ID"}],
+        "setup": "Go to ServiceTitan → Settings → Integrations → API → Copy Key and Tenant ID.",
+        "actions": ["get_jobs", "create_job", "get_customers", "get_invoices", "schedule_job"],
+    },
+    "jobber": {
+        "name": "Jobber", "category": "Field Service", "icon": "hammer",
+        "auth_fields": [{"key": "api_key", "label": "API Token", "secure": True}],
+        "setup": "Go to Jobber → Settings → API → Generate Token.",
+        "actions": ["get_jobs", "create_job", "get_clients", "get_invoices", "schedule_visit"],
+    },
+    "housecall_pro": {
+        "name": "Housecall Pro", "category": "Field Service", "icon": "home",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Housecall Pro → Settings → API → Generate Key.",
+        "actions": ["get_jobs", "create_job", "get_customers", "get_invoices"],
+    },
+
+    # ── Logistics & Shipping ────────────────────────────────────────────
+    "shipstation": {
+        "name": "ShipStation", "category": "Logistics", "icon": "boat",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}, {"key": "api_secret", "label": "API Secret", "secure": True}],
+        "setup": "Go to ShipStation → Settings → Account → API Settings → Generate Keys.",
+        "actions": ["get_orders", "create_label", "get_shipments", "track_package"],
+    },
+    "shippo": {
+        "name": "Shippo", "category": "Logistics", "icon": "airplane",
+        "auth_fields": [{"key": "api_key", "label": "API Token", "secure": True}],
+        "setup": "Go to Shippo → Settings → API → Copy Live Token.",
+        "actions": ["get_shipments", "create_shipment", "get_rates", "create_label"],
+    },
+    "easypost": {
+        "name": "EasyPost", "category": "Logistics", "icon": "cube",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to easypost.com → Account → API Keys → Copy Production Key.",
+        "actions": ["create_shipment", "get_rates", "create_label", "track_package"],
+    },
+
+    # ── Design ──────────────────────────────────────────────────────────
+    "figma": {
+        "name": "Figma", "category": "Design", "icon": "color-palette",
+        "auth_fields": [{"key": "api_key", "label": "Personal Access Token", "secure": True}],
+        "setup": "Go to Figma → Settings → Account → Personal Access Tokens → Create.",
+        "actions": ["get_files", "get_projects", "get_comments", "export_image"],
+    },
+    "canva": {
+        "name": "Canva", "category": "Design", "icon": "brush",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to canva.com/developers → Create App → Copy API Key.",
+        "actions": ["get_designs", "create_design", "export_design"],
+    },
+
+    # ── Analytics ───────────────────────────────────────────────────────
+    "google_analytics": {
+        "name": "Google Analytics", "category": "Analytics", "icon": "analytics",
+        "auth_fields": [{"key": "api_key", "label": "Service Account JSON Key", "secure": True}, {"key": "property_id", "label": "Property ID"}],
+        "setup": "Go to console.cloud.google.com → Enable Analytics API → Create Service Account → Download JSON key.",
+        "actions": ["get_report", "get_realtime", "get_users", "get_pageviews"],
+    },
+    "mixpanel": {
+        "name": "Mixpanel", "category": "Analytics", "icon": "bar-chart",
+        "auth_fields": [{"key": "api_key", "label": "Service Account", "secure": True}, {"key": "project_id", "label": "Project ID"}],
+        "setup": "Go to Mixpanel → Settings → Project Settings → Service Accounts → Create.",
+        "actions": ["get_events", "get_funnels", "get_retention", "get_users"],
+    },
+    "segment": {
+        "name": "Segment", "category": "Analytics", "icon": "pie-chart",
+        "auth_fields": [{"key": "api_key", "label": "Write Key", "secure": True}],
+        "setup": "Go to Segment → Sources → Your Source → Settings → API Keys → Copy Write Key.",
+        "actions": ["track_event", "identify_user", "get_events"],
+    },
+
+    # ── Dev Tools ───────────────────────────────────────────────────────
+    "github": {
+        "name": "GitHub", "category": "Dev Tools", "icon": "logo-github",
+        "auth_fields": [{"key": "api_key", "label": "Personal Access Token", "secure": True}],
+        "setup": "Go to GitHub → Settings → Developer Settings → Personal Access Tokens → Generate.",
+        "actions": ["get_repos", "get_issues", "create_issue", "get_prs", "search"],
+    },
+    "gitlab": {
+        "name": "GitLab", "category": "Dev Tools", "icon": "git-branch",
+        "auth_fields": [{"key": "api_key", "label": "Personal Access Token", "secure": True}],
+        "setup": "Go to GitLab → Settings → Access Tokens → Create.",
+        "actions": ["get_projects", "get_issues", "create_issue", "get_pipelines"],
+    },
+    "vercel": {
+        "name": "Vercel", "category": "Dev Tools", "icon": "triangle",
+        "auth_fields": [{"key": "api_key", "label": "API Token", "secure": True}],
+        "setup": "Go to Vercel → Settings → Tokens → Create.",
+        "actions": ["get_deployments", "get_projects", "trigger_deploy"],
+    },
+
+    # ── Video ───────────────────────────────────────────────────────────
+    "youtube": {
+        "name": "YouTube", "category": "Video", "icon": "logo-youtube",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to console.cloud.google.com → Enable YouTube Data API → Create API Key.",
+        "actions": ["get_videos", "get_analytics", "get_comments", "search"],
+    },
+    "loom": {
+        "name": "Loom", "category": "Video", "icon": "videocam",
+        "auth_fields": [{"key": "api_key", "label": "Developer Token", "secure": True}],
+        "setup": "Go to loom.com → Settings → Developer → Generate Token.",
+        "actions": ["get_videos", "get_shared_videos"],
+    },
+
+    # ── Surveys & Forms ─────────────────────────────────────────────────
+    "typeform": {
+        "name": "Typeform", "category": "Surveys", "icon": "list",
+        "auth_fields": [{"key": "api_key", "label": "Personal Access Token", "secure": True}],
+        "setup": "Go to Typeform → Settings → Personal Tokens → Generate.",
+        "actions": ["get_forms", "get_responses", "create_form"],
+    },
+    "surveymonkey": {
+        "name": "SurveyMonkey", "category": "Surveys", "icon": "clipboard",
+        "auth_fields": [{"key": "api_key", "label": "Access Token", "secure": True}],
+        "setup": "Go to developer.surveymonkey.com → My Apps → Create → Copy Token.",
+        "actions": ["get_surveys", "get_responses", "create_survey"],
+    },
+    "tally": {
+        "name": "Tally", "category": "Surveys", "icon": "checkmark-done",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to tally.so → Settings → Integrations → API → Copy Key.",
+        "actions": ["get_forms", "get_submissions"],
+    },
+
+    # ── Appointments ────────────────────────────────────────────────────
+    "vagaro": {
+        "name": "Vagaro", "category": "Appointments", "icon": "calendar",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Vagaro → Settings → Developer → API → Generate Key.",
+        "actions": ["get_appointments", "create_appointment", "get_clients", "get_services"],
+    },
+    "mindbody": {
+        "name": "Mindbody", "category": "Appointments", "icon": "fitness",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}, {"key": "site_id", "label": "Site ID"}],
+        "setup": "Go to Mindbody → Developer Portal → Create App → Copy API Key and Site ID.",
+        "actions": ["get_classes", "get_appointments", "get_clients", "book_class"],
+    },
+    "fresha": {
+        "name": "Fresha", "category": "Appointments", "icon": "cut",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Fresha → Settings → Integrations → API → Generate Key.",
+        "actions": ["get_appointments", "get_clients", "get_services"],
+    },
+    "booksy": {
+        "name": "Booksy", "category": "Appointments", "icon": "time",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Booksy → Settings → Integrations → API → Copy Key.",
+        "actions": ["get_appointments", "get_clients", "get_services"],
+    },
 }
 
 # ── Category order for display ───────────────────────────────────────────
 
 CATEGORY_ORDER = [
-    "CRM", "Accounting", "Project Management", "Communication",
+    "CRM", "Accounting", "Finance", "Project Management", "Communication",
     "Calendar", "E-commerce", "Storage", "Email Marketing",
     "HR", "Support", "Legal", "Social Media",
-    "Healthcare", "Automation",
+    "Healthcare", "Real Estate", "Field Service", "POS",
+    "Logistics", "Design", "Analytics", "Dev Tools",
+    "Video", "Surveys", "Appointments", "Education", "Automation",
 ]
 
 
