@@ -100,8 +100,9 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
   const [elapsed, setElapsed] = useState(0);
   const dotOpacity = useRef(new Animated.Value(1)).current;
 
+  const isBusy = loading || isCreating;
   useEffect(() => {
-    if (loading) {
+    if (isBusy) {
       setElapsed(0);
       setThinkingWord(thinkingWords[Math.floor(Math.random() * thinkingWords.length)]);
       const wordInterval = setInterval(() => {
@@ -117,7 +118,7 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
       pulse.start();
       return () => { clearInterval(wordInterval); clearInterval(timerInterval); pulse.stop(); };
     }
-  }, [loading]);
+  }, [isBusy]);
 
   // Load agents and AI name, build system prompt
   useEffect(() => {
@@ -469,7 +470,7 @@ RULES:
             showsVerticalScrollIndicator={false}
           />
           {/* Thinking status word */}
-          {loading && (
+          {isBusy && (
             <View style={s.typingRow}>
               <Animated.View style={[s.thinkingPill, { opacity: dotOpacity, backgroundColor: tc.card }]}>
                 <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...  {elapsed.toFixed(1)}s</Text>

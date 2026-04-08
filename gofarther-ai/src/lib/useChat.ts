@@ -23,6 +23,12 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
   const [animatingIds, setAnimatingIds] = useState<Set<string>>(new Set());
   const [isCreating, setIsCreating] = useState(false);
   const cancelRef = useRef(false);
+
+  /** Wrap async action so isCreating stays true while it runs */
+  const trackAsync = <T,>(promise: Promise<T>): Promise<T> => {
+    setIsCreating(true);
+    return promise.finally(() => setIsCreating(false));
+  };
   const messagesRef = useRef<ChatMsg[]>([]);
   const currentSessionId = useRef<string | null>(sessionId);
   const systemPromptRef = useRef(systemPrompt);
@@ -243,7 +249,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'generate_image') {
         updateAndPersist(aiMsgIdStream, { content: finalText || 'Generating image...' });
         setLoading(false);
-        generateImage(finalAction.target || '').then(imageUrl => {
+        trackAsync(generateImage(finalAction.target || '')).then(imageUrl => {
           updateAndPersist(aiMsgIdStream, { content: finalText || 'Here\'s your image:', imageUrl });
           scheduleLocalNotification('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
@@ -326,7 +332,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'web_search') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Searching...' } : m));
         setLoading(false);
-        webSearch(finalAction.target || '').then(result => {
+        trackAsync(webSearch(finalAction.target || '')).then(result => {
           const formatted = result.results.map((r: any) => `**${r.title}**\n${r.snippet}${r.url ? `\n[Link](${r.url})` : ''}`).join('\n\n');
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: formatted || 'No results found.' } : m));
         }).catch(e => {
@@ -339,7 +345,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'read_url') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Reading page...' } : m));
         setLoading(false);
-        readURL(finalAction.target || '', finalAction.text).then(result => {
+        trackAsync(readURL(finalAction.target || '', finalAction.text)).then(result => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: result.summary } : m));
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Could not read URL: ' + e.message } : m));
@@ -351,7 +357,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'run_code') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Running code...' } : m));
         setLoading(false);
-        runCode(finalAction.target || '').then(result => {
+        trackAsync(runCode(finalAction.target || '')).then(result => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**Code:**\n\`\`\`python\n${result.code}\n\`\`\`\n\n**Output:**\n\`\`\`\n${result.output}\n\`\`\`` } : m));
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Code execution failed: ' + e.message } : m));
@@ -363,7 +369,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'translate') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Translating...' } : m));
         setLoading(false);
-        translateText(finalAction.target || '', finalAction.text || 'Spanish').then(result => {
+        trackAsync(translateText(finalAction.target || '', finalAction.text || 'Spanish')).then(result => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: result.translation } : m));
         }).catch(e => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Translation failed: ' + e.message } : m));
@@ -375,7 +381,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'youtube_summary') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Summarizing video...' } : m));
         setLoading(false);
-        youtubeSearch(finalAction.target || '').then(r => {
+        trackAsync(youtubeSearch(finalAction.target || '')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**${r.title}**\n\n${r.summary}` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Video summary failed: ' + e.message } : m)); });
         return;
@@ -385,7 +391,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'research') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Researching...' } : m));
         setLoading(false);
-        deepResearch(finalAction.target || '', finalAction.text || 'general').then(r => {
+        trackAsync(deepResearch(finalAction.target || '', finalAction.text || 'general')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: r.research } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Research failed: ' + e.message } : m)); });
         return;
@@ -395,7 +401,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'generate_qr') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Generating QR code...' } : m));
         setLoading(false);
-        generateQR(finalAction.target || '').then(r => {
+        trackAsync(generateQR(finalAction.target || '')).then(r => {
           const url = `https://isibi-backend.onrender.com${r.download_url}`;
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'QR code generated!', imageUrl: `data:image/png;base64,${r.image_base64}` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'QR generation failed: ' + e.message } : m)); });
@@ -406,7 +412,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'create_event') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating event...' } : m));
         setLoading(false);
-        createCalendarEvent(finalAction.target || '', finalAction.text || new Date().toISOString().split('T')[0]).then(r => {
+        trackAsync(createCalendarEvent(finalAction.target || '', finalAction.text || new Date().toISOString().split('T')[0])).then(r => {
           const url = `https://isibi-backend.onrender.com${r.download_url}`;
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `Event created: ${finalAction!.target}\n\n[Download .ics file](${url})` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Event creation failed: ' + e.message } : m)); });
@@ -417,7 +423,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'create_invoice') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating invoice...' } : m));
         setLoading(false);
-        createInvoice(finalAction.target || '', finalAction.text || '').then(r => {
+        trackAsync(createInvoice(finalAction.target || '', finalAction.text || '')).then(r => {
           const url = `https://isibi-backend.onrender.com${r.download_url}`;
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `${r.content}\n\n[Download Invoice](${url})` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Invoice failed: ' + e.message } : m)); });
@@ -428,7 +434,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'crypto_portfolio') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking prices...' } : m));
         setLoading(false);
-        cryptoPortfolio(finalAction.target || 'BTC,ETH').then(r => {
+        trackAsync(cryptoPortfolio(finalAction.target || 'BTC,ETH')).then(r => {
           const formatted = r.portfolio.map((c: any) => `**${c.symbol}**: $${c.price}`).join('\n');
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: formatted } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Crypto fetch failed: ' + e.message } : m)); });
@@ -439,7 +445,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'social_post') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating post...' } : m));
         setLoading(false);
-        socialPost(finalAction.text || 'twitter', finalAction.target || '').then(r => {
+        trackAsync(socialPost(finalAction.text || 'twitter', finalAction.target || '')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**${r.platform} post:**\n\n${r.post}` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Post failed: ' + e.message } : m)); });
         return;
@@ -449,7 +455,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'compare_urls') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Comparing...' } : m));
         setLoading(false);
-        compareURLs(finalAction.target || '', finalAction.text).then(r => {
+        trackAsync(compareURLs(finalAction.target || '', finalAction.text)).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: r.comparison } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Comparison failed: ' + e.message } : m)); });
         return;
@@ -459,7 +465,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'create_meme') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating meme...' } : m));
         setLoading(false);
-        createMeme(finalAction.target || '', finalAction.text || '').then(r => {
+        trackAsync(createMeme(finalAction.target || '', finalAction.text || '')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Here\'s your meme!', imageUrl: `data:image/png;base64,${r.image_base64}` } : m));
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Meme failed: ' + e.message } : m)); });
         return;
@@ -469,7 +475,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'barcode_lookup') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Looking up barcode...' } : m));
         setLoading(false);
-        barcodeLookup(finalAction.target || '').then(r => {
+        trackAsync(barcodeLookup(finalAction.target || '')).then(r => {
           if (r.found) {
             setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**${r.name}**\nBrand: ${r.brand}\nCategory: ${r.category}${r.nutrition_grade ? `\nNutrition: ${r.nutrition_grade}` : ''}` } : m));
           } else {
@@ -484,7 +490,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         const labels: Record<string, string> = { company_lookup: 'Looking up company...', linkedin_lookup: 'Looking up profile...', competitor_analysis: 'Analyzing competitors...', market_research: 'Researching market...' };
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || labels[finalAction!.type] || 'Researching...' } : m));
         setLoading(false);
-        deepResearch(finalAction.target || '', 'general').then(r => {
+        trackAsync(deepResearch(finalAction.target || '', 'general')).then(r => {
           updateAndPersist(aiMsgIdStream, { content: r.research });
         }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Research failed: ' + e.message }); });
         return;
@@ -519,9 +525,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Getting your briefing...' } : m));
         setLoading(false);
         // Combine weather + news
-        Promise.all([
+        trackAsync(Promise.all([
           webSearch('today news headlines').catch(() => ({ results: [] })),
-        ]).then(([news]) => {
+        ])).then(([news]) => {
           const newsStr = news.results.slice(0, 5).map((r: any) => `- **${r.title}**\n  ${r.snippet}`).join('\n');
           updateAndPersist(aiMsgIdStream, { content: `**Your Morning Briefing**\n\n**Top News:**\n${newsStr || 'No news available.'}` });
         });
@@ -532,7 +538,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'flight_status') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking flight status...' } : m));
         setLoading(false);
-        webSearch(`flight status ${finalAction.target}`).then(r => {
+        trackAsync(webSearch(`flight status ${finalAction.target}`)).then(r => {
           const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
           updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not find flight info.' });
         }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Flight check failed: ' + e.message }); });
@@ -543,7 +549,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'package_tracking') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Tracking package...' } : m));
         setLoading(false);
-        webSearch(`package tracking ${finalAction.target}`).then(r => {
+        trackAsync(webSearch(`package tracking ${finalAction.target}`)).then(r => {
           const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
           updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not find tracking info.' });
         }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Tracking failed: ' + e.message }); });
@@ -554,7 +560,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'currency_convert') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Converting...' } : m));
         setLoading(false);
-        webSearch(`${finalAction.target} exchange rate conversion`).then(r => {
+        trackAsync(webSearch(`${finalAction.target} exchange rate conversion`)).then(r => {
           const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
           updateAndPersist(aiMsgIdStream, { content: formatted || 'Conversion unavailable.' });
         }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Conversion failed: ' + e.message }); });
@@ -565,7 +571,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'time_zone') {
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking time...' } : m));
         setLoading(false);
-        webSearch(`current time in ${finalAction.target}`).then(r => {
+        trackAsync(webSearch(`current time in ${finalAction.target}`)).then(r => {
           const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
           updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not determine time.' });
         }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Timezone check failed: ' + e.message }); });
@@ -603,7 +609,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         const actionName = finalAction.text || '';
         setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || `Working with ${appId}...` } : m));
         setLoading(false);
-        runConnectorAction(appId, actionName, finalAction.key).then(result => {
+        trackAsync(runConnectorAction(appId, actionName, finalAction.key)).then(result => {
           // Format the result nicely
           const data = result.result || result;
           let formatted = '';
