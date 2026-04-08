@@ -563,6 +563,11 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                         govpilot: '#283593', accela: '#00695C',
                         // Automation
                         zapier: '#FF4F00', make: '#6D00CC', ifttt: '#000000',
+                        // ERP / Oracle
+                        oracle_netsuite: '#C74634', oracle_cloud_erp: '#C74634', oracle_cx_sales: '#C74634',
+                        oracle_cx_service: '#C74634', oracle_hcm: '#C74634', oracle_epm: '#C74634',
+                        oracle_scm: '#C74634', oracle_apex: '#C74634', oracle_analytics: '#C74634',
+                        oracle_commerce: '#C74634',
                       } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>
                         <Ionicons name={(app.icon || 'cube') as any} size={16} color="#fff" />
                       </View>

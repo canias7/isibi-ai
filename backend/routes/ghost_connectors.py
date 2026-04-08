@@ -1078,12 +1078,114 @@ APP_REGISTRY: dict[str, dict] = {
         "setup": "Go to developer.accela.com → Create App → Copy App ID and Secret.",
         "actions": ["get_records", "create_record", "get_inspections", "search"],
     },
+
+    # ── Oracle Products ──────────────────────────────────────────────────
+    "oracle_netsuite": {
+        "name": "Oracle NetSuite", "category": "ERP", "icon": "server",
+        "auth_fields": [
+            {"key": "account_id", "label": "Account ID", "secure": False},
+            {"key": "consumer_key", "label": "Consumer Key", "secure": True},
+            {"key": "consumer_secret", "label": "Consumer Secret", "secure": True},
+            {"key": "token_id", "label": "Token ID", "secure": True},
+            {"key": "token_secret", "label": "Token Secret", "secure": True},
+        ],
+        "setup": "Go to NetSuite → Setup → Integration → Manage Integrations → New. Enable Token-Based Auth. Create an access token under Setup → Users/Roles → Access Tokens.",
+        "actions": ["get_customers", "create_customer", "get_invoices", "create_invoice", "get_sales_orders", "create_sales_order", "get_items", "get_vendors", "get_purchase_orders", "get_journal_entries", "search"],
+    },
+    "oracle_cloud_erp": {
+        "name": "Oracle Cloud ERP", "category": "ERP", "icon": "cloud",
+        "auth_fields": [
+            {"key": "base_url", "label": "Cloud ERP URL", "secure": False},
+            {"key": "username", "label": "Username", "secure": False},
+            {"key": "password", "label": "Password", "secure": True},
+        ],
+        "setup": "Go to Oracle Cloud → Navigator → Tools → Security Console. Create a user with API access. Your base URL is like https://servername.fa.us2.oraclecloud.com.",
+        "actions": ["get_invoices", "create_invoice", "get_purchase_orders", "get_journal_entries", "get_general_ledger", "get_payables", "get_receivables", "get_assets", "search"],
+    },
+    "oracle_cx_sales": {
+        "name": "Oracle CX Sales", "category": "CRM", "icon": "people",
+        "auth_fields": [
+            {"key": "base_url", "label": "CX Sales URL", "secure": False},
+            {"key": "username", "label": "Username", "secure": False},
+            {"key": "password", "label": "Password", "secure": True},
+        ],
+        "setup": "Go to Oracle CX Sales → Navigator → Tools → Manage Users. Create a user with REST API access. Base URL is like https://servername.cx.us2.oraclecloud.com.",
+        "actions": ["get_accounts", "create_account", "get_contacts", "create_contact", "get_opportunities", "create_opportunity", "get_leads", "get_activities", "search"],
+    },
+    "oracle_cx_service": {
+        "name": "Oracle CX Service", "category": "Support", "icon": "headset",
+        "auth_fields": [
+            {"key": "base_url", "label": "CX Service URL", "secure": False},
+            {"key": "username", "label": "Username", "secure": False},
+            {"key": "password", "label": "Password", "secure": True},
+        ],
+        "setup": "Go to Oracle CX Service (B2C Service) → Configuration → Staff Management → Profiles. Enable REST API access for your profile.",
+        "actions": ["get_incidents", "create_incident", "get_contacts", "create_contact", "get_service_requests", "update_incident", "search"],
+    },
+    "oracle_hcm": {
+        "name": "Oracle Cloud HCM", "category": "HR", "icon": "person",
+        "auth_fields": [
+            {"key": "base_url", "label": "HCM Cloud URL", "secure": False},
+            {"key": "username", "label": "Username", "secure": False},
+            {"key": "password", "label": "Password", "secure": True},
+        ],
+        "setup": "Go to Oracle HCM Cloud → Navigator → Tools → Security Console. Create a user with HCM REST API access.",
+        "actions": ["get_employees", "get_departments", "get_jobs", "get_absences", "get_payroll", "get_benefits", "get_compensation", "search"],
+    },
+    "oracle_epm": {
+        "name": "Oracle EPM Cloud", "category": "Finance", "icon": "calculator",
+        "auth_fields": [
+            {"key": "base_url", "label": "EPM Cloud URL", "secure": False},
+            {"key": "username", "label": "Username", "secure": False},
+            {"key": "password", "label": "Password", "secure": True},
+        ],
+        "setup": "Go to Oracle EPM Cloud → Navigator → Tools → Access Control. Assign the Service Administrator or appropriate role for REST API access.",
+        "actions": ["get_planning_data", "submit_data", "run_business_rule", "get_reports", "get_consolidation", "get_budgets", "search"],
+    },
+    "oracle_scm": {
+        "name": "Oracle SCM Cloud", "category": "Logistics", "icon": "cube",
+        "auth_fields": [
+            {"key": "base_url", "label": "SCM Cloud URL", "secure": False},
+            {"key": "username", "label": "Username", "secure": False},
+            {"key": "password", "label": "Password", "secure": True},
+        ],
+        "setup": "Go to Oracle SCM Cloud → Navigator → Tools → Security Console. Create a user with SCM REST API privileges.",
+        "actions": ["get_inventory", "get_shipments", "get_purchase_orders", "get_work_orders", "get_suppliers", "get_warehouses", "search"],
+    },
+    "oracle_apex": {
+        "name": "Oracle APEX", "category": "Dev Tools", "icon": "code",
+        "auth_fields": [
+            {"key": "base_url", "label": "APEX Workspace URL", "secure": False},
+            {"key": "api_key", "label": "API Key", "secure": True},
+        ],
+        "setup": "Go to Oracle APEX → SQL Workshop → RESTful Services → Register Schema. Create a module and template to expose REST endpoints.",
+        "actions": ["run_query", "get_tables", "execute_procedure", "get_apps", "search"],
+    },
+    "oracle_analytics": {
+        "name": "Oracle Analytics Cloud", "category": "Analytics", "icon": "bar-chart",
+        "auth_fields": [
+            {"key": "base_url", "label": "Analytics Cloud URL", "secure": False},
+            {"key": "username", "label": "Username", "secure": False},
+            {"key": "password", "label": "Password", "secure": True},
+        ],
+        "setup": "Go to Oracle Analytics Cloud → Console → Users. Ensure your account has BI Service Administrator or BI Consumer role for API access.",
+        "actions": ["get_reports", "get_dashboards", "run_analysis", "get_datasets", "search"],
+    },
+    "oracle_commerce": {
+        "name": "Oracle Commerce Cloud", "category": "E-commerce", "icon": "cart",
+        "auth_fields": [
+            {"key": "base_url", "label": "Commerce Cloud URL", "secure": False},
+            {"key": "app_key", "label": "Application Key", "secure": True},
+        ],
+        "setup": "Go to Oracle Commerce Cloud → Settings → Web APIs → Register Application. Copy the Application Key.",
+        "actions": ["get_products", "get_orders", "get_customers", "get_inventory", "get_collections", "create_product", "search"],
+    },
 }
 
 # ── Category order for display ───────────────────────────────────────────
 
 CATEGORY_ORDER = [
-    "CRM", "Accounting", "Finance", "Project Management", "Communication",
+    "CRM", "ERP", "Accounting", "Finance", "Project Management", "Communication",
     "Calendar", "E-commerce", "Storage", "Email Marketing",
     "HR", "Support", "Legal", "Social Media",
     "Healthcare", "Dental", "Real Estate", "Insurance", "Construction",
