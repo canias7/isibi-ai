@@ -448,6 +448,46 @@ async def detect_smtp(email: str):
         if 'emailsrvr.com' in mx_combined:
             return {'host': 'secure.emailsrvr.com', 'port': 587, 'provider': 'Rackspace'}
 
+        # Neo.space / Titan Email
+        if 'neo.space' in mx_combined or 'titan' in mx_combined:
+            return {'host': 'smtp.titan.email', 'port': 587, 'provider': 'Titan Email'}
+
+        # Namecheap (privateemail.com)
+        if 'privateemail.com' in mx_combined or 'registrar-servers.com' in mx_combined:
+            return {'host': 'mail.privateemail.com', 'port': 587, 'provider': 'Namecheap'}
+
+        # Fastmail
+        if 'fastmail' in mx_combined or 'messagingengine.com' in mx_combined:
+            return {'host': 'smtp.fastmail.com', 'port': 587, 'provider': 'Fastmail'}
+
+        # Bluehost / HostGator (shared hosting)
+        if 'bluehost' in mx_combined or 'hostgator' in mx_combined:
+            return {'host': f'mail.{domain}', 'port': 587, 'provider': 'Bluehost'}
+
+        # Amazon WorkMail / SES
+        if 'amazonaws.com' in mx_combined or 'awsdns' in mx_combined:
+            return {'host': f'smtp.mail.{domain}', 'port': 587, 'provider': 'Amazon WorkMail'}
+
+        # OVH
+        if 'ovh.net' in mx_combined or 'ovh.com' in mx_combined:
+            return {'host': 'ssl0.ovh.net', 'port': 587, 'provider': 'OVH'}
+
+        # 1&1 / IONOS
+        if 'ionos' in mx_combined or '1and1' in mx_combined:
+            return {'host': 'smtp.ionos.com', 'port': 587, 'provider': 'IONOS'}
+
+        # Yandex
+        if 'yandex' in mx_combined:
+            return {'host': 'smtp.yandex.com', 'port': 587, 'provider': 'Yandex'}
+
+        # Mailgun
+        if 'mailgun.org' in mx_combined:
+            return {'host': 'smtp.mailgun.org', 'port': 587, 'provider': 'Mailgun'}
+
+        # Postmark
+        if 'postmarkapp.com' in mx_combined:
+            return {'host': 'smtp.postmarkapp.com', 'port': 587, 'provider': 'Postmark'}
+
         # Generic fallback — try smtp.domain.com
         return {'host': f'smtp.{domain}', 'port': 587, 'provider': 'Unknown', 'mx': mx_hosts[:3]}
 

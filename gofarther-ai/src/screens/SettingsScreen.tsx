@@ -315,6 +315,49 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Generate a password for "GoFarther"</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Copy the password and paste it below</Text>
                     </View>
+                  ) : smtpProvider.includes('Zoho') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to accounts.zoho.com/home</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Security, then App Passwords</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Generate a new password for "GoFarther"</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Copy the password and paste it below</Text>
+                    </View>
+                  ) : smtpProvider.includes('Titan') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to your Titan Email admin panel</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Use your regular email password below</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Titan/Neo.space uses your normal password — no app password needed!</Text>
+                    </View>
+                  ) : smtpProvider.includes('Namecheap') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to Namecheap Private Email</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Use your regular email password below</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>No app password needed — just your normal password.</Text>
+                    </View>
+                  ) : smtpProvider.includes('Fastmail') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to fastmail.com/settings/security/tokens</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap New App Password</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Name it "GoFarther", select SMTP access</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Copy the password and paste it below</Text>
+                    </View>
+                  ) : smtpProvider.includes('ProtonMail') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. You need a paid ProtonMail plan for SMTP</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Go to Settings, then go to IMAP/SMTP</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Download and set up ProtonMail Bridge</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Use the Bridge password below</Text>
+                    </View>
+                  ) : smtpProvider === 'IONOS' || smtpProvider === 'OVH' || smtpProvider.includes('GoDaddy') || smtpProvider.includes('Bluehost') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Use your regular email password below.</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Most hosting providers ({smtpProvider}) don't require a special app password — your normal email password works.</Text>
+                    </View>
+                  ) : smtpProvider === 'Unknown' ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>We detected your email server but couldn't identify the provider.</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Try using your regular email password first. If that doesn't work, check your email provider's settings for an "App Password" option.</Text>
+                    </View>
                   ) : (
                     <View style={s.smtpInstructions}>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Check your email provider's settings for an "App Password" or "Third-party app access" option. Use that password below.</Text>
