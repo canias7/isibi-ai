@@ -89,20 +89,28 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
   const menuSlide = useRef(new Animated.Value(SH)).current;
   const menuBackdrop = useRef(new Animated.Value(0)).current;
 
-  // Typing indicator dots
-  const dot1 = useRef(new Animated.Value(0)).current;
-  const dot2 = useRef(new Animated.Value(0)).current;
-  const dot3 = useRef(new Animated.Value(0)).current;
+  // Fun thinking status words
+  const thinkingWords = [
+    'Thinking', 'Pondering', 'Reasoning', 'Yakking', 'Combobulating',
+    'Ruminating', 'Cogitating', 'Noodling', 'Percolating', 'Brainstorming',
+    'Conjuring', 'Musing', 'Synthesizing', 'Crunching', 'Deciphering',
+    'Untangling', 'Scheming', 'Mulling', 'Contemplating', 'Churning',
+  ];
+  const [thinkingWord, setThinkingWord] = useState(thinkingWords[0]);
+  const dotOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (loading) {
-      const anim = Animated.loop(Animated.stagger(200, [
-        Animated.sequence([Animated.timing(dot1, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(dot1, { toValue: 0, duration: 300, useNativeDriver: true })]),
-        Animated.sequence([Animated.timing(dot2, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(dot2, { toValue: 0, duration: 300, useNativeDriver: true })]),
-        Animated.sequence([Animated.timing(dot3, { toValue: 1, duration: 300, useNativeDriver: true }), Animated.timing(dot3, { toValue: 0, duration: 300, useNativeDriver: true })]),
+      setThinkingWord(thinkingWords[Math.floor(Math.random() * thinkingWords.length)]);
+      const interval = setInterval(() => {
+        setThinkingWord(thinkingWords[Math.floor(Math.random() * thinkingWords.length)]);
+      }, 2500);
+      const pulse = Animated.loop(Animated.sequence([
+        Animated.timing(dotOpacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
+        Animated.timing(dotOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
       ]));
-      anim.start();
-      return () => anim.stop();
+      pulse.start();
+      return () => { clearInterval(interval); pulse.stop(); };
     }
   }, [loading]);
 
@@ -455,14 +463,12 @@ RULES:
             onContentSizeChange={() => flatList.current?.scrollToEnd({ animated: true })}
             showsVerticalScrollIndicator={false}
           />
-          {/* Typing indicator */}
+          {/* Thinking status word */}
           {loading && (
             <View style={s.typingRow}>
-              <View style={s.typingBubble}>
-                {[dot1, dot2, dot3].map((d, i) => (
-                  <Animated.View key={i} style={[s.typingDot, { opacity: d.interpolate({ inputRange: [0, 1], outputRange: [0.25, 1] }), transform: [{ translateY: d.interpolate({ inputRange: [0, 1], outputRange: [0, -5] }) }] }]} />
-                ))}
-              </View>
+              <Animated.View style={[s.thinkingPill, { opacity: dotOpacity, backgroundColor: tc.card }]}>
+                <Text style={[s.thinkingText, { color: tc.textSecondary }]}>{thinkingWord}...</Text>
+              </Animated.View>
             </View>
           )}
           {/* Smart suggestions after response */}
@@ -646,10 +652,10 @@ const s = StyleSheet.create({
   suggestionCard: { width: '47%', paddingVertical: 20, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1 },
   suggestionLabel: { fontSize: 14, fontWeight: '500' },
 
-  // Typing indicator
+  // Thinking status
   typingRow: { paddingHorizontal: 16, paddingBottom: 8 },
-  typingBubble: { flexDirection: 'row', gap: 5, paddingVertical: 8 },
-  typingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#aaa' },
+  thinkingPill: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
+  thinkingText: { fontSize: 13, fontStyle: 'italic', fontWeight: '500' },
 
   // Smart suggestions
   suggestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },

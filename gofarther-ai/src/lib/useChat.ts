@@ -172,9 +172,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       let finalAction = action;
       let finalText = cleanText;
 
-      // Store stats for tool actions (not casual chat)
-      const hasAction = !!finalAction;
-      const msgStats = (hasAction || tokens > 500) ? { tokens, durationMs } : undefined;
+      // Store stats on all AI responses
+      const msgStats = { tokens, durationMs };
 
       // Handle memory
       if (finalAction?.type === 'remember') {
