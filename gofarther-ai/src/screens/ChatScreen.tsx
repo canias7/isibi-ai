@@ -468,18 +468,17 @@ RULES:
             contentContainerStyle={s.list}
             onContentSizeChange={() => flatList.current?.scrollToEnd({ animated: true })}
             showsVerticalScrollIndicator={false}
+            ListFooterComponent={isBusy ? (
+              <View style={s.typingRow}>
+                <Animated.View style={[s.thinkingPillLeft, { opacity: dotOpacity, backgroundColor: tc.card }]}>
+                  <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...</Text>
+                </Animated.View>
+                <Animated.View style={[s.thinkingPillRight, { opacity: dotOpacity, backgroundColor: tc.card }]}>
+                  <Text style={[s.thinkingStats, { color: tc.textMid }]}>{Math.floor(elapsed)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
+                </Animated.View>
+              </View>
+            ) : null}
           />
-          {/* Thinking status word */}
-          {isBusy && (
-            <View style={s.typingRow}>
-              <Animated.View style={[s.thinkingPillLeft, { opacity: dotOpacity, backgroundColor: tc.card }]}>
-                <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...</Text>
-              </Animated.View>
-              <Animated.View style={[s.thinkingPillRight, { opacity: dotOpacity, backgroundColor: tc.card }]}>
-                <Text style={[s.thinkingStats, { color: tc.textMid }]}>{Math.floor(elapsed)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
-              </Animated.View>
-            </View>
-          )}
           {/* Smart suggestions after response */}
           {suggestions.length > 0 && !loading && (
             <View style={s.suggestRow}>
