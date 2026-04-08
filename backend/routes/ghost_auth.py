@@ -401,11 +401,38 @@ async def detect_smtp(email: str):
         'hotmail.com': {'host': 'smtp-mail.outlook.com', 'port': 587, 'provider': 'Microsoft'},
         'live.com': {'host': 'smtp-mail.outlook.com', 'port': 587, 'provider': 'Microsoft'},
         'yahoo.com': {'host': 'smtp.mail.yahoo.com', 'port': 587, 'provider': 'Yahoo'},
+        'yahoo.co.uk': {'host': 'smtp.mail.yahoo.com', 'port': 587, 'provider': 'Yahoo'},
+        'yahoo.co.jp': {'host': 'smtp.mail.yahoo.com', 'port': 587, 'provider': 'Yahoo'},
         'aol.com': {'host': 'smtp.aol.com', 'port': 587, 'provider': 'AOL'},
         'icloud.com': {'host': 'smtp.mail.me.com', 'port': 587, 'provider': 'Apple'},
         'me.com': {'host': 'smtp.mail.me.com', 'port': 587, 'provider': 'Apple'},
+        'mac.com': {'host': 'smtp.mail.me.com', 'port': 587, 'provider': 'Apple'},
         'zoho.com': {'host': 'smtp.zoho.com', 'port': 587, 'provider': 'Zoho'},
+        'zoho.eu': {'host': 'smtp.zoho.eu', 'port': 587, 'provider': 'Zoho'},
         'protonmail.com': {'host': 'smtp.protonmail.ch', 'port': 587, 'provider': 'ProtonMail'},
+        'proton.me': {'host': 'smtp.protonmail.ch', 'port': 587, 'provider': 'ProtonMail'},
+        'pm.me': {'host': 'smtp.protonmail.ch', 'port': 587, 'provider': 'ProtonMail'},
+        'fastmail.com': {'host': 'smtp.fastmail.com', 'port': 587, 'provider': 'Fastmail'},
+        'fastmail.fm': {'host': 'smtp.fastmail.com', 'port': 587, 'provider': 'Fastmail'},
+        'gmx.com': {'host': 'mail.gmx.com', 'port': 587, 'provider': 'GMX'},
+        'gmx.net': {'host': 'mail.gmx.net', 'port': 587, 'provider': 'GMX'},
+        'gmx.de': {'host': 'mail.gmx.net', 'port': 587, 'provider': 'GMX'},
+        'web.de': {'host': 'smtp.web.de', 'port': 587, 'provider': 'Web.de'},
+        'mail.ru': {'host': 'smtp.mail.ru', 'port': 587, 'provider': 'Mail.ru'},
+        'inbox.ru': {'host': 'smtp.mail.ru', 'port': 587, 'provider': 'Mail.ru'},
+        'bk.ru': {'host': 'smtp.mail.ru', 'port': 587, 'provider': 'Mail.ru'},
+        'list.ru': {'host': 'smtp.mail.ru', 'port': 587, 'provider': 'Mail.ru'},
+        'yandex.com': {'host': 'smtp.yandex.com', 'port': 587, 'provider': 'Yandex'},
+        'yandex.ru': {'host': 'smtp.yandex.ru', 'port': 587, 'provider': 'Yandex'},
+        'ya.ru': {'host': 'smtp.yandex.ru', 'port': 587, 'provider': 'Yandex'},
+        'tutanota.com': {'host': '', 'port': 0, 'provider': 'Tutanota (No SMTP)'},
+        'tuta.io': {'host': '', 'port': 0, 'provider': 'Tutanota (No SMTP)'},
+        'hey.com': {'host': '', 'port': 0, 'provider': 'Hey (No SMTP)'},
+        'posteo.de': {'host': 'posteo.de', 'port': 587, 'provider': 'Posteo'},
+        'posteo.net': {'host': 'posteo.de', 'port': 587, 'provider': 'Posteo'},
+        'mailbox.org': {'host': 'smtp.mailbox.org', 'port': 587, 'provider': 'Mailbox.org'},
+        'mailfence.com': {'host': 'smtp.mailfence.com', 'port': 587, 'provider': 'Mailfence'},
+        'runbox.com': {'host': 'mail.runbox.com', 'port': 587, 'provider': 'Runbox'},
     }
     if domain in known:
         return known[domain]
@@ -487,6 +514,94 @@ async def detect_smtp(email: str):
         # Postmark
         if 'postmarkapp.com' in mx_combined:
             return {'host': 'smtp.postmarkapp.com', 'port': 587, 'provider': 'Postmark'}
+
+        # Hostinger
+        if 'hostinger' in mx_combined:
+            return {'host': 'smtp.hostinger.com', 'port': 587, 'provider': 'Hostinger'}
+
+        # DreamHost
+        if 'dreamhost.com' in mx_combined:
+            return {'host': 'smtp.dreamhost.com', 'port': 587, 'provider': 'DreamHost'}
+
+        # SiteGround
+        if 'sgcpanel.com' in mx_combined or 'siteground' in mx_combined:
+            return {'host': f'mail.{domain}', 'port': 587, 'provider': 'SiteGround'}
+
+        # Hetzner
+        if 'hetzner' in mx_combined:
+            return {'host': 'mail.your-server.de', 'port': 587, 'provider': 'Hetzner'}
+
+        # Mail.ru
+        if 'mail.ru' in mx_combined:
+            return {'host': 'smtp.mail.ru', 'port': 587, 'provider': 'Mail.ru'}
+
+        # GMX
+        if 'gmx.net' in mx_combined or 'gmx.com' in mx_combined:
+            return {'host': 'mail.gmx.com', 'port': 587, 'provider': 'GMX'}
+
+        # Web.de
+        if 'web.de' in mx_combined:
+            return {'host': 'smtp.web.de', 'port': 587, 'provider': 'Web.de'}
+
+        # Mailchimp / Mandrill
+        if 'mandrillapp.com' in mx_combined or 'mailchimp' in mx_combined:
+            return {'host': 'smtp.mandrillapp.com', 'port': 587, 'provider': 'Mailchimp'}
+
+        # Brevo (SendinBlue)
+        if 'sendinblue.com' in mx_combined or 'brevo.com' in mx_combined:
+            return {'host': 'smtp-relay.brevo.com', 'port': 587, 'provider': 'Brevo'}
+
+        # HostGator
+        if 'hostgator' in mx_combined:
+            return {'host': f'mail.{domain}', 'port': 587, 'provider': 'HostGator'}
+
+        # Hover
+        if 'hover.com' in mx_combined:
+            return {'host': 'mail.hover.com', 'port': 587, 'provider': 'Hover'}
+
+        # iPage
+        if 'ipage.com' in mx_combined:
+            return {'host': f'mail.{domain}', 'port': 587, 'provider': 'iPage'}
+
+        # A2 Hosting
+        if 'a2hosting' in mx_combined:
+            return {'host': f'mail.{domain}', 'port': 587, 'provider': 'A2 Hosting'}
+
+        # Gandi
+        if 'gandi.net' in mx_combined:
+            return {'host': 'mail.gandi.net', 'port': 587, 'provider': 'Gandi'}
+
+        # Migadu
+        if 'migadu.com' in mx_combined:
+            return {'host': 'smtp.migadu.com', 'port': 587, 'provider': 'Migadu'}
+
+        # Runbox
+        if 'runbox.com' in mx_combined:
+            return {'host': 'mail.runbox.com', 'port': 587, 'provider': 'Runbox'}
+
+        # Mailfence
+        if 'mailfence.com' in mx_combined:
+            return {'host': 'smtp.mailfence.com', 'port': 587, 'provider': 'Mailfence'}
+
+        # Infomaniak
+        if 'infomaniak' in mx_combined:
+            return {'host': 'mail.infomaniak.com', 'port': 587, 'provider': 'Infomaniak'}
+
+        # Strato
+        if 'strato.de' in mx_combined or 'strato.com' in mx_combined:
+            return {'host': 'smtp.strato.de', 'port': 587, 'provider': 'Strato'}
+
+        # Posteo
+        if 'posteo.de' in mx_combined:
+            return {'host': 'posteo.de', 'port': 587, 'provider': 'Posteo'}
+
+        # Mailbox.org
+        if 'mailbox.org' in mx_combined:
+            return {'host': 'smtp.mailbox.org', 'port': 587, 'provider': 'Mailbox.org'}
+
+        # Pair Networks
+        if 'pair.com' in mx_combined:
+            return {'host': f'mail.{domain}', 'port': 587, 'provider': 'Pair Networks'}
 
         # Generic fallback — try smtp.domain.com
         return {'host': f'smtp.{domain}', 'port': 587, 'provider': 'Unknown', 'mx': mx_hosts[:3]}

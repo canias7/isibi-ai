@@ -353,14 +353,39 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Use your regular email password below.</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Most hosting providers ({smtpProvider}) don't require a special app password — your normal email password works.</Text>
                     </View>
+                  ) : smtpProvider.includes('Mail.ru') || smtpProvider.includes('Yandex') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to your {smtpProvider} account security settings</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Enable two-factor authentication</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Create an App Password for "GoFarther"</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Paste the password below</Text>
+                    </View>
+                  ) : smtpProvider.includes('GMX') || smtpProvider.includes('Web.de') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to {smtpProvider}</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Go to Settings, then POP3/IMAP</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Enable "Allow POP3/IMAP access"</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Use your regular password below</Text>
+                    </View>
+                  ) : smtpProvider.includes('Tutanota') || smtpProvider.includes('Hey') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: '#ef4444' }]}>{smtpProvider} does not support SMTP.</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>This email provider doesn't allow sending from third-party apps. Please use a different email address.</Text>
+                    </View>
+                  ) : smtpProvider.includes('Mailbox.org') || smtpProvider.includes('Posteo') || smtpProvider.includes('Mailfence') || smtpProvider.includes('Runbox') || smtpProvider.includes('Migadu') ? (
+                    <View style={s.smtpInstructions}>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Use your regular {smtpProvider} password below.</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{smtpProvider} supports SMTP with your normal login credentials.</Text>
+                    </View>
                   ) : smtpProvider === 'Unknown' ? (
                     <View style={s.smtpInstructions}>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>We detected your email server but couldn't identify the provider.</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Try using your regular email password first. If that doesn't work, check your email provider's settings for an "App Password" option.</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Try your regular email password first. If it doesn't work, check your provider's settings for an "App Password" option.</Text>
                     </View>
                   ) : (
                     <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Check your email provider's settings for an "App Password" or "Third-party app access" option. Use that password below.</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Use your regular email password below.</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Most hosting providers use your normal password for SMTP access.</Text>
                     </View>
                   )}
                 </>
