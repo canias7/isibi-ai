@@ -9,7 +9,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { C } from '../lib/theme';
-import { login, signup, socialLogin, forgotPassword, resetPassword } from '../lib/api';
+import { login, login2FA, signup, socialLogin, forgotPassword, resetPassword } from '../lib/api';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -29,9 +29,11 @@ const PHRASES = [
 ];
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [mode, setMode] = useState<'welcome' | 'email-login' | 'email-signup' | 'forgot' | 'reset'>('welcome');
+  const [mode, setMode] = useState<'welcome' | 'email-login' | 'email-signup' | 'forgot' | 'reset' | '2fa'>('welcome');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [tempToken, setTempToken] = useState('');
+  const [totpCode, setTotpCode] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -155,16 +157,32 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (!isValidEmail(email)) { Alert.alert('Invalid email', 'Please enter a valid email address'); return; }
     setLoading(true);
     try {
-      await login(email.toLowerCase().trim(), password);
+      const data = await login(email.toLowerCase().trim(), password);
+      if (data.requires_2fa) {
+        setTempToken(data.temp_token);
+        setLoading(false);
+        switchMode('2fa');
+        return;
+      }
       onLogin();
     } catch (e: any) { Alert.alert('Login failed', e.message || 'Check your credentials and try again'); }
     finally { setLoading(false); }
   };
 
+  const handle2FALogin = async () => {
+    if (!totpCode || totpCode.length !== 6) { Alert.alert('Enter code', 'Please enter the 6-digit code from your authenticator app'); return; }
+    setLoading(true);
+    try {
+      await login2FA(tempToken, totpCode);
+      onLogin();
+    } catch (e: any) { Alert.alert('2FA failed', e.message || 'Invalid code. Try again.'); }
+    finally { setLoading(false); setTotpCode(''); }
+  };
+
   const handleEmailSignup = async () => {
     if (!name || !email || !password) { Alert.alert('Missing fields', 'Please fill in all fields'); return; }
     if (!isValidEmail(email)) { Alert.alert('Invalid email', 'Please enter a valid email address'); return; }
-    if (password.length < 6) { Alert.alert('Weak password', 'Password must be at least 6 characters'); return; }
+    if (password.length < 8) { Alert.alert('Weak password', 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'); return; }
     setLoading(true);
     try {
       await signup(email.toLowerCase().trim(), name.trim(), password);
@@ -186,7 +204,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleResetPassword = async () => {
     if (!resetCode || !newPassword) { Alert.alert('Missing fields', 'Enter the code and new password'); return; }
-    if (newPassword.length < 6) { Alert.alert('Weak password', 'Password must be at least 6 characters'); return; }
+    if (newPassword.length < 8) { Alert.alert('Weak password', 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'); return; }
     setLoading(true);
     try {
       await resetPassword(email.toLowerCase().trim(), resetCode.trim(), newPassword);
@@ -266,6 +284,38 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
           </SafeAreaView>
         </Animated.View>
       </View>
+    );
+  }
+
+  // ==================== 2FA VERIFICATION ====================
+  if (mode === '2fa') {
+    return (
+      <SafeAreaView style={s.formRoot}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView contentContainerStyle={s.formScroll} keyboardShouldPersistTaps="handled">
+              <View style={s.formNav}>
+                <TouchableOpacity onPress={() => { switchMode('email-login'); setTotpCode(''); setTempToken(''); }}><Text style={s.navBack}>{'<'}</Text></TouchableOpacity>
+                <Text style={s.navTitle}>Two-Factor Auth</Text>
+                <View style={{ width: 28 }} />
+              </View>
+              <View style={s.formCenter}>
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#ec489915', alignItems: 'center', justifyContent: 'center', alignSelf: 'center', marginBottom: 20 }}>
+                  <Text style={{ fontSize: 28 }}>🔐</Text>
+                </View>
+                <Text style={s.formHeading}>Enter verification code</Text>
+                <Text style={s.formSub}>Open your authenticator app and enter the 6-digit code</Text>
+                <View style={[s.inputBox, focusedField === 'totp' && s.inputBoxFocus]}>
+                  <TextInput style={[s.formInput, { textAlign: 'center', fontSize: 24, letterSpacing: 8 }]} placeholder="000000" placeholderTextColor="#ccc" value={totpCode} onChangeText={(t) => setTotpCode(t.replace(/\D/g, '').slice(0, 6))} keyboardType="number-pad" maxLength={6} onFocus={() => setFocusedField('totp')} onBlur={() => setFocusedField('')} autoFocus onSubmitEditing={handle2FALogin} accessibilityLabel="2FA code" />
+                </View>
+                <TouchableOpacity style={[s.submitBtn, totpCode.length !== 6 && { opacity: 0.4 }]} onPress={handle2FALogin} disabled={totpCode.length !== 6} activeOpacity={0.8}>
+                  <Text style={s.submitText}>Verify & Log In</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </SafeAreaView>
     );
   }
 
@@ -373,7 +423,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 </TouchableOpacity>
               )}
               {mode === 'email-signup' && (
-                <Text style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 8, marginLeft: 4 }}>Must be at least 6 characters</Text>
+                <Text style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 8, marginLeft: 4 }}>Min 8 chars: uppercase, lowercase, number, special char</Text>
               )}
 
               <TouchableOpacity style={[s.submitBtn, (!email || !password) && { opacity: 0.4 }]} onPress={mode === 'email-login' ? handleEmailLogin : handleEmailSignup} activeOpacity={0.8} disabled={!email || !password}>

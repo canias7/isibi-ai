@@ -44,6 +44,41 @@ async def send_verification_email(to: str, code: str) -> bool:
         return False
 
 
+async def send_login_alert_email(to: str, ip_address: str, device_name: str, timestamp: str) -> bool:
+    """Send a new login alert email when login from a new IP is detected."""
+    _init()
+
+    if not RESEND_API_KEY:
+        print(f"[DEV] Login alert for {to}: new IP {ip_address} from {device_name}")
+        return True
+
+    html = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:460px;margin:0 auto;padding:40px 20px">
+      <h2 style="font-size:20px;font-weight:600;color:#000;margin:0 0 8px">New login detected</h2>
+      <p style="font-size:14px;color:#666;margin:0 0 24px">A new login to your GoFarther AI account was detected:</p>
+      <div style="background:#f5f5f5;border-radius:12px;padding:20px;margin-bottom:24px">
+        <p style="font-size:14px;color:#333;margin:0 0 8px"><strong>IP Address:</strong> {ip_address}</p>
+        <p style="font-size:14px;color:#333;margin:0 0 8px"><strong>Device:</strong> {device_name}</p>
+        <p style="font-size:14px;color:#333;margin:0"><strong>Time:</strong> {timestamp}</p>
+      </div>
+      <p style="font-size:13px;color:#e11d48;font-weight:500;margin:0 0 8px">If this wasn't you, change your password immediately.</p>
+      <p style="font-size:12px;color:#999;margin:0">You're receiving this because a login from a new location was detected on your account.</p>
+    </div>
+    """
+
+    try:
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [to],
+            "subject": "New login to your GoFarther AI account",
+            "html": html,
+        })
+        return True
+    except Exception as e:
+        print(f"[EMAIL ERROR] {e}")
+        return False
+
+
 async def send_password_reset_email(to: str, code: str) -> bool:
     """Send a password reset code."""
     _init()

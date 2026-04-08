@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Switch, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Linking, Switch, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo } from '../lib/api';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -57,6 +57,17 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricAvail, setBiometricAvail] = useState(false);
   const [bioType, setBioType] = useState('Biometric');
+  // 2FA
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
+  const [totpSecret, setTotpSecret] = useState('');
+  const [totpQrUrl, setTotpQrUrl] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [setting2FA, setSetting2FA] = useState(false);
+  // Sessions
+  const [showSessions, setShowSessions] = useState(false);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
   const [pushToken, setPushToken] = useState<string | null>(null);
   const { mode: themeMode, toggle: toggleTheme, colors: tc } = useTheme();
   const [usageData, setUsageData] = useState<{ total_messages: number; total_tokens: number; credits_remaining: number; plan: string } | null>(null);
@@ -64,7 +75,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [showUsage, setShowUsage] = useState(false);
 
   useEffect(() => {
-    getMe().then(setUser).catch(() => {}).finally(() => setLoadingUser(false));
+    getMe().then((u: any) => { setUser(u); setIs2FAEnabled(u?.is_2fa_enabled || false); }).catch(() => {}).finally(() => setLoadingUser(false));
     getUsage('7d').then(setUsageData).catch(() => {});
     getCustomInstructions().then(setCustomInstructions);
     getMemory().then(setMemory);
@@ -746,6 +757,151 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
             </View>
           )}
         </View>
+
+        {/* Security */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Security</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          {/* 2FA Toggle */}
+          <TouchableOpacity style={s.row} onPress={async () => {
+            if (is2FAEnabled) {
+              // Disable flow — ask for code
+              Alert.prompt('Disable 2FA', 'Enter your authenticator code to disable 2FA:', async (code) => {
+                if (!code || code.length !== 6) return;
+                try {
+                  await disable2FA(code);
+                  setIs2FAEnabled(false);
+                  Alert.alert('Done', '2FA has been disabled');
+                } catch (e: any) { Alert.alert('Error', e.message || 'Invalid code'); }
+              }, 'plain-text', '', 'number-pad');
+            } else {
+              // Enable flow — setup
+              setSetting2FA(true);
+              try {
+                const data = await setup2FA();
+                setTotpSecret(data.secret);
+                setTotpQrUrl(data.qr_url);
+                setShow2FASetup(true);
+              } catch (e: any) { Alert.alert('Error', e.message || 'Could not setup 2FA'); }
+              finally { setSetting2FA(false); }
+            }
+          }} activeOpacity={0.7}>
+            <Text style={s.rowLabel}>Two-Factor Authentication</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {setting2FA && <ActivityIndicator size="small" color={C.primary} style={{ marginRight: 8 }} />}
+              <Text style={{ fontSize: 13, color: is2FAEnabled ? '#22c55e' : '#999', fontWeight: '600' }}>{is2FAEnabled ? 'Enabled' : 'Off'}</Text>
+              <Ionicons name="chevron-forward" size={16} color="#ccc" style={{ marginLeft: 6 }} />
+            </View>
+          </TouchableOpacity>
+          <View style={s.rowDivider} />
+          {/* Active Sessions */}
+          <TouchableOpacity style={s.row} onPress={async () => {
+            setShowSessions(true);
+            setLoadingSessions(true);
+            try {
+              const data = await getSessions();
+              setSessions(data);
+            } catch (e: any) { Alert.alert('Error', e.message || 'Could not load sessions'); }
+            finally { setLoadingSessions(false); }
+          }} activeOpacity={0.7}>
+            <Text style={s.rowLabel}>Active Sessions</Text>
+            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+          </TouchableOpacity>
+        </View>
+
+        {/* 2FA Setup Modal */}
+        <Modal visible={show2FASetup} animationType="slide" presentationStyle="pageSheet">
+          <SafeAreaView style={{ flex: 1, backgroundColor: tc.surface }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+              <TouchableOpacity onPress={() => { setShow2FASetup(false); setTotpCode(''); }}><Text style={{ fontSize: 16, color: C.primary }}>Cancel</Text></TouchableOpacity>
+              <Text style={{ fontSize: 17, fontWeight: '600', color: tc.text }}>Setup 2FA</Text>
+              <View style={{ width: 50 }} />
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 24, alignItems: 'center' }}>
+              <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#ec489915', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <Text style={{ fontSize: 28 }}>🔐</Text>
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '600', color: tc.text, marginBottom: 8, textAlign: 'center' }}>Add to your authenticator app</Text>
+              <Text style={{ fontSize: 13, color: tc.textMid, marginBottom: 24, textAlign: 'center' }}>Open Google Authenticator, Authy, or any TOTP app and add this account manually with the secret below:</Text>
+              <View style={{ backgroundColor: tc.bg, borderRadius: 12, padding: 16, width: '100%', marginBottom: 20 }}>
+                <Text style={{ fontSize: 12, color: tc.textMid, marginBottom: 4 }}>Secret Key</Text>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: tc.text, letterSpacing: 2 }} selectable>{totpSecret}</Text>
+              </View>
+              <Text style={{ fontSize: 14, color: tc.text, fontWeight: '600', marginBottom: 12, alignSelf: 'flex-start' }}>Enter the 6-digit code to verify:</Text>
+              <TextInput
+                style={{ width: '100%', backgroundColor: tc.bg, borderRadius: 12, padding: 16, fontSize: 24, textAlign: 'center', letterSpacing: 8, color: tc.text, borderWidth: 1, borderColor: '#e0e0e0', marginBottom: 20 }}
+                placeholder="000000" placeholderTextColor="#ccc"
+                value={totpCode} onChangeText={(t) => setTotpCode(t.replace(/\D/g, '').slice(0, 6))}
+                keyboardType="number-pad" maxLength={6} autoFocus
+              />
+              <TouchableOpacity
+                style={{ width: '100%', height: 52, borderRadius: 26, backgroundColor: totpCode.length === 6 ? C.primary : '#ccc', alignItems: 'center', justifyContent: 'center' }}
+                disabled={totpCode.length !== 6}
+                onPress={async () => {
+                  try {
+                    await verify2FA(totpCode);
+                    setIs2FAEnabled(true);
+                    setShow2FASetup(false);
+                    setTotpCode('');
+                    Alert.alert('2FA Enabled', 'Two-factor authentication is now active. You will need your authenticator app to log in.');
+                  } catch (e: any) { Alert.alert('Error', e.message || 'Invalid code'); }
+                }}
+              >
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Enable 2FA</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </SafeAreaView>
+        </Modal>
+
+        {/* Sessions Modal */}
+        <Modal visible={showSessions} animationType="slide" presentationStyle="pageSheet">
+          <SafeAreaView style={{ flex: 1, backgroundColor: tc.surface }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 }}>
+              <TouchableOpacity onPress={() => setShowSessions(false)}><Text style={{ fontSize: 16, color: C.primary }}>Done</Text></TouchableOpacity>
+              <Text style={{ fontSize: 17, fontWeight: '600', color: tc.text }}>Active Sessions</Text>
+              <TouchableOpacity onPress={() => {
+                Alert.alert('Log out everywhere?', 'All other sessions will be revoked. You will stay logged in on this device.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Log Out All', style: 'destructive', onPress: async () => {
+                    try {
+                      const r = await revokeAllSessions();
+                      Alert.alert('Done', `Revoked ${r.revoked} session(s)`);
+                      const data = await getSessions();
+                      setSessions(data);
+                    } catch (e: any) { Alert.alert('Error', e.message); }
+                  }},
+                ]);
+              }}><Text style={{ fontSize: 14, color: '#ef4444', fontWeight: '600' }}>Revoke All</Text></TouchableOpacity>
+            </View>
+            {loadingSessions ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}><ActivityIndicator size="large" color={C.primary} /></View>
+            ) : (
+              <ScrollView contentContainerStyle={{ padding: 16 }}>
+                {sessions.length === 0 && <Text style={{ textAlign: 'center', color: tc.textMid, marginTop: 40 }}>No active sessions</Text>}
+                {sessions.map((sess) => (
+                  <View key={sess.id} style={{ backgroundColor: tc.bg, borderRadius: 12, padding: 16, marginBottom: 10, borderWidth: sess.is_current ? 1.5 : 0, borderColor: sess.is_current ? C.primary : 'transparent' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 15, fontWeight: '600', color: tc.text }}>{sess.device_name || 'Unknown device'}{sess.is_current ? ' (this device)' : ''}</Text>
+                        <Text style={{ fontSize: 12, color: tc.textMid, marginTop: 4 }}>IP: {sess.ip_address || 'Unknown'}</Text>
+                        <Text style={{ fontSize: 12, color: tc.textMid, marginTop: 2 }}>Last active: {new Date(sess.last_active).toLocaleDateString()}</Text>
+                      </View>
+                      {!sess.is_current && (
+                        <TouchableOpacity onPress={async () => {
+                          try {
+                            await revokeSession(sess.id);
+                            setSessions(prev => prev.filter(s => s.id !== sess.id));
+                          } catch (e: any) { Alert.alert('Error', e.message); }
+                        }} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8, backgroundColor: '#ef444415' }}>
+                          <Text style={{ fontSize: 13, fontWeight: '600', color: '#ef4444' }}>Revoke</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            )}
+          </SafeAreaView>
+        </Modal>
 
         {/* App */}
         <Text style={[s.sectionLabel, { color: tc.textMid }]}>App</Text>

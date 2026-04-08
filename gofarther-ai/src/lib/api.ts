@@ -78,6 +78,17 @@ export async function login(email: string, password: string) {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+  // If 2FA is required, return the temp_token for the 2FA step
+  if (data.requires_2fa) return data;
+  if (data.token) await setToken(data.token);
+  return data;
+}
+
+export async function login2FA(tempToken: string, code: string) {
+  const data = await apiFetch('/2fa/login', {
+    method: 'POST',
+    body: JSON.stringify({ temp_token: tempToken, code }),
+  });
   if (data.token) await setToken(data.token);
   return data;
 }
@@ -95,7 +106,9 @@ export async function socialLogin(email: string, name: string, provider: 'apple'
     // If social-login fails (endpoint missing or user doesn't exist), try signup
     // Generate a secure random password for social users (they'll never need it)
     const randomBytes = await Crypto.getRandomBytesAsync(32);
-    const securePw = Array.from(new Uint8Array(randomBytes)).map(b => b.toString(16).padStart(2, '0')).join('');
+    const hex = Array.from(new Uint8Array(randomBytes)).map(b => b.toString(16).padStart(2, '0')).join('');
+    // Ensure password meets strength requirements (uppercase, lowercase, digit, special char)
+    const securePw = 'Aa1!' + hex;
 
     try {
       const data = await apiFetch('/signup', {
@@ -220,4 +233,47 @@ export async function connectorAction(appId: string, action: string, params: Rec
     method: 'POST',
     body: JSON.stringify({ action, params }),
   });
+}
+
+// ─── Two-Factor Authentication ────────────────────────────────────────
+
+export async function setup2FA(): Promise<{ secret: string; qr_url: string }> {
+  return apiFetch('/2fa/setup', { method: 'POST' });
+}
+
+export async function verify2FA(code: string): Promise<{ message: string }> {
+  return apiFetch('/2fa/verify', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function disable2FA(code: string): Promise<{ message: string }> {
+  return apiFetch('/2fa/disable', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+// ─── Active Sessions ──────────────────────────────────────────────────
+
+export interface SessionInfo {
+  id: string;
+  device_name: string;
+  ip_address: string;
+  created_at: string;
+  last_active: string;
+  is_current: boolean;
+}
+
+export async function getSessions(): Promise<SessionInfo[]> {
+  return apiFetch('/sessions');
+}
+
+export async function revokeSession(sessionId: string): Promise<{ ok: boolean }> {
+  return apiFetch(`/sessions/${sessionId}`, { method: 'DELETE' });
+}
+
+export async function revokeAllSessions(): Promise<{ ok: boolean; revoked: number }> {
+  return apiFetch('/sessions', { method: 'DELETE' });
 }

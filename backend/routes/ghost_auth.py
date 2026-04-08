@@ -23,14 +23,20 @@ from jose import jwt
 from fastapi import APIRouter, HTTPException, status, Depends, Header
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from sqlalchemy import select, Column, String, Integer, Boolean, DateTime, Date, func
+from sqlalchemy import select, Column, String, Integer, Boolean, DateTime, Date, func, Text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import UUID
 
+import pyotp
+import logging
+
 from db import get_db, Base
-from services.email import send_verification_email, send_password_reset_email
+from services.email import send_verification_email, send_password_reset_email, send_login_alert_email
 import time
 import hashlib
+import re
+
+logger = logging.getLogger(__name__)
 
 # ── SMTP Encryption ──────────────────────────────────────────────────
 try:
@@ -88,6 +94,9 @@ class GhostUser(Base):
     verification_expires = Column(DateTime(timezone=True), nullable=True)
     reset_code = Column(String, nullable=True)
     reset_expires = Column(DateTime(timezone=True), nullable=True)
+    # TOTP 2FA
+    totp_secret = Column(String, nullable=True)
+    is_2fa_enabled = Column(Boolean, default=False)
     # SMTP settings (password encrypted with Fernet)
     smtp_host = Column(String, nullable=True)
     smtp_port = Column(Integer, nullable=True)
@@ -116,6 +125,19 @@ class GhostAuditLog(Base):
     details = Column(Text, nullable=True)
     ip_address = Column(String, nullable=True)
     timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class GhostSession(Base):
+    """Active sessions with JTI-based revocation."""
+    __tablename__ = "ghost_sessions"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    token_jti = Column(String, unique=True, nullable=False, index=True)
+    device_name = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    last_active = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    revoked = Column(Boolean, default=False)
 
 
 async def _audit_log(db: AsyncSession, email: str, action: str, details: str = None):
@@ -192,7 +214,7 @@ def _get_device_id(hostname: str, username: str) -> str:
 class GhostSignupRequest(BaseModel):
     email: EmailStr
     name: str = Field(min_length=1, max_length=100)
-    password: str = Field(min_length=6, max_length=128)
+    password: str = Field(min_length=8, max_length=128)
 
 class GhostSocialLoginRequest(BaseModel):
     email: EmailStr
@@ -217,7 +239,7 @@ class GhostForgotRequest(BaseModel):
 class GhostResetRequest(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=8)
-    new_password: str = Field(min_length=6, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
 
 class GhostTokenResponse(BaseModel):
     token: str
@@ -230,12 +252,36 @@ class GhostAddCreditsRequest(BaseModel):
     credits: int
     plan: str = "starter"
 
+class Ghost2FACodeRequest(BaseModel):
+    code: str = Field(min_length=6, max_length=6)
+
+class Ghost2FALoginRequest(BaseModel):
+    temp_token: str
+    code: str = Field(min_length=6, max_length=6)
+
 # ── Helpers ───────────────────────────────────────────────────────────
 
 def generate_code() -> str:
     """Generate 8-character alphanumeric code (36^8 = 2.8 trillion combos)."""
     chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     return "".join([chars[secrets.randbelow(len(chars))] for _ in range(8)])
+
+
+# ── Password Strength Validation ─────────────────────────────────────
+
+def _validate_password(password: str) -> str | None:
+    """Return error message if password is weak, or None if strong enough."""
+    if len(password) < 8:
+        return "Password must be at least 8 characters"
+    if not re.search(r"[A-Z]", password):
+        return "Password must contain at least one uppercase letter"
+    if not re.search(r"[a-z]", password):
+        return "Password must contain at least one lowercase letter"
+    if not re.search(r"\d", password):
+        return "Password must contain at least one number"
+    if not re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>/?`~]", password):
+        return "Password must contain at least one special character"
+    return None
 
 # ── Verify/Reset Attempt Tracking ────────────────────────────────────
 MAX_VERIFY_ATTEMPTS = 5
@@ -258,20 +304,60 @@ if os.getenv("RENDER") and GHOST_JWT_SECRET == "ghost-mode-secret-key":
 GHOST_JWT_ALGORITHM = "HS256"
 GHOST_JWT_EXPIRE_HOURS = 168  # 7 days (reduced from 30 for security)
 
-def create_ghost_token(user_id: str, email: str) -> str:
+def create_ghost_token(user_id: str, email: str, token_type: str = "ghost") -> str:
+    jti = str(uuid.uuid4())
     payload = {
         "sub": user_id,
         "email": email,
-        "type": "ghost",
+        "type": token_type,
+        "jti": jti,
         "exp": datetime.now(timezone.utc) + timedelta(hours=GHOST_JWT_EXPIRE_HOURS),
     }
     return jwt.encode(payload, GHOST_JWT_SECRET, algorithm=GHOST_JWT_ALGORITHM)
 
+
+def _create_2fa_temp_token(user_id: str, email: str) -> str:
+    """Short-lived token for 2FA pending state (5 min)."""
+    payload = {
+        "sub": user_id,
+        "email": email,
+        "type": "2fa_pending",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=5),
+    }
+    return jwt.encode(payload, GHOST_JWT_SECRET, algorithm=GHOST_JWT_ALGORITHM)
+
+
 def verify_ghost_token(token: str) -> dict:
     try:
-        return jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+        payload = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+        return payload
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+async def _create_session(db: AsyncSession, user_id, jti: str, device_name: str = "", ip: str = ""):
+    """Create a session record for JTI-based revocation."""
+    db.add(GhostSession(
+        user_id=uuid.UUID(user_id) if isinstance(user_id, str) else user_id,
+        token_jti=jti,
+        device_name=device_name or "Unknown device",
+        ip_address=ip,
+    ))
+
+
+async def _check_session_valid(db: AsyncSession, jti: str) -> bool:
+    """Check if a session (by JTI) is still active and not revoked."""
+    if not jti:
+        return True  # Legacy tokens without JTI are allowed
+    result = await db.execute(select(GhostSession).where(GhostSession.token_jti == jti))
+    session = result.scalar_one_or_none()
+    if not session:
+        return True  # No session record = legacy token, allow
+    if session.revoked:
+        return False
+    # Update last_active
+    session.last_active = datetime.now(timezone.utc)
+    return True
 
 # ── Router ────────────────────────────────────────────────────────────
 
@@ -284,6 +370,11 @@ async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_
     existing = result.scalar_one_or_none()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Validate password strength
+    pw_err = _validate_password(body.password)
+    if pw_err:
+        raise HTTPException(status_code=400, detail=pw_err)
 
     # Create user — requires email verification
     hashed = bcrypt.hashpw(body.password.encode(), bcrypt.gensalt()).decode()
@@ -305,6 +396,10 @@ async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_
         pass  # Don't fail signup if email sending fails
 
     token = create_ghost_token(str(user.id), user.email)
+    # Create session
+    payload = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+    await _create_session(db, str(user.id), payload.get("jti", ""), "Signup", "")
+    await db.commit()
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
 
 @router.post("/verify", response_model=GhostTokenResponse)
@@ -420,9 +515,26 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
         if not existing_device.scalar_one_or_none():
             db.add(GhostTrustedDevice(user_email=body.email, device_id=body.device_id, device_name=body.device_name))
 
+    # Check if 2FA is enabled
+    if user.is_2fa_enabled and user.totp_secret:
+        await db.commit()
+        temp_token = _create_2fa_temp_token(str(user.id), user.email)
+        return {"requires_2fa": True, "temp_token": temp_token}
+
     await db.commit()
 
     token = create_ghost_token(str(user.id), user.email)
+    # Create session
+    payload_decoded = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+    await _create_session(db, str(user.id), payload_decoded.get("jti", ""), body.device_name or "Login", ip)
+    await db.commit()
+
+    # Login anomaly detection — check for new IP
+    try:
+        await _check_login_anomaly(db, user.email, ip, body.device_name or "Unknown device")
+    except Exception:
+        pass  # Never fail login for alert sending
+
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
 
 @router.get("/login-logs")
@@ -491,6 +603,11 @@ async def ghost_reset(body: GhostResetRequest, db: AsyncSession = Depends(get_db
     if user.reset_expires and user.reset_expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset code expired")
 
+    # Validate password strength
+    pw_err = _validate_password(body.new_password)
+    if pw_err:
+        raise HTTPException(status_code=400, detail=pw_err)
+
     user.password_hash = bcrypt.hashpw(body.new_password.encode(), bcrypt.gensalt()).decode()
     user.reset_code = None
     user.reset_expires = None
@@ -503,11 +620,16 @@ async def ghost_reset(body: GhostResetRequest, db: AsyncSession = Depends(get_db
 async def ghost_me(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     token = authorization.replace("Bearer ", "")
     payload = verify_ghost_token(token)
+    # Check session not revoked
+    jti = payload.get("jti", "")
+    if jti and not await _check_session_valid(db, jti):
+        raise HTTPException(status_code=401, detail="Session revoked. Please log in again.")
     result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"email": user.email, "name": user.name, "credits": user.credits, "plan": user.plan, "created_at": str(user.created_at)}
+    await db.commit()  # Commit last_active update
+    return {"email": user.email, "name": user.name, "credits": user.credits, "plan": user.plan, "created_at": str(user.created_at), "is_2fa_enabled": user.is_2fa_enabled or False}
 
 @router.post("/credits")
 async def ghost_add_credits(body: GhostAddCreditsRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
@@ -521,6 +643,212 @@ async def ghost_add_credits(body: GhostAddCreditsRequest, authorization: str = H
     user.plan = body.plan
     await db.commit()
     return {"credits": user.credits, "plan": user.plan}
+
+
+# ── Two-Factor Authentication ────────────────────────────────────────
+
+@router.post("/2fa/setup")
+async def ghost_2fa_setup(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Generate a TOTP secret and return the QR URI for authenticator apps."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled")
+
+    secret = pyotp.random_base32()
+    user.totp_secret = secret
+    await db.commit()
+
+    totp = pyotp.TOTP(secret)
+    qr_url = totp.provisioning_uri(name=user.email, issuer_name="GoFarther AI")
+    return {"secret": secret, "qr_url": qr_url}
+
+
+@router.post("/2fa/verify")
+async def ghost_2fa_verify(body: Ghost2FACodeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Verify a TOTP code to enable 2FA on the account."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled")
+    if not user.totp_secret:
+        raise HTTPException(status_code=400, detail="Call /2fa/setup first")
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(body.code):
+        raise HTTPException(status_code=400, detail="Invalid code")
+
+    user.is_2fa_enabled = True
+    await _audit_log(db, user.email, "2fa_enabled", "TOTP 2FA enabled")
+    await db.commit()
+    return {"message": "2FA has been enabled"}
+
+
+@router.post("/2fa/disable")
+async def ghost_2fa_disable(body: Ghost2FACodeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Disable 2FA. Requires a valid TOTP code."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA is not enabled")
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(body.code):
+        raise HTTPException(status_code=400, detail="Invalid code")
+
+    user.is_2fa_enabled = False
+    user.totp_secret = None
+    await _audit_log(db, user.email, "2fa_disabled", "TOTP 2FA disabled")
+    await db.commit()
+    return {"message": "2FA has been disabled"}
+
+
+@router.post("/2fa/login")
+async def ghost_2fa_login(body: Ghost2FALoginRequest, db: AsyncSession = Depends(get_db)):
+    """Complete login with 2FA code after receiving temp_token from /login."""
+    try:
+        payload = jwt.decode(body.temp_token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired 2FA token")
+
+    if payload.get("type") != "2fa_pending":
+        raise HTTPException(status_code=401, detail="Invalid token type")
+
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user or not user.totp_secret:
+        raise HTTPException(status_code=401, detail="User not found")
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(body.code):
+        raise HTTPException(status_code=400, detail="Invalid 2FA code")
+
+    # Issue full token
+    token = create_ghost_token(str(user.id), user.email)
+    payload_decoded = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+    await _create_session(db, str(user.id), payload_decoded.get("jti", ""), "2FA Login", "")
+    await db.commit()
+    return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
+
+
+# ── Active Sessions ──────────────────────────────────────────────────
+
+@router.get("/sessions")
+async def ghost_list_sessions(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """List all active (non-revoked) sessions for the current user."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    result = await db.execute(
+        select(GhostSession)
+        .where(GhostSession.user_id == user.id, GhostSession.revoked == False)
+        .order_by(GhostSession.last_active.desc())
+    )
+    sessions = result.scalars().all()
+    current_jti = payload.get("jti", "")
+    return [
+        {
+            "id": str(s.id),
+            "device_name": s.device_name,
+            "ip_address": s.ip_address,
+            "created_at": str(s.created_at),
+            "last_active": str(s.last_active),
+            "is_current": s.token_jti == current_jti,
+        }
+        for s in sessions
+    ]
+
+
+@router.delete("/sessions/{session_id}")
+async def ghost_revoke_session(session_id: str, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Revoke a specific session (remote logout)."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    result = await db.execute(
+        select(GhostSession).where(GhostSession.id == uuid.UUID(session_id), GhostSession.user_id == user.id)
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    session.revoked = True
+    await _audit_log(db, user.email, "session_revoked", f"Revoked session {session_id}")
+    await db.commit()
+    return {"ok": True}
+
+
+@router.delete("/sessions")
+async def ghost_revoke_all_sessions(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Revoke all sessions except the current one (logout everywhere)."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    current_jti = payload.get("jti", "")
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    result = await db.execute(
+        select(GhostSession).where(
+            GhostSession.user_id == user.id,
+            GhostSession.revoked == False,
+            GhostSession.token_jti != current_jti,
+        )
+    )
+    sessions = result.scalars().all()
+    revoked_count = 0
+    for s in sessions:
+        s.revoked = True
+        revoked_count += 1
+
+    await _audit_log(db, user.email, "all_sessions_revoked", f"Revoked {revoked_count} sessions")
+    await db.commit()
+    return {"ok": True, "revoked": revoked_count}
+
+
+# ── Login Anomaly Detection ──────────────────────────────────────────
+
+async def _check_login_anomaly(db: AsyncSession, email: str, ip: str, device_name: str):
+    """If the IP hasn't been seen in the last 30 days for this user, send an alert email."""
+    if ip == "unknown" or not ip:
+        return
+    cutoff = datetime.now(timezone.utc) - timedelta(days=30)
+    result = await db.execute(
+        select(GhostLoginLog).where(
+            GhostLoginLog.user_email == email,
+            GhostLoginLog.success == True,
+            GhostLoginLog.ip_address == ip,
+            GhostLoginLog.timestamp >= cutoff,
+        ).limit(2)
+    )
+    recent_from_ip = result.scalars().all()
+    # If only 1 result (the current login we just logged), this is a new IP
+    if len(recent_from_ip) <= 1:
+        try:
+            await send_login_alert_email(email, ip, device_name, datetime.now(timezone.utc).strftime("%B %d, %Y at %I:%M %p UTC"))
+        except Exception as e:
+            logger.warning(f"Failed to send login alert email: {e}")
 
 
 # Runtime cache for SMTP lookups (populated from DB on first access)
