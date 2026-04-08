@@ -97,20 +97,25 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
     'Untangling', 'Scheming', 'Mulling', 'Contemplating', 'Churning',
   ];
   const [thinkingWord, setThinkingWord] = useState(thinkingWords[0]);
+  const [elapsed, setElapsed] = useState(0);
   const dotOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     if (loading) {
+      setElapsed(0);
       setThinkingWord(thinkingWords[Math.floor(Math.random() * thinkingWords.length)]);
-      const interval = setInterval(() => {
+      const wordInterval = setInterval(() => {
         setThinkingWord(thinkingWords[Math.floor(Math.random() * thinkingWords.length)]);
       }, 2500);
+      const timerInterval = setInterval(() => {
+        setElapsed(prev => prev + 0.1);
+      }, 100);
       const pulse = Animated.loop(Animated.sequence([
         Animated.timing(dotOpacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
         Animated.timing(dotOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
       ]));
       pulse.start();
-      return () => { clearInterval(interval); pulse.stop(); };
+      return () => { clearInterval(wordInterval); clearInterval(timerInterval); pulse.stop(); };
     }
   }, [loading]);
 
@@ -467,7 +472,7 @@ RULES:
           {loading && (
             <View style={s.typingRow}>
               <Animated.View style={[s.thinkingPill, { opacity: dotOpacity, backgroundColor: tc.card }]}>
-                <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...</Text>
+                <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...  {elapsed.toFixed(1)}s</Text>
               </Animated.View>
             </View>
           )}
