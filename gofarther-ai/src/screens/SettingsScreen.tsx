@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage } from '../lib/api';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -56,9 +56,13 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [bioType, setBioType] = useState('Biometric');
   const [pushToken, setPushToken] = useState<string | null>(null);
   const { mode: themeMode, toggle: toggleTheme, colors: tc } = useTheme();
+  const [usageData, setUsageData] = useState<{ total_messages: number; total_tokens: number; credits_remaining: number; plan: string } | null>(null);
+  const [usagePeriod, setUsagePeriod] = useState('7d');
+  const [showUsage, setShowUsage] = useState(false);
 
   useEffect(() => {
     getMe().then(setUser).catch(() => {}).finally(() => setLoadingUser(false));
+    getUsage('7d').then(setUsageData).catch(() => {});
     getCustomInstructions().then(setCustomInstructions);
     getMemory().then(setMemory);
     getLanguage().then(setLanguage);
@@ -155,6 +159,49 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
           <View style={s.avatar}><Text style={s.avatarText}>{initials}</Text></View>
           <Text style={[s.profileName, { color: tc.text }]}>{user?.name || 'Loading...'}</Text>
           <Text style={[s.profileEmail, { color: tc.textMid }]}>{user?.email || ''}</Text>
+        </View>
+
+        {/* Usage Stats */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Usage</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <TouchableOpacity style={s.row} onPress={() => { setShowUsage(!showUsage); if (!showUsage && !usageData) getUsage(usagePeriod).then(setUsageData).catch(() => {}); }}>
+            <Text style={s.rowLabel}>Usage & Analytics</Text>
+            <Text style={s.chevron}>{showUsage ? 'v' : '>'}</Text>
+          </TouchableOpacity>
+          {showUsage && (
+            <View style={s.expandedSection}>
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
+                {['7d', '30d', 'all'].map(p => (
+                  <TouchableOpacity key={p} onPress={() => { setUsagePeriod(p); getUsage(p).then(setUsageData).catch(() => {}); }}
+                    style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: usagePeriod === p ? '#1a1a1a' : '#f0f0f0' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: usagePeriod === p ? '#fff' : '#666' }}>{p === '7d' ? '7 Days' : p === '30d' ? '30 Days' : 'All Time'}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              {usageData ? (
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text }}>{usageData.total_messages}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Messages</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text }}>{usageData.total_tokens >= 1000 ? `${(usageData.total_tokens / 1000).toFixed(1)}k` : usageData.total_tokens}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Tokens Used</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text }}>{usageData.credits_remaining}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Credits Left</Text>
+                  </View>
+                  <View style={{ flex: 1, minWidth: '45%', padding: 12, borderRadius: 12, backgroundColor: '#f8f8f8' }}>
+                    <Text style={{ fontSize: 22, fontWeight: '700', color: tc.text, textTransform: 'capitalize' }}>{usageData.plan}</Text>
+                    <Text style={{ fontSize: 11, color: tc.textDim, marginTop: 2 }}>Plan</Text>
+                  </View>
+                </View>
+              ) : (
+                <Text style={{ fontSize: 13, color: tc.textDim }}>Loading usage data...</Text>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Custom Instructions */}

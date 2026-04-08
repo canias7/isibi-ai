@@ -144,6 +144,14 @@ export async function deleteAccount() {
   return apiFetch('/account', { method: 'DELETE' });
 }
 
+export async function getUsage(period: string = '7d'): Promise<{
+  total_messages: number; total_tokens_in: number; total_tokens_out: number;
+  total_tokens: number; credits_remaining: number; plan: string;
+  daily: { date: string; tokens_in: number; tokens_out: number; requests: number }[];
+}> {
+  return apiFetch(`/usage?period=${period}`);
+}
+
 export async function saveSmtpSettings(settings: { smtp_host?: string; smtp_port?: number; smtp_user?: string; smtp_pass?: string; smtp_from?: string }) {
   return apiFetch('/smtp', { method: 'POST', body: JSON.stringify(settings) });
 }

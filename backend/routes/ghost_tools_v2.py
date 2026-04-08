@@ -14,9 +14,11 @@ import uuid
 import httpx
 import qrcode
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import get_db
 
 router = APIRouter(prefix="/ghost/tools/v2", tags=["ghost-tools-v2"])
 
@@ -80,13 +82,13 @@ class SendEmailRequest(BaseModel):
     attachment_name: Optional[str] = None
 
 @router.post("/send-email")
-async def send_email(req: SendEmailRequest, authorization: str = Header(...)):
+async def send_email(req: SendEmailRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Send email via user's SMTP if configured, otherwise SendGrid."""
     payload_data = _verify_auth(authorization)
 
-    # Check if user has custom SMTP configured
-    from routes.ghost_auth import SMTP_STORE
-    settings = SMTP_STORE.get(payload_data.get("email", ""), {})
+    # Check if user has custom SMTP configured (DB-backed with cache)
+    from routes.ghost_auth import get_user_smtp
+    settings = await get_user_smtp(payload_data.get("email", ""), db)
 
     if settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass"):
         import smtplib

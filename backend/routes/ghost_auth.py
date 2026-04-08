@@ -23,7 +23,7 @@ from jose import jwt
 from fastapi import APIRouter, HTTPException, status, Depends, Header
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from sqlalchemy import select, Column, String, Integer, Boolean, DateTime
+from sqlalchemy import select, Column, String, Integer, Boolean, DateTime, Date, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import UUID
 
@@ -31,6 +31,28 @@ from db import get_db, Base
 from services.email import send_verification_email, send_password_reset_email
 import time
 import hashlib
+
+# ── SMTP Encryption ──────────────────────────────────────────────────
+try:
+    from cryptography.fernet import Fernet
+except ImportError:
+    Fernet = None  # type: ignore
+
+_SMTP_KEY = os.getenv("SMTP_ENCRYPTION_KEY", "")
+_fernet = Fernet(_SMTP_KEY.encode()) if Fernet and _SMTP_KEY else None
+
+def encrypt_smtp_pass(plaintext: str) -> str:
+    if _fernet:
+        return _fernet.encrypt(plaintext.encode()).decode()
+    return plaintext  # fallback: store as-is if no key configured
+
+def decrypt_smtp_pass(ciphertext: str) -> str:
+    if _fernet:
+        try:
+            return _fernet.decrypt(ciphertext.encode()).decode()
+        except Exception:
+            return ciphertext  # fallback if decryption fails
+    return ciphertext
 
 # ── Ghost User Model ──────────────────────────────────────────────────
 
@@ -49,6 +71,12 @@ class GhostUser(Base):
     verification_expires = Column(DateTime(timezone=True), nullable=True)
     reset_code = Column(String, nullable=True)
     reset_expires = Column(DateTime(timezone=True), nullable=True)
+    # SMTP settings (password encrypted with Fernet)
+    smtp_host = Column(String, nullable=True)
+    smtp_port = Column(Integer, nullable=True)
+    smtp_user = Column(String, nullable=True)
+    smtp_pass_encrypted = Column(String, nullable=True)
+    smtp_from = Column(String, nullable=True)
 
 # ── Login Logs & Trusted Devices ──────────────────────────────────────
 
@@ -68,6 +96,35 @@ class GhostTrustedDevice(Base):
     device_id = Column(String, nullable=False)
     device_name = Column(String, nullable=True)
     trusted_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+# ── Usage Logging ────────────────────────────────────────────────────
+
+class GhostUsageLog(Base):
+    __tablename__ = "ghost_usage_logs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    tokens_in = Column(Integer, default=0)
+    tokens_out = Column(Integer, default=0)
+    requests = Column(Integer, default=0)
+
+
+async def log_usage(user_id: str, tokens_in: int, tokens_out: int, db: AsyncSession):
+    """Upsert usage for today — increment counters."""
+    today = datetime.now(timezone.utc).date()
+    uid = uuid.UUID(user_id) if isinstance(user_id, str) else user_id
+    result = await db.execute(
+        select(GhostUsageLog).where(GhostUsageLog.user_id == uid, GhostUsageLog.date == today)
+    )
+    log = result.scalar_one_or_none()
+    if log:
+        log.tokens_in = (log.tokens_in or 0) + tokens_in
+        log.tokens_out = (log.tokens_out or 0) + tokens_out
+        log.requests = (log.requests or 0) + 1
+    else:
+        db.add(GhostUsageLog(user_id=uid, date=today, tokens_in=tokens_in, tokens_out=tokens_out, requests=1))
+    await db.commit()
+
 
 # ── Login Attempt Lockout ─────────────────────────────────────────────
 
@@ -383,8 +440,27 @@ async def ghost_add_credits(body: GhostAddCreditsRequest, authorization: str = H
     return {"credits": user.credits, "plan": user.plan}
 
 
-# SMTP settings stored in memory (no DB columns needed)
+# Runtime cache for SMTP lookups (populated from DB on first access)
 SMTP_STORE: dict[str, dict] = {}
+
+
+async def get_user_smtp(email: str, db: AsyncSession) -> dict:
+    """Get user's SMTP settings from cache or DB. Returns decrypted password."""
+    if email in SMTP_STORE:
+        return SMTP_STORE[email]
+    result = await db.execute(select(GhostUser).where(GhostUser.email == email))
+    user = result.scalar_one_or_none()
+    if user and user.smtp_host and user.smtp_user and user.smtp_pass_encrypted:
+        settings = {
+            "smtp_host": user.smtp_host,
+            "smtp_port": user.smtp_port or 587,
+            "smtp_user": user.smtp_user,
+            "smtp_pass": decrypt_smtp_pass(user.smtp_pass_encrypted),
+            "smtp_from": user.smtp_from,
+        }
+        SMTP_STORE[email] = settings
+        return settings
+    return {}
 
 
 @router.get("/detect-smtp/{email}")
@@ -619,10 +695,21 @@ class SmtpSettingsRequest(BaseModel):
 
 
 @router.post("/smtp")
-async def save_smtp_settings(body: SmtpSettingsRequest, authorization: str = Header(...)):
-    """Save user's SMTP settings."""
+async def save_smtp_settings(body: SmtpSettingsRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Save user's SMTP settings (password encrypted at rest)."""
     token = authorization.replace("Bearer ", "")
     payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.smtp_host = body.smtp_host
+    user.smtp_port = body.smtp_port or 587
+    user.smtp_user = body.smtp_user
+    user.smtp_pass_encrypted = encrypt_smtp_pass(body.smtp_pass) if body.smtp_pass else None
+    user.smtp_from = body.smtp_from
+    await db.commit()
+    # Update cache
     SMTP_STORE[payload["email"]] = {
         "smtp_host": body.smtp_host,
         "smtp_port": body.smtp_port or 587,
@@ -634,11 +721,11 @@ async def save_smtp_settings(body: SmtpSettingsRequest, authorization: str = Hea
 
 
 @router.get("/smtp")
-async def get_smtp_settings(authorization: str = Header(...)):
+async def get_smtp_settings(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Get user's SMTP settings (password masked)."""
     token = authorization.replace("Bearer ", "")
     payload = verify_ghost_token(token)
-    settings = SMTP_STORE.get(payload["email"], {})
+    settings = await get_user_smtp(payload["email"], db)
     return {
         "smtp_host": settings.get("smtp_host"),
         "smtp_port": settings.get("smtp_port"),
@@ -646,6 +733,50 @@ async def get_smtp_settings(authorization: str = Header(...)):
         "smtp_pass": "••••••••" if settings.get("smtp_pass") else None,
         "smtp_from": settings.get("smtp_from"),
         "configured": bool(settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass")),
+    }
+
+
+@router.get("/usage")
+async def get_usage(authorization: str = Header(...), period: str = "7d", db: AsyncSession = Depends(get_db)):
+    """Get user's usage stats for a period (7d, 30d, all)."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Determine date filter
+    if period == "30d":
+        since = datetime.now(timezone.utc).date() - timedelta(days=30)
+    elif period == "all":
+        since = datetime(2020, 1, 1).date()
+    else:
+        since = datetime.now(timezone.utc).date() - timedelta(days=7)
+
+    result = await db.execute(
+        select(GhostUsageLog).where(
+            GhostUsageLog.user_id == user.id,
+            GhostUsageLog.date >= since,
+        ).order_by(GhostUsageLog.date.desc())
+    )
+    logs = result.scalars().all()
+
+    total_in = sum(l.tokens_in or 0 for l in logs)
+    total_out = sum(l.tokens_out or 0 for l in logs)
+    total_requests = sum(l.requests or 0 for l in logs)
+
+    return {
+        "total_messages": total_requests,
+        "total_tokens_in": total_in,
+        "total_tokens_out": total_out,
+        "total_tokens": total_in + total_out,
+        "credits_remaining": user.credits,
+        "plan": user.plan,
+        "daily": [
+            {"date": str(l.date), "tokens_in": l.tokens_in or 0, "tokens_out": l.tokens_out or 0, "requests": l.requests or 0}
+            for l in logs
+        ],
     }
 
 

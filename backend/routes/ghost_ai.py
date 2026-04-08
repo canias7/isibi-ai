@@ -81,7 +81,7 @@ OPENAI_KEY = os.getenv("OPENAI_API_KEY", "")
 @router.post("/chat")
 async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
     """Proxy chat request to Claude API with native tool use."""
-    _verify_auth(authorization)
+    auth_payload = _verify_auth(authorization)
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "Anthropic API key not configured on server")
 
@@ -163,7 +163,20 @@ async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
             response_text = response_text + "\n" + json.dumps(action_json) if response_text else json.dumps(action_json)
 
     usage = data.get("usage", {})
-    return {"text": response_text or "No response", "input_tokens": usage.get("input_tokens", 0), "output_tokens": usage.get("output_tokens", 0)}
+    input_tok = usage.get("input_tokens", 0)
+    output_tok = usage.get("output_tokens", 0)
+
+    # Log usage asynchronously (non-blocking — don't fail the request)
+    try:
+        from routes.ghost_auth import log_usage
+        from db import get_db as _get_db
+        async for db in _get_db():
+            await log_usage(auth_payload.get("sub", ""), input_tok, output_tok, db)
+            break
+    except Exception:
+        pass  # Usage logging should never break chat
+
+    return {"text": response_text or "No response", "input_tokens": input_tok, "output_tokens": output_tok}
 
 
 @router.post("/chat-stream")
