@@ -382,8 +382,10 @@ async def job_status(job_id: str):
 
 
 @router.get("/download/{file_id}")
-async def download_file(file_id: str):
+async def download_file(file_id: str, authorization: str = Header(...)):
+    """Download file — requires authentication."""
     from fastapi.responses import Response
+    _verify_auth(authorization)
 
     f = await _get_file(file_id)
     if not f:
@@ -1336,6 +1338,9 @@ class ReadURLRequest(BaseModel):
 @router.post("/read-url")
 async def read_url(req: ReadURLRequest, authorization: str = Header(...)):
     _verify_auth(authorization)
+    # SSRF protection — block internal/private URLs
+    from routes.ghost_tools_v2 import _validate_external_url
+    _validate_external_url(req.url)
 
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         res = await client.get(req.url, headers={"User-Agent": "GoFarther-AI/1.0"})
@@ -1505,19 +1510,32 @@ async def run_code(req: RunCodeRequest, authorization: str = Header(...)):
         code = code[:-3]
     code = code.strip()
 
-    # Execute in a restricted environment
+    # Block dangerous imports and operations
+    _BLOCKED = ["import os", "import sys", "import subprocess", "import socket",
+                "import shutil", "import pathlib", "import ctypes", "import pickle",
+                "import http", "import urllib", "import requests", "import httpx",
+                "import ftplib", "import smtplib", "import webbrowser",
+                "from os", "from sys", "from subprocess", "from socket",
+                "__import__", "eval(", "exec(", "compile(", "open(", "breakpoint("]
+    code_lower = code.lower()
+    for blocked in _BLOCKED:
+        if blocked.lower() in code_lower:
+            return {"code": code, "output": f"Blocked: code contains disallowed operation '{blocked}'"}
+
+    # Execute in a restricted subprocess
     import subprocess
     try:
         result = subprocess.run(
             ["python3", "-c", code],
             capture_output=True, text=True, timeout=10,
-            env={"PATH": "/usr/bin:/usr/local/bin"}  # Restricted PATH
+            env={"PATH": "/usr/bin:/usr/local/bin", "HOME": "/tmp"}
         )
         output = result.stdout or result.stderr or "No output"
     except subprocess.TimeoutExpired:
         output = "Code execution timed out (10s limit)"
     except Exception as e:
-        output = f"Execution error: {str(e)}"
+        logger.error("Code execution error: %s", e)
+        output = "Code execution failed"
 
     return {"code": code, "output": output.strip()}
 

@@ -288,16 +288,24 @@ class SendWhatsAppRequest(BaseModel):
 async def send_whatsapp(req: SendWhatsAppRequest, authorization: str = Header(...)):
     """Send WhatsApp message via Twilio."""
     _verify_auth(authorization)
+    _validate_phone(req.to)
     if not TWILIO_SID:
         raise HTTPException(500, "Twilio not configured")
-    async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.post(
-            f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json",
-            auth=(TWILIO_SID, TWILIO_TOKEN),
-            data={"From": f"whatsapp:{TWILIO_NUMBER}", "To": f"whatsapp:{req.to}", "Body": req.body},
-        )
-        if res.status_code not in (200, 201):
-            raise HTTPException(400, f"WhatsApp failed: {res.text}")
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            res = await client.post(
+                f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json",
+                auth=(TWILIO_SID, TWILIO_TOKEN),
+                data={"From": f"whatsapp:{TWILIO_NUMBER}", "To": f"whatsapp:{req.to}", "Body": req.body},
+            )
+            if res.status_code not in (200, 201):
+                logger.error("WhatsApp failed to %s: %s", req.to, res.text)
+                raise HTTPException(400, "Failed to send WhatsApp message.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("WhatsApp error: %s", e)
+        raise HTTPException(400, "Failed to send WhatsApp message.")
     return {"status": "sent", "to": req.to}
 
 

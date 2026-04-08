@@ -106,6 +106,26 @@ class GhostLoginLog(Base):
     success = Column(Boolean, default=False)
     timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
+
+class GhostAuditLog(Base):
+    """Security audit log for sensitive operations."""
+    __tablename__ = "ghost_audit_logs"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_email = Column(String, nullable=False, index=True)
+    action = Column(String(100), nullable=False)  # e.g. "password_reset", "account_deleted", "connector_connected"
+    details = Column(Text, nullable=True)
+    ip_address = Column(String, nullable=True)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+async def _audit_log(db: AsyncSession, email: str, action: str, details: str = None):
+    """Fire-and-forget audit log entry."""
+    try:
+        db.add(GhostAuditLog(user_email=email, action=action, details=details))
+        await db.flush()
+    except Exception:
+        pass  # Never fail the main operation for logging
+
 class GhostTrustedDevice(Base):
     __tablename__ = "ghost_trusted_devices"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -182,7 +202,7 @@ class GhostSocialLoginRequest(BaseModel):
 
 class GhostVerifyRequest(BaseModel):
     email: EmailStr
-    code: str = Field(min_length=6, max_length=6)
+    code: str = Field(min_length=6, max_length=8)
 
 class GhostLoginRequest(BaseModel):
     email: EmailStr
@@ -196,7 +216,7 @@ class GhostForgotRequest(BaseModel):
 
 class GhostResetRequest(BaseModel):
     email: EmailStr
-    code: str = Field(min_length=6, max_length=6)
+    code: str = Field(min_length=6, max_length=8)
     new_password: str = Field(min_length=6, max_length=128)
 
 class GhostTokenResponse(BaseModel):
@@ -213,7 +233,22 @@ class GhostAddCreditsRequest(BaseModel):
 # ── Helpers ───────────────────────────────────────────────────────────
 
 def generate_code() -> str:
-    return "".join([str(secrets.randbelow(10)) for _ in range(6)])
+    """Generate 8-character alphanumeric code (36^8 = 2.8 trillion combos)."""
+    chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return "".join([chars[secrets.randbelow(len(chars))] for _ in range(8)])
+
+# ── Verify/Reset Attempt Tracking ────────────────────────────────────
+MAX_VERIFY_ATTEMPTS = 5
+_verify_attempts: dict[str, int] = {}
+
+def _check_verify_lockout(email: str) -> bool:
+    return _verify_attempts.get(email, 0) >= MAX_VERIFY_ATTEMPTS
+
+def _record_failed_verify(email: str):
+    _verify_attempts[email] = _verify_attempts.get(email, 0) + 1
+
+def _clear_verify_attempts(email: str):
+    _verify_attempts.pop(email, None)
 
 # ── JWT Config ────────────────────────────────────────────────────────
 
@@ -250,36 +285,54 @@ async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Create user — auto-verified for now (no email verification required)
+    # Create user — requires email verification
     hashed = bcrypt.hashpw(body.password.encode(), bcrypt.gensalt()).decode()
+    code = generate_code()
     user = GhostUser(
         email=body.email, name=body.name, password_hash=hashed,
-        email_verified=True,  # Auto-verify
+        email_verified=False,
+        verification_code=code,
+        verification_expires=datetime.now(timezone.utc) + timedelta(minutes=15),
     )
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    # Send verification email
+    try:
+        await send_verification_email(body.email, code)
+    except Exception:
+        pass  # Don't fail signup if email sending fails
 
     token = create_ghost_token(str(user.id), user.email)
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
 
 @router.post("/verify", response_model=GhostTokenResponse)
 async def ghost_verify(body: GhostVerifyRequest, db: AsyncSession = Depends(get_db)):
+    if _check_verify_lockout(body.email):
+        raise HTTPException(status_code=429, detail="Too many attempts. Request a new code.")
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="Account not found")
     if user.email_verified:
         raise HTTPException(status_code=400, detail="Email already verified")
-    if not user.verification_code or user.verification_code != body.code:
-        raise HTTPException(status_code=400, detail="Invalid verification code")
     if user.verification_expires and user.verification_expires < datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="Verification code expired")
+        raise HTTPException(status_code=400, detail="Verification code expired. Request a new one.")
+    if not user.verification_code or user.verification_code != body.code.upper():
+        _record_failed_verify(body.email)
+        # If max attempts reached, invalidate the code
+        if _check_verify_lockout(body.email):
+            user.verification_code = None
+            await db.commit()
+            raise HTTPException(status_code=429, detail="Too many attempts. Code invalidated. Request a new one.")
+        raise HTTPException(status_code=400, detail="Invalid verification code")
 
     user.email_verified = True
     user.verification_code = None
     user.verification_expires = None
     await db.commit()
+    _clear_verify_attempts(body.email)
 
     token = create_ghost_token(str(user.id), user.email)
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
@@ -422,9 +475,18 @@ async def ghost_forgot(body: GhostForgotRequest, db: AsyncSession = Depends(get_
 
 @router.post("/reset")
 async def ghost_reset(body: GhostResetRequest, db: AsyncSession = Depends(get_db)):
+    reset_key = f"reset:{body.email}"
+    if _check_verify_lockout(reset_key):
+        raise HTTPException(status_code=429, detail="Too many attempts. Request a new reset code.")
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
-    if not user or not user.reset_code or user.reset_code != body.code:
+    if not user or not user.reset_code or user.reset_code != body.code.upper():
+        _record_failed_verify(reset_key)
+        if _check_verify_lockout(reset_key):
+            if user:
+                user.reset_code = None
+                await db.commit()
+            raise HTTPException(status_code=429, detail="Too many attempts. Code invalidated.")
         raise HTTPException(status_code=400, detail="Invalid reset code")
     if user.reset_expires and user.reset_expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset code expired")
@@ -432,7 +494,9 @@ async def ghost_reset(body: GhostResetRequest, db: AsyncSession = Depends(get_db
     user.password_hash = bcrypt.hashpw(body.new_password.encode(), bcrypt.gensalt()).decode()
     user.reset_code = None
     user.reset_expires = None
+    await _audit_log(db, body.email, "password_reset", "Password reset via code")
     await db.commit()
+    _clear_verify_attempts(reset_key)
     return {"message": "Password reset successfully"}
 
 @router.get("/me")
@@ -820,6 +884,7 @@ async def delete_account(authorization: str = Header(...), db: AsyncSession = De
         for msg in msgs_result.scalars().all():
             await db.delete(msg)
         await db.delete(session)
+    await _audit_log(db, payload["email"], "account_deleted", "User permanently deleted account and all data")
     await db.delete(user)
     await db.commit()
     return {"status": "deleted", "message": "Account permanently deleted"}

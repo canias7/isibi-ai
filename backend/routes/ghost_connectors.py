@@ -1331,6 +1331,9 @@ async def connect_app(app_id: str, body: ConnectRequest, authorization: str = He
         raise HTTPException(400, f"Missing required fields: {', '.join(missing)}")
 
     await _set_creds(user_id, app_id, body.credentials, db)
+    # Audit log
+    from routes.ghost_auth import _audit_log
+    await _audit_log(db, payload.get("email", ""), "connector_connected", f"Connected app: {app_id}")
     await db.commit()
     return {"status": "connected", "app": app_id}
 
@@ -1341,6 +1344,9 @@ async def disconnect_app(app_id: str, authorization: str = Header(...), db: Asyn
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
     await _del_creds(user_id, app_id, db)
+    # Audit log
+    from routes.ghost_auth import _audit_log
+    await _audit_log(db, payload.get("email", ""), "connector_disconnected", f"Disconnected app: {app_id}")
     await db.commit()
     return {"status": "disconnected", "app": app_id}
 
