@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp } from '../lib/api';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -39,6 +39,8 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [smtpPass, setSmtpPass] = useState('');
   const [smtpFrom, setSmtpFrom] = useState('');
   const [smtpConfigured, setSmtpConfigured] = useState(false);
+  const [smtpProvider, setSmtpProvider] = useState('');
+  const [detectingSmtp, setDetectingSmtp] = useState(false);
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricAvail, setBiometricAvail] = useState(false);
   const [bioType, setBioType] = useState('Biometric');
@@ -260,35 +262,28 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
               <Text style={[s.smtpStep, { color: tc.text }]}>Step 1: Enter your email</Text>
               <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpUser} onChangeText={(val) => {
                 setSmtpUser(val);
+                // Auto-detect via MX records when email looks complete
                 const domain = val.split('@')[1]?.toLowerCase();
-                const providers: Record<string, { host: string; port: string }> = {
-                  'gmail.com': { host: 'smtp.gmail.com', port: '587' },
-                  'googlemail.com': { host: 'smtp.gmail.com', port: '587' },
-                  'outlook.com': { host: 'smtp-mail.outlook.com', port: '587' },
-                  'hotmail.com': { host: 'smtp-mail.outlook.com', port: '587' },
-                  'live.com': { host: 'smtp-mail.outlook.com', port: '587' },
-                  'yahoo.com': { host: 'smtp.mail.yahoo.com', port: '587' },
-                  'yahoo.co.uk': { host: 'smtp.mail.yahoo.com', port: '587' },
-                  'aol.com': { host: 'smtp.aol.com', port: '587' },
-                  'icloud.com': { host: 'smtp.mail.me.com', port: '587' },
-                  'me.com': { host: 'smtp.mail.me.com', port: '587' },
-                  'zoho.com': { host: 'smtp.zoho.com', port: '587' },
-                  'protonmail.com': { host: 'smtp.protonmail.ch', port: '587' },
-                };
-                if (domain && providers[domain]) {
-                  setSmtpHost(providers[domain].host);
-                  setSmtpPort(providers[domain].port);
+                if (domain && domain.includes('.') && !detectingSmtp) {
+                  setDetectingSmtp(true);
+                  detectSmtp(val).then((result) => {
+                    setSmtpHost(result.host);
+                    setSmtpPort(String(result.port));
+                    setSmtpProvider(result.provider);
+                  }).catch(() => {}).finally(() => setDetectingSmtp(false));
                 }
-              }} placeholder="you@gmail.com" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
-              {smtpHost ? (
-                <Text style={[s.expandedHint, { color: '#22c55e', marginTop: 2 }]}>Detected: {smtpHost}</Text>
+              }} placeholder="you@company.com" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
+              {detectingSmtp ? (
+                <Text style={[s.expandedHint, { color: tc.textMid, marginTop: 2 }]}>Detecting email provider...</Text>
+              ) : smtpHost ? (
+                <Text style={[s.expandedHint, { color: '#22c55e', marginTop: 2 }]}>Detected: {smtpProvider || smtpHost}</Text>
               ) : null}
 
               {/* Step 2 — provider-specific instructions */}
-              {smtpUser.includes('@') && (
+              {smtpProvider && (
                 <>
                   <Text style={[s.smtpStep, { color: tc.text, marginTop: 14 }]}>Step 2: Get your App Password</Text>
-                  {smtpUser.includes('@gmail.com') || smtpUser.includes('@googlemail.com') ? (
+                  {smtpProvider.includes('Google') ? (
                     <View style={s.smtpInstructions}>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to myaccount.google.com</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Security</Text>
@@ -297,7 +292,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Name it "GoFarther" and tap Create</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>6. Copy the 16-character password and paste it below</Text>
                     </View>
-                  ) : smtpUser.includes('@outlook.com') || smtpUser.includes('@hotmail.com') || smtpUser.includes('@live.com') ? (
+                  ) : smtpProvider.includes('Microsoft') ? (
                     <View style={s.smtpInstructions}>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to account.microsoft.com/security</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Advanced security options</Text>
@@ -305,7 +300,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Tap Create a new app password</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Copy the password and paste it below</Text>
                     </View>
-                  ) : smtpUser.includes('@yahoo.com') ? (
+                  ) : smtpProvider.includes('Yahoo') ? (
                     <View style={s.smtpInstructions}>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to login.yahoo.com/account/security</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Turn on Two-step verification if it's off</Text>
@@ -313,7 +308,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Select "Other App", name it "GoFarther"</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Copy the password and paste it below</Text>
                     </View>
-                  ) : smtpUser.includes('@icloud.com') || smtpUser.includes('@me.com') ? (
+                  ) : smtpProvider.includes('Apple') ? (
                     <View style={s.smtpInstructions}>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to appleid.apple.com/sign-in</Text>
                       <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Sign in and go to App-Specific Passwords</Text>
@@ -329,7 +324,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
               )}
 
               {/* Step 3 */}
-              <Text style={[s.smtpStep, { color: tc.text, marginTop: 14 }]}>{smtpUser.includes('@') ? 'Step 3' : 'Step 2'}: Paste your App Password</Text>
+              <Text style={[s.smtpStep, { color: tc.text, marginTop: 14 }]}>{smtpProvider ? 'Step 3' : 'Step 2'}: Paste your App Password</Text>
               <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPass} onChangeText={setSmtpPass} placeholder="Paste app password here" placeholderTextColor="#bbb" secureTextEntry />
 
               <TextInput style={[s.contactInput, { color: tc.text, marginTop: 8 }]} value={smtpFrom} onChangeText={setSmtpFrom} placeholder="Your name (shown in emails)" placeholderTextColor="#bbb" />

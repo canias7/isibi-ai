@@ -41,7 +41,7 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30000);
+  const timer = setTimeout(() => controller.abort(), 60000);
 
   try {
     const res = await fetch(`${BASE}${path}`, { ...opts, headers, signal: controller.signal });
@@ -57,7 +57,7 @@ async function apiFetch(path: string, opts: RequestInit = {}) {
     }
     return data;
   } catch (e: any) {
-    if (e.name === 'AbortError') throw new Error('Request timed out. Try again.');
+    if (e.name === 'AbortError') throw new Error('Server is taking a moment. Please try again.');
     throw e;
   } finally {
     clearTimeout(timer);
@@ -142,4 +142,8 @@ export async function getSmtpSettings() {
 
 export async function saveSmtpSettings(settings: { smtp_host?: string; smtp_port?: number; smtp_user?: string; smtp_pass?: string; smtp_from?: string }) {
   return apiFetch('/smtp', { method: 'POST', body: JSON.stringify(settings) });
+}
+
+export async function detectSmtp(email: string): Promise<{ host: string; port: number; provider: string }> {
+  return apiFetch(`/detect-smtp/${encodeURIComponent(email)}`);
 }

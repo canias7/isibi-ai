@@ -387,6 +387,74 @@ async def ghost_add_credits(body: GhostAddCreditsRequest, authorization: str = H
 SMTP_STORE: dict[str, dict] = {}
 
 
+@router.get("/detect-smtp/{email}")
+async def detect_smtp(email: str):
+    """Auto-detect SMTP settings from email domain via MX records."""
+    import dns.resolver
+    domain = email.split('@')[-1].lower() if '@' in email else email.lower()
+
+    # Known providers — check domain directly first
+    known = {
+        'gmail.com': {'host': 'smtp.gmail.com', 'port': 587, 'provider': 'Google'},
+        'googlemail.com': {'host': 'smtp.gmail.com', 'port': 587, 'provider': 'Google'},
+        'outlook.com': {'host': 'smtp-mail.outlook.com', 'port': 587, 'provider': 'Microsoft'},
+        'hotmail.com': {'host': 'smtp-mail.outlook.com', 'port': 587, 'provider': 'Microsoft'},
+        'live.com': {'host': 'smtp-mail.outlook.com', 'port': 587, 'provider': 'Microsoft'},
+        'yahoo.com': {'host': 'smtp.mail.yahoo.com', 'port': 587, 'provider': 'Yahoo'},
+        'aol.com': {'host': 'smtp.aol.com', 'port': 587, 'provider': 'AOL'},
+        'icloud.com': {'host': 'smtp.mail.me.com', 'port': 587, 'provider': 'Apple'},
+        'me.com': {'host': 'smtp.mail.me.com', 'port': 587, 'provider': 'Apple'},
+        'zoho.com': {'host': 'smtp.zoho.com', 'port': 587, 'provider': 'Zoho'},
+        'protonmail.com': {'host': 'smtp.protonmail.ch', 'port': 587, 'provider': 'ProtonMail'},
+    }
+    if domain in known:
+        return known[domain]
+
+    # Look up MX records to detect the email provider
+    try:
+        mx_records = dns.resolver.resolve(domain, 'MX')
+        mx_hosts = [str(r.exchange).lower().rstrip('.') for r in mx_records]
+        mx_combined = ' '.join(mx_hosts)
+
+        # Google Workspace (aspmx.l.google.com, alt1.aspmx.l.google.com, etc.)
+        if 'google.com' in mx_combined or 'googlemail.com' in mx_combined:
+            return {'host': 'smtp.gmail.com', 'port': 587, 'provider': 'Google Workspace'}
+
+        # Microsoft 365 (*.mail.protection.outlook.com)
+        if 'outlook.com' in mx_combined or 'microsoft.com' in mx_combined:
+            return {'host': 'smtp-mail.outlook.com', 'port': 587, 'provider': 'Microsoft 365'}
+
+        # Zoho
+        if 'zoho.com' in mx_combined:
+            return {'host': 'smtp.zoho.com', 'port': 587, 'provider': 'Zoho'}
+
+        # Yahoo
+        if 'yahoodns.net' in mx_combined or 'yahoo.com' in mx_combined:
+            return {'host': 'smtp.mail.yahoo.com', 'port': 587, 'provider': 'Yahoo'}
+
+        # ProtonMail
+        if 'protonmail.ch' in mx_combined:
+            return {'host': 'smtp.protonmail.ch', 'port': 587, 'provider': 'ProtonMail'}
+
+        # Mimecast
+        if 'mimecast' in mx_combined:
+            return {'host': f'smtp.{domain}', 'port': 587, 'provider': 'Mimecast'}
+
+        # GoDaddy
+        if 'secureserver.net' in mx_combined:
+            return {'host': 'smtpout.secureserver.net', 'port': 587, 'provider': 'GoDaddy'}
+
+        # Rackspace
+        if 'emailsrvr.com' in mx_combined:
+            return {'host': 'secure.emailsrvr.com', 'port': 587, 'provider': 'Rackspace'}
+
+        # Generic fallback — try smtp.domain.com
+        return {'host': f'smtp.{domain}', 'port': 587, 'provider': 'Unknown', 'mx': mx_hosts[:3]}
+
+    except Exception:
+        return {'host': f'smtp.{domain}', 'port': 587, 'provider': 'Unknown'}
+
+
 class SmtpSettingsRequest(BaseModel):
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = 587
