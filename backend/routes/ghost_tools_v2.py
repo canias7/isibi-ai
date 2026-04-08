@@ -11,16 +11,68 @@ import re
 import json
 import base64
 import uuid
+import socket
+import logging
+import ipaddress
+import urllib.parse
 import httpx
 import qrcode
 from datetime import datetime
+from xml.sax.saxutils import escape as xml_escape
 from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from db import get_db
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/ghost/tools/v2", tags=["ghost-tools-v2"])
+
+
+# ── Security helpers ─────────────────────────────────────────────────────
+
+_BLOCKED_NETS = [
+    ipaddress.ip_network("127.0.0.0/8"),
+    ipaddress.ip_network("10.0.0.0/8"),
+    ipaddress.ip_network("172.16.0.0/12"),
+    ipaddress.ip_network("192.168.0.0/16"),
+    ipaddress.ip_network("169.254.0.0/16"),
+    ipaddress.ip_network("::1/128"),
+    ipaddress.ip_network("fc00::/7"),
+]
+
+
+def _validate_external_url(url: str):
+    """Validate URL is external (not internal/private) to prevent SSRF."""
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(400, "Only HTTP/HTTPS URLs are allowed")
+    if not parsed.hostname:
+        raise HTTPException(400, "Invalid URL")
+    try:
+        infos = socket.getaddrinfo(parsed.hostname, None)
+        for info in infos:
+            addr = ipaddress.ip_address(info[4][0])
+            for net in _BLOCKED_NETS:
+                if addr in net:
+                    raise HTTPException(400, "Internal/private URLs are not allowed")
+    except socket.gaierror:
+        raise HTTPException(400, "Could not resolve hostname")
+
+
+_PHONE_RE = re.compile(r'^\+[1-9]\d{6,14}$')
+
+
+def _validate_phone(phone: str):
+    """Validate phone number is E.164 format."""
+    if not _PHONE_RE.match(phone):
+        raise HTTPException(400, "Invalid phone number. Use E.164 format (e.g. +1234567890)")
+
+
+def _sanitize_ics(text: str) -> str:
+    """Strip control characters that could inject ICS entries."""
+    return text.replace('\r', '').replace('\n', ' ').strip()
 
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 TWILIO_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
@@ -61,16 +113,24 @@ class SendSMSRequest(BaseModel):
 async def send_sms(req: SendSMSRequest, authorization: str = Header(...)):
     """Send SMS silently via Twilio."""
     _verify_auth(authorization)
+    _validate_phone(req.to)
     if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_NUMBER:
-        raise HTTPException(500, "Twilio not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER to environment.")
-    async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.post(
-            f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json",
-            auth=(TWILIO_SID, TWILIO_TOKEN),
-            data={"From": TWILIO_NUMBER, "To": req.to, "Body": req.body},
-        )
-        if res.status_code not in (200, 201):
-            raise HTTPException(400, f"SMS failed: {res.text}")
+        raise HTTPException(500, "Twilio not configured.")
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            res = await client.post(
+                f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json",
+                auth=(TWILIO_SID, TWILIO_TOKEN),
+                data={"From": TWILIO_NUMBER, "To": req.to, "Body": req.body},
+            )
+            if res.status_code not in (200, 201):
+                logger.error("SMS send failed to %s: %s", req.to, res.text)
+                raise HTTPException(400, "Failed to send SMS. Please try again.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("SMS error: %s", e)
+        raise HTTPException(400, "Failed to send SMS.")
     return {"status": "sent", "to": req.to}
 
 
@@ -110,7 +170,8 @@ async def send_email(req: SendEmailRequest, authorization: str = Header(...), db
                 server.sendmail(settings["smtp_user"], req.to, msg.as_string())
             return {"status": "sent", "to": req.to, "from": settings["smtp_user"]}
         except Exception as smtp_err:
-            raise HTTPException(400, f"SMTP failed: {str(smtp_err)}")
+            logger.error("SMTP send failed: %s", smtp_err)
+            raise HTTPException(400, "Failed to send email. Check your SMTP settings.")
 
     raise HTTPException(400, "Set up your email in Settings first to send emails.")
 
@@ -191,6 +252,10 @@ async def send_sms_bulk(req: BulkSMSRequest, authorization: str = Header(...)):
     if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_NUMBER:
         raise HTTPException(500, "Twilio not configured")
 
+    # Validate all phone numbers first
+    for r in req.recipients:
+        _validate_phone(r.to)
+
     results = []
     sent_count = 0
     async with httpx.AsyncClient(timeout=15) as client:
@@ -205,9 +270,11 @@ async def send_sms_bulk(req: BulkSMSRequest, authorization: str = Header(...)):
                     results.append({"to": r.to, "status": "sent"})
                     sent_count += 1
                 else:
-                    results.append({"to": r.to, "status": "failed", "error": res.text[:200]})
+                    logger.error("Bulk SMS failed to %s: %s", r.to, res.text)
+                    results.append({"to": r.to, "status": "failed", "error": "Send failed"})
             except Exception as e:
-                results.append({"to": r.to, "status": "failed", "error": str(e)})
+                logger.error("Bulk SMS error to %s: %s", r.to, e)
+                results.append({"to": r.to, "status": "failed", "error": "Send failed"})
             await asyncio.sleep(0.1)
 
     return {"results": results, "sent": sent_count, "failed": len(req.recipients) - sent_count, "total": len(req.recipients)}
@@ -242,17 +309,25 @@ class AICallRequest(BaseModel):
 async def ai_call(req: AICallRequest, authorization: str = Header(...)):
     """Initiate AI phone call via Twilio + TwiML."""
     _verify_auth(authorization)
+    _validate_phone(req.to)
     if not TWILIO_SID:
         raise HTTPException(500, "Twilio not configured")
-    twiml = f'<Response><Say voice="alice">{req.message}</Say></Response>'
-    async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.post(
-            f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Calls.json",
-            auth=(TWILIO_SID, TWILIO_TOKEN),
-            data={"From": TWILIO_NUMBER, "To": req.to, "Twiml": twiml},
-        )
-        if res.status_code not in (200, 201):
-            raise HTTPException(400, f"Call failed: {res.text}")
+    twiml = f'<Response><Say voice="alice">{xml_escape(req.message)}</Say></Response>'
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            res = await client.post(
+                f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Calls.json",
+                auth=(TWILIO_SID, TWILIO_TOKEN),
+                data={"From": TWILIO_NUMBER, "To": req.to, "Twiml": twiml},
+            )
+            if res.status_code not in (200, 201):
+                logger.error("AI call failed to %s: %s", req.to, res.text)
+                raise HTTPException(400, "Failed to initiate call. Please try again.")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("AI call error: %s", e)
+        raise HTTPException(400, "Failed to initiate call.")
     return {"status": "calling", "to": req.to}
 
 
@@ -272,13 +347,15 @@ async def create_event(req: CalendarEventRequest, authorization: str = Header(..
     _verify_auth(authorization)
     uid = str(uuid.uuid4())
     dtstart = req.date.replace("-", "") + (f"T{req.time.replace(':', '')}00" if req.time else "")
+    safe_title = _sanitize_ics(req.title)
+    safe_desc = _sanitize_ics(req.description or '')
     ics = f"""BEGIN:VCALENDAR
 VERSION:2.0
 BEGIN:VEVENT
 UID:{uid}
 DTSTART:{dtstart}
-SUMMARY:{req.title}
-DESCRIPTION:{req.description or ''}
+SUMMARY:{safe_title}
+DESCRIPTION:{safe_desc}
 END:VEVENT
 END:VCALENDAR"""
     ics_b64 = base64.b64encode(ics.encode()).decode()
@@ -487,6 +564,9 @@ async def compare_urls(req: CompareRequest, authorization: str = Header(...)):
     """Compare multiple URLs/products."""
     _verify_auth(authorization)
     urls = [u.strip() for u in req.urls.split(",")][:5]
+    # Validate all URLs against SSRF
+    for url in urls:
+        _validate_external_url(url)
     summaries = []
 
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
@@ -517,13 +597,20 @@ class WebhookRequest(BaseModel):
 async def trigger_webhook(req: WebhookRequest, authorization: str = Header(...)):
     """Trigger any webhook/API endpoint."""
     _verify_auth(authorization)
-    async with httpx.AsyncClient(timeout=15) as client:
-        hdrs = req.headers or {"Content-Type": "application/json"}
-        if req.method.upper() == "GET":
-            res = await client.get(req.url, headers=hdrs)
-        else:
-            res = await client.post(req.url, headers=hdrs, content=req.body or "")
-    return {"status": res.status_code, "response": res.text[:2000]}
+    _validate_external_url(req.url)
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            hdrs = req.headers or {"Content-Type": "application/json"}
+            if req.method.upper() == "GET":
+                res = await client.get(req.url, headers=hdrs)
+            else:
+                res = await client.post(req.url, headers=hdrs, content=req.body or "")
+        return {"status": res.status_code, "response": res.text[:2000]}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("Webhook trigger failed for %s: %s", req.url, e)
+        raise HTTPException(400, "Failed to trigger webhook.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

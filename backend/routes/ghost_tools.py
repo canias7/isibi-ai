@@ -23,12 +23,15 @@ import json
 import base64
 import tempfile
 import uuid
+import logging
 import httpx
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Header, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ghost/tools", tags=["ghost-tools"])
 
@@ -467,17 +470,43 @@ The code must:
 Return ONLY the Python code, no explanations."""
                 prompt = f"Data:\n{text_content}\n\nCreate this chart: {req.instructions or 'Create an appropriate chart for this data'}"
                 code = await _ask_claude(prompt, system)
-                # Execute the chart code
-                import matplotlib
-                matplotlib.use('Agg')
-                import matplotlib.pyplot as plt
-                buf = io.BytesIO()
-                local_vars = {"DATA": text_content, "buf": buf, "plt": plt, "io": io}
+                # Execute chart code in a sandboxed subprocess
+                import subprocess, tempfile
                 clean_code = code.replace("```python", "").replace("```", "").strip()
-                exec(clean_code, {"__builtins__": __builtins__}, local_vars)
-                buf = local_vars.get("buf", buf)
-                buf.seek(0)
-                file_bytes = buf.getvalue()
+
+                # Block dangerous imports
+                _BLOCKED_IMPORTS = ["os", "sys", "subprocess", "socket", "shutil", "pathlib",
+                                    "ctypes", "importlib", "pickle", "shelve", "webbrowser",
+                                    "http", "urllib", "requests", "httpx", "ftplib", "smtplib"]
+                for blocked in _BLOCKED_IMPORTS:
+                    if f"import {blocked}" in clean_code or f"from {blocked}" in clean_code:
+                        raise HTTPException(400, f"Chart code contains blocked import: {blocked}")
+
+                # Write a self-contained script that outputs PNG to stdout
+                with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
+                    tmp.write("import matplotlib\nmatplotlib.use('Agg')\nimport matplotlib.pyplot as plt\nimport io, sys\n")
+                    tmp.write(f"DATA = {repr(text_content)}\n")
+                    tmp.write("buf = io.BytesIO()\n")
+                    tmp.write(clean_code + "\n")
+                    tmp.write("buf.seek(0)\nsys.stdout.buffer.write(buf.getvalue())\n")
+                    tmp_path = tmp.name
+
+                try:
+                    result = subprocess.run(
+                        ["python3", tmp_path],
+                        capture_output=True, timeout=15,
+                        env={"PATH": "/usr/bin:/usr/local/bin", "HOME": "/tmp"},
+                    )
+                    if result.returncode != 0:
+                        logger.error("Chart code failed: %s", result.stderr.decode()[:500])
+                        raise HTTPException(400, "Chart generation failed. Try a different chart type.")
+                    file_bytes = result.stdout
+                    if not file_bytes:
+                        raise HTTPException(400, "Chart generation produced no output.")
+                finally:
+                    import os as _os
+                    _os.unlink(tmp_path)
+
                 filename = f"chart_{file_id}.png"
                 mime = "image/png"
 

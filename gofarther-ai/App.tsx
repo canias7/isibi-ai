@@ -7,6 +7,19 @@ Sentry.init({
   enableAutoSessionTracking: true,
   tracesSampleRate: 0.2,
   enabled: !__DEV__,
+  beforeSend(event) {
+    // Strip PII from error reports — don't send chat messages or user data
+    if (event.breadcrumbs) {
+      event.breadcrumbs = event.breadcrumbs.filter(
+        b => !b.message?.includes('chat_') && !b.category?.includes('fetch')
+      );
+    }
+    if (event.extra) {
+      delete event.extra.body;
+      delete event.extra.response;
+    }
+    return event;
+  },
 });
 import { View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';

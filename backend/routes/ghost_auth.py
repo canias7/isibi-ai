@@ -218,8 +218,10 @@ def generate_code() -> str:
 # ── JWT Config ────────────────────────────────────────────────────────
 
 GHOST_JWT_SECRET = os.getenv("JWT_SECRET", "ghost-mode-secret-key")
+if os.getenv("RENDER") and GHOST_JWT_SECRET == "ghost-mode-secret-key":
+    raise RuntimeError("CRITICAL: JWT_SECRET must be set in production! Add it to Render environment variables.")
 GHOST_JWT_ALGORITHM = "HS256"
-GHOST_JWT_EXPIRE_HOURS = 720  # 30 days
+GHOST_JWT_EXPIRE_HOURS = 168  # 7 days (reduced from 30 for security)
 
 def create_ghost_token(user_id: str, email: str) -> str:
     payload = {

@@ -183,6 +183,7 @@ class SecurityHeadersMiddleware:
                     (b"x-frame-options", b"SAMEORIGIN"),
                     (b"referrer-policy", b"strict-origin-when-cross-origin"),
                     (b"permissions-policy", b"camera=(), microphone=(), geolocation=()"),
+                    (b"content-security-policy", b"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:"),
                 ])
                 # Only add HSTS in production
                 if os.getenv("RENDER"):
