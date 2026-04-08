@@ -470,10 +470,10 @@ RULES:
             showsVerticalScrollIndicator={false}
             ListFooterComponent={isBusy ? (
               <View style={s.typingRow}>
-                <Animated.View style={[s.thinkingPillLeft, { opacity: dotOpacity, backgroundColor: tc.card }]}>
+                <Animated.View style={{ opacity: dotOpacity }}>
                   <Text style={[s.thinkingText, { color: '#ec4899' }]}>{thinkingWord}...</Text>
                 </Animated.View>
-                <Animated.View style={[s.thinkingPillRight, { opacity: dotOpacity }]}>
+                <Animated.View style={{ opacity: dotOpacity }}>
                   <Text style={[s.thinkingStats, { color: tc.text, fontWeight: '600' }]}>{Math.floor(elapsed)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
                 </Animated.View>
               </View>
@@ -661,9 +661,7 @@ const s = StyleSheet.create({
   suggestionLabel: { fontSize: 14, fontWeight: '500' },
 
   // Thinking status
-  typingRow: { flexDirection: 'row' as const, paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
-  thinkingPillLeft: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16 },
-  thinkingPillRight: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16 },
+  typingRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, paddingHorizontal: 16, paddingVertical: 8 },
   thinkingText: { fontSize: 13, fontStyle: 'italic' as const, fontWeight: '500' as const },
   thinkingStats: { fontSize: 12, fontWeight: '400' as const },
 
