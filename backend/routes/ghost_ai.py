@@ -49,6 +49,8 @@ CLAUDE_TOOLS = [
     {"name": "compare_urls", "description": "Compare multiple URLs or products", "input_schema": {"type": "object", "properties": {"urls": {"type": "string", "description": "Comma-separated URLs"}, "question": {"type": "string"}}, "required": ["urls"]}},
     {"name": "modify_file", "description": "Modify an existing file. Operations: edit (change content, add formulas), chart (create visualization), convert (change format), merge (combine files), filter (extract matching rows), compare (diff two files), reconcile (match bank statement vs book records). Use when the user has uploaded a file and wants to change, visualize, convert, merge, filter, compare, or reconcile it.", "input_schema": {"type": "object", "properties": {"operation": {"type": "string", "enum": ["edit", "chart", "convert", "merge", "filter", "compare", "reconcile"], "description": "What to do with the file"}, "instructions": {"type": "string", "description": "What changes to make, what chart to create, or what to filter"}, "target_format": {"type": "string", "enum": ["pdf", "xlsx", "docx", "csv", "txt"], "description": "Target format for convert operation"}}, "required": ["operation", "instructions"]}},
     {"name": "save_contact", "description": "Save a contact to the user's contact list", "input_schema": {"type": "object", "properties": {"label": {"type": "string", "description": "Relationship label e.g. My boss"}, "name": {"type": "string"}, "contact_info": {"type": "string", "description": "Email or phone number"}}, "required": ["label", "name"]}},
+    {"name": "bulk_email", "description": "Send email to multiple recipients at once. Use when user says 'email all my contacts' or wants to send to several people.", "input_schema": {"type": "object", "properties": {"recipients": {"type": "array", "items": {"type": "object", "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "body": {"type": "string"}}, "required": ["to", "subject", "body"]}}}, "required": ["recipients"]}},
+    {"name": "bulk_sms", "description": "Send SMS to multiple recipients at once. Use when user says 'text all my contacts' or wants to message several people.", "input_schema": {"type": "object", "properties": {"recipients": {"type": "array", "items": {"type": "object", "properties": {"to": {"type": "string"}, "body": {"type": "string"}}, "required": ["to", "body"]}}}, "required": ["recipients"]}},
 ]
 
 
@@ -155,6 +157,8 @@ async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
             "compare_urls": {"type": "compare_urls", "target": inp.get("urls", ""), "text": inp.get("question", "")},
             "modify_file": {"type": "modify_file", "target": inp.get("operation", "edit"), "text": inp.get("instructions", ""), "key": inp.get("target_format", "")},
             "save_contact": {"type": "save_contact", "target": inp.get("label", ""), "text": inp.get("name", ""), "key": inp.get("contact_info", "")},
+            "bulk_email": {"type": "bulk_email", "target": json.dumps(inp.get("recipients", []))},
+            "bulk_sms": {"type": "bulk_sms", "target": json.dumps(inp.get("recipients", []))},
         }
 
         action_json = action_map.get(name)
@@ -279,6 +283,8 @@ async def chat_stream_proxy(req: ChatRequest, authorization: str = Header(...)):
                                 "compare_urls": {"type": "compare_urls", "target": inp.get("urls", ""), "text": inp.get("question", "")},
                                 "modify_file": {"type": "modify_file", "target": inp.get("operation", "edit"), "text": inp.get("instructions", ""), "key": inp.get("target_format", "")},
                                 "save_contact": {"type": "save_contact", "target": inp.get("label", ""), "text": inp.get("name", ""), "key": inp.get("contact_info", "")},
+                                "bulk_email": {"type": "bulk_email", "target": json.dumps(inp.get("recipients", []))},
+                                "bulk_sms": {"type": "bulk_sms", "target": json.dumps(inp.get("recipients", []))},
                             }
                             action_json = action_map.get(tool_name)
                             if action_json:

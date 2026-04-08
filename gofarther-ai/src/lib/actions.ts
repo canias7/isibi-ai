@@ -74,6 +74,44 @@ export async function sendEmail(to: string, subject?: string, body?: string) {
   }
 }
 
+/** Bulk email — send to multiple recipients */
+export interface BulkSendResult {
+  to: string;
+  status: 'sent' | 'failed';
+  error?: string;
+}
+
+export async function sendEmailBulk(
+  recipients: { to: string; subject: string; body: string }[]
+): Promise<{ results: BulkSendResult[]; sent: number; failed: number; total: number }> {
+  const headers = await authHeaders();
+  const res = await fetch(`${TOOLS_V2}/send-email-bulk`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ recipients }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || 'Bulk email failed');
+  }
+  return res.json();
+}
+
+/** Bulk SMS — send to multiple recipients */
+export async function sendSMSBulk(
+  recipients: { to: string; body: string }[]
+): Promise<{ results: BulkSendResult[]; sent: number; failed: number; total: number }> {
+  const headers = await authHeaders();
+  const res = await fetch(`${TOOLS_V2}/send-sms-bulk`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ recipients }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || 'Bulk SMS failed');
+  }
+  return res.json();
+}
+
 /** Open URL in browser — this one still opens a screen (intentional) */
 export function openURL(url: string) {
   Linking.openURL(url);
@@ -106,6 +144,14 @@ export async function executeAction(action: { type: string; target?: string; tex
     case 'maps': openMaps(action.target || ''); break;
     case 'directions': openDirections(action.text || 'current location', action.target || ''); break;
     case 'search': searchGoogle(action.target || ''); break;
+    case 'bulk_email': {
+      const recipients = JSON.parse(action.target || '[]');
+      return sendEmailBulk(recipients);
+    }
+    case 'bulk_sms': {
+      const recipients = JSON.parse(action.target || '[]');
+      return sendSMSBulk(recipients);
+    }
     case 'open_file':
       if (action.target && await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(action.target);

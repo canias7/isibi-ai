@@ -214,6 +214,40 @@ export async function saveCustomInstructions(instructions: string) {
   await save('custom_instructions', instructions);
 }
 
+// Learned preferences — auto-extracted from thumbs up/down reactions
+export interface LearnedPreference {
+  id: string;
+  rule: string;
+  confidence: number;
+  createdAt: number;
+}
+
+export async function getLearnedPreferences(): Promise<LearnedPreference[]> {
+  return load('learned_preferences', []);
+}
+
+export async function saveLearnedPreferences(prefs: LearnedPreference[]) {
+  await save('learned_preferences', prefs.slice(0, 20)); // Cap at 20
+}
+
+export async function deleteLearnedPreference(id: string) {
+  const prefs = await getLearnedPreferences();
+  await saveLearnedPreferences(prefs.filter(p => p.id !== id));
+}
+
+export async function getReactionCount(): Promise<number> {
+  return load('reaction_count_since_analysis', 0);
+}
+
+export async function incrementReactionCount() {
+  const count = await getReactionCount();
+  await save('reaction_count_since_analysis', count + 1);
+}
+
+export async function resetReactionCount() {
+  await save('reaction_count_since_analysis', 0);
+}
+
 // Theme preference
 export async function getThemeMode(): Promise<'light' | 'dark'> {
   return load('theme_mode', 'light');

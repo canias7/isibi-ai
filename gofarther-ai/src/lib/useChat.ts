@@ -9,6 +9,8 @@ import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
 import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
 import { pushSession } from './chatSync';
+import { incrementReactionCount } from './storage';
+import { runAnalysisIfNeeded } from './preferenceAnalysis';
 import NetInfo from '@react-native-community/netinfo';
 import { scheduleLocalNotification } from './notifications';
 
@@ -746,6 +748,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
   const setReaction = useCallback((msgId: string, reaction: 'up' | 'down' | undefined) => {
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reaction: reaction } : m));
+    if (reaction) {
+      incrementReactionCount().then(() => runAnalysisIfNeeded()).catch(() => {});
+    }
   }, []);
 
   const cancelCreation = useCallback(() => {

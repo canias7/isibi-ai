@@ -23,7 +23,9 @@ import {
   getAgents, Agent, getAIName, getUserNickname,
   getChatSessions, saveChatSessions, ChatSession,
   getMemory, getCustomInstructions, getLanguage, getSavedContacts, getConnectedApps, trackEvent,
+  getLearnedPreferences,
 } from '../lib/storage';
+import { runAnalysisIfNeeded } from '../lib/preferenceAnalysis';
 import { HamburgerButton } from '../components/Drawer';
 import VoicePicker, { VoiceOption, VOICES } from '../components/VoicePicker';
 import VoiceChat from '../components/VoiceChat';
@@ -128,10 +130,11 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
     });
     getUserNickname().then(n => setUserNickname(n || ''));
     // Build system prompt with memory, instructions, language
-    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts(), getConnectedApps()]).then(([memory, custom, lang, nick, savedContacts, connectedApps]) => {
+    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts(), getConnectedApps(), getLearnedPreferences()]).then(([memory, custom, lang, nick, savedContacts, connectedApps, learnedPrefs]) => {
       setUserNickname(nick || '');
       const langMap: Record<string, string> = { en: '', es: '\n\nIMPORTANT: Always respond in Spanish.', fr: '\n\nIMPORTANT: Always respond in French.', pt: '\n\nIMPORTANT: Always respond in Portuguese.', de: '\n\nIMPORTANT: Always respond in German.' };
       const memoryStr = memory.length > 0 ? '\n\nYou remember these facts about the user:\n' + memory.map((m: any) => '- ' + m.fact).join('\n') : '';
+      const prefsStr = learnedPrefs.length > 0 ? '\n\nLEARNED PREFERENCES (from user feedback — follow these):\n' + learnedPrefs.map((p: any) => '- ' + p.rule).join('\n') : '';
       const customStr = custom ? '\n\nCustom instructions from user: ' + custom : '';
       const base = `You are GoFarther AI, a mobile AI assistant with personality. Talk like a real person — casual, warm, witty, and natural.
 
@@ -162,6 +165,11 @@ DEVICE ACTIONS:
 {"type":"email","target":"email","key":"subject","text":"body"}
 {"type":"open_url","target":"url"}
 {"type":"maps","target":"query"}
+
+BULK SEND (send to multiple people at once — use when user says "email all my contacts", "text everyone", etc.):
+{"type":"bulk_email","target":"[{\\"to\\":\\"email\\",\\"subject\\":\\"..\\",\\"body\\":\\"..\\"}]"}
+{"type":"bulk_sms","target":"[{\\"to\\":\\"phone\\",\\"body\\":\\"..\\"}]"}
+The target is a JSON array of recipients. Build it from the user's saved contacts.
 
 FILE CREATION (you CAN create files — the server generates them):
 {"type":"create_file","target":"brief description of content","text":"pdf"}
@@ -250,7 +258,9 @@ RULES:
 
       const contactsStr = savedContacts.length > 0 ? '\n\nThe user has saved these contacts. When they refer to someone by label (e.g. "my boss"), use the matching contact info:\n' + savedContacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n') : '';
       const nicknameStr = nick ? `\n\nIMPORTANT: The user's name/nickname is "${nick}". Use it naturally — greet them by name, refer to them by name occasionally. For example: "Hey ${nick}!", "Sure thing ${nick}", etc.` : '';
-      setSystemPrompt(base + actions + connectedAppsStr + contactsStr + memoryStr + customStr + nicknameStr + (langMap[lang] || ''));
+      setSystemPrompt(base + actions + connectedAppsStr + contactsStr + memoryStr + prefsStr + customStr + nicknameStr + (langMap[lang] || ''));
+      // Run preference analysis on launch if enough reactions accumulated
+      runAnalysisIfNeeded().catch(() => {});
     });
   }, []);
 

@@ -115,6 +115,104 @@ async def send_email(req: SendEmailRequest, authorization: str = Header(...), db
     raise HTTPException(400, "Set up your email in Settings first to send emails.")
 
 
+import asyncio
+
+# ─── BULK EMAIL / SMS ──────────────────────────────────────────────────
+
+class BulkEmailRecipient(BaseModel):
+    to: str
+    subject: str
+    body: str
+
+class BulkEmailRequest(BaseModel):
+    recipients: list[BulkEmailRecipient]  # max 50
+
+@router.post("/send-email-bulk")
+async def send_email_bulk(req: BulkEmailRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Send email to multiple recipients via user's SMTP. One connection, sequential sends."""
+    payload_data = _verify_auth(authorization)
+    if len(req.recipients) > 50:
+        raise HTTPException(400, "Maximum 50 recipients per batch")
+    if not req.recipients:
+        raise HTTPException(400, "No recipients provided")
+
+    from routes.ghost_auth import get_user_smtp
+    settings = await get_user_smtp(payload_data.get("email", ""), db)
+    if not (settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass")):
+        raise HTTPException(400, "Set up your email in Settings first to send emails.")
+
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
+
+    results = []
+    sent_count = 0
+    try:
+        with smtplib.SMTP(settings["smtp_host"], settings.get("smtp_port", 587)) as server:
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(settings["smtp_user"], settings["smtp_pass"])
+
+            for r in req.recipients:
+                try:
+                    msg = MIMEMultipart()
+                    msg["From"] = f"{settings.get('smtp_from', '')} <{settings['smtp_user']}>"
+                    msg["To"] = r.to
+                    msg["Subject"] = r.subject
+                    msg.attach(MIMEText(r.body, "plain"))
+                    server.sendmail(settings["smtp_user"], r.to, msg.as_string())
+                    results.append({"to": r.to, "status": "sent"})
+                    sent_count += 1
+                except Exception as e:
+                    results.append({"to": r.to, "status": "failed", "error": str(e)})
+                await asyncio.sleep(0.1)  # Rate limit
+    except Exception as e:
+        raise HTTPException(400, f"SMTP connection failed: {str(e)}")
+
+    return {"results": results, "sent": sent_count, "failed": len(req.recipients) - sent_count, "total": len(req.recipients)}
+
+
+class BulkSMSRecipient(BaseModel):
+    to: str
+    body: str
+
+class BulkSMSRequest(BaseModel):
+    recipients: list[BulkSMSRecipient]  # max 50
+
+@router.post("/send-sms-bulk")
+async def send_sms_bulk(req: BulkSMSRequest, authorization: str = Header(...)):
+    """Send SMS to multiple recipients via Twilio."""
+    _verify_auth(authorization)
+    if len(req.recipients) > 50:
+        raise HTTPException(400, "Maximum 50 recipients per batch")
+    if not req.recipients:
+        raise HTTPException(400, "No recipients provided")
+    if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_NUMBER:
+        raise HTTPException(500, "Twilio not configured")
+
+    results = []
+    sent_count = 0
+    async with httpx.AsyncClient(timeout=15) as client:
+        for r in req.recipients:
+            try:
+                res = await client.post(
+                    f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json",
+                    auth=(TWILIO_SID, TWILIO_TOKEN),
+                    data={"From": TWILIO_NUMBER, "To": r.to, "Body": r.body},
+                )
+                if res.status_code in (200, 201):
+                    results.append({"to": r.to, "status": "sent"})
+                    sent_count += 1
+                else:
+                    results.append({"to": r.to, "status": "failed", "error": res.text[:200]})
+            except Exception as e:
+                results.append({"to": r.to, "status": "failed", "error": str(e)})
+            await asyncio.sleep(0.1)
+
+    return {"results": results, "sent": sent_count, "failed": len(req.recipients) - sent_count, "total": len(req.recipients)}
+
+
 class SendWhatsAppRequest(BaseModel):
     to: str
     body: str

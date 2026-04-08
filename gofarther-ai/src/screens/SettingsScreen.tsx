@@ -11,6 +11,7 @@ import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
 import {
   getCustomInstructions, saveCustomInstructions,
   getMemory, clearMemory, MemoryFact,
+  getLearnedPreferences, saveLearnedPreferences, deleteLearnedPreference, LearnedPreference,
   getLanguage, saveLanguage,
   getSavedContacts, saveSavedContacts, SavedContact,
   getConnectedApps, saveConnectedApps, ConnectedApp,
@@ -25,6 +26,8 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [showInstructions, setShowInstructions] = useState(false);
   const [memory, setMemory] = useState<MemoryFact[]>([]);
   const [showMemory, setShowMemory] = useState(false);
+  const [learnedPrefs, setLearnedPrefs] = useState<LearnedPreference[]>([]);
+  const [showPrefs, setShowPrefs] = useState(false);
   const [language, setLanguage] = useState('en');
   const [contacts, setContacts] = useState<SavedContact[]>([]);
   const [showContacts, setShowContacts] = useState(false);
@@ -65,6 +68,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
     getUsage('7d').then(setUsageData).catch(() => {});
     getCustomInstructions().then(setCustomInstructions);
     getMemory().then(setMemory);
+    getLearnedPreferences().then(setLearnedPrefs);
     getLanguage().then(setLanguage);
     getSavedContacts().then(setContacts);
     getSmtpSettings().then((s: any) => {
@@ -246,6 +250,44 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
               {memory.length > 0 && (
                 <TouchableOpacity style={s.clearMemBtn} onPress={handleClearMemory}>
                   <Text style={s.clearMemText}>Clear all memory</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+          <TouchableOpacity style={s.row} onPress={() => setShowPrefs(!showPrefs)}>
+            <Text style={s.rowLabel}>Learned Preferences</Text>
+            <Text style={s.rowValue}>{learnedPrefs.length} rules</Text>
+          </TouchableOpacity>
+          {showPrefs && (
+            <View style={s.expandedSection}>
+              <Text style={s.expandedHint}>Patterns learned from your thumbs up/down reactions</Text>
+              {learnedPrefs.length === 0 ? (
+                <Text style={s.memoryEmpty}>No preferences learned yet. React to AI messages with thumbs up/down to train it.</Text>
+              ) : (
+                learnedPrefs.map(p => (
+                  <View key={p.id} style={{ flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6 }}>
+                    <Text style={[s.memoryFact, { flex: 1, color: tc.textMid }]}>- {p.rule}</Text>
+                    <TouchableOpacity onPress={async () => {
+                      await deleteLearnedPreference(p.id);
+                      setLearnedPrefs(prev => prev.filter(x => x.id !== p.id));
+                    }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close-circle" size={18} color="#ccc" />
+                    </TouchableOpacity>
+                  </View>
+                ))
+              )}
+              {learnedPrefs.length > 0 && (
+                <TouchableOpacity style={s.clearMemBtn} onPress={() => {
+                  Alert.alert('Clear Preferences', 'Remove all learned rules?', [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Clear', style: 'destructive', onPress: async () => {
+                      await saveLearnedPreferences([]);
+                      setLearnedPrefs([]);
+                    }},
+                  ]);
+                }}>
+                  <Text style={s.clearMemText}>Clear all preferences</Text>
                 </TouchableOpacity>
               )}
             </View>
