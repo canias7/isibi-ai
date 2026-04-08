@@ -75,7 +75,7 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
 
   const {
     messages, setMessages, loading, setLoading, editingMsgId, setEditingMsgId, animatingIds, isCreating, removeAnimatingId,
-    messagesRef, currentSessionId, send: chatSend, confirmAction, cancelAction, cancelCreation, regenerate, editMessage, submitEdit,
+    messagesRef, currentSessionId, send: chatSend, confirmAction, cancelAction, retryAction, setReaction, cancelCreation, regenerate, editMessage, submitEdit,
   } = useChat({
     sessionId,
     systemPrompt,
@@ -421,20 +421,57 @@ RULES:
     text: tc.text, textMid: tc.textMid, textDim: tc.textDim, bubbleAI: tc.bubbleAI, bubbleBorder: tc.bubbleBorder,
   }), [tc.text, tc.textMid, tc.textDim, tc.bubbleAI, tc.bubbleBorder]);
 
-  const renderMessage = React.useCallback(({ item }: { item: ChatMsg }) => (
-    <ChatBubble
-      item={item}
-      aiName={aiName}
-      isAnimating={animatingIds.has(item.id)}
-      onStopAnimating={() => removeAnimatingId(item.id)}
-      onConfirm={confirmAction}
-      onCancel={cancelAction}
-      onRegenerate={regenerate}
-      onEdit={handleEditMessage}
-      onCopy={copyMessage}
-      colors={bubbleColors}
-    />
-  ), [aiName, animatingIds, bubbleColors, confirmAction, cancelAction, regenerate, handleEditMessage, copyMessage, removeAnimatingId]);
+  /** Date separator helper */
+  const formatDateLabel = (ts: number): string => {
+    const d = new Date(ts);
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const msgDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = today.getTime() - msgDate.getTime();
+    if (diff === 0) return 'Today';
+    if (diff === 86400000) return 'Yesterday';
+    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  };
+
+  const renderMessage = React.useCallback(({ item, index }: { item: ChatMsg; index: number }) => {
+    // Date separator: show if first message or different day from previous
+    let showDateSep = false;
+    if (item.timestamp) {
+      if (index === 0) {
+        showDateSep = true;
+      } else {
+        const prev = messages[index - 1];
+        if (prev?.timestamp) {
+          const d1 = new Date(prev.timestamp).toDateString();
+          const d2 = new Date(item.timestamp).toDateString();
+          showDateSep = d1 !== d2;
+        }
+      }
+    }
+    return (
+      <>
+        {showDateSep && item.timestamp && (
+          <View style={s.dateSep}>
+            <Text style={[s.dateSepText, { color: tc.textDim }]}>{formatDateLabel(item.timestamp)}</Text>
+          </View>
+        )}
+        <ChatBubble
+          item={item}
+          aiName={aiName}
+          isAnimating={animatingIds.has(item.id)}
+          onStopAnimating={() => removeAnimatingId(item.id)}
+          onConfirm={confirmAction}
+          onCancel={cancelAction}
+          onRegenerate={regenerate}
+          onEdit={handleEditMessage}
+          onCopy={copyMessage}
+          onRetry={retryAction}
+          onReaction={setReaction}
+          colors={bubbleColors}
+        />
+      </>
+    );
+  }, [aiName, animatingIds, bubbleColors, confirmAction, cancelAction, retryAction, setReaction, regenerate, handleEditMessage, copyMessage, removeAnimatingId, messages, tc.textDim]);
 
   // Voice mode
   if (showAR) return <ARScreen onClose={() => setShowAR(false)} />;
@@ -659,6 +696,10 @@ const s = StyleSheet.create({
   suggestionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', width: '100%' },
   suggestionCard: { width: '47%', paddingVertical: 20, paddingHorizontal: 16, borderRadius: 16, borderWidth: 1 },
   suggestionLabel: { fontSize: 14, fontWeight: '500' },
+
+  // Date separators
+  dateSep: { alignItems: 'center' as const, paddingVertical: 8, marginBottom: 4 },
+  dateSepText: { fontSize: 11, fontWeight: '500' as const },
 
   // Thinking status
   typingRow: { flexDirection: 'row' as const, justifyContent: 'space-between' as const, alignItems: 'center' as const, paddingHorizontal: 16, paddingVertical: 8 },

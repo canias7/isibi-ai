@@ -21,6 +21,8 @@ export interface ChatMsg {
   isCreatingFile?: boolean;
   timestamp?: number;
   stats?: { tokens: number; durationMs: number };
+  reaction?: 'up' | 'down';
+  queued?: boolean;
 }
 
 /** Action payload from AI response */

@@ -43,7 +43,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
   useEffect(() => {
     currentSessionId.current = sessionId;
     if (sessionId) {
-      getChatHistory(sessionId).then(h => setMessages(h.map((m, i) => ({ ...m, id: `${sessionId}_${i}` }))));
+      getChatHistory(sessionId).then(h => setMessages(h.map((m, i) => ({ ...m, id: `${sessionId}_${i}`, reaction: m.reaction }))));
     } else {
       setMessages([]);
     }
@@ -56,6 +56,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         role: m.role,
         content: m.content,
         timestamp: m.timestamp || Date.now(),
+        ...(m.reaction ? { reaction: m.reaction } : {}),
       })));
     }
   }, [messages, loading]);
@@ -712,6 +713,23 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
     trackEvent('edit_message');
   }, [editingMsgId, send]);
 
+  const retryAction = useCallback(async (msgId: string) => {
+    const msg = messagesRef.current.find(m => m.id === msgId);
+    if (!msg?.action) return;
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionStatus: 'running' } : m));
+    try {
+      await executeAction(msg.action);
+      trackEvent('action_retry_' + msg.action.type);
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionStatus: 'done' } : m));
+    } catch (e: any) {
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionStatus: 'failed' } : m));
+    }
+  }, []);
+
+  const setReaction = useCallback((msgId: string, reaction: 'up' | 'down' | undefined) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, reaction: reaction } : m));
+  }, []);
+
   const cancelCreation = useCallback(() => {
     cancelRef.current = true;
     setIsCreating(false);
@@ -735,6 +753,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
     send,
     confirmAction,
     cancelAction,
+    retryAction,
+    setReaction,
     cancelCreation,
     regenerate,
     editMessage,

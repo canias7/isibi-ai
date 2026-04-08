@@ -22,6 +22,8 @@ interface Props {
   onRegenerate: () => void;
   onEdit: (id: string) => void;
   onCopy: (text: string) => void;
+  onRetry?: (id: string) => void;
+  onReaction?: (id: string, reaction: 'up' | 'down' | undefined) => void;
   onOpenCanvas?: (content: string, language?: string) => void;
   onReviseFile?: (originalDescription: string) => void;
   colors: { text: string; textMid: string; textDim: string; bubbleAI: string; bubbleBorder: string };
@@ -47,7 +49,12 @@ function PulsingText({ text }: { text: string }) {
   );
 }
 
-function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, onOpenCanvas, onReviseFile, colors }: Props) {
+/** Format timestamp as "2:30 PM" */
+function formatTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onCancel, onRegenerate, onEdit, onCopy, onRetry, onReaction, onOpenCanvas, onReviseFile, colors }: Props) {
   const onLongPress = () => {
     if (Platform.OS === 'ios') {
       const options = ['Copy', item.role === 'user' ? 'Edit' : 'Regenerate', 'Cancel'];
@@ -86,6 +93,12 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
         <Ionicons name={icon as any} size={16} color={color} />
         <Text style={[s.actionLabel, { color: colors.text }]} numberOfLines={1}>{action.type} {action.target || ''}</Text>
         <Text style={[s.actionStatus, { color }]}>{label}</Text>
+        {actionStatus === 'failed' && onRetry && (
+          <TouchableOpacity onPress={() => onRetry(item.id)} style={s.retryBtn} activeOpacity={0.7} accessibilityLabel="Retry action" accessibilityRole="button">
+            <Ionicons name="refresh-outline" size={13} color={C.red} />
+            <Text style={s.retryText}>Retry</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   };
@@ -168,6 +181,21 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               {item.stats.tokens > 0 ? ` · \u2193 ${item.stats.tokens >= 1000 ? `${(item.stats.tokens / 1000).toFixed(1)}k` : item.stats.tokens} tokens` : ''}
             </Text>
           )}
+          {/* Reactions — AI messages only */}
+          {!isUser && item.content && !isAnimating && onReaction && (
+            <View style={s.reactionRow}>
+              <TouchableOpacity onPress={() => onReaction(item.id, item.reaction === 'up' ? undefined : 'up')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                <Ionicons name={item.reaction === 'up' ? 'thumbs-up' : 'thumbs-up-outline'} size={14} color={item.reaction === 'up' ? '#22c55e' : colors.textDim} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => onReaction(item.id, item.reaction === 'down' ? undefined : 'down')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                <Ionicons name={item.reaction === 'down' ? 'thumbs-down' : 'thumbs-down-outline'} size={14} color={item.reaction === 'down' ? C.red : colors.textDim} />
+              </TouchableOpacity>
+            </View>
+          )}
+          {/* Timestamp */}
+          {item.timestamp && (
+            <Text style={[s.timestampText, { color: colors.textDim }, isUser && { textAlign: 'right' }]}>{formatTime(item.timestamp)}</Text>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -203,4 +231,8 @@ const s = StyleSheet.create({
   actionCard: { marginTop: 8, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   actionLabel: { flex: 1, fontSize: 13, fontWeight: '500' },
   actionStatus: { fontSize: 12, fontWeight: '600' },
+  retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: '#fef2f2' },
+  retryText: { fontSize: 11, fontWeight: '600', color: '#ef4444' },
+  reactionRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
+  timestampText: { fontSize: 10, marginTop: 3 },
 });

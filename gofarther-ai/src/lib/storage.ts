@@ -39,6 +39,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
   timestamp: number;
+  reaction?: 'up' | 'down';
 }
 
 export async function getChatHistory(sessionId: string): Promise<ChatMessage[]> {
