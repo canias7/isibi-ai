@@ -10,10 +10,12 @@ import base64
 import uuid
 import httpx
 from PIL import Image, ImageDraw, ImageFont
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import get_db
 
 router = APIRouter(prefix="/ghost/tools/v3", tags=["ghost-tools-v3"])
 
@@ -26,6 +28,11 @@ def _verify_auth(authorization: str):
     return verify_ghost_token(token)
 
 
+def _audit_log_lazy():
+    from routes.ghost_auth import _audit_log
+    return _audit_log
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # OCR — Extract text from any image
 # ═══════════════════════════════════════════════════════════════════════════
@@ -34,9 +41,9 @@ class OCRRequest(BaseModel):
     image_base64: str
 
 @router.post("/ocr")
-async def ocr(req: OCRRequest, authorization: str = Header(...)):
+async def ocr(req: OCRRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Extract all text from an image using Claude Vision."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "API key not configured")
 
@@ -61,6 +68,8 @@ async def ocr(req: OCRRequest, authorization: str = Header(...)):
         data = res.json()
         text = data.get("content", [{}])[0].get("text", "")
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_ocr", "OCR extraction")
+    await db.commit()
     return {"text": text}
 
 
@@ -74,9 +83,9 @@ class MemeRequest(BaseModel):
     style: Optional[str] = "classic"  # classic, dark, minimal
 
 @router.post("/create-meme")
-async def create_meme(req: MemeRequest, authorization: str = Header(...)):
+async def create_meme(req: MemeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Generate a meme image with text."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     # Create meme image
     width, height = 600, 600
@@ -180,6 +189,8 @@ async def create_meme(req: MemeRequest, authorization: str = Header(...)):
     file_id = str(uuid.uuid4())
     FILE_STORE[file_id] = {"filename": "meme.png", "mime": "image/png", "data": meme_b64, "created": datetime.utcnow().isoformat()}
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_create_meme", f"Top: {req.top_text[:40]}")
+    await db.commit()
     return {"file_id": file_id, "download_url": f"/api/ghost/tools/download/{file_id}", "image_base64": meme_b64}
 
 
@@ -191,9 +202,9 @@ class BarcodeLookupRequest(BaseModel):
     barcode: str  # UPC/EAN code
 
 @router.post("/barcode-lookup")
-async def barcode_lookup(req: BarcodeLookupRequest, authorization: str = Header(...)):
+async def barcode_lookup(req: BarcodeLookupRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Look up product info from barcode number."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     # Use Open Food Facts API (free, no key needed)
     async with httpx.AsyncClient(timeout=10) as client:
@@ -202,6 +213,8 @@ async def barcode_lookup(req: BarcodeLookupRequest, authorization: str = Header(
 
     if data.get("status") == 1:
         product = data.get("product", {})
+        await _audit_log_lazy()(db, payload.get("email", ""), "tool_barcode_lookup", f"Barcode: {req.barcode}")
+        await db.commit()
         return {
             "found": True,
             "name": product.get("product_name", "Unknown"),
@@ -221,6 +234,8 @@ async def barcode_lookup(req: BarcodeLookupRequest, authorization: str = Header(
             items = data.get("items", [])
             if items:
                 item = items[0]
+                await _audit_log_lazy()(db, payload.get("email", ""), "tool_barcode_lookup", f"Barcode: {req.barcode}")
+                await db.commit()
                 return {
                     "found": True,
                     "name": item.get("title", "Unknown"),
@@ -232,6 +247,8 @@ async def barcode_lookup(req: BarcodeLookupRequest, authorization: str = Header(
         except:
             pass
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_barcode_lookup", f"Barcode: {req.barcode}")
+    await db.commit()
     return {"found": False, "barcode": req.barcode, "message": "Product not found in database"}
 
 
@@ -239,9 +256,9 @@ class BarcodeScanRequest(BaseModel):
     image_base64: str
 
 @router.post("/barcode-scan")
-async def barcode_scan(req: BarcodeScanRequest, authorization: str = Header(...)):
+async def barcode_scan(req: BarcodeScanRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Scan barcode from image using Claude Vision, then look up product."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "API key not configured")
 
@@ -266,9 +283,13 @@ async def barcode_scan(req: BarcodeScanRequest, authorization: str = Header(...)
         barcode = data.get("content", [{}])[0].get("text", "").strip()
 
     if not barcode or barcode == "unreadable":
+        await _audit_log_lazy()(db, payload.get("email", ""), "tool_barcode_scan", "Barcode scan")
+        await db.commit()
         return {"found": False, "message": "Could not read barcode from image"}
 
     # Look up the barcode
     from fastapi import Request
     lookup_req = BarcodeLookupRequest(barcode=barcode)
-    return await barcode_lookup(lookup_req, authorization=authorization)
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_barcode_scan", "Barcode scan")
+    await db.commit()
+    return await barcode_lookup(lookup_req, authorization=authorization, db=db)

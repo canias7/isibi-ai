@@ -10,10 +10,17 @@ import SettingsScreen from '../screens/SettingsScreen';
 import ScheduledScreen from '../screens/ScheduledScreen';
 import { getChatSessions, saveChatSessions, ChatSession } from '../lib/storage';
 import { addNotificationResponseListener } from '../lib/notifications';
+import { useInactivityTimeout } from '../lib/useInactivityTimeout';
+import { clearToken } from '../lib/api';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
+  // SOC 2: auto-logout after 30 minutes of inactivity
+  const { resetTimer } = useInactivityTimeout(async () => {
+    await clearToken();
+    onLogout();
+  });
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);

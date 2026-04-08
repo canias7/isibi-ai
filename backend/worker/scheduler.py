@@ -17,6 +17,9 @@ def _safe_ident(name: str) -> str:
     return name
 
 
+_last_retention_cleanup: datetime | None = None
+
+
 async def run_scheduler():
     """Background scheduler that runs every 60 seconds."""
     while True:
@@ -29,6 +32,7 @@ async def run_scheduler():
             await _send_daily_digest_reports()
             await _cleanup_expired_record_locks()
             await _run_scheduled_commands()
+            await _cleanup_old_data()
         except asyncio.CancelledError:
             logger.info("Scheduler cancelled, shutting down")
             break
@@ -338,3 +342,51 @@ async def _run_scheduled_commands():
 
         except Exception as e:
             logger.warning(f"Scheduled commands check failed: {e}")
+
+
+async def _cleanup_old_data():
+    """Data retention cleanup — runs once every 24 hours.
+    Enforces SOC 2 data retention policy:
+      - Audit logs: 365 days
+      - Usage logs: 90 days
+      - Revoked sessions: 30 days
+      - Inactive trusted devices: 90 days
+      - Expired login logs: 90 days
+    """
+    global _last_retention_cleanup
+    now = datetime.now(timezone.utc)
+    if _last_retention_cleanup and (now - _last_retention_cleanup).total_seconds() < 86400:
+        return  # Already ran today
+    _last_retention_cleanup = now
+
+    async with async_session() as db:
+        try:
+            total = 0
+            # Audit logs > 365 days
+            cutoff_365 = now - timedelta(days=365)
+            r = await db.execute(text("DELETE FROM ghost_audit_logs WHERE timestamp < :cutoff"), {"cutoff": cutoff_365})
+            total += r.rowcount or 0
+
+            # Usage logs > 90 days
+            cutoff_90d = (now - timedelta(days=90)).date()
+            r = await db.execute(text("DELETE FROM ghost_usage_logs WHERE date < :cutoff"), {"cutoff": cutoff_90d})
+            total += r.rowcount or 0
+
+            # Revoked sessions > 30 days
+            cutoff_30 = now - timedelta(days=30)
+            r = await db.execute(text("DELETE FROM ghost_sessions WHERE revoked = true AND last_active < :cutoff"), {"cutoff": cutoff_30})
+            total += r.rowcount or 0
+
+            # Inactive trusted devices > 90 days
+            cutoff_90 = now - timedelta(days=90)
+            r = await db.execute(text("DELETE FROM ghost_trusted_devices WHERE trusted_at < :cutoff"), {"cutoff": cutoff_90})
+            total += r.rowcount or 0
+
+            # Login logs > 90 days
+            r = await db.execute(text("DELETE FROM ghost_login_logs WHERE timestamp < :cutoff"), {"cutoff": cutoff_90})
+            total += r.rowcount or 0
+
+            await db.commit()
+            logger.info("Data retention cleanup completed: %d rows removed", total)
+        except Exception as e:
+            logger.warning("Data retention cleanup failed: %s", e)

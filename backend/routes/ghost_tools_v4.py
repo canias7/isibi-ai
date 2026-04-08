@@ -18,8 +18,10 @@ import json
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +37,11 @@ def _verify_auth(authorization: str) -> dict:
     return verify_ghost_token(token)
 
 
+def _audit_log_lazy():
+    from routes.ghost_auth import _audit_log
+    return _audit_log
+
+
 # ── Call Recording Summary ───────────────────────────────────────────────
 
 class CallSummaryRequest(BaseModel):
@@ -44,9 +51,9 @@ class CallSummaryRequest(BaseModel):
 
 
 @router.post("/call-summary")
-async def call_summary(req: CallSummaryRequest, authorization: str = Header(...)):
+async def call_summary(req: CallSummaryRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Generate AI summary from call transcript."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     import anthropic
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -101,6 +108,8 @@ Transcript:
                     sections["lead_status"] = status
                     break
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_call_summary", f"Contact: {req.contact_name or 'Unknown'}")
+    await db.commit()
     return {
         "summary": sections["summary"].strip() or response_text[:200],
         "key_points": sections["key_points"] or [response_text[:100]],
@@ -121,9 +130,9 @@ class CurrencyConvertRequest(BaseModel):
 
 
 @router.post("/currency-convert")
-async def currency_convert(req: CurrencyConvertRequest, authorization: str = Header(...)):
+async def currency_convert(req: CurrencyConvertRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Convert currency using real-time exchange rates."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     async with httpx.AsyncClient(timeout=15) as client:
         # Use a free exchange rate API
@@ -135,6 +144,8 @@ async def currency_convert(req: CurrencyConvertRequest, authorization: str = Hea
             if rate is None:
                 raise HTTPException(400, f"Unknown currency: {req.to_currency}")
             converted = round(req.amount * rate, 2)
+            await _audit_log_lazy()(db, payload.get("email", ""), "tool_currency_convert", f"{req.amount} {req.from_currency.upper()} -> {req.to_currency.upper()}")
+            await db.commit()
             return {
                 "amount": req.amount,
                 "from": req.from_currency.upper(),
@@ -154,9 +165,9 @@ class CompanyLookupRequest(BaseModel):
 
 
 @router.post("/company-lookup")
-async def company_lookup(req: CompanyLookupRequest, authorization: str = Header(...)):
+async def company_lookup(req: CompanyLookupRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Look up company information."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     import anthropic
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -167,6 +178,8 @@ async def company_lookup(req: CompanyLookupRequest, authorization: str = Header(
         messages=[{"role": "user", "content": f"Give me a brief company profile for {req.company}. Include: what they do, industry, approximate size/revenue if known, headquarters, key products/services, competitors. Be concise."}],
     )
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_company_lookup", f"Company: {req.company[:40]}")
+    await db.commit()
     return {"company": req.company, "profile": message.content[0].text if message.content else "No info found"}
 
 
@@ -177,9 +190,9 @@ class FlightStatusRequest(BaseModel):
 
 
 @router.post("/flight-status")
-async def flight_status(req: FlightStatusRequest, authorization: str = Header(...)):
+async def flight_status(req: FlightStatusRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Check flight status."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     async with httpx.AsyncClient(timeout=15) as client:
         # Use AviationStack or similar free API
@@ -191,6 +204,8 @@ async def flight_status(req: FlightStatusRequest, authorization: str = Header(..
                 flights = r.json().get("data", [])
                 if flights:
                     f = flights[0]
+                    await _audit_log_lazy()(db, payload.get("email", ""), "tool_flight_status", f"Flight: {req.flight}")
+                    await db.commit()
                     return {
                         "flight": req.flight,
                         "status": f.get("flight_status", "unknown"),
@@ -202,6 +217,8 @@ async def flight_status(req: FlightStatusRequest, authorization: str = Header(..
                 pass
 
         # Fallback: return guidance
+        await _audit_log_lazy()(db, payload.get("email", ""), "tool_flight_status", f"Flight: {req.flight}")
+        await db.commit()
         return {
             "flight": req.flight,
             "message": f"Flight {req.flight} status — check flightaware.com or your airline's app for real-time updates.",
@@ -217,9 +234,9 @@ class PackageTrackingRequest(BaseModel):
 
 
 @router.post("/package-tracking")
-async def package_tracking(req: PackageTrackingRequest, authorization: str = Header(...)):
+async def package_tracking(req: PackageTrackingRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Track a package."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     # Auto-detect carrier from tracking number format
     num = req.tracking_number.upper().strip()
@@ -237,6 +254,8 @@ async def package_tracking(req: PackageTrackingRequest, authorization: str = Hea
         "DHL": f"https://www.dhl.com/en/express/tracking.html?AWB={num}",
     }
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_package_tracking", f"Tracking: {num}, Carrier: {carrier}")
+    await db.commit()
     return {
         "tracking_number": num,
         "carrier": carrier,

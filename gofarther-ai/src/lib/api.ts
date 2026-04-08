@@ -277,3 +277,9 @@ export async function revokeSession(sessionId: string): Promise<{ ok: boolean }>
 export async function revokeAllSessions(): Promise<{ ok: boolean; revoked: number }> {
   return apiFetch('/sessions', { method: 'DELETE' });
 }
+
+// ─── Data Export (GDPR) ───────────────────────────────────────────────
+
+export async function exportMyData() {
+  return apiFetch('/export');
+}

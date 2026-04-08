@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData } from '../lib/api';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -804,6 +804,21 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
             finally { setLoadingSessions(false); }
           }} activeOpacity={0.7}>
             <Text style={s.rowLabel}>Active Sessions</Text>
+            <Ionicons name="chevron-forward" size={16} color="#ccc" />
+          </TouchableOpacity>
+          <View style={s.rowDivider} />
+          {/* Export My Data */}
+          <TouchableOpacity style={s.row} onPress={async () => {
+            try {
+              Alert.alert('Exporting...', 'Preparing your data export');
+              const data = await exportMyData();
+              const json = JSON.stringify(data, null, 2);
+              // Use share sheet
+              const { Share } = require('react-native');
+              await Share.share({ message: json, title: 'GoFarther AI Data Export' });
+            } catch (e: any) { Alert.alert('Error', e.message || 'Could not export data'); }
+          }} activeOpacity={0.7}>
+            <Text style={s.rowLabel}>Export My Data</Text>
             <Ionicons name="chevron-forward" size={16} color="#ccc" />
           </TouchableOpacity>
         </View>

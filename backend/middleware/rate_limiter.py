@@ -46,6 +46,16 @@ RATE_LIMITS: list[tuple[str, int]] = [
     ("/api/ghost/reset", 5),
     ("/api/ghost/connectors", 20),
     ("/api/ghost/chat/sync", 10),
+    # Tool-specific limits (SOC 2 — restrict sensitive operations)
+    ("/api/ghost/tools/v2/send-sms-bulk", 3),
+    ("/api/ghost/tools/v2/send-email-bulk", 3),
+    ("/api/ghost/tools/v2/send-sms", 10),
+    ("/api/ghost/tools/v2/send-whatsapp", 10),
+    ("/api/ghost/tools/v2/send-email", 15),
+    ("/api/ghost/tools/v2/ai-call", 5),
+    ("/api/ghost/tools/v2/trigger-webhook", 10),
+    ("/api/ghost/tools/run-code", 10),
+    ("/api/ghost/tools/", 20),
     ("/api/ghost/", 30),
     ("/api/apps/", 30),       # Generated app data endpoints
     ("/api/projects/", 40),   # Project management

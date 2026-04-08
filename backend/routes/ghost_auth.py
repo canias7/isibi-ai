@@ -1218,6 +1218,75 @@ async def delete_account(authorization: str = Header(...), db: AsyncSession = De
     return {"status": "deleted", "message": "Account permanently deleted"}
 
 
+# ── Data Export (GDPR Right to Portability) ──────────────────────────
+
+@router.get("/export")
+async def export_my_data(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Export all user data as JSON — GDPR data portability."""
+    from fastapi.responses import JSONResponse
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Account info (no password hash)
+    account = {
+        "email": user.email, "name": user.name, "plan": user.plan,
+        "credits": user.credits, "created_at": str(user.created_at),
+        "email_verified": user.email_verified, "is_2fa_enabled": user.is_2fa_enabled or False,
+    }
+
+    # Chat sessions + decrypted messages
+    sessions_result = await db.execute(select(GhostChatSession).where(GhostChatSession.user_id == user.id))
+    sessions = sessions_result.scalars().all()
+    chat_data = []
+    for s in sessions:
+        msgs_result = await db.execute(
+            select(GhostChatMessage).where(GhostChatMessage.session_id == s.id).order_by(GhostChatMessage.timestamp.asc())
+        )
+        messages = msgs_result.scalars().all()
+        chat_data.append({
+            "id": s.id, "title": s.title, "agent_id": s.agent_id, "pinned": s.pinned,
+            "tag": s.tag, "created_at": s.created_at, "updated_at": s.updated_at,
+            "messages": [{"role": m.role, "content": decrypt_chat_content(m.content or ""), "timestamp": m.timestamp} for m in messages],
+        })
+
+    # Audit logs (last 1000)
+    audit_result = await db.execute(
+        select(GhostAuditLog).where(GhostAuditLog.user_email == user.email).order_by(GhostAuditLog.timestamp.desc()).limit(1000)
+    )
+    audit_logs = [{"action": a.action, "details": a.details, "timestamp": str(a.timestamp)} for a in audit_result.scalars().all()]
+
+    # Usage logs
+    usage_result = await db.execute(select(GhostUsageLog).where(GhostUsageLog.user_id == user.id).order_by(GhostUsageLog.date.desc()))
+    usage_logs = [{"date": str(u.date), "tokens_in": u.tokens_in, "tokens_out": u.tokens_out, "requests": u.requests} for u in usage_result.scalars().all()]
+
+    # Connected apps (IDs only, no credentials)
+    from routes.ghost_connectors import GhostConnectorCred
+    creds_result = await db.execute(select(GhostConnectorCred).where(GhostConnectorCred.user_id == user.id))
+    connected_apps = [{"app_id": c.app_id, "connected_at": str(c.connected_at)} for c in creds_result.scalars().all()]
+
+    # Log the export
+    await _audit_log(db, user.email, "data_export", "User exported all personal data")
+    await db.commit()
+
+    export = {
+        "exported_at": str(datetime.now(timezone.utc)),
+        "account": account,
+        "chat_sessions": chat_data,
+        "audit_logs": audit_logs,
+        "usage_logs": usage_logs,
+        "connected_apps": connected_apps,
+    }
+
+    return JSONResponse(
+        content=export,
+        headers={"Content-Disposition": f'attachment; filename="gofarther_export_{user.email}.json"'},
+    )
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # Chat Sync — persist conversations across devices
 # ══════════════════════════════════════════════════════════════════════════

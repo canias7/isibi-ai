@@ -80,8 +80,25 @@ import time as _time
 _APP_START_TIME = _time.time()
 
 
+def _validate_env():
+    """Validate required environment variables at startup."""
+    is_prod = bool(os.getenv("RENDER"))
+    missing_critical = []
+    for var in ("DATABASE_URL", "JWT_SECRET", "SMTP_ENCRYPTION_KEY"):
+        if not os.getenv(var):
+            missing_critical.append(var)
+    if is_prod and missing_critical:
+        raise RuntimeError(f"CRITICAL: Missing required environment variables in production: {', '.join(missing_critical)}")
+
+    for var in ("ANTHROPIC_API_KEY", "TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_PHONE_NUMBER",
+                "SENDGRID_API_KEY", "RESEND_API_KEY", "CONNECTOR_ENCRYPTION_KEY", "CHAT_ENCRYPTION_KEY"):
+        if not os.getenv(var):
+            logger.warning("Optional env var %s is not set — related features will be unavailable", var)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _validate_env()
     # Create tables from SQLAlchemy models
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

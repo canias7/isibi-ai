@@ -30,6 +30,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ghost/tools/v2", tags=["ghost-tools-v2"])
 
 
+def _audit_log_lazy():
+    from routes.ghost_auth import _audit_log
+    return _audit_log
+
+
 # ── Security helpers ─────────────────────────────────────────────────────
 
 _BLOCKED_NETS = [
@@ -110,9 +115,9 @@ class SendSMSRequest(BaseModel):
     body: str
 
 @router.post("/send-sms")
-async def send_sms(req: SendSMSRequest, authorization: str = Header(...)):
+async def send_sms(req: SendSMSRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Send SMS silently via Twilio."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     _validate_phone(req.to)
     if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_NUMBER:
         raise HTTPException(500, "Twilio not configured.")
@@ -131,6 +136,8 @@ async def send_sms(req: SendSMSRequest, authorization: str = Header(...)):
     except Exception as e:
         logger.error("SMS error: %s", e)
         raise HTTPException(400, "Failed to send SMS.")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_send_sms", f"To: {req.to}")
+    await db.commit()
     return {"status": "sent", "to": req.to}
 
 
@@ -168,6 +175,8 @@ async def send_email(req: SendEmailRequest, authorization: str = Header(...), db
                 server.ehlo()
                 server.login(settings["smtp_user"], settings["smtp_pass"])
                 server.sendmail(settings["smtp_user"], req.to, msg.as_string())
+            await _audit_log_lazy()(db, payload_data.get("email", ""), "tool_send_email", f"To: {req.to}, Subj: {req.subject[:50]}")
+            await db.commit()
             return {"status": "sent", "to": req.to, "from": settings["smtp_user"]}
         except Exception as smtp_err:
             logger.error("SMTP send failed: %s", smtp_err)
@@ -231,6 +240,8 @@ async def send_email_bulk(req: BulkEmailRequest, authorization: str = Header(...
     except Exception as e:
         raise HTTPException(400, f"SMTP connection failed: {str(e)}")
 
+    await _audit_log_lazy()(db, payload_data.get("email", ""), "tool_send_email_bulk", f"{len(req.recipients)} recipients")
+    await db.commit()
     return {"results": results, "sent": sent_count, "failed": len(req.recipients) - sent_count, "total": len(req.recipients)}
 
 
@@ -242,9 +253,9 @@ class BulkSMSRequest(BaseModel):
     recipients: list[BulkSMSRecipient]  # max 50
 
 @router.post("/send-sms-bulk")
-async def send_sms_bulk(req: BulkSMSRequest, authorization: str = Header(...)):
+async def send_sms_bulk(req: BulkSMSRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Send SMS to multiple recipients via Twilio."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     if len(req.recipients) > 50:
         raise HTTPException(400, "Maximum 50 recipients per batch")
     if not req.recipients:
@@ -277,6 +288,8 @@ async def send_sms_bulk(req: BulkSMSRequest, authorization: str = Header(...)):
                 results.append({"to": r.to, "status": "failed", "error": "Send failed"})
             await asyncio.sleep(0.1)
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_send_sms_bulk", f"{len(req.recipients)} recipients")
+    await db.commit()
     return {"results": results, "sent": sent_count, "failed": len(req.recipients) - sent_count, "total": len(req.recipients)}
 
 
@@ -285,9 +298,9 @@ class SendWhatsAppRequest(BaseModel):
     body: str
 
 @router.post("/send-whatsapp")
-async def send_whatsapp(req: SendWhatsAppRequest, authorization: str = Header(...)):
+async def send_whatsapp(req: SendWhatsAppRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Send WhatsApp message via Twilio."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     _validate_phone(req.to)
     if not TWILIO_SID:
         raise HTTPException(500, "Twilio not configured")
@@ -306,6 +319,8 @@ async def send_whatsapp(req: SendWhatsAppRequest, authorization: str = Header(..
     except Exception as e:
         logger.error("WhatsApp error: %s", e)
         raise HTTPException(400, "Failed to send WhatsApp message.")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_send_whatsapp", f"To: {req.to}")
+    await db.commit()
     return {"status": "sent", "to": req.to}
 
 
@@ -314,9 +329,9 @@ class AICallRequest(BaseModel):
     message: str  # What the AI should say
 
 @router.post("/ai-call")
-async def ai_call(req: AICallRequest, authorization: str = Header(...)):
+async def ai_call(req: AICallRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Initiate AI phone call via Twilio + TwiML."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     _validate_phone(req.to)
     if not TWILIO_SID:
         raise HTTPException(500, "Twilio not configured")
@@ -336,6 +351,8 @@ async def ai_call(req: AICallRequest, authorization: str = Header(...)):
     except Exception as e:
         logger.error("AI call error: %s", e)
         raise HTTPException(400, "Failed to initiate call.")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_ai_call", f"To: {req.to}")
+    await db.commit()
     return {"status": "calling", "to": req.to}
 
 
@@ -350,9 +367,9 @@ class CalendarEventRequest(BaseModel):
     description: Optional[str] = None
 
 @router.post("/create-event")
-async def create_event(req: CalendarEventRequest, authorization: str = Header(...)):
+async def create_event(req: CalendarEventRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Create calendar event — returns .ics file for import."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     uid = str(uuid.uuid4())
     dtstart = req.date.replace("-", "") + (f"T{req.time.replace(':', '')}00" if req.time else "")
     safe_title = _sanitize_ics(req.title)
@@ -369,7 +386,9 @@ END:VCALENDAR"""
     ics_b64 = base64.b64encode(ics.encode()).decode()
     from routes.ghost_tools import FILE_STORE
     file_id = str(uuid.uuid4())
-    FILE_STORE[file_id] = {"filename": f"{req.title}.ics", "mime": "text/calendar", "data": ics_b64, "created": datetime.utcnow().isoformat()}
+    FILE_STORE[file_id] = {"filename": f"{req.title}.ics", "mime": "text/calendar", "data": ics_b64, "created": datetime.utcnow().isoformat(), "owner_email": payload.get("email", "")}
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_create_event", f"Event: {req.title[:80]}")
+    await db.commit()
     return {"file_id": file_id, "filename": f"{req.title}.ics", "download_url": f"/api/ghost/tools/download/{file_id}"}
 
 
@@ -378,9 +397,11 @@ class ReminderRequest(BaseModel):
     delay_seconds: Optional[int] = 300  # default 5 min
 
 @router.post("/set-reminder")
-async def set_reminder(req: ReminderRequest, authorization: str = Header(...)):
+async def set_reminder(req: ReminderRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Set a reminder — returns data for local notification."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_set_reminder", f"{req.message[:50]}")
+    await db.commit()
     return {"message": req.message, "delay_seconds": req.delay_seconds, "type": "local_notification"}
 
 
@@ -394,11 +415,13 @@ class SocialPostRequest(BaseModel):
     image_url: Optional[str] = None
 
 @router.post("/social-post")
-async def social_post(req: SocialPostRequest, authorization: str = Header(...)):
+async def social_post(req: SocialPostRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Generate social media post content — actual posting requires OAuth per platform."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     system = f"You are a social media expert. Create a {req.platform} post based on the user's content. Include relevant hashtags. Keep it platform-appropriate."
     optimized = await _ask_claude(f"Create a {req.platform} post about: {req.content}", system)
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_social_post", f"Platform: {req.platform}")
+    await db.commit()
     return {"platform": req.platform, "post": optimized, "note": "Copy this to your clipboard and paste in the app, or connect your account for auto-posting."}
 
 
@@ -408,9 +431,11 @@ class ScheduleSocialRequest(BaseModel):
     schedule_time: str  # ISO format
 
 @router.post("/schedule-social")
-async def schedule_social(req: ScheduleSocialRequest, authorization: str = Header(...)):
+async def schedule_social(req: ScheduleSocialRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Schedule a social media post — stores for later."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_schedule_social", f"Platform: {req.platform}")
+    await db.commit()
     return {"platform": req.platform, "content": req.content, "scheduled_for": req.schedule_time, "status": "scheduled"}
 
 
@@ -422,9 +447,9 @@ class CryptoRequest(BaseModel):
     symbols: str  # comma-separated: BTC,ETH,SOL
 
 @router.post("/crypto-portfolio")
-async def crypto_portfolio(req: CryptoRequest, authorization: str = Header(...)):
+async def crypto_portfolio(req: CryptoRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Track crypto portfolio."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     symbols = [s.strip().upper() for s in req.symbols.split(",")]
     results = []
     async with httpx.AsyncClient(timeout=10) as client:
@@ -435,6 +460,8 @@ async def crypto_portfolio(req: CryptoRequest, authorization: str = Header(...))
                 results.append({"symbol": sym, "price": data.get("data", {}).get("amount", "N/A")})
             except:
                 results.append({"symbol": sym, "price": "N/A"})
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_crypto_portfolio", f"Symbols: {req.symbols[:80]}")
+    await db.commit()
     return {"portfolio": results}
 
 
@@ -444,9 +471,9 @@ class InvoiceRequest(BaseModel):
     total: Optional[str] = None
 
 @router.post("/create-invoice")
-async def create_invoice(req: InvoiceRequest, authorization: str = Header(...)):
+async def create_invoice(req: InvoiceRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Generate a professional invoice PDF."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     content = await _ask_claude(
         f"Create an invoice for client: {req.client_name}\nItems/Services: {req.items}\n{f'Total: {req.total}' if req.total else ''}\n\nFormat as a clean, professional invoice with line items, amounts, subtotal, tax, and total.",
         system="You are an invoice generator. Create clean, professional invoices."
@@ -454,7 +481,9 @@ async def create_invoice(req: InvoiceRequest, authorization: str = Header(...)):
     from routes.ghost_tools import FILE_STORE
     file_id = str(uuid.uuid4())
     file_bytes = content.encode('utf-8')
-    FILE_STORE[file_id] = {"filename": f"invoice_{req.client_name.replace(' ', '_')}.txt", "mime": "text/plain", "data": base64.b64encode(file_bytes).decode(), "created": datetime.utcnow().isoformat()}
+    FILE_STORE[file_id] = {"filename": f"invoice_{req.client_name.replace(' ', '_')}.txt", "mime": "text/plain", "data": base64.b64encode(file_bytes).decode(), "created": datetime.utcnow().isoformat(), "owner_email": payload.get("email", "")}
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_create_invoice", f"Client: {req.client_name[:50]}")
+    await db.commit()
     return {"file_id": file_id, "filename": f"invoice_{req.client_name}.txt", "download_url": f"/api/ghost/tools/download/{file_id}", "content": content}
 
 
@@ -462,9 +491,9 @@ class ReceiptRequest(BaseModel):
     image_base64: str
 
 @router.post("/scan-receipt")
-async def scan_receipt(req: ReceiptRequest, authorization: str = Header(...)):
+async def scan_receipt(req: ReceiptRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Scan receipt image and extract expense data."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     async with httpx.AsyncClient(timeout=60) as client:
         res = await client.post(
             "https://api.anthropic.com/v1/messages",
@@ -476,6 +505,8 @@ async def scan_receipt(req: ReceiptRequest, authorization: str = Header(...)):
         )
         data = res.json()
         text = data.get("content", [{}])[0].get("text", "{}")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_scan_receipt", "Receipt scan")
+    await db.commit()
     try:
         return json.loads(text)
     except:
@@ -490,9 +521,9 @@ class YouTubeRequest(BaseModel):
     url: str
 
 @router.post("/youtube-summary")
-async def youtube_summary(req: YouTubeRequest, authorization: str = Header(...)):
+async def youtube_summary(req: YouTubeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Summarize a YouTube video by reading its page."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     # Extract video ID
     vid_match = re.search(r'(?:v=|youtu\.be/)([\w-]+)', req.url)
     if not vid_match:
@@ -509,6 +540,8 @@ async def youtube_summary(req: YouTubeRequest, authorization: str = Header(...))
     title = title_match.group(1).replace(" - YouTube", "") if title_match else "Video"
 
     summary = await _ask_claude(f"Based on the YouTube page content, summarize this video: {title}\n\nPage content excerpt:\n{html[:5000]}")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_youtube_summary", f"URL: {req.url[:80]}")
+    await db.commit()
     return {"title": title, "video_id": vid, "summary": summary}
 
 
@@ -517,9 +550,9 @@ class TranscribeRequest(BaseModel):
     filename: Optional[str] = "audio.m4a"
 
 @router.post("/transcribe")
-async def transcribe_audio(req: TranscribeRequest, authorization: str = Header(...)):
+async def transcribe_audio(req: TranscribeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Transcribe audio using OpenAI Whisper."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     openai_key = os.getenv("OPENAI_API_KEY", "")
     if not openai_key:
         raise HTTPException(500, "OpenAI key not configured")
@@ -535,6 +568,8 @@ async def transcribe_audio(req: TranscribeRequest, authorization: str = Header(.
         )
         if res.status_code != 200:
             raise HTTPException(400, "Transcription failed")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_transcribe", "Audio transcription")
+    await db.commit()
     return {"text": res.json().get("text", "")}
 
 
@@ -547,9 +582,9 @@ class ResearchRequest(BaseModel):
     type: Optional[str] = "general"  # general, academic, patent, legal
 
 @router.post("/research")
-async def research(req: ResearchRequest, authorization: str = Header(...)):
+async def research(req: ResearchRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Deep research on a topic."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     system_map = {
         "general": "You are a research assistant. Provide thorough, well-sourced analysis.",
         "academic": "You are an academic researcher. Cite papers and studies. Use formal academic tone.",
@@ -560,6 +595,8 @@ async def research(req: ResearchRequest, authorization: str = Header(...)):
         f"Research this topic thoroughly: {req.topic}\n\nProvide: key findings, analysis, sources/references, and recommendations.",
         system=system_map.get(req.type, system_map["general"])
     )
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_research", f"Topic: {req.topic[:80]}")
+    await db.commit()
     return {"topic": req.topic, "type": req.type, "research": result}
 
 
@@ -568,9 +605,9 @@ class CompareRequest(BaseModel):
     question: Optional[str] = "Compare these products/pages."
 
 @router.post("/compare")
-async def compare_urls(req: CompareRequest, authorization: str = Header(...)):
+async def compare_urls(req: CompareRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Compare multiple URLs/products."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     urls = [u.strip() for u in req.urls.split(",")][:5]
     # Validate all URLs against SSRF
     for url in urls:
@@ -588,6 +625,8 @@ async def compare_urls(req: CompareRequest, authorization: str = Header(...)):
                 summaries.append(f"URL: {url}\nContent: Could not fetch")
 
     comparison = await _ask_claude(f"{req.question}\n\n" + "\n\n---\n\n".join(summaries))
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_compare_urls", "URL comparison")
+    await db.commit()
     return {"comparison": comparison, "urls_analyzed": len(urls)}
 
 
@@ -602,9 +641,9 @@ class WebhookRequest(BaseModel):
     headers: Optional[dict] = None
 
 @router.post("/trigger-webhook")
-async def trigger_webhook(req: WebhookRequest, authorization: str = Header(...)):
+async def trigger_webhook(req: WebhookRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Trigger any webhook/API endpoint."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     _validate_external_url(req.url)
     try:
         async with httpx.AsyncClient(timeout=15) as client:
@@ -613,6 +652,8 @@ async def trigger_webhook(req: WebhookRequest, authorization: str = Header(...))
                 res = await client.get(req.url, headers=hdrs)
             else:
                 res = await client.post(req.url, headers=hdrs, content=req.body or "")
+        await _audit_log_lazy()(db, payload.get("email", ""), "tool_trigger_webhook", f"{req.method} {req.url[:80]}")
+        await db.commit()
         return {"status": res.status_code, "response": res.text[:2000]}
     except HTTPException:
         raise
@@ -629,9 +670,9 @@ class QRCodeRequest(BaseModel):
     data: str  # URL, text, or any data
 
 @router.post("/generate-qr")
-async def generate_qr(req: QRCodeRequest, authorization: str = Header(...)):
+async def generate_qr(req: QRCodeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Generate QR code image."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     img = qrcode.make(req.data)
     buf = io.BytesIO()
     img.save(buf, format="PNG")
@@ -639,7 +680,9 @@ async def generate_qr(req: QRCodeRequest, authorization: str = Header(...)):
 
     from routes.ghost_tools import FILE_STORE
     file_id = str(uuid.uuid4())
-    FILE_STORE[file_id] = {"filename": "qrcode.png", "mime": "image/png", "data": qr_b64, "created": datetime.utcnow().isoformat()}
+    FILE_STORE[file_id] = {"filename": "qrcode.png", "mime": "image/png", "data": qr_b64, "created": datetime.utcnow().isoformat(), "owner_email": payload.get("email", "")}
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_generate_qr", "QR code generated")
+    await db.commit()
     return {"file_id": file_id, "download_url": f"/api/ghost/tools/download/{file_id}", "image_base64": qr_b64}
 
 
@@ -647,13 +690,15 @@ class ResumeRequest(BaseModel):
     resume_text: str
 
 @router.post("/parse-resume")
-async def parse_resume(req: ResumeRequest, authorization: str = Header(...)):
+async def parse_resume(req: ResumeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Parse resume text into structured data."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
     result = await _ask_claude(
         f"Parse this resume into structured JSON with fields: name, email, phone, summary, experience (array), education (array), skills (array).\n\nResume:\n{req.resume_text}",
         system="You are a resume parser. Extract structured data from resumes. Return valid JSON only."
     )
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_parse_resume", "Resume parsed")
+    await db.commit()
     try:
         return json.loads(result)
     except:

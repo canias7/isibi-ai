@@ -26,10 +26,12 @@ import uuid
 import logging
 import httpx
 from datetime import datetime
-from fastapi import APIRouter, HTTPException, Header, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, Header, UploadFile, File, Form, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from db import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -37,14 +39,19 @@ router = APIRouter(prefix="/ghost/tools", tags=["ghost-tools"])
 
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+# Lazy import to avoid circular dependency
+def _audit_log_lazy():
+    from routes.ghost_auth import _audit_log
+    return _audit_log
+
 # In-memory file cache — backed by R2 for persistence across restarts
 FILE_STORE: dict[str, dict] = {}
 
 
-async def _store_file(file_id: str, filename: str, mime: str, file_bytes: bytes):
+async def _store_file(file_id: str, filename: str, mime: str, file_bytes: bytes, owner_email: str = ""):
     """Store file in memory cache AND upload to R2 for persistence."""
     file_b64 = base64.b64encode(file_bytes).decode()
-    FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+    FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat(), "owner_email": owner_email}
     # Persist to R2 (best-effort, non-fatal)
     try:
         from utils.file_storage import upload_to_r2
@@ -102,8 +109,8 @@ class CreateFileRequest(BaseModel):
 
 
 @router.post("/create-file")
-async def create_file(req: CreateFileRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def create_file(req: CreateFileRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     # Ask AI to generate the content with professional quality
     format_instructions = {
@@ -214,9 +221,7 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
             filename += ".pdf"
             mime = "application/pdf"
         except Exception as e:
-            import traceback
-            print(f"[PDF ERROR] Failed to create PDF: {e}")
-            traceback.print_exc()
+            logger.error("PDF creation failed: %s", e)
             # Fallback: still try basic PDF with reportlab
             try:
                 from reportlab.lib.pagesizes import letter
@@ -241,14 +246,16 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
                 filename += ".pdf"
                 mime = "application/pdf"
             except Exception as e2:
-                print(f"[PDF FALLBACK ERROR] {e2}")
+                logger.error("PDF fallback also failed: %s", e2)
                 file_bytes = content.encode('utf-8')
                 filename += ".txt"
                 mime = "text/plain"
 
     # Store file (memory + R2)
-    await _store_file(file_id, filename, mime, file_bytes)
+    await _store_file(file_id, filename, mime, file_bytes, owner_email=payload.get("email", ""))
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_create_file", f"Created {req.file_type}: {filename}")
+    await db.commit()
     return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes)}
 
 
@@ -257,9 +264,11 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
 JOB_STORE: dict[str, dict] = {}  # job_id -> {status, file_id, error}
 
 @router.post("/create-file-async")
-async def create_file_async(req: CreateFileRequest, authorization: str = Header(...)):
+async def create_file_async(req: CreateFileRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Start file creation in background. Returns job_id immediately."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_create_file_async", f"Async {req.file_type} file")
+    await db.commit()
     import asyncio
     job_id = str(uuid.uuid4())[:8]
     JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None}
@@ -346,8 +355,7 @@ Return ONLY the document content, no explanations."""
                     file_bytes, fname, mime = _csv_to_styled_xlsx(content, filename)
                     filename = fname
                 except Exception as xlsx_err:
-                    import traceback
-                    print(f"XLSX builder failed: {xlsx_err}\n{traceback.format_exc()}")
+                    logger.error("XLSX builder failed: %s", xlsx_err)
                     file_bytes = content.encode('utf-8')
                     filename += ".csv"
                     mime = "text/csv"
@@ -382,14 +390,19 @@ async def job_status(job_id: str):
 
 
 @router.get("/download/{file_id}")
-async def download_file(file_id: str, authorization: str = Header(...)):
-    """Download file — requires authentication."""
+async def download_file(file_id: str, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Download file — requires authentication and ownership check."""
     from fastapi.responses import Response
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
 
     f = await _get_file(file_id)
     if not f:
         raise HTTPException(404, "File not found or expired")
+    # Ownership check — deny access if file belongs to a different user
+    if f.get("owner_email") and f["owner_email"] != payload.get("email", ""):
+        raise HTTPException(404, "File not found or expired")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_download_file", f"Downloaded {file_id}")
+    await db.commit()
     return Response(content=base64.b64decode(f["data"]), media_type=f["mime"], headers={"Content-Disposition": f'attachment; filename="{f["filename"]}"'})
 
 
@@ -404,9 +417,11 @@ class ModifyFileRequest(BaseModel):
 
 
 @router.post("/modify-file-async")
-async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(...)):
+async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Modify an existing file: edit, chart, convert, merge, or filter."""
-    _verify_auth(authorization)
+    payload = _verify_auth(authorization)
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_modify_file", f"Operation: {req.operation}")
+    await db.commit()
     import asyncio
     job_id = str(uuid.uuid4())[:8]
     JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None}
@@ -937,7 +952,7 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
         from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
         data = _extract_json_from_content(content)
-        print(f"XLSX PARSED JSON type={type(data).__name__}, keys={list(data.keys()) if isinstance(data, dict) else 'N/A'}")
+        logger.debug("XLSX PARSED JSON type=%s", type(data).__name__)
 
         # Handle both {"headers":[], "rows":[]} and [{"col":"val"}] formats
         if isinstance(data, list):
@@ -959,10 +974,7 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
         # Keep all rows that are lists (don't filter — empty cells are normal for formula rows)
         rows = [r for r in rows if isinstance(r, list)]
 
-        print(f"XLSX DATA: {len(headers)} headers, {len(rows)} rows, {len(formulas)} formulas")
-        print(f"XLSX HEADERS: {headers[:5]}")
-        if rows:
-            print(f"XLSX FIRST ROW: {rows[0][:5]}")
+        logger.debug("XLSX DATA: %d headers, %d rows, %d formulas", len(headers), len(rows), len(formulas))
 
         wb = Workbook()
         ws = wb.active
@@ -1128,8 +1140,7 @@ def _content_to_xlsx_with_formulas(content: str, base_name: str) -> tuple:
         wb.save(buf)
         return buf.getvalue(), f"{base_name}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     except Exception as e:
-        import traceback
-        print(f"XLSX FORMULA BUILDER FAILED: {e}\n{traceback.format_exc()}\nContent preview: {content[:500]}")
+        logger.error("XLSX formula builder failed: %s", e)
         # Fallback: try to make a decent Excel from whatever content we got
         try:
             from openpyxl import Workbook as _FbWb
@@ -1259,8 +1270,8 @@ class PresentationRequest(BaseModel):
 
 
 @router.post("/create-presentation")
-async def create_presentation(req: PresentationRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def create_presentation(req: PresentationRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     system = f"""Create a {req.slides}-slide presentation. Return JSON array where each item has "title" and "bullets" (array of strings). Example:
 [{{"title":"Introduction","bullets":["Point 1","Point 2"]}},{{"title":"Details","bullets":["Info 1","Info 2"]}}]
@@ -1289,8 +1300,10 @@ Return ONLY valid JSON."""
     file_id = str(uuid.uuid4())
     filename = f"presentation_{file_id[:8]}.html"
 
-    await _store_file(file_id, filename, "text/html", file_bytes)
+    await _store_file(file_id, filename, "text/html", file_bytes, owner_email=payload.get("email", ""))
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_create_presentation", "Created slide deck")
+    await db.commit()
     return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "slides": len(slides_data)}
 
 
@@ -1301,8 +1314,8 @@ class WebSearchRequest(BaseModel):
 
 
 @router.post("/web-search")
-async def web_search(req: WebSearchRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def web_search(req: WebSearchRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     # Use DuckDuckGo instant answer API (free, no key needed)
     async with httpx.AsyncClient(timeout=15) as client:
@@ -1325,6 +1338,8 @@ async def web_search(req: WebSearchRequest, authorization: str = Header(...)):
         answer = await _ask_claude(f"Answer this search query concisely: {req.query}")
         results.append({"title": "AI Answer", "snippet": answer, "url": ""})
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_web_search", f"Query: {req.query[:100]}")
+    await db.commit()
     return {"query": req.query, "results": results}
 
 
@@ -1336,8 +1351,8 @@ class ReadURLRequest(BaseModel):
 
 
 @router.post("/read-url")
-async def read_url(req: ReadURLRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def read_url(req: ReadURLRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
     # SSRF protection — block internal/private URLs
     from routes.ghost_tools_v2 import _validate_external_url
     _validate_external_url(req.url)
@@ -1358,6 +1373,8 @@ async def read_url(req: ReadURLRequest, authorization: str = Header(...)):
     # Ask AI to answer based on content
     summary = await _ask_claude(f"Based on this webpage content, {req.question}\n\nContent:\n{text}")
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_read_url", f"URL: {req.url[:100]}")
+    await db.commit()
     return {"url": req.url, "summary": summary}
 
 
@@ -1369,8 +1386,8 @@ class ReadPDFRequest(BaseModel):
 
 
 @router.post("/read-pdf")
-async def read_pdf(req: ReadPDFRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def read_pdf(req: ReadPDFRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     try:
         import fitz  # PyMuPDF
@@ -1387,6 +1404,8 @@ async def read_pdf(req: ReadPDFRequest, authorization: str = Header(...)):
         raise HTTPException(400, f"Could not read PDF: {str(e)}")
 
     summary = await _ask_claude(f"{req.question}\n\nDocument content:\n{text}")
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_read_pdf", "PDF read")
+    await db.commit()
     return {"summary": summary, "pages": len(doc) if doc else 0}
 
 
@@ -1397,8 +1416,8 @@ class StockRequest(BaseModel):
 
 
 @router.post("/stock-report")
-async def stock_report(req: StockRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def stock_report(req: StockRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     symbol = req.symbol.upper()
     async with httpx.AsyncClient(timeout=15) as client:
@@ -1412,6 +1431,8 @@ async def stock_report(req: StockRequest, authorization: str = Header(...)):
 
     report = await _ask_claude(f"Give a brief stock analysis for {symbol}. Current price: ${price} {currency}. Previous close: ${prev_close}. Include a brief outlook.")
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_stock_report", f"Symbol: {symbol}")
+    await db.commit()
     return {"symbol": symbol, "price": price, "currency": currency, "previous_close": prev_close, "analysis": report}
 
 
@@ -1422,8 +1443,8 @@ class WeatherRequest(BaseModel):
 
 
 @router.post("/weather-report")
-async def weather_report(req: WeatherRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def weather_report(req: WeatherRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     async with httpx.AsyncClient(timeout=10) as client:
         res = await client.get(f"https://wttr.in/{req.location}?format=j1")
@@ -1441,6 +1462,8 @@ async def weather_report(req: WeatherRequest, authorization: str = Header(...)):
         "forecast": [{"date": d.get("date", ""), "high": f"{d.get('maxtempF', '?')}°F", "low": f"{d.get('mintempF', '?')}°F"} for d in forecast],
     }
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_weather_report", f"Location: {req.location}")
+    await db.commit()
     return weather_info
 
 
@@ -1451,8 +1474,8 @@ class NewsRequest(BaseModel):
 
 
 @router.post("/news")
-async def news(req: NewsRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def news(req: NewsRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     # Use DuckDuckGo news
     async with httpx.AsyncClient(timeout=15) as client:
@@ -1462,6 +1485,8 @@ async def news(req: NewsRequest, authorization: str = Header(...)):
     # Get AI to provide news summary based on its knowledge
     summary = await _ask_claude(f"Give me the latest news and developments about: {req.topic}. Be specific with recent events, dates, and key details. Format as bullet points.")
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_news", f"Topic: {req.topic[:100]}")
+    await db.commit()
     return {"topic": req.topic, "summary": summary}
 
 
@@ -1473,14 +1498,16 @@ class TranslateRequest(BaseModel):
 
 
 @router.post("/translate-doc")
-async def translate_doc(req: TranslateRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def translate_doc(req: TranslateRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     translation = await _ask_claude(
         f"Translate the following text to {req.target_language}. Return ONLY the translation, nothing else.\n\n{req.text}",
         system=f"You are a professional translator. Translate accurately to {req.target_language}."
     )
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_translate_doc", f"To: {req.target_language}")
+    await db.commit()
     return {"original_language": "auto-detected", "target_language": req.target_language, "translation": translation}
 
 
@@ -1491,8 +1518,8 @@ class RunCodeRequest(BaseModel):
 
 
 @router.post("/run-code")
-async def run_code(req: RunCodeRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def run_code(req: RunCodeRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     # Ask AI to write Python code
     code = await _ask_claude(
@@ -1537,6 +1564,8 @@ async def run_code(req: RunCodeRequest, authorization: str = Header(...)):
         logger.error("Code execution error: %s", e)
         output = "Code execution failed"
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_run_code", "Python code execution")
+    await db.commit()
     return {"code": code, "output": output.strip()}
 
 
@@ -1548,8 +1577,8 @@ class AnalyzeDataRequest(BaseModel):
 
 
 @router.post("/analyze-data")
-async def analyze_data(req: AnalyzeDataRequest, authorization: str = Header(...)):
-    _verify_auth(authorization)
+async def analyze_data(req: AnalyzeDataRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = _verify_auth(authorization)
 
     # Limit data size
     csv_preview = req.csv_data[:5000]
@@ -1559,4 +1588,6 @@ async def analyze_data(req: AnalyzeDataRequest, authorization: str = Header(...)
         system="You are a data analyst. Analyze the CSV data provided. Give clear insights, trends, and statistics. Format with bullet points and headers."
     )
 
+    await _audit_log_lazy()(db, payload.get("email", ""), "tool_analyze_data", "Data analysis")
+    await db.commit()
     return {"analysis": analysis, "rows_analyzed": req.csv_data.count('\n')}
