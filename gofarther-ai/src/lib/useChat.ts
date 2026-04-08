@@ -247,7 +247,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle image generation
       if (finalAction?.type === 'generate_image') {
-        updateAndPersist(aiMsgIdStream, { content: finalText || 'Generating image...' });
+        updateAndPersist(aiMsgIdStream, { content: finalText || '' });
         setLoading(false);
         trackAsync(generateImage(finalAction.target || '')).then(imageUrl => {
           updateAndPersist(aiMsgIdStream, { content: finalText || 'Here\'s your image:', imageUrl });
@@ -260,7 +260,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle file creation — download and open natively
       if (finalAction?.type === 'create_file') {
-        updateAndPersist(aiMsgIdStream, { content: finalText || 'Creating file', isCreatingFile: true });
+        updateAndPersist(aiMsgIdStream, { content: finalText || '', isCreatingFile: true });
         setLoading(false);
         setIsCreating(true);
         cancelRef.current = false;
@@ -293,7 +293,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'modify_file') {
         const operation = finalAction.target || 'edit';
         const opLabels: Record<string, string> = { edit: 'Editing file', chart: 'Creating chart', convert: 'Converting file', merge: 'Merging files', filter: 'Filtering data' };
-        updateAndPersist(aiMsgIdStream, { content: finalText || opLabels[operation] || 'Modifying file', isCreatingFile: true });
+        updateAndPersist(aiMsgIdStream, { content: finalText || '', isCreatingFile: true });
         setLoading(false);
         setIsCreating(true);
         cancelRef.current = false;
@@ -330,7 +330,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle web search
       if (finalAction?.type === 'web_search') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Searching...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(webSearch(finalAction.target || '')).then(result => {
           const formatted = result.results.map((r: any) => `**${r.title}**\n${r.snippet}${r.url ? `\n[Link](${r.url})` : ''}`).join('\n\n');
@@ -343,7 +343,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle URL reading
       if (finalAction?.type === 'read_url') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Reading page...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(readURL(finalAction.target || '', finalAction.text)).then(result => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: result.summary } : m));
@@ -355,7 +355,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle code execution
       if (finalAction?.type === 'run_code') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Running code...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(runCode(finalAction.target || '')).then(result => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**Code:**\n\`\`\`python\n${result.code}\n\`\`\`\n\n**Output:**\n\`\`\`\n${result.output}\n\`\`\`` } : m));
@@ -367,7 +367,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle translation
       if (finalAction?.type === 'translate') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Translating...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(translateText(finalAction.target || '', finalAction.text || 'Spanish')).then(result => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: result.translation } : m));
@@ -379,7 +379,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle YouTube summary
       if (finalAction?.type === 'youtube_summary') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Summarizing video...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(youtubeSearch(finalAction.target || '')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**${r.title}**\n\n${r.summary}` } : m));
@@ -389,7 +389,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle research
       if (finalAction?.type === 'research') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Researching...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(deepResearch(finalAction.target || '', finalAction.text || 'general')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: r.research } : m));
@@ -399,7 +399,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle QR code
       if (finalAction?.type === 'generate_qr') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Generating QR code...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(generateQR(finalAction.target || '')).then(r => {
           const url = `https://isibi-backend.onrender.com${r.download_url}`;
@@ -410,7 +410,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle calendar event
       if (finalAction?.type === 'create_event') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating event...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(createCalendarEvent(finalAction.target || '', finalAction.text || new Date().toISOString().split('T')[0])).then(r => {
           const url = `https://isibi-backend.onrender.com${r.download_url}`;
@@ -421,7 +421,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle invoice
       if (finalAction?.type === 'create_invoice') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating invoice...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(createInvoice(finalAction.target || '', finalAction.text || '')).then(r => {
           const url = `https://isibi-backend.onrender.com${r.download_url}`;
@@ -432,7 +432,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle crypto portfolio
       if (finalAction?.type === 'crypto_portfolio') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking prices...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(cryptoPortfolio(finalAction.target || 'BTC,ETH')).then(r => {
           const formatted = r.portfolio.map((c: any) => `**${c.symbol}**: $${c.price}`).join('\n');
@@ -443,7 +443,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle social post
       if (finalAction?.type === 'social_post') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating post...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(socialPost(finalAction.text || 'twitter', finalAction.target || '')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: `**${r.platform} post:**\n\n${r.post}` } : m));
@@ -453,7 +453,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle URL comparison
       if (finalAction?.type === 'compare_urls') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Comparing...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(compareURLs(finalAction.target || '', finalAction.text)).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: r.comparison } : m));
@@ -463,7 +463,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle meme
       if (finalAction?.type === 'create_meme') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Creating meme...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(createMeme(finalAction.target || '', finalAction.text || '')).then(r => {
           setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Here\'s your meme!', imageUrl: `data:image/png;base64,${r.image_base64}` } : m));
@@ -473,7 +473,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle barcode lookup
       if (finalAction?.type === 'barcode_lookup') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Looking up barcode...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(barcodeLookup(finalAction.target || '')).then(r => {
           if (r.found) {
@@ -488,7 +488,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       // Handle company/LinkedIn lookup, market research, competitor analysis
       if (finalAction?.type === 'company_lookup' || finalAction?.type === 'linkedin_lookup' || finalAction?.type === 'competitor_analysis' || finalAction?.type === 'market_research') {
         const labels: Record<string, string> = { company_lookup: 'Looking up company...', linkedin_lookup: 'Looking up profile...', competitor_analysis: 'Analyzing competitors...', market_research: 'Researching market...' };
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || labels[finalAction!.type] || 'Researching...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(deepResearch(finalAction.target || '', 'general')).then(r => {
           updateAndPersist(aiMsgIdStream, { content: r.research });
@@ -522,7 +522,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle daily briefing
       if (finalAction?.type === 'daily_briefing') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Getting your briefing...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         // Combine weather + news
         trackAsync(Promise.all([
@@ -536,7 +536,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle flight status
       if (finalAction?.type === 'flight_status') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking flight status...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(webSearch(`flight status ${finalAction.target}`)).then(r => {
           const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
@@ -547,7 +547,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle package tracking
       if (finalAction?.type === 'package_tracking') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Tracking package...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(webSearch(`package tracking ${finalAction.target}`)).then(r => {
           const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
@@ -558,7 +558,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle currency conversion
       if (finalAction?.type === 'currency_convert') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Converting...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(webSearch(`${finalAction.target} exchange rate conversion`)).then(r => {
           const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
@@ -569,7 +569,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       // Handle timezone
       if (finalAction?.type === 'time_zone') {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking time...' } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(webSearch(`current time in ${finalAction.target}`)).then(r => {
           const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
@@ -582,7 +582,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'create_proposal' || finalAction?.type === 'create_contract' || finalAction?.type === 'create_presentation') {
         const fileType = finalAction.type === 'create_presentation' ? 'xlsx' : 'pdf';
         const desc = `${finalAction.type.replace('create_', '')} for: ${finalAction.target}`;
-        updateAndPersist(aiMsgIdStream, { content: finalText || `Creating ${finalAction.type.replace('create_', '')}...`, isCreatingFile: true });
+        updateAndPersist(aiMsgIdStream, { content: finalText || '', isCreatingFile: true });
         setLoading(false);
         setIsCreating(true);
         cancelRef.current = false;
@@ -607,7 +607,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'connector') {
         const appId = finalAction.target || '';
         const actionName = finalAction.text || '';
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || `Working with ${appId}...` } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || '' } : m));
         setLoading(false);
         trackAsync(runConnectorAction(appId, actionName, finalAction.key)).then(result => {
           // Format the result nicely
