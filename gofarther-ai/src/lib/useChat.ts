@@ -8,6 +8,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
 import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
+import { pushSession } from './chatSync';
 import NetInfo from '@react-native-community/netinfo';
 import { scheduleLocalNotification } from './notifications';
 
@@ -59,6 +60,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         timestamp: m.timestamp || Date.now(),
         ...(m.reaction ? { reaction: m.reaction } : {}),
       })));
+      // Sync to server in background (best-effort)
+      pushSession(currentSessionId.current);
     }
   }, [messages, loading]);
 

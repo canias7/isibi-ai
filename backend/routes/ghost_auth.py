@@ -792,3 +792,158 @@ async def delete_account(authorization: str = Header(...), db: AsyncSession = De
     await db.delete(user)
     await db.commit()
     return {"status": "deleted", "message": "Account permanently deleted"}
+
+
+# ══════════════════════════════════════════════════════════════════════════
+# Chat Sync — persist conversations across devices
+# ══════════════════════════════════════════════════════════════════════════
+
+from sqlalchemy import Text, BigInteger
+
+class GhostChatSession(Base):
+    __tablename__ = "ghost_chat_sessions"
+    id = Column(String, primary_key=True)  # UUID from client
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    title = Column(String, default="New Chat")
+    agent_id = Column(String, nullable=True)
+    pinned = Column(Boolean, default=False)
+    tag = Column(String, nullable=True)
+    created_at = Column(BigInteger, nullable=False)  # epoch ms from client
+    updated_at = Column(BigInteger, nullable=False)
+
+
+class GhostChatMessage(Base):
+    __tablename__ = "ghost_chat_messages"
+    id = Column(String, primary_key=True)  # UUID from client
+    session_id = Column(String, nullable=False, index=True)
+    role = Column(String, nullable=False)  # user | assistant | system
+    content = Column(Text, nullable=False)
+    timestamp = Column(BigInteger, nullable=False)  # epoch ms
+    reaction = Column(String, nullable=True)  # up | down | null
+
+
+class SyncSessionIn(BaseModel):
+    id: str
+    title: str = "New Chat"
+    agent_id: Optional[str] = None
+    pinned: bool = False
+    tag: Optional[str] = None
+    created_at: int
+    updated_at: int
+
+
+class SyncMessageIn(BaseModel):
+    id: str
+    session_id: str
+    role: str
+    content: str
+    timestamp: int
+    reaction: Optional[str] = None
+
+
+class SyncPayload(BaseModel):
+    sessions: list[SyncSessionIn] = []
+    messages: list[SyncMessageIn] = []
+
+
+@router.post("/chat/sync")
+async def sync_chat(payload: SyncPayload, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Push local chat data to server. Last-write-wins merge by updated_at / timestamp."""
+    token = authorization.replace("Bearer ", "")
+    auth = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == auth["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(401, "User not found")
+
+    synced_sessions = 0
+    synced_messages = 0
+
+    # Upsert sessions
+    for s in payload.sessions:
+        existing = await db.execute(select(GhostChatSession).where(GhostChatSession.id == s.id))
+        row = existing.scalar_one_or_none()
+        if row:
+            if s.updated_at > (row.updated_at or 0):
+                row.title = s.title
+                row.agent_id = s.agent_id
+                row.pinned = s.pinned
+                row.tag = s.tag
+                row.updated_at = s.updated_at
+                synced_sessions += 1
+        else:
+            db.add(GhostChatSession(
+                id=s.id, user_id=user.id, title=s.title, agent_id=s.agent_id,
+                pinned=s.pinned, tag=s.tag, created_at=s.created_at, updated_at=s.updated_at,
+            ))
+            synced_sessions += 1
+
+    # Upsert messages
+    for m in payload.messages:
+        existing = await db.execute(select(GhostChatMessage).where(GhostChatMessage.id == m.id))
+        row = existing.scalar_one_or_none()
+        if row:
+            # Update reaction if changed
+            if m.reaction != row.reaction:
+                row.reaction = m.reaction
+                synced_messages += 1
+        else:
+            db.add(GhostChatMessage(
+                id=m.id, session_id=m.session_id, role=m.role,
+                content=m.content, timestamp=m.timestamp, reaction=m.reaction,
+            ))
+            synced_messages += 1
+
+    await db.commit()
+    return {"synced_sessions": synced_sessions, "synced_messages": synced_messages}
+
+
+@router.get("/chat/sessions")
+async def get_chat_sessions(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Get all chat sessions for the authenticated user."""
+    token = authorization.replace("Bearer ", "")
+    auth = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == auth["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(401, "User not found")
+
+    result = await db.execute(
+        select(GhostChatSession)
+        .where(GhostChatSession.user_id == user.id)
+        .order_by(GhostChatSession.updated_at.desc())
+    )
+    sessions = result.scalars().all()
+    return {"sessions": [
+        {"id": s.id, "title": s.title, "agent_id": s.agent_id, "pinned": s.pinned, "tag": s.tag, "created_at": s.created_at, "updated_at": s.updated_at}
+        for s in sessions
+    ]}
+
+
+@router.get("/chat/sessions/{session_id}/messages")
+async def get_chat_messages(session_id: str, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Get all messages for a specific chat session."""
+    token = authorization.replace("Bearer ", "")
+    auth = verify_ghost_token(token)
+    # Verify session belongs to user
+    result = await db.execute(select(GhostUser).where(GhostUser.email == auth["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(401, "User not found")
+
+    session_result = await db.execute(
+        select(GhostChatSession).where(GhostChatSession.id == session_id, GhostChatSession.user_id == user.id)
+    )
+    if not session_result.scalar_one_or_none():
+        raise HTTPException(404, "Session not found")
+
+    result = await db.execute(
+        select(GhostChatMessage)
+        .where(GhostChatMessage.session_id == session_id)
+        .order_by(GhostChatMessage.timestamp.asc())
+    )
+    messages = result.scalars().all()
+    return {"messages": [
+        {"id": m.id, "session_id": m.session_id, "role": m.role, "content": m.content, "timestamp": m.timestamp, "reaction": m.reaction}
+        for m in messages
+    ]}

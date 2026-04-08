@@ -160,6 +160,42 @@ export async function detectSmtp(email: string): Promise<{ host: string; port: n
   return apiFetch(`/detect-smtp/${encodeURIComponent(email)}`);
 }
 
+// ─── Chat Sync ─────────────────────────────────────────────────────────
+
+export interface SyncSession {
+  id: string;
+  title: string;
+  agent_id: string | null;
+  pinned: boolean;
+  tag?: string;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface SyncMessage {
+  id: string;
+  session_id: string;
+  role: string;
+  content: string;
+  timestamp: number;
+  reaction?: string | null;
+}
+
+export async function syncChat(sessions: SyncSession[], messages: SyncMessage[]) {
+  return apiFetch('/chat/sync', {
+    method: 'POST',
+    body: JSON.stringify({ sessions, messages }),
+  });
+}
+
+export async function getRemoteSessions(): Promise<{ sessions: SyncSession[] }> {
+  return apiFetch('/chat/sessions');
+}
+
+export async function getRemoteMessages(sessionId: string): Promise<{ messages: SyncMessage[] }> {
+  return apiFetch(`/chat/sessions/${sessionId}/messages`);
+}
+
 // ─── App Connectors ─────────────────────────────────────────────────────
 
 const CONNECTORS = '/connectors';

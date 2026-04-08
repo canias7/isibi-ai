@@ -34,9 +34,39 @@ router = APIRouter(prefix="/ghost/tools", tags=["ghost-tools"])
 
 ANTHROPIC_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
-# Simple file storage — files stored in /tmp with unique IDs
-# In production, use S3 or Cloudinary
+# In-memory file cache — backed by R2 for persistence across restarts
 FILE_STORE: dict[str, dict] = {}
+
+
+async def _store_file(file_id: str, filename: str, mime: str, file_bytes: bytes):
+    """Store file in memory cache AND upload to R2 for persistence."""
+    file_b64 = base64.b64encode(file_bytes).decode()
+    FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+    # Persist to R2 (best-effort, non-fatal)
+    try:
+        from utils.file_storage import upload_to_r2
+        await upload_to_r2(f"ghost-files/{file_id}", file_bytes, content_type=mime, filename=filename)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"R2 upload failed for {file_id}: {e}")
+
+
+async def _get_file(file_id: str) -> dict | None:
+    """Get file from in-memory cache, falling back to R2."""
+    if file_id in FILE_STORE:
+        return FILE_STORE[file_id]
+    # Try R2
+    try:
+        from utils.file_storage import download_from_r2
+        result = await download_from_r2(f"ghost-files/{file_id}")
+        if result:
+            file_b64 = base64.b64encode(result["data"]).decode()
+            entry = {"filename": result["filename"] or f"file_{file_id[:8]}", "mime": result["content_type"] or "application/octet-stream", "data": file_b64, "created": datetime.utcnow().isoformat()}
+            FILE_STORE[file_id] = entry  # Re-populate cache
+            return entry
+    except Exception:
+        pass
+    return None
 
 
 def _verify_auth(authorization: str):
@@ -213,9 +243,8 @@ Return ONLY the document content. No explanations, no preamble, no "here is your
                 filename += ".txt"
                 mime = "text/plain"
 
-    # Store file
-    file_b64 = base64.b64encode(file_bytes).decode()
-    FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+    # Store file (memory + R2)
+    await _store_file(file_id, filename, mime, file_bytes)
 
     return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes)}
 
@@ -331,8 +360,7 @@ Return ONLY the document content, no explanations."""
                 filename += ".txt"
                 mime = "text/plain"
 
-            file_b64 = base64.b64encode(file_bytes).decode()
-            FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+            await _store_file(file_id, filename, mime, file_bytes)
             JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
         except Exception as e:
             JOB_STORE[job_id] = {"status": "failed", "file_id": None, "error": str(e)}
@@ -352,10 +380,11 @@ async def job_status(job_id: str):
 
 @router.get("/download/{file_id}")
 async def download_file(file_id: str):
-    if file_id not in FILE_STORE:
-        raise HTTPException(404, "File not found or expired")
-    f = FILE_STORE[file_id]
     from fastapi.responses import Response
+
+    f = await _get_file(file_id)
+    if not f:
+        raise HTTPException(404, "File not found or expired")
     return Response(content=base64.b64decode(f["data"]), media_type=f["mime"], headers={"Content-Disposition": f'attachment; filename="{f["filename"]}"'})
 
 
@@ -379,17 +408,19 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
 
     async def _background_modify():
         try:
-            # Load original file(s)
+            # Load original file(s) — check cache then R2
             if req.operation == "merge" and req.file_ids:
                 sources = []
                 for fid in req.file_ids:
-                    if fid not in FILE_STORE:
+                    f = await _get_file(fid)
+                    if not f:
                         raise ValueError(f"File {fid} not found")
-                    f = FILE_STORE[fid]
                     content = base64.b64decode(f["data"])
                     sources.append({"filename": f["filename"], "content": content, "mime": f["mime"]})
-            elif req.file_id and req.file_id in FILE_STORE:
-                f = FILE_STORE[req.file_id]
+            elif req.file_id:
+                f = await _get_file(req.file_id)
+                if not f:
+                    raise ValueError("File not found")
                 original_bytes = base64.b64decode(f["data"])
                 original_filename = f["filename"]
                 original_mime = f["mime"]
@@ -637,8 +668,7 @@ Be thorough. Match fuzzy descriptions. Return ONLY valid JSON."""
             else:
                 raise ValueError(f"Unknown operation: {req.operation}")
 
-            file_b64 = base64.b64encode(file_bytes).decode()
-            FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat()}
+            await _store_file(file_id, filename, mime, file_bytes)
             JOB_STORE[job_id] = {"status": "done", "file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "size": len(file_bytes), "error": None}
         except Exception as e:
             JOB_STORE[job_id] = {"status": "failed", "file_id": None, "error": str(e)}
@@ -1228,7 +1258,7 @@ Return ONLY valid JSON."""
     file_id = str(uuid.uuid4())
     filename = f"presentation_{file_id[:8]}.html"
 
-    FILE_STORE[file_id] = {"filename": filename, "mime": "text/html", "data": base64.b64encode(file_bytes).decode(), "created": datetime.utcnow().isoformat()}
+    await _store_file(file_id, filename, "text/html", file_bytes)
 
     return {"file_id": file_id, "filename": filename, "download_url": f"/api/ghost/tools/download/{file_id}", "slides": len(slides_data)}
 
