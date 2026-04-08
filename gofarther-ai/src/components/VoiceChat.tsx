@@ -4,10 +4,10 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
-import { chat, Message, transcribeAudio, textToSpeech } from '../lib/ai';
+import { chat, Message, transcribeAudio } from '../lib/ai';
 import { VoiceOption } from './VoicePicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -30,7 +30,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   const [history, setHistory] = useState<Message[]>([]);
   const [showInput, setShowInput] = useState(false);
   const insets = useSafeAreaInsets();
-  const recordingRef = useRef<Audio.Recording | null>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
 
   const orbScale = useRef(new Animated.Value(1)).current;
   const orbOpacity = useRef(new Animated.Value(0.8)).current;
@@ -38,7 +38,7 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
   useEffect(() => {
     startBreathing();
-    return () => { pulseAnim.current?.stop(); Speech.stop(); stopRecording(true); };
+    return () => { pulseAnim.current?.stop(); Speech.stop(); if (recorder.isRecording) recorder.stop(); };
   }, []);
 
   useEffect(() => {
@@ -84,13 +84,9 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
   /** Start recording audio */
   const startRecording = async () => {
     try {
-      const { granted } = await Audio.requestPermissionsAsync();
-      if (!granted) { setResponse('Microphone permission needed for voice.'); return; }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const recording = new Audio.Recording();
-      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      await recording.startAsync();
-      recordingRef.current = recording;
+      const permStatus = await AudioModule.requestRecordingPermissionsAsync();
+      if (!permStatus.granted) { setResponse('Microphone permission needed for voice.'); return; }
+      recorder.record();
       setStatus('listening');
       setResponse('Listening...');
     } catch (e: any) {
@@ -101,13 +97,11 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
   /** Stop recording and transcribe */
   const stopRecording = async (cancel = false) => {
-    const recording = recordingRef.current;
-    if (!recording) return;
-    recordingRef.current = null;
+    if (!recorder.isRecording) return;
     try {
-      await recording.stopAndUnloadAsync();
+      await recorder.stop();
       if (cancel) return;
-      const uri = recording.getURI();
+      const uri = recorder.uri;
       if (!uri) { setStatus('idle'); return; }
       setStatus('thinking');
       setResponse('Transcribing...');
@@ -116,7 +110,6 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       const text = result.text || result.transcript || '';
       if (!text) { setResponse('Could not understand audio. Try again.'); setStatus('idle'); return; }
       setInput(text);
-      // Auto-send the transcribed text
       await sendMessageWithText(text);
     } catch (e: any) {
       setResponse('Transcription failed: ' + (e.message || ''));
@@ -154,22 +147,6 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       setHistory(prev => [...prev, { role: 'user', content: msgText }, { role: 'assistant', content: aiResponse }]);
       setResponse(aiResponse);
       setStatus('speaking');
-
-      // Try ElevenLabs TTS first, fallback to device TTS
-      try {
-        const audioBase64 = await textToSpeech(aiResponse, voice.id || 'JBFqnCBsd6RMkjVDRZzb');
-        if (audioBase64) {
-          const uri = FileSystem.cacheDirectory + 'voice_response.mp3';
-          await FileSystem.writeAsStringAsync(uri, audioBase64, { encoding: FileSystem.EncodingType.Base64 });
-          await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
-          const { sound } = await Audio.Sound.createAsync({ uri });
-          sound.setOnPlaybackStatusUpdate((s: any) => {
-            if (s.didJustFinish) { setStatus('idle'); sound.unloadAsync(); }
-          });
-          await sound.playAsync();
-          return;
-        }
-      } catch { /* fallback to device TTS */ }
 
       Speech.speak(aiResponse, {
         rate: 0.95, pitch: 1.0,
