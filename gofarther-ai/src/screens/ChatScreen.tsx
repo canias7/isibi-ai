@@ -22,7 +22,7 @@ import { useChat } from '../lib/useChat';
 import {
   getAgents, Agent, getAIName, getUserNickname,
   getChatSessions, saveChatSessions, ChatSession,
-  getMemory, getCustomInstructions, getLanguage, getSavedContacts, trackEvent,
+  getMemory, getCustomInstructions, getLanguage, getSavedContacts, getConnectedApps, trackEvent,
 } from '../lib/storage';
 import { HamburgerButton } from '../components/Drawer';
 import VoicePicker, { VoiceOption, VOICES } from '../components/VoicePicker';
@@ -114,7 +114,7 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
     });
     getUserNickname().then(n => setUserNickname(n || ''));
     // Build system prompt with memory, instructions, language
-    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts()]).then(([memory, custom, lang, nick, savedContacts]) => {
+    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts(), getConnectedApps()]).then(([memory, custom, lang, nick, savedContacts, connectedApps]) => {
       setUserNickname(nick || '');
       const langMap: Record<string, string> = { en: '', es: '\n\nIMPORTANT: Always respond in Spanish.', fr: '\n\nIMPORTANT: Always respond in French.', pt: '\n\nIMPORTANT: Always respond in Portuguese.', de: '\n\nIMPORTANT: Always respond in German.' };
       const memoryStr = memory.length > 0 ? '\n\nYou remember these facts about the user:\n' + memory.map((m: any) => '- ' + m.fact).join('\n') : '';
@@ -191,18 +191,52 @@ FILE MODIFICATION (when user has uploaded a file and wants changes):
 - "compare": compare two spreadsheets and generate a diff report
 - "reconcile": bank reconciliation — match bank statement vs book records, flag unmatched transactions. Returns styled Excel with Summary, Matched (green), Bank Only (red), Books Only (orange) sheets
 
+SALES & CRM (use connector action if a CRM is connected, otherwise use these standalone):
+{"type":"company_lookup","target":"company name"}
+{"type":"linkedin_lookup","target":"person name or company"}
+{"type":"competitor_analysis","target":"company vs competitor"}
+{"type":"market_research","target":"topic or industry"}
+
+CALL RECORDING:
+{"type":"call_summary","target":"contact name","text":"phone number (optional)"}
+When user says "summarize my call" or "process call recording" — use this with any audio attachment. Transcribes + generates summary + action items + follow-up email draft.
+
+SCHEDULING & REMINDERS:
+{"type":"set_reminder","target":"what to remind","text":"time description"}
+{"type":"set_timer","target":"duration in minutes"}
+{"type":"daily_briefing","target":"morning"}
+
+TRACKING & INFO:
+{"type":"flight_status","target":"flight number (e.g. AA1234)"}
+{"type":"package_tracking","target":"tracking number"}
+{"type":"currency_convert","target":"amount and currencies (e.g. 500 EUR to USD)"}
+{"type":"time_zone","target":"city or timezone"}
+
+DOCUMENTS (advanced):
+{"type":"create_proposal","target":"client name and project","text":"pdf"}
+{"type":"create_contract","target":"contract description","text":"pdf"}
+{"type":"create_presentation","target":"topic/description","text":"pptx"}
+
 RULES:
 - Include ONE action JSON per response.
 - Before device actions (call, sms, email), confirm with user first.
-- For file creation (PDF, resume, report), ask 2-3 quick questions first to get details. Don't create blindly.
+- For file creation (PDF, resume, report, proposals, contracts), ask 2-3 quick questions first to get details. Don't create blindly.
 - For file modification, just do it — the user already uploaded the file and told you what to change.
 - For web search, code, translate, weather: just do it immediately, no need to ask.
+- For connector actions: just do it — the user expects instant results from their connected apps.
 - NEVER say you cannot do something. Use your tools.
 - When user says a person's name, use it directly as target.
-- Be conversational. Short responses. No essays unless asked.`;
+- Be conversational. Short responses. No essays unless asked.
+- If the user asks about leads, deals, tasks, invoices, or orders and has a connected app — use the connector action.
+- create_proposal, create_contract, and create_presentation use the same create_file backend — just describe the content well.`;
+      // Connected apps — inject available connector actions
+      const connectedAppsStr = connectedApps && connectedApps.length > 0 ? '\n\nCONNECTED APPS (use the connector action to interact with these):\n' +
+        connectedApps.map((app: any) => `${app.name} (${app.category}): ${app.actions.map((a: string) => `{"type":"connector","target":"${app.id}","text":"${a}","key":"params as JSON or pipe-separated key=value"}`).join(', ')}`).join('\n') +
+        '\n\nWhen the user asks about their leads, tasks, invoices, orders, etc. — use the matching connected app automatically. Parse their request into the right action and params.' : '';
+
       const contactsStr = savedContacts.length > 0 ? '\n\nThe user has saved these contacts. When they refer to someone by label (e.g. "my boss"), use the matching contact info:\n' + savedContacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n') : '';
       const nicknameStr = nick ? `\n\nIMPORTANT: The user's name/nickname is "${nick}". Use it naturally — greet them by name, refer to them by name occasionally. For example: "Hey ${nick}!", "Sure thing ${nick}", etc.` : '';
-      setSystemPrompt(base + actions + contactsStr + memoryStr + customStr + nicknameStr + (langMap[lang] || ''));
+      setSystemPrompt(base + actions + connectedAppsStr + contactsStr + memoryStr + customStr + nicknameStr + (langMap[lang] || ''));
     });
   }, []);
 
@@ -243,7 +277,7 @@ RULES:
       const images = pendingAttachments.filter(a => a.mimeType.startsWith('image/'));
       const files = pendingAttachments.filter(a => !a.mimeType.startsWith('image/'));
       // Send images through vision — pass base64 directly (URIs may expire)
-      if (images.length) handleImageAttachB64(images.map(a => a.base64), text);
+      if (images.length) handleImageAttachB64(images.map(a => a.base64), text, images.map(a => a.previewUri || a.uri));
       // Send each file for analysis
       for (const file of files) {
         chatSend(text || `Analyze this file: ${file.name}`, undefined, undefined, file);
@@ -277,8 +311,8 @@ RULES:
   };
 
   // Handle image from base64 (used by attachment system)
-  const handleImageAttachB64 = async (base64s: string[], prompt?: string) => {
-    const userMsg: ChatMsg = { id: genId(), role: 'user', content: prompt || '', timestamp: Date.now() };
+  const handleImageAttachB64 = async (base64s: string[], prompt?: string, imageUris?: string[]) => {
+    const userMsg: ChatMsg = { id: genId(), role: 'user', content: prompt || '', timestamp: Date.now(), imageUrl: imageUris?.[0] };
     setMessages(prev => [...prev, userMsg]);
     setLoading(true);
     const aiMsgId = genId();

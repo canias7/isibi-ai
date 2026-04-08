@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp } from '../lib/api';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -13,6 +13,7 @@ import {
   getMemory, clearMemory, MemoryFact,
   getLanguage, saveLanguage,
   getSavedContacts, saveSavedContacts, SavedContact,
+  getConnectedApps, saveConnectedApps, ConnectedApp,
 } from '../lib/storage';
 
 interface UserInfo { name?: string; email?: string; }
@@ -41,6 +42,14 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [smtpConfigured, setSmtpConfigured] = useState(false);
   const [smtpProvider, setSmtpProvider] = useState('');
   const [detectingSmtp, setDetectingSmtp] = useState(false);
+  const [showApps, setShowApps] = useState(false);
+  const [allApps, setAllApps] = useState<any[]>([]);
+  const [appCategories, setAppCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  const [appCredentials, setAppCredentials] = useState<Record<string, Record<string, string>>>({});
+  const [connectingApp, setConnectingApp] = useState<string | null>(null);
+  const [connectedCount, setConnectedCount] = useState(0);
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricAvail, setBiometricAvail] = useState(false);
   const [bioType, setBioType] = useState('Biometric');
@@ -61,6 +70,13 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
         setSmtpFrom(s.smtp_from || '');
         setSmtpConfigured(s.configured || false);
       }
+    }).catch(() => {});
+    getConnectors().then((data: any) => {
+      setAllApps(data.connectors || []);
+      setAppCategories(data.categories || []);
+      const connected = (data.connectors || []).filter((a: any) => a.connected);
+      setConnectedCount(connected.length);
+      saveConnectedApps(connected.map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions })));
     }).catch(() => {});
     isBiometricAvailable().then(setBiometricAvail);
     getBiometricType().then(setBioType);
@@ -403,6 +419,137 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
           )}
         </View>
 
+        {/* Connect Apps */}
+        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Integrations</Text>
+        <View style={[s.card, { backgroundColor: tc.bg }]}>
+          <TouchableOpacity style={s.row} onPress={() => setShowApps(!showApps)}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Ionicons name="apps" size={18} color={C.primary} />
+              <Text style={[s.rowLabel, { color: tc.text }]}>Connect Apps</Text>
+            </View>
+            <Text style={[s.rowValue, { color: connectedCount > 0 ? '#22c55e' : tc.textMid }]}>
+              {connectedCount > 0 ? `${connectedCount} connected` : 'None'}
+            </Text>
+          </TouchableOpacity>
+          {showApps && (
+            <View style={s.expandedSection}>
+              <Text style={[s.expandedHint, { marginBottom: 12 }]}>Connect your apps so the AI can manage them. Say "show my leads" or "create an invoice" and it just works.</Text>
+              {/* Category filter */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                <TouchableOpacity
+                  style={[s.categoryChip, selectedCategory === 'All' && s.categoryChipActive]}
+                  onPress={() => setSelectedCategory('All')}
+                >
+                  <Text style={[s.categoryChipText, selectedCategory === 'All' && s.categoryChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                {appCategories.map(cat => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[s.categoryChip, selectedCategory === cat && s.categoryChipActive]}
+                    onPress={() => setSelectedCategory(cat)}
+                  >
+                    <Text style={[s.categoryChipText, selectedCategory === cat && s.categoryChipTextActive]}>{cat}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              {/* App list */}
+              {allApps
+                .filter(a => selectedCategory === 'All' || a.category === selectedCategory)
+                .map(app => (
+                <View key={app.id} style={{ marginBottom: 2 }}>
+                  <TouchableOpacity
+                    style={[s.appRow, expandedApp === app.id && { backgroundColor: 'rgba(0,0,0,0.02)' }]}
+                    onPress={() => setExpandedApp(expandedApp === app.id ? null : app.id)}
+                    activeOpacity={0.6}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                      <Ionicons name={(app.icon || 'cube') as any} size={20} color={app.connected ? '#22c55e' : '#999'} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={[s.rowLabel, { color: tc.text, fontSize: 14 }]}>{app.name}</Text>
+                        <Text style={{ fontSize: 11, color: tc.textMid }}>{app.category}</Text>
+                      </View>
+                    </View>
+                    {app.connected ? (
+                      <View style={s.connectedBadge}><Text style={s.connectedBadgeText}>Connected</Text></View>
+                    ) : (
+                      <Ionicons name="chevron-forward" size={16} color="#ccc" />
+                    )}
+                  </TouchableOpacity>
+                  {expandedApp === app.id && (
+                    <View style={s.appExpanded}>
+                      {app.connected ? (
+                        <>
+                          <Text style={[s.expandedHint, { color: '#22c55e', marginBottom: 4 }]}>Connected and ready to use in chat.</Text>
+                          <Text style={[s.expandedHint]}>Actions: {app.actions.join(', ')}</Text>
+                          <TouchableOpacity
+                            style={[s.saveBtn, { backgroundColor: '#fef2f2', marginTop: 8 }]}
+                            onPress={async () => {
+                              try {
+                                await disconnectApp(app.id);
+                                setAllApps(prev => prev.map(a => a.id === app.id ? { ...a, connected: false } : a));
+                                setConnectedCount(prev => prev - 1);
+                                const connected = allApps.filter(a => a.id !== app.id && a.connected);
+                                saveConnectedApps(connected.map(a => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions })));
+                              } catch (e: any) { Alert.alert('Error', e.message); }
+                            }}
+                          >
+                            <Text style={[s.saveBtnText, { color: '#ef4444' }]}>Disconnect</Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <>
+                          <View style={s.smtpInstructions}>
+                            <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{app.setup}</Text>
+                          </View>
+                          {app.auth_fields.map((field: any) => (
+                            <TextInput
+                              key={field.key}
+                              style={[s.contactInput, { color: tc.text, marginTop: 8 }]}
+                              value={appCredentials[app.id]?.[field.key] || ''}
+                              onChangeText={(v) => setAppCredentials(prev => ({
+                                ...prev,
+                                [app.id]: { ...(prev[app.id] || {}), [field.key]: v },
+                              }))}
+                              placeholder={field.label}
+                              placeholderTextColor="#bbb"
+                              secureTextEntry={field.secure}
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                            />
+                          ))}
+                          <TouchableOpacity
+                            style={[s.saveBtn, { marginTop: 10, opacity: connectingApp === app.id ? 0.5 : 1 }]}
+                            disabled={connectingApp === app.id}
+                            onPress={async () => {
+                              const creds = appCredentials[app.id] || {};
+                              const missing = app.auth_fields.filter((f: any) => !creds[f.key]?.trim());
+                              if (missing.length) return Alert.alert('Missing', `Please fill in: ${missing.map((f: any) => f.label).join(', ')}`);
+                              setConnectingApp(app.id);
+                              try {
+                                await connectApp(app.id, creds);
+                                setAllApps(prev => prev.map(a => a.id === app.id ? { ...a, connected: true } : a));
+                                setConnectedCount(prev => prev + 1);
+                                const connected = [...allApps.filter(a => a.connected), app];
+                                saveConnectedApps(connected.map(a => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions })));
+                                setExpandedApp(null);
+                                Alert.alert('Connected', `${app.name} is now connected! Try saying "show my ${app.actions[0]?.replace('get_', '').replace('_', ' ') || 'data'}" in chat.`);
+                              } catch (e: any) {
+                                Alert.alert('Connection Failed', e.message || 'Could not connect');
+                              } finally { setConnectingApp(null); }
+                            }}
+                          >
+                            <Text style={s.saveBtnText}>{connectingApp === app.id ? 'Connecting...' : 'Connect'}</Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
+
         {/* App */}
         <Text style={[s.sectionLabel, { color: tc.textMid }]}>App</Text>
         <View style={[s.card, { backgroundColor: tc.bg }]}>
@@ -508,6 +655,16 @@ const s = StyleSheet.create({
   contactDetail: { fontSize: 12, color: '#888', marginTop: 1 },
   addContactForm: { marginTop: 8, gap: 8 },
   contactInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 10, padding: 10, fontSize: 14 },
+
+  // Connect Apps
+  categoryChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: '#f0f0f0', marginRight: 8 },
+  categoryChipActive: { backgroundColor: '#1a1a1a' },
+  categoryChipText: { fontSize: 12, fontWeight: '500', color: '#666' },
+  categoryChipTextActive: { color: '#fff' },
+  appRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 16, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#f0f0f0' },
+  appExpanded: { paddingHorizontal: 16, paddingBottom: 14, paddingTop: 4 },
+  connectedBadge: { backgroundColor: '#dcfce7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  connectedBadgeText: { fontSize: 11, fontWeight: '600', color: '#16a34a' },
 
   logoutCard: { backgroundColor: '#ffffff', borderRadius: 14, paddingVertical: 14, paddingHorizontal: 16, marginTop: 24, alignItems: 'center' },
   logoutText: { fontSize: 15, fontWeight: '500', color: '#1a1a1a' },

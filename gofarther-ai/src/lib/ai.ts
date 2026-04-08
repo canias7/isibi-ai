@@ -90,63 +90,80 @@ export async function chatStream(
   onChunk: (text: string) => void,
   onAction?: (action: any) => void,
 ): Promise<{ text: string; tokens?: number }> {
-  // Use regular chat endpoint (streaming will be enabled once backend is deployed)
-  const fullText = await chat(messages, systemPrompt);
-  onChunk(fullText);
-  return { text: fullText, tokens: 0 };
-
-  // Streaming code below — uncomment when backend /chat-stream is deployed
-  /*
   await checkNetwork();
   const headers = await authHeaders();
 
-  // Read SSE stream
   let fullText = '';
   let totalTokens = 0;
-  const reader = res.body?.getReader();
-  if (!reader) {
-    // Fallback: no streaming support, read as JSON
-    const data = await res.json();
-    fullText = data.text || 'No response';
-    onChunk(fullText);
-    return { text: fullText, tokens: (data.input_tokens || 0) + (data.output_tokens || 0) };
-  }
 
-  const decoder = new TextDecoder();
-  let buffer = '';
+  try {
+    const res = await fetchWithTimeout(`${BASE}/chat-stream`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        messages,
+        system: systemPrompt || 'You are GoFarther AI, a helpful mobile assistant.',
+        max_tokens: 1024,
+      }),
+    });
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.detail || `Stream error (${res.status})`);
+    }
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
+    const reader = res.body?.getReader();
+    if (!reader) {
+      // Fallback: no streaming support, read as JSON
+      const data = await res.json();
+      fullText = data.text || 'No response';
+      onChunk(fullText);
+      return { text: fullText, tokens: (data.input_tokens || 0) + (data.output_tokens || 0) };
+    }
 
-    for (const line of lines) {
-      if (!line.startsWith('data: ')) continue;
-      try {
-        const event = JSON.parse(line.slice(6));
-        if (event.type === 'text') {
-          fullText += event.text;
-          onChunk(fullText);
-        } else if (event.type === 'action' && onAction) {
-          onAction(event.action);
-        } else if (event.type === 'error') {
-          throw new Error(event.text);
-        } else if (event.type === 'done') {
-          fullText = event.text || fullText;
-          totalTokens = (event.input_tokens || 0) + (event.output_tokens || 0);
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const event = JSON.parse(line.slice(6));
+          if (event.type === 'text') {
+            fullText += event.text;
+            onChunk(fullText);
+          } else if (event.type === 'action' && onAction) {
+            onAction(event.action);
+          } else if (event.type === 'error') {
+            throw new Error(event.text);
+          } else if (event.type === 'done') {
+            fullText = event.text || fullText;
+            totalTokens = (event.input_tokens || 0) + (event.output_tokens || 0);
+          }
+        } catch (e: any) {
+          if (e.message && !e.message.includes('JSON')) throw e;
         }
-      } catch (e: any) {
-        if (e.message && !e.message.includes('JSON')) throw e;
       }
     }
-  }
 
-  if (!fullText) fullText = 'No response';
-  return { text: fullText, tokens: totalTokens };
-  */
+    if (!fullText) fullText = 'No response';
+    return { text: fullText, tokens: totalTokens };
+  } catch (e: any) {
+    // Fallback to non-streaming if SSE fails
+    if (!fullText && e.message?.includes('Stream error')) {
+      const fallbackText = await chat(messages, systemPrompt);
+      onChunk(fallbackText);
+      return { text: fallbackText, tokens: 0 };
+    }
+    throw e;
+  }
 }
 
 /** Send image to Claude Vision via backend proxy */
@@ -532,6 +549,90 @@ export async function getStockPrice(symbol: string): Promise<string> {
     const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
     return price ? `${symbol.toUpperCase()}: $${price}` : 'Price unavailable';
   } catch { return 'Price unavailable'; }
+}
+
+// ─── TOOLS V4 API ───────────────────────────────────────────────────────
+
+const TOOLS_V4 = 'https://isibi-backend.onrender.com/api/ghost/tools/v4';
+
+/** Generate AI summary from call transcript */
+export async function callSummary(transcript: string, contactName?: string, contactPhone?: string): Promise<any> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const res = await fetchWithTimeout(`${TOOLS_V4}/call-summary`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ transcript, contact_name: contactName, contact_phone: contactPhone }),
+  }, 60000);
+  if (!res.ok) throw new Error('Call summary failed');
+  return res.json();
+}
+
+/** Full call recording pipeline: transcribe → summarize → return everything */
+export async function processCallRecording(audioBase64: string, contactName?: string, contactPhone?: string): Promise<any> {
+  await checkNetwork();
+  // Step 1: Transcribe
+  const transcription = await transcribeAudio(audioBase64);
+  const transcript = transcription.text || transcription.transcript || '';
+  if (!transcript) throw new Error('Could not transcribe audio');
+  // Step 2: AI Summary
+  const summary = await callSummary(transcript, contactName, contactPhone);
+  return { transcript, ...summary };
+}
+
+/** Currency conversion */
+export async function convertCurrency(amount: number, from: string, to: string): Promise<any> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const res = await fetchWithTimeout(`${TOOLS_V4}/currency-convert`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ amount, from_currency: from, to_currency: to }),
+  });
+  if (!res.ok) throw new Error('Currency conversion failed');
+  return res.json();
+}
+
+/** Company lookup */
+export async function lookupCompany(company: string): Promise<any> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const res = await fetchWithTimeout(`${TOOLS_V4}/company-lookup`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ company }),
+  }, 30000);
+  if (!res.ok) throw new Error('Company lookup failed');
+  return res.json();
+}
+
+// ─── CONNECTOR API ──────────────────────────────────────────────────────
+
+/** Execute an action on a connected app (CRM, PM, accounting, etc.) */
+export async function runConnectorAction(appId: string, action: string, paramsStr?: string): Promise<any> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  // Parse params — supports JSON string or pipe-separated key=value pairs
+  let params: Record<string, any> = {};
+  if (paramsStr) {
+    try {
+      params = JSON.parse(paramsStr);
+    } catch {
+      // Try pipe-separated: "name=John|email=john@test.com"
+      for (const pair of paramsStr.split('|')) {
+        const [k, ...v] = pair.split('=');
+        if (k && v.length) params[k.trim()] = v.join('=').trim();
+      }
+      // If no = found, treat as a single query param
+      if (Object.keys(params).length === 0) params = { query: paramsStr };
+    }
+  }
+  const res = await fetchWithTimeout(`https://isibi-backend.onrender.com/api/ghost/connectors/${appId}/action`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ action, params }),
+  }, 30000);
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || `Connector error (${res.status})`);
+  }
+  return res.json();
 }
 
 /** Get crypto price */

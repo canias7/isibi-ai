@@ -4,10 +4,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Speech from 'expo-speech';
+import { Audio } from 'expo-av';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
-import { chat, Message } from '../lib/ai';
+import { chat, Message, transcribeAudio, textToSpeech } from '../lib/ai';
 import { VoiceOption } from './VoicePicker';
+import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system/legacy';
 
 const { width: SW } = Dimensions.get('window');
 const ORB_SIZE = SW * 0.4;
@@ -20,12 +23,14 @@ interface Props {
 }
 
 export default function VoiceChat({ voice, onClose, agentName, agentInstructions }: Props) {
-  const [status, setStatus] = useState<'idle' | 'thinking' | 'speaking'>('idle');
+  const [status, setStatus] = useState<'idle' | 'listening' | 'thinking' | 'speaking'>('idle');
   const { colors: tc } = useTheme();
   const [input, setInput] = useState('');
   const [response, setResponse] = useState('');
   const [history, setHistory] = useState<Message[]>([]);
+  const [showInput, setShowInput] = useState(false);
   const insets = useSafeAreaInsets();
+  const recordingRef = useRef<Audio.Recording | null>(null);
 
   const orbScale = useRef(new Animated.Value(1)).current;
   const orbOpacity = useRef(new Animated.Value(0.8)).current;
@@ -33,12 +38,13 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
 
   useEffect(() => {
     startBreathing();
-    return () => { pulseAnim.current?.stop(); Speech.stop(); };
+    return () => { pulseAnim.current?.stop(); Speech.stop(); stopRecording(true); };
   }, []);
 
   useEffect(() => {
     pulseAnim.current?.stop();
-    if (status === 'thinking') startThinkingPulse();
+    if (status === 'listening') startListeningPulse();
+    else if (status === 'thinking') startThinkingPulse();
     else if (status === 'speaking') startSpeakingPulse();
     else startBreathing();
   }, [status]);
@@ -59,6 +65,14 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     pulseAnim.current.start();
   };
 
+  const startListeningPulse = () => {
+    pulseAnim.current = Animated.loop(Animated.sequence([
+      Animated.timing(orbScale, { toValue: 1.2, duration: 400, useNativeDriver: true }),
+      Animated.timing(orbScale, { toValue: 0.95, duration: 400, useNativeDriver: true }),
+    ]));
+    pulseAnim.current.start();
+  };
+
   const startSpeakingPulse = () => {
     pulseAnim.current = Animated.loop(Animated.sequence([
       Animated.timing(orbScale, { toValue: 1.15, duration: 300, useNativeDriver: true }),
@@ -67,10 +81,65 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     pulseAnim.current.start();
   };
 
+  /** Start recording audio */
+  const startRecording = async () => {
+    try {
+      const { granted } = await Audio.requestPermissionsAsync();
+      if (!granted) { setResponse('Microphone permission needed for voice.'); return; }
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const recording = new Audio.Recording();
+      await recording.prepareToRecordAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      await recording.startAsync();
+      recordingRef.current = recording;
+      setStatus('listening');
+      setResponse('Listening...');
+    } catch (e: any) {
+      setResponse('Could not start recording: ' + (e.message || ''));
+      setStatus('idle');
+    }
+  };
+
+  /** Stop recording and transcribe */
+  const stopRecording = async (cancel = false) => {
+    const recording = recordingRef.current;
+    if (!recording) return;
+    recordingRef.current = null;
+    try {
+      await recording.stopAndUnloadAsync();
+      if (cancel) return;
+      const uri = recording.getURI();
+      if (!uri) { setStatus('idle'); return; }
+      setStatus('thinking');
+      setResponse('Transcribing...');
+      const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
+      const result = await transcribeAudio(base64);
+      const text = result.text || result.transcript || '';
+      if (!text) { setResponse('Could not understand audio. Try again.'); setStatus('idle'); return; }
+      setInput(text);
+      // Auto-send the transcribed text
+      await sendMessageWithText(text);
+    } catch (e: any) {
+      setResponse('Transcription failed: ' + (e.message || ''));
+      setStatus('idle');
+    }
+  };
+
+  /** Handle orb tap — toggle recording or stop speaking */
+  const handleOrbTap = () => {
+    if (status === 'speaking') { stopSpeaking(); return; }
+    if (status === 'listening') { stopRecording(); return; }
+    if (status === 'idle') { startRecording(); return; }
+  };
+
   const sendMessage = async () => {
     const text = input.trim();
     if (!text) return;
     setInput('');
+    await sendMessageWithText(text);
+  };
+
+  const sendMessageWithText = async (msgText: string) => {
+    if (!msgText.trim()) return;
     setStatus('thinking');
     setResponse('');
 
@@ -79,12 +148,28 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
         ? `You are "${agentName}". ${agentInstructions}\nKeep responses short — 1-2 sentences max, suitable for voice.`
         : 'You are GoFarther AI. Keep responses brief — 1-2 sentences, suitable for voice.';
 
-      const msgs: Message[] = [...history, { role: 'user', content: text }];
+      const msgs: Message[] = [...history, { role: 'user', content: msgText }];
       const aiResponse = await chat(msgs.slice(-10), systemPrompt);
 
-      setHistory(prev => [...prev, { role: 'user', content: text }, { role: 'assistant', content: aiResponse }]);
+      setHistory(prev => [...prev, { role: 'user', content: msgText }, { role: 'assistant', content: aiResponse }]);
       setResponse(aiResponse);
       setStatus('speaking');
+
+      // Try ElevenLabs TTS first, fallback to device TTS
+      try {
+        const audioBase64 = await textToSpeech(aiResponse, voice.id || 'JBFqnCBsd6RMkjVDRZzb');
+        if (audioBase64) {
+          const uri = FileSystem.cacheDirectory + 'voice_response.mp3';
+          await FileSystem.writeAsStringAsync(uri, audioBase64, { encoding: FileSystem.EncodingType.Base64 });
+          await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+          const { sound } = await Audio.Sound.createAsync({ uri });
+          sound.setOnPlaybackStatusUpdate((s: any) => {
+            if (s.didJustFinish) { setStatus('idle'); sound.unloadAsync(); }
+          });
+          await sound.playAsync();
+          return;
+        }
+      } catch { /* fallback to device TTS */ }
 
       Speech.speak(aiResponse, {
         rate: 0.95, pitch: 1.0,
@@ -117,33 +202,42 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
       <View style={s.center}>
         {response ? <Text style={s.responseText} numberOfLines={6}>{response}</Text> : null}
 
-        <TouchableOpacity onPress={status === 'speaking' ? stopSpeaking : undefined} activeOpacity={0.9} style={s.orbTouch}>
+        <TouchableOpacity onPress={handleOrbTap} activeOpacity={0.9} style={s.orbTouch}>
           <Animated.View style={[s.orbOuter, { backgroundColor: voice.color1 + '20', transform: [{ scale: orbScale }] }]} />
-          <Animated.View style={[s.orb, { backgroundColor: voice.color1, transform: [{ scale: orbScale }] }]}>
-            <View style={[s.orbInner, { backgroundColor: voice.color2 }]} />
+          <Animated.View style={[s.orb, { backgroundColor: status === 'listening' ? '#ef4444' : voice.color1, transform: [{ scale: orbScale }] }]}>
+            <Ionicons name={status === 'listening' ? 'mic' : status === 'speaking' ? 'volume-high' : 'mic-outline'} size={ORB_SIZE * 0.3} color="#fff" />
           </Animated.View>
         </TouchableOpacity>
 
         <Text style={s.statusText}>
-          {status === 'thinking' ? 'Thinking...' : status === 'speaking' ? 'Tap orb to stop' : 'Type and send'}
+          {status === 'listening' ? 'Listening... tap to send' : status === 'thinking' ? 'Thinking...' : status === 'speaking' ? 'Tap to stop' : 'Tap to talk'}
         </Text>
       </View>
 
       {/* Input bar */}
       <View style={s.inputBar}>
-        <TextInput
-          style={s.textInput}
-          value={input}
-          onChangeText={setInput}
-          placeholder="Type your message..."
-          placeholderTextColor="#999"
-          onSubmitEditing={sendMessage}
-          returnKeyType="send"
-          editable={status === 'idle'}
-        />
-        <TouchableOpacity style={[s.sendBtn, (!input.trim() || status !== 'idle') && { opacity: 0.3 }]} onPress={sendMessage} disabled={!input.trim() || status !== 'idle'}>
-          <Text style={s.sendText}>{'>'}</Text>
+        <TouchableOpacity style={s.keyboardToggle} onPress={() => setShowInput(!showInput)}>
+          <Ionicons name={showInput ? 'mic' : 'keypad'} size={22} color="#666" />
         </TouchableOpacity>
+        {showInput ? (
+          <>
+            <TextInput
+              style={s.textInput}
+              value={input}
+              onChangeText={setInput}
+              placeholder="Type your message..."
+              placeholderTextColor="#999"
+              onSubmitEditing={sendMessage}
+              returnKeyType="send"
+              editable={status === 'idle'}
+            />
+            <TouchableOpacity style={[s.sendBtn, (!input.trim() || status !== 'idle') && { opacity: 0.3 }]} onPress={sendMessage} disabled={!input.trim() || status !== 'idle'}>
+              <Ionicons name="send" size={16} color="#fff" />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <Text style={s.voiceHint}>Tap the orb to start talking</Text>
+        )}
       </View>
     </KeyboardAvoidingView>
   );
@@ -168,4 +262,6 @@ const s = StyleSheet.create({
   textInput: { flex: 1, backgroundColor: '#f0f0f0', borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: '#1a1a1a', borderWidth: 1, borderColor: '#e0e0e0' },
   sendBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#1a1a1a', alignItems: 'center', justifyContent: 'center' },
   sendText: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  keyboardToggle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center' },
+  voiceHint: { flex: 1, fontSize: 14, color: '#999', textAlign: 'center' },
 });

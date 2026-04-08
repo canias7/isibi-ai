@@ -289,3 +289,50 @@ export async function deleteSavedContact(id: string) {
   const contacts = await getSavedContacts();
   await saveSavedContacts(contacts.filter(c => c.id !== id));
 }
+
+// Connected apps — cached list of user's connected integrations
+export interface ConnectedApp {
+  id: string;
+  name: string;
+  category: string;
+  icon: string;
+  actions: string[];
+}
+
+export async function getConnectedApps(): Promise<ConnectedApp[]> {
+  return load('connected_apps', []);
+}
+
+export async function saveConnectedApps(apps: ConnectedApp[]) {
+  await save('connected_apps', apps);
+}
+
+// Call recordings
+export interface CallRecording {
+  id: string;
+  contactName: string;
+  phone?: string;
+  duration: number; // seconds
+  transcript?: string;
+  summary?: string;
+  keyPoints?: string[];
+  actionItems?: string[];
+  followUpDraft?: string;
+  crmLogged?: boolean;
+  createdAt: number;
+}
+
+export async function getCallRecordings(): Promise<CallRecording[]> {
+  return load('call_recordings', []);
+}
+
+export async function saveCallRecordings(recordings: CallRecording[]) {
+  await save('call_recordings', recordings.slice(0, 100));
+}
+
+export async function addCallRecording(recording: Omit<CallRecording, 'id'>) {
+  const recordings = await getCallRecordings();
+  recordings.unshift({ ...recording, id: Date.now().toString() });
+  await saveCallRecordings(recordings);
+  return recordings[0];
+}

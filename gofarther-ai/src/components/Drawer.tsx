@@ -294,7 +294,7 @@ const s = StyleSheet.create({
   plusV: { position: 'absolute', width: 2, height: 14, backgroundColor: '#666', borderRadius: 1 },
 
   searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e8e8e8', borderRadius: 10, marginBottom: 12, paddingHorizontal: 12 },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14, color: '#1a1a1a' },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 14 },
   searchClear: { paddingLeft: 8 },
   searchClearText: { fontSize: 16, color: '#999' },
 
@@ -308,7 +308,7 @@ const s = StyleSheet.create({
   sectionTitle: { fontSize: 11, fontWeight: '600', color: '#999', paddingHorizontal: 12, marginBottom: 4, marginTop: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   sessionItem: { paddingVertical: 10, paddingHorizontal: 12, borderRadius: 8, marginBottom: 1 },
   sessionItemActive: { backgroundColor: '#e8e8e8' },
-  sessionText: { fontSize: 14, color: '#444' },
+  sessionText: { fontSize: 14 },
   sessionTextActive: { fontWeight: '600', color: '#1a1a1a' },
   noSessions: { fontSize: 13, color: '#bbb', paddingHorizontal: 12, paddingVertical: 8 },
   footer: { paddingTop: 4 },
@@ -327,8 +327,8 @@ const s = StyleSheet.create({
   // Rename modal
   renameBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   renameBox: { backgroundColor: '#fff', borderRadius: 14, padding: 20, width: 280 },
-  renameTitle: { fontSize: 17, fontWeight: '600', color: '#1a1a1a', marginBottom: 12 },
-  renameInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 12, fontSize: 15, color: '#1a1a1a', marginBottom: 16 },
+  renameTitle: { fontSize: 17, fontWeight: '600', marginBottom: 12 },
+  renameInput: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e0e0e0', borderRadius: 10, padding: 12, fontSize: 15, marginBottom: 16 },
   renameBtns: { flexDirection: 'row', justifyContent: 'flex-end', gap: 12 },
   renameCancelText: { fontSize: 15, color: '#999', fontWeight: '500' },
   renameSaveBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, backgroundColor: '#1a1a1a' },

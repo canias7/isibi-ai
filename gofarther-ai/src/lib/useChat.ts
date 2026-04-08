@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert, AppState } from 'react-native';
 import { ChatMsg, genId, parseAction, actionLabel } from './types';
-import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup } from './ai';
+import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, processCallRecording } from './ai';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
-import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, trackEvent } from './storage';
+import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addCallRecording, trackEvent } from './storage';
 import { scheduleLocalNotification } from './notifications';
 
 interface UseChatOptions {
@@ -193,6 +193,51 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         await addSavedContact({ label, name, email, phone });
         finalAction = null;
         if (!finalText) finalText = `Saved ${name} as "${label}" in your contacts!`;
+      }
+
+      // Handle call summary (transcribe + AI analysis)
+      if (finalAction?.type === 'call_summary') {
+        updateAndPersist(aiMsgIdStream, { content: finalText || 'Processing call recording... Transcribing and analyzing.' });
+        setLoading(false);
+        // Look for audio attachment in recent messages
+        let audioBase64 = '';
+        for (let i = messagesRef.current.length - 1; i >= 0; i--) {
+          const m = messagesRef.current[i];
+          if (m.role === 'user' && m.content && typeof m.content === 'object') {
+            const blocks = Array.isArray(m.content) ? m.content : [];
+            for (const b of blocks) {
+              if (b.type === 'audio' || (b.source?.media_type || '').startsWith('audio/')) {
+                audioBase64 = b.source?.data || '';
+                break;
+              }
+            }
+          }
+          if (audioBase64) break;
+        }
+        if (!audioBase64) {
+          updateAndPersist(aiMsgIdStream, { content: 'No audio recording found. Please attach a call recording first, then ask me to summarize it.' });
+          return;
+        }
+        processCallRecording(audioBase64, finalAction.target, finalAction.text).then(async (result) => {
+          const formatted = `**Call Summary — ${result.contact_name || 'Unknown Contact'}**\n\n${result.summary}\n\n**Key Points:**\n${(result.key_points || []).map((p: string) => `- ${p}`).join('\n')}\n\n**Action Items:**\n${(result.action_items || []).map((a: string) => `- [ ] ${a}`).join('\n')}\n\n**Follow-up Email Draft:**\n${result.follow_up_email || 'N/A'}\n\n**Lead Status:** ${result.lead_status || 'warm'}`;
+          updateAndPersist(aiMsgIdStream, { content: formatted });
+          // Save to call recordings
+          await addCallRecording({
+            contactName: result.contact_name || finalAction!.target || 'Unknown',
+            phone: finalAction!.text,
+            duration: 0,
+            transcript: result.transcript,
+            summary: result.summary,
+            keyPoints: result.key_points,
+            actionItems: result.action_items,
+            followUpDraft: result.follow_up_email,
+            createdAt: Date.now(),
+          });
+          scheduleLocalNotification('Call Summary Ready', `Summary for ${result.contact_name || 'call'} is ready`, 1);
+        }).catch(e => {
+          updateAndPersist(aiMsgIdStream, { content: `Call processing failed: ${e.message}` });
+        });
+        return;
       }
 
       // Handle image generation
@@ -432,6 +477,157 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Product not found in database.' } : m));
           }
         }).catch(e => { setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: 'Barcode lookup failed: ' + e.message } : m)); });
+        return;
+      }
+
+      // Handle company/LinkedIn lookup, market research, competitor analysis
+      if (finalAction?.type === 'company_lookup' || finalAction?.type === 'linkedin_lookup' || finalAction?.type === 'competitor_analysis' || finalAction?.type === 'market_research') {
+        const labels: Record<string, string> = { company_lookup: 'Looking up company...', linkedin_lookup: 'Looking up profile...', competitor_analysis: 'Analyzing competitors...', market_research: 'Researching market...' };
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || labels[finalAction!.type] || 'Researching...' } : m));
+        setLoading(false);
+        deepResearch(finalAction.target || '', 'general').then(r => {
+          updateAndPersist(aiMsgIdStream, { content: r.research });
+        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Research failed: ' + e.message }); });
+        return;
+      }
+
+      // Handle reminders and timers (local notifications)
+      if (finalAction?.type === 'set_reminder') {
+        const reminder = finalAction.target || 'Reminder';
+        // Parse time — simple heuristic for "in X minutes" or specific times
+        let delayMinutes = 5; // default
+        const timeStr = (finalAction.text || '').toLowerCase();
+        const minuteMatch = timeStr.match(/(\d+)\s*min/);
+        const hourMatch = timeStr.match(/(\d+)\s*hour/);
+        if (minuteMatch) delayMinutes = parseInt(minuteMatch[1]);
+        else if (hourMatch) delayMinutes = parseInt(hourMatch[1]) * 60;
+        scheduleLocalNotification('Reminder', reminder, delayMinutes * 60);
+        updateAndPersist(aiMsgIdStream, { content: finalText || `Got it! I'll remind you "${reminder}" in ${delayMinutes} minutes.` });
+        setLoading(false);
+        return;
+      }
+
+      if (finalAction?.type === 'set_timer') {
+        const minutes = parseInt(finalAction.target || '5') || 5;
+        scheduleLocalNotification('Timer Done', `Your ${minutes}-minute timer is up!`, minutes * 60);
+        updateAndPersist(aiMsgIdStream, { content: finalText || `Timer set for ${minutes} minutes.` });
+        setLoading(false);
+        return;
+      }
+
+      // Handle daily briefing
+      if (finalAction?.type === 'daily_briefing') {
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Getting your briefing...' } : m));
+        setLoading(false);
+        // Combine weather + news
+        Promise.all([
+          webSearch('today news headlines').catch(() => ({ results: [] })),
+        ]).then(([news]) => {
+          const newsStr = news.results.slice(0, 5).map((r: any) => `- **${r.title}**\n  ${r.snippet}`).join('\n');
+          updateAndPersist(aiMsgIdStream, { content: `**Your Morning Briefing**\n\n**Top News:**\n${newsStr || 'No news available.'}` });
+        });
+        return;
+      }
+
+      // Handle flight status
+      if (finalAction?.type === 'flight_status') {
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking flight status...' } : m));
+        setLoading(false);
+        webSearch(`flight status ${finalAction.target}`).then(r => {
+          const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
+          updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not find flight info.' });
+        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Flight check failed: ' + e.message }); });
+        return;
+      }
+
+      // Handle package tracking
+      if (finalAction?.type === 'package_tracking') {
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Tracking package...' } : m));
+        setLoading(false);
+        webSearch(`package tracking ${finalAction.target}`).then(r => {
+          const formatted = r.results.slice(0, 3).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
+          updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not find tracking info.' });
+        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Tracking failed: ' + e.message }); });
+        return;
+      }
+
+      // Handle currency conversion
+      if (finalAction?.type === 'currency_convert') {
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Converting...' } : m));
+        setLoading(false);
+        webSearch(`${finalAction.target} exchange rate conversion`).then(r => {
+          const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
+          updateAndPersist(aiMsgIdStream, { content: formatted || 'Conversion unavailable.' });
+        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Conversion failed: ' + e.message }); });
+        return;
+      }
+
+      // Handle timezone
+      if (finalAction?.type === 'time_zone') {
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || 'Checking time...' } : m));
+        setLoading(false);
+        webSearch(`current time in ${finalAction.target}`).then(r => {
+          const formatted = r.results.slice(0, 2).map((r: any) => `**${r.title}**\n${r.snippet}`).join('\n\n');
+          updateAndPersist(aiMsgIdStream, { content: formatted || 'Could not determine time.' });
+        }).catch(e => { updateAndPersist(aiMsgIdStream, { content: 'Timezone check failed: ' + e.message }); });
+        return;
+      }
+
+      // Handle proposals, contracts, presentations (route to create_file)
+      if (finalAction?.type === 'create_proposal' || finalAction?.type === 'create_contract' || finalAction?.type === 'create_presentation') {
+        const fileType = finalAction.type === 'create_presentation' ? 'xlsx' : 'pdf';
+        const desc = `${finalAction.type.replace('create_', '')} for: ${finalAction.target}`;
+        updateAndPersist(aiMsgIdStream, { content: finalText || `Creating ${finalAction.type.replace('create_', '')}...`, isCreatingFile: true });
+        setLoading(false);
+        setIsCreating(true);
+        cancelRef.current = false;
+        createFile(desc, fileType, 'premium').then(async (result) => {
+          if (cancelRef.current) { setIsCreating(false); return; }
+          const downloadUrl = `https://isibi-backend.onrender.com${result.download_url}`;
+          const filePath = `${FileSystem.cacheDirectory}${result.filename}`;
+          const dlResult = await FileSystem.downloadAsync(downloadUrl, filePath);
+          if (dlResult.status !== 200) throw new Error(`Download failed`);
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || 'Your document is ready!'}\n\n**${result.filename}**`, fileUrl: filePath, isCreatingFile: false });
+          setIsCreating(false);
+          scheduleLocalNotification('Document Ready', `${result.filename} has been created`, 1);
+        }).catch(e => {
+          setIsCreating(false);
+          if (cancelRef.current) return;
+          updateAndPersist(aiMsgIdStream, { content: 'Document creation failed: ' + (e.message || 'Unknown error'), isCreatingFile: false });
+        });
+        return;
+      }
+
+      // Handle connector action (universal app integration)
+      if (finalAction?.type === 'connector') {
+        const appId = finalAction.target || '';
+        const actionName = finalAction.text || '';
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: finalText || `Working with ${appId}...` } : m));
+        setLoading(false);
+        runConnectorAction(appId, actionName, finalAction.key).then(result => {
+          // Format the result nicely
+          const data = result.result || result;
+          let formatted = '';
+          if (data.message) formatted = data.message;
+          if (data.contacts) formatted += '\n\n' + data.contacts.map((c: any) => `**${c.firstname || ''} ${c.lastname || c.name || ''}** ${c.email ? `· ${c.email}` : ''} ${c.phone ? `· ${c.phone}` : ''}`).join('\n');
+          if (data.deals) formatted += '\n\n' + data.deals.map((d: any) => `**${d.dealname || d.title || d.name || 'Deal'}** ${d.amount ? `· $${d.amount}` : ''} ${d.dealstage || d.stage || ''}`).join('\n');
+          if (data.leads) formatted += '\n\n' + data.leads.map((l: any) => `**${l.Name || l.name || 'Lead'}** ${l.Email ? `· ${l.Email}` : ''} ${l.Status || ''}`).join('\n');
+          if (data.tasks) formatted += '\n\n' + data.tasks.map((t: any) => `${t.completed ? '✅' : '⬜'} **${t.content || t.name || 'Task'}** ${t.due || t.due_on || ''}`).join('\n');
+          if (data.invoices) formatted += '\n\n' + data.invoices.map((i: any) => `**${i.customer || 'Invoice'}** · $${i.amount_due || i.amount || 0} · ${i.status || ''}`).join('\n');
+          if (data.orders) formatted += '\n\n' + data.orders.map((o: any) => `**${o.name || 'Order'}** · $${o.total || 0} · ${o.status || ''}`).join('\n');
+          if (data.products) formatted += '\n\n' + data.products.map((p: any) => `**${p.title || p.name || 'Product'}** ${p.price ? `· $${p.price}` : ''}`).join('\n');
+          if (data.channels) formatted += '\n\n' + data.channels.map((c: any) => `#${c.name}`).join(', ');
+          if (data.issues) formatted += '\n\n' + data.issues.map((i: any) => `**${i.key || i.identifier || ''}** ${i.title || i.summary || ''} · ${i.status || ''}`).join('\n');
+          if (data.results && Array.isArray(data.results)) formatted += '\n\n' + data.results.map((r: any) => `- ${r.title || r.name || r.summary || r.key || JSON.stringify(r).slice(0, 100)}`).join('\n');
+          if (data.payments) formatted += '\n\n' + data.payments.map((p: any) => `**$${p.amount}** ${p.currency?.toUpperCase() || ''} · ${p.status} ${p.description ? `· ${p.description}` : ''}`).join('\n');
+          if (data.available !== undefined) formatted += `\n\nAvailable: $${data.available}\nPending: $${data.pending}`;
+          if (data.payment_link) formatted += `\n\n[Payment Link](${data.payment_link})`;
+          if (data.count !== undefined && !formatted.includes('count')) formatted += `\n\n_${data.count} results_`;
+          if (!formatted.trim()) formatted = JSON.stringify(data, null, 2).slice(0, 2000);
+          updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + formatted.trim() });
+        }).catch(e => {
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ ${e.message || 'Connection failed'}` });
+        });
         return;
       }
 

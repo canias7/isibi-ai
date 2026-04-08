@@ -147,3 +147,29 @@ export async function saveSmtpSettings(settings: { smtp_host?: string; smtp_port
 export async function detectSmtp(email: string): Promise<{ host: string; port: number; provider: string }> {
   return apiFetch(`/detect-smtp/${encodeURIComponent(email)}`);
 }
+
+// ─── App Connectors ─────────────────────────────────────────────────────
+
+const CONNECTORS = '/connectors';
+
+export async function getConnectors(): Promise<{ connectors: any[]; categories: string[] }> {
+  return apiFetch(CONNECTORS);
+}
+
+export async function connectApp(appId: string, credentials: Record<string, string>) {
+  return apiFetch(`${CONNECTORS}/${appId}/connect`, {
+    method: 'POST',
+    body: JSON.stringify({ credentials }),
+  });
+}
+
+export async function disconnectApp(appId: string) {
+  return apiFetch(`${CONNECTORS}/${appId}/disconnect`, { method: 'DELETE' });
+}
+
+export async function connectorAction(appId: string, action: string, params: Record<string, any> = {}) {
+  return apiFetch(`${CONNECTORS}/${appId}/action`, {
+    method: 'POST',
+    body: JSON.stringify({ action, params }),
+  });
+}

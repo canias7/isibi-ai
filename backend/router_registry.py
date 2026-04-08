@@ -96,6 +96,8 @@ def _register_app_feature_routers(app):
     from routes.ghost_tools import router as ghost_tools_router
     from routes.ghost_tools_v2 import router as ghost_tools_v2_router
     from routes.ghost_tools_v3 import router as ghost_tools_v3_router
+    from routes.ghost_connectors import router as ghost_connectors_router
+    from routes.ghost_tools_v4 import router as ghost_tools_v4_router
     from routes.teams_bot import router as teams_bot_router
     from routes.admin_dashboard import router as admin_dashboard_router
 
@@ -137,6 +139,8 @@ def _register_app_feature_routers(app):
     app.include_router(ghost_tools_router, prefix="/api")
     app.include_router(ghost_tools_v2_router, prefix="/api")
     app.include_router(ghost_tools_v3_router, prefix="/api")
+    app.include_router(ghost_connectors_router, prefix="/api")
+    app.include_router(ghost_tools_v4_router, prefix="/api")
     app.include_router(teams_bot_router, prefix="/api")
     app.include_router(admin_dashboard_router)  # No prefix — serves at /admin directly
 

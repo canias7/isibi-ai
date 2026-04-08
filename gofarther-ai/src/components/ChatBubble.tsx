@@ -43,7 +43,7 @@ function PulsingText({ text }: { text: string }) {
   }, []);
 
   return (
-    <Animated.Text style={[s.pulsingText, { opacity: pulse }]}>{text}</Animated.Text>
+    <Animated.Text style={[s.pulsingText, { opacity: pulse, color: '#999' }]}>{text}</Animated.Text>
   );
 }
 
@@ -101,14 +101,14 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               {item.isCreatingFile ? (
                 <PulsingText text="Creating file" />
               ) : isAnimating ? (
-                <TypewriterText text={item.content} speed={25} style={{ fontSize: 17, color: '#1f2937', lineHeight: 27, letterSpacing: 0.1 }} onDone={onStopAnimating} />
+                <TypewriterText text={item.content} speed={25} style={{ fontSize: 17, color: colors.text, lineHeight: 27, letterSpacing: 0.1 }} onDone={onStopAnimating} />
               ) : (
                 <MarkdownText colors={colors}>{item.content}</MarkdownText>
               )}
             </View>
           ) : (
             <View style={item.role === 'system' ? s.bubbleSystem : undefined}>
-              <Text style={[s.msgText, isUser && s.msgTextUser]} selectable>{item.content}</Text>
+              <Text style={[s.msgText, { color: colors.text }, isUser && s.msgTextUser]} selectable>{item.content}</Text>
             </View>
           )}
           {!isUser && onOpenCanvas && item.content.includes('```') && (
@@ -117,8 +117,8 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               if (match) onOpenCanvas(match[2].trim(), match[1] || undefined);
               else onOpenCanvas(item.content);
             }}>
-              <Ionicons name="code-slash-outline" size={14} color="#666" />
-              <Text style={s.canvasBtnText}>Open in Canvas</Text>
+              <Ionicons name="code-slash-outline" size={14} color={colors.textMid} />
+              <Text style={[s.canvasBtnText, { color: colors.textMid }]}>Open in Canvas</Text>
             </TouchableOpacity>
           )}
           {item.fileUrl && (
@@ -132,16 +132,16 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
                   Alert.alert('Error', e.message || 'Could not open file');
                 }
               }}>
-                <Ionicons name="eye-outline" size={18} color="#1a1a1a" />
-                <Text style={s.fileBtnText}>View</Text>
+                <Ionicons name="eye-outline" size={18} color={colors.text} />
+                <Text style={[s.fileBtnText, { color: colors.text }]}>View</Text>
               </TouchableOpacity>
               <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={async () => {
                 if (await Sharing.isAvailableAsync()) {
                   await Sharing.shareAsync(item.fileUrl!);
                 }
               }}>
-                <Ionicons name="share-outline" size={18} color="#1a1a1a" />
-                <Text style={s.fileBtnText}>Share</Text>
+                <Ionicons name="share-outline" size={18} color={colors.text} />
+                <Text style={[s.fileBtnText, { color: colors.text }]}>Share</Text>
               </TouchableOpacity>
               {onReviseFile && (
                 <TouchableOpacity style={s.fileBtn} activeOpacity={0.7} onPress={() => {
@@ -154,8 +154,8 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
                     Alert.alert('Revise', 'Type your revision in chat, e.g. "revise the file to add a table"');
                   }
                 }}>
-                  <Ionicons name="create-outline" size={18} color="#1a1a1a" />
-                  <Text style={s.fileBtnText}>Revise</Text>
+                  <Ionicons name="create-outline" size={18} color={colors.text} />
+                  <Text style={[s.fileBtnText, { color: colors.text }]}>Revise</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -180,17 +180,17 @@ const s = StyleSheet.create({
   msgRow: { marginBottom: 20, flexDirection: 'row', alignItems: 'flex-start' },
   msgRowUser: { justifyContent: 'flex-end' },
   bubbleSystem: { backgroundColor: '#fef2f2', borderRadius: 14, borderWidth: 1, borderColor: '#fecaca', paddingHorizontal: 14, paddingVertical: 10 },
-  msgText: { fontSize: 17, lineHeight: 27, color: '#1f2937', letterSpacing: 0.1 },
-  msgTextUser: { color: '#111827' },
-  pulsingText: { fontSize: 17, color: '#1f2937', fontWeight: '500', lineHeight: 27 },
+  msgText: { fontSize: 17, lineHeight: 27, letterSpacing: 0.1 },
+  msgTextUser: {},
+  pulsingText: { fontSize: 17, fontWeight: '500', lineHeight: 27 },
   statsText: { fontSize: 11, color: '#bbb', marginTop: 6 },
   canvasBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#f0f0f0', alignSelf: 'flex-start' },
-  canvasBtnText: { fontSize: 12, fontWeight: '500', color: '#666' },
+  canvasBtnText: { fontSize: 12, fontWeight: '500' },
   fileBtns: { flexDirection: 'row', gap: 8, marginTop: 12 },
   fileBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, backgroundColor: '#f0f0f0' },
-  fileBtnText: { fontSize: 14, fontWeight: '600', color: '#1a1a1a' },
+  fileBtnText: { fontSize: 14, fontWeight: '600' },
   fileViewerHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e0e0e0' },
-  fileViewerTitle: { fontSize: 16, fontWeight: '600', color: '#1a1a1a', flex: 1 },
+  fileViewerTitle: { fontSize: 16, fontWeight: '600', flex: 1 },
   fileViewerClose: { fontSize: 17, fontWeight: '600', color: '#007AFF', marginLeft: 16 },
   chatImage: { width: 240, height: 240, borderRadius: 16, marginTop: 8 },
   actionConfirm: { marginTop: 10, padding: 14, borderRadius: 16, backgroundColor: '#f5f5f5' },
