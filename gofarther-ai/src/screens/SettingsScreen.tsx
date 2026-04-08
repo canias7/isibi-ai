@@ -475,26 +475,50 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                       <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: (({
+                        // CRM
                         hubspot: '#FF7A59', salesforce: '#00A1E0', pipedrive: '#017737', gohighlevel: '#0F4C81',
                         zoho_crm: '#E42527', close: '#1A1A1A', freshsales: '#F36C21', copper: '#1DA1A0',
-                        ringy: '#6C63FF', quickbooks: '#2CA01C', xero: '#13B5EA', freshbooks: '#0075DD',
+                        ringy: '#6C63FF', monday_crm: '#FF3D57', keap: '#2CBA00', insightly: '#2196F3',
+                        nutshell: '#F5A623', less_annoying_crm: '#4CAF50', liondesk: '#FF6B35',
+                        follow_up_boss: '#3B82F6', kvcore: '#1E3A5F', chime: '#00BCD4',
+                        // Accounting
+                        quickbooks: '#2CA01C', xero: '#13B5EA', freshbooks: '#0075DD',
                         wave: '#1C4E80', sage: '#00DC00', zoho_books: '#E42527',
+                        billcom: '#00C4B3', gusto: '#F45D48', adp: '#D0271D', plaid: '#111111',
+                        // Project Management
                         asana: '#F06A6A', trello: '#0079BF', monday: '#FF3D57', clickup: '#7B68EE',
                         notion: '#000000', jira: '#0052CC', linear: '#5E6AD2', basecamp: '#1D2D35',
                         wrike: '#08CF65', todoist: '#E44332', teamwork: '#6B47DC',
+                        // Communication
                         slack: '#4A154B', teams: '#6264A7', discord: '#5865F2', zoom: '#2D8CFF',
-                        telegram: '#0088CC', twilio: '#F22F46', whatsapp: '#25D366', intercom: '#286EFA',
+                        telegram: '#0088CC', twilio: '#F22F46', whatsapp_business: '#25D366', intercom: '#286EFA',
+                        // Calendar
                         google_calendar: '#4285F4', outlook_calendar: '#0078D4', calendly: '#006BFF',
+                        acuity: '#3A8DDE', calcom: '#292929',
+                        // E-commerce
                         shopify: '#96BF48', stripe: '#635BFF', square: '#006AFF', paypal: '#003087',
                         woocommerce: '#96588A', amazon_seller: '#FF9900', etsy: '#F16521',
+                        // Storage
                         google_drive: '#4285F4', dropbox: '#0061FF', onedrive: '#0078D4',
                         box: '#0061D5', google_sheets: '#0F9D58', airtable: '#FCBF49',
+                        // Email Marketing
                         mailchimp: '#FFE01B', convertkit: '#FB6970', klaviyo: '#1A1A1A',
-                        activecampaign: '#356AE6', brevo: '#0B996E',
+                        activecampaign: '#356AE6', constant_contact: '#0076BE', brevo: '#0B996E',
+                        // Customer Support
                         zendesk: '#03363D', freshdesk: '#25C16F', helpscout: '#1292EE',
+                        livechat: '#FF5100',
+                        // Legal
                         docusign: '#FFD100', hellosign: '#00B4E6', pandadoc: '#4BD964',
-                        bamboohr: '#73C41D', gusto: '#F45D48',
-                        zapier: '#FF4F00', make: '#6D00CC', n8n: '#EA4B71',
+                        contractsafe: '#2E5090',
+                        // HR
+                        bamboohr: '#73C41D', greenhouse: '#24A47F', lever: '#5C5CFF',
+                        // Social Media
+                        instagram: '#E1306C', facebook_pages: '#1877F2', twitter: '#1DA1F2',
+                        linkedin: '#0A66C2', tiktok: '#000000', buffer: '#168EEA', hootsuite: '#143059',
+                        // Healthcare
+                        athenahealth: '#50B848', drchrono: '#2196F3', simplepractice: '#0077CC',
+                        // Automation
+                        zapier: '#FF4F00', make: '#6D00CC', ifttt: '#000000',
                       } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>
                         <Ionicons name={(app.icon || 'cube') as any} size={16} color="#fff" />
                       </View>
