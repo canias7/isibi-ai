@@ -140,6 +140,10 @@ export async function getSmtpSettings() {
   return apiFetch('/smtp');
 }
 
+export async function deleteAccount() {
+  return apiFetch('/account', { method: 'DELETE' });
+}
+
 export async function saveSmtpSettings(settings: { smtp_host?: string; smtp_port?: number; smtp_user?: string; smtp_pass?: string; smtp_from?: string }) {
   return apiFetch('/smtp', { method: 'POST', body: JSON.stringify(settings) });
 }

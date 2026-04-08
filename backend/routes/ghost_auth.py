@@ -647,3 +647,17 @@ async def get_smtp_settings(authorization: str = Header(...)):
         "smtp_from": settings.get("smtp_from"),
         "configured": bool(settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass")),
     }
+
+
+@router.delete("/account")
+async def delete_account(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Permanently delete user account and all associated data."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    await db.delete(user)
+    await db.commit()
+    return {"status": "deleted", "message": "Account permanently deleted"}

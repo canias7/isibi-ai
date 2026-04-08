@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount } from '../lib/api';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -694,6 +694,37 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
         {/* Log out */}
         <TouchableOpacity style={[s.logoutCard, { backgroundColor: tc.bg }]} onPress={handleLogout} activeOpacity={0.7}>
           <Text style={[s.logoutText, { color: tc.text }]}>Log out</Text>
+        </TouchableOpacity>
+
+        {/* Delete Account */}
+        <TouchableOpacity style={[s.logoutCard, { backgroundColor: tc.bg, marginTop: 12 }]} onPress={() => {
+          Alert.alert(
+            'Delete Account',
+            'This will permanently delete your account and all your data. This action cannot be undone.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Delete Account', style: 'destructive', onPress: () => {
+                Alert.alert(
+                  'Are you sure?',
+                  'Your account, chat history, contacts, and all settings will be permanently deleted.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Yes, Delete Everything', style: 'destructive', onPress: async () => {
+                      try {
+                        await deleteAccount();
+                        await logout();
+                        onLogout();
+                      } catch (e: any) {
+                        Alert.alert('Error', e.message || 'Could not delete account');
+                      }
+                    }},
+                  ]
+                );
+              }},
+            ]
+          );
+        }} activeOpacity={0.7}>
+          <Text style={{ fontSize: 15, fontWeight: '500', color: '#ef4444' }}>Delete Account</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
