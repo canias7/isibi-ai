@@ -912,6 +912,172 @@ APP_REGISTRY: dict[str, dict] = {
         "setup": "Go to Booksy → Settings → Integrations → API → Copy Key.",
         "actions": ["get_appointments", "get_clients", "get_services"],
     },
+
+    # ── Insurance ───────────────────────────────────────────────────────
+    "applied_epic": {
+        "name": "Applied Epic", "category": "Insurance", "icon": "shield-checkmark",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Applied Epic → Admin → API → Generate Key.",
+        "actions": ["get_policies", "get_clients", "create_client", "search"],
+    },
+    "hawksoft": {
+        "name": "HawkSoft", "category": "Insurance", "icon": "shield",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to HawkSoft → Settings → API → Generate Key.",
+        "actions": ["get_policies", "get_clients", "search"],
+    },
+    "ezlynx": {
+        "name": "EZLynx", "category": "Insurance", "icon": "document-text",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to EZLynx → Settings → API → Copy Key.",
+        "actions": ["get_policies", "get_clients", "create_quote", "search"],
+    },
+    "agency_zoom": {
+        "name": "Agency Zoom", "category": "Insurance", "icon": "trending-up",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Agency Zoom → Settings → Integrations → API → Generate Key.",
+        "actions": ["get_leads", "create_lead", "get_policies", "search"],
+    },
+    "better_agency": {
+        "name": "Better Agency", "category": "Insurance", "icon": "people",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Better Agency → Settings → API → Copy Key.",
+        "actions": ["get_leads", "create_lead", "get_clients", "search"],
+    },
+
+    # ── Construction ────────────────────────────────────────────────────
+    "procore": {
+        "name": "Procore", "category": "Construction", "icon": "build",
+        "auth_fields": [{"key": "api_key", "label": "Access Token", "secure": True}],
+        "setup": "Go to developers.procore.com → Create App → Generate OAuth Token.",
+        "actions": ["get_projects", "get_rfis", "create_rfi", "get_submittals", "search"],
+    },
+    "buildertrend": {
+        "name": "Buildertrend", "category": "Construction", "icon": "hammer",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Buildertrend → Settings → API → Generate Key.",
+        "actions": ["get_projects", "get_schedules", "get_financials", "search"],
+    },
+    "coconstruct": {
+        "name": "CoConstruct", "category": "Construction", "icon": "home",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to CoConstruct → Settings → API → Copy Key.",
+        "actions": ["get_projects", "get_clients", "get_financials"],
+    },
+    "plangrid": {
+        "name": "PlanGrid", "category": "Construction", "icon": "map",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to PlanGrid → Settings → API → Generate Key.",
+        "actions": ["get_projects", "get_sheets", "get_issues", "search"],
+    },
+
+    # ── Automotive ──────────────────────────────────────────────────────
+    "dealersocket": {
+        "name": "DealerSocket", "category": "Automotive", "icon": "car",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to DealerSocket → Admin → API → Generate Key.",
+        "actions": ["get_leads", "create_lead", "get_inventory", "search"],
+    },
+    "vinsolutions": {
+        "name": "VinSolutions", "category": "Automotive", "icon": "car-sport",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to VinSolutions → Settings → API → Copy Key.",
+        "actions": ["get_leads", "create_lead", "get_inventory", "search"],
+    },
+
+    # ── Nonprofit ───────────────────────────────────────────────────────
+    "bloomerang": {
+        "name": "Bloomerang", "category": "Nonprofit", "icon": "heart",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Bloomerang → Settings → API → Copy Key.",
+        "actions": ["get_donors", "create_donor", "get_donations", "search"],
+    },
+    "donorperfect": {
+        "name": "DonorPerfect", "category": "Nonprofit", "icon": "gift",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to DonorPerfect → Admin → API → Generate Key.",
+        "actions": ["get_donors", "create_donor", "get_donations", "search"],
+    },
+    "givebutter": {
+        "name": "Givebutter", "category": "Nonprofit", "icon": "heart-circle",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Givebutter → Settings → API → Copy Key.",
+        "actions": ["get_campaigns", "get_donations", "get_supporters"],
+    },
+
+    # ── Hospitality ─────────────────────────────────────────────────────
+    "guesty": {
+        "name": "Guesty", "category": "Hospitality", "icon": "bed",
+        "auth_fields": [{"key": "api_key", "label": "API Token", "secure": True}],
+        "setup": "Go to Guesty → Marketplace → Open API → Generate Token.",
+        "actions": ["get_listings", "get_reservations", "get_guests", "search"],
+    },
+    "hostaway": {
+        "name": "Hostaway", "category": "Hospitality", "icon": "key",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}, {"key": "account_id", "label": "Account ID"}],
+        "setup": "Go to Hostaway → Settings → API → Copy Key and Account ID.",
+        "actions": ["get_listings", "get_reservations", "get_guests"],
+    },
+    "cloudbeds": {
+        "name": "Cloudbeds", "category": "Hospitality", "icon": "business",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Cloudbeds → Settings → API → Generate Key.",
+        "actions": ["get_reservations", "get_rooms", "get_guests", "search"],
+    },
+
+    # ── Fitness ─────────────────────────────────────────────────────────
+    "gymmaster": {
+        "name": "GymMaster", "category": "Fitness", "icon": "barbell",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to GymMaster → Settings → API → Generate Key.",
+        "actions": ["get_members", "get_classes", "get_bookings"],
+    },
+    "glofox": {
+        "name": "Glofox", "category": "Fitness", "icon": "fitness",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Glofox → Settings → API → Copy Key.",
+        "actions": ["get_members", "get_classes", "get_bookings"],
+    },
+    "wellnessliving": {
+        "name": "WellnessLiving", "category": "Fitness", "icon": "body",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to WellnessLiving → Settings → Developer → API → Generate Key.",
+        "actions": ["get_clients", "get_classes", "get_appointments", "get_bookings"],
+    },
+
+    # ── Dental ──────────────────────────────────────────────────────────
+    "dentrix": {
+        "name": "Dentrix", "category": "Dental", "icon": "medkit",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Dentrix → Settings → Developer API → Generate Key.",
+        "actions": ["get_patients", "get_appointments", "get_procedures", "search"],
+    },
+    "open_dental": {
+        "name": "Open Dental", "category": "Dental", "icon": "medical",
+        "auth_fields": [{"key": "api_key", "label": "Developer Key", "secure": True}],
+        "setup": "Go to Open Dental → Setup → API → Enable and copy Developer Key.",
+        "actions": ["get_patients", "get_appointments", "create_appointment", "search"],
+    },
+    "curve_dental": {
+        "name": "Curve Dental", "category": "Dental", "icon": "pulse",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Curve Dental → Admin → API → Generate Key.",
+        "actions": ["get_patients", "get_appointments", "get_procedures"],
+    },
+
+    # ── Government ──────────────────────────────────────────────────────
+    "govpilot": {
+        "name": "GovPilot", "category": "Government", "icon": "flag",
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to GovPilot → Admin → API → Generate Key.",
+        "actions": ["get_permits", "get_requests", "create_request", "search"],
+    },
+    "accela": {
+        "name": "Accela", "category": "Government", "icon": "document",
+        "auth_fields": [{"key": "api_key", "label": "App ID", "secure": True}, {"key": "api_secret", "label": "App Secret", "secure": True}],
+        "setup": "Go to developer.accela.com → Create App → Copy App ID and Secret.",
+        "actions": ["get_records", "create_record", "get_inspections", "search"],
+    },
 }
 
 # ── Category order for display ───────────────────────────────────────────
@@ -920,9 +1086,11 @@ CATEGORY_ORDER = [
     "CRM", "Accounting", "Finance", "Project Management", "Communication",
     "Calendar", "E-commerce", "Storage", "Email Marketing",
     "HR", "Support", "Legal", "Social Media",
-    "Healthcare", "Real Estate", "Field Service", "POS",
+    "Healthcare", "Dental", "Real Estate", "Insurance", "Construction",
+    "Automotive", "Field Service", "POS", "Hospitality", "Fitness",
     "Logistics", "Design", "Analytics", "Dev Tools",
-    "Video", "Surveys", "Appointments", "Education", "Automation",
+    "Video", "Surveys", "Appointments", "Education",
+    "Nonprofit", "Government", "Automation",
 ]
 
 

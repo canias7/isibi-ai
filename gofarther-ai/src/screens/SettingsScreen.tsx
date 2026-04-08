@@ -543,6 +543,23 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                         typeform: '#262627', surveymonkey: '#00BF6F', tally: '#000000',
                         // Appointments
                         vagaro: '#FF6B00', mindbody: '#00A1E0', fresha: '#1A1A1A', booksy: '#3D5AFE',
+                        // Insurance
+                        applied_epic: '#003B71', hawksoft: '#1565C0', ezlynx: '#FF6F00',
+                        agency_zoom: '#6A1B9A', better_agency: '#00897B',
+                        // Construction
+                        procore: '#F7941D', buildertrend: '#0072CE', coconstruct: '#2E7D32', plangrid: '#00BCD4',
+                        // Automotive
+                        dealersocket: '#1A237E', vinsolutions: '#D32F2F',
+                        // Nonprofit
+                        bloomerang: '#E91E63', donorperfect: '#1976D2', givebutter: '#FFB300',
+                        // Hospitality
+                        guesty: '#6200EA', hostaway: '#00838F', cloudbeds: '#1E88E5',
+                        // Fitness
+                        gymmaster: '#FF5722', glofox: '#7C4DFF', wellnessliving: '#43A047',
+                        // Dental
+                        dentrix: '#0D47A1', open_dental: '#388E3C', curve_dental: '#7B1FA2',
+                        // Government
+                        govpilot: '#283593', accela: '#00695C',
                         // Automation
                         zapier: '#FF4F00', make: '#6D00CC', ifttt: '#000000',
                       } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>
