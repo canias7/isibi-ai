@@ -163,7 +163,7 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
           {item.imageUrl && <Image source={{ uri: item.imageUrl }} style={[s.chatImage, isUser && { alignSelf: 'flex-end' }]} resizeMode="cover" />}
           {renderAction()}
           {item.stats && (
-            <Text style={[s.statsText, { color: tc.textDim }]}>
+            <Text style={[s.statsText, { color: colors.textDim }]}>
               {item.stats.durationMs >= 1000 ? `${(item.stats.durationMs / 1000).toFixed(1)}s` : `${item.stats.durationMs}ms`}
               {item.stats.tokens > 0 ? ` · \u2193 ${item.stats.tokens >= 1000 ? `${(item.stats.tokens / 1000).toFixed(1)}k` : item.stats.tokens} tokens` : ''}
             </Text>
