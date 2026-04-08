@@ -108,7 +108,7 @@ export async function chatStream(
   }
   const data = await res.json();
   const text = data.text || 'No response';
-  const tokens = (data.input_tokens || 0) + (data.output_tokens || 0);
+  const tokens = data.output_tokens || 0;
   onChunk(text);
   return { text, tokens };
 }
