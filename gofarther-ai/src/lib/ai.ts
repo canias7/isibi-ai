@@ -90,80 +90,27 @@ export async function chatStream(
   onChunk: (text: string) => void,
   onAction?: (action: any) => void,
 ): Promise<{ text: string; tokens?: number }> {
+  // Use regular /chat endpoint (streaming disabled — SSE unreliable in React Native)
   await checkNetwork();
   const headers = await authHeaders();
-
-  let fullText = '';
-  let totalTokens = 0;
-
-  try {
-    const res = await fetchWithTimeout(`${BASE}/chat-stream`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        messages,
-        system: systemPrompt || 'You are GoFarther AI, a helpful mobile assistant.',
-        max_tokens: 1024,
-      }),
-    });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => null);
-      throw new Error(err?.detail || `Stream error (${res.status})`);
-    }
-
-    const reader = res.body?.getReader();
-    if (!reader) {
-      // Fallback: no streaming support, read as JSON
-      const data = await res.json();
-      fullText = data.text || 'No response';
-      onChunk(fullText);
-      return { text: fullText, tokens: (data.input_tokens || 0) + (data.output_tokens || 0) };
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        try {
-          const event = JSON.parse(line.slice(6));
-          if (event.type === 'text') {
-            fullText += event.text;
-            onChunk(fullText);
-          } else if (event.type === 'action' && onAction) {
-            onAction(event.action);
-          } else if (event.type === 'error') {
-            throw new Error(event.text);
-          } else if (event.type === 'done') {
-            fullText = event.text || fullText;
-            totalTokens = (event.input_tokens || 0) + (event.output_tokens || 0);
-          }
-        } catch (e: any) {
-          if (e.message && !e.message.includes('JSON')) throw e;
-        }
-      }
-    }
-
-    if (!fullText) fullText = 'No response';
-    return { text: fullText, tokens: totalTokens };
-  } catch (e: any) {
-    // Fallback to non-streaming if SSE fails
-    if (!fullText && e.message?.includes('Stream error')) {
-      const fallbackText = await chat(messages, systemPrompt);
-      onChunk(fallbackText);
-      return { text: fallbackText, tokens: 0 };
-    }
-    throw e;
+  const res = await fetchWithTimeout(`${BASE}/chat`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      messages,
+      system: systemPrompt || 'You are GoFarther AI, a helpful mobile assistant.',
+      max_tokens: 1024,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || `API error (${res.status})`);
   }
+  const data = await res.json();
+  const text = data.text || 'No response';
+  const tokens = (data.input_tokens || 0) + (data.output_tokens || 0);
+  onChunk(text);
+  return { text, tokens };
 }
 
 /** Send image to Claude Vision via backend proxy */
