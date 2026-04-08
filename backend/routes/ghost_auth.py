@@ -54,6 +54,23 @@ def decrypt_smtp_pass(ciphertext: str) -> str:
             return ciphertext  # fallback if decryption fails
     return ciphertext
 
+# ── Chat Content Encryption ──────────────────────────────────────────
+_CHAT_KEY = os.getenv("CHAT_ENCRYPTION_KEY") or os.getenv("SMTP_ENCRYPTION_KEY", "")
+_chat_fernet = Fernet(_CHAT_KEY.encode()) if Fernet and _CHAT_KEY else None
+
+def encrypt_chat_content(plaintext: str) -> str:
+    if _chat_fernet and plaintext:
+        return _chat_fernet.encrypt(plaintext.encode()).decode()
+    return plaintext
+
+def decrypt_chat_content(ciphertext: str) -> str:
+    if _chat_fernet and ciphertext:
+        try:
+            return _chat_fernet.decrypt(ciphertext.encode()).decode()
+        except Exception:
+            return ciphertext  # fallback: return as-is (pre-encryption plaintext)
+    return ciphertext
+
 # ── Ghost User Model ──────────────────────────────────────────────────
 
 class GhostUser(Base):
@@ -789,6 +806,18 @@ async def delete_account(authorization: str = Header(...), db: AsyncSession = De
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    # Delete all connected app credentials
+    from routes.ghost_connectors import GhostConnectorCred
+    creds_result = await db.execute(select(GhostConnectorCred).where(GhostConnectorCred.user_id == user.id))
+    for cred in creds_result.scalars().all():
+        await db.delete(cred)
+    # Delete chat sessions and messages
+    sessions_result = await db.execute(select(GhostChatSession).where(GhostChatSession.user_id == user.id))
+    for session in sessions_result.scalars().all():
+        msgs_result = await db.execute(select(GhostChatMessage).where(GhostChatMessage.session_id == session.id))
+        for msg in msgs_result.scalars().all():
+            await db.delete(msg)
+        await db.delete(session)
     await db.delete(user)
     await db.commit()
     return {"status": "deleted", "message": "Account permanently deleted"}
@@ -890,7 +919,7 @@ async def sync_chat(payload: SyncPayload, authorization: str = Header(...), db: 
         else:
             db.add(GhostChatMessage(
                 id=m.id, session_id=m.session_id, role=m.role,
-                content=m.content, timestamp=m.timestamp, reaction=m.reaction,
+                content=encrypt_chat_content(m.content), timestamp=m.timestamp, reaction=m.reaction,
             ))
             synced_messages += 1
 
@@ -944,6 +973,6 @@ async def get_chat_messages(session_id: str, authorization: str = Header(...), d
     )
     messages = result.scalars().all()
     return {"messages": [
-        {"id": m.id, "session_id": m.session_id, "role": m.role, "content": m.content, "timestamp": m.timestamp, "reaction": m.reaction}
+        {"id": m.id, "session_id": m.session_id, "role": m.role, "content": decrypt_chat_content(m.content or ""), "timestamp": m.timestamp, "reaction": m.reaction}
         for m in messages
     ]}

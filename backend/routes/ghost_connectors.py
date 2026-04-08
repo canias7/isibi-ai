@@ -12,11 +12,19 @@ from __future__ import annotations
 
 import logging
 import json
+import os
+import uuid
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Header
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
+from sqlalchemy import Column, String, Text, DateTime, select, and_
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from db import get_db, Base
 
 logger = logging.getLogger(__name__)
 
@@ -31,24 +39,100 @@ def _verify_auth(authorization: str) -> dict:
     return verify_ghost_token(token)
 
 
-# ── In-memory credential store (keyed by user email → app_id → creds) ───────
+# ── Encrypted credential storage (DB-backed) ────────────────────────────────
 
-CONNECTOR_STORE: dict[str, dict[str, dict]] = {}
+try:
+    from cryptography.fernet import Fernet
+except ImportError:
+    Fernet = None  # type: ignore
 
-
-def _get_creds(email: str, app_id: str) -> dict | None:
-    return CONNECTOR_STORE.get(email, {}).get(app_id)
-
-
-def _set_creds(email: str, app_id: str, creds: dict):
-    if email not in CONNECTOR_STORE:
-        CONNECTOR_STORE[email] = {}
-    CONNECTOR_STORE[email][app_id] = creds
+_CONNECTOR_KEY = os.getenv("CONNECTOR_ENCRYPTION_KEY") or os.getenv("SMTP_ENCRYPTION_KEY", "")
+_connector_fernet = Fernet(_CONNECTOR_KEY.encode()) if Fernet and _CONNECTOR_KEY else None
 
 
-def _del_creds(email: str, app_id: str):
-    if email in CONNECTOR_STORE:
-        CONNECTOR_STORE[email].pop(app_id, None)
+class GhostConnectorCred(Base):
+    __tablename__ = "ghost_connector_creds"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    app_id = Column(String(100), nullable=False, index=True)
+    encrypted_creds = Column(Text, nullable=False)
+    connected_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+def _encrypt_creds(creds: dict) -> str:
+    """Encrypt credentials dict to a Fernet token string."""
+    raw = json.dumps(creds)
+    if _connector_fernet:
+        return _connector_fernet.encrypt(raw.encode()).decode()
+    logger.warning("CONNECTOR_ENCRYPTION_KEY not set — storing credentials unencrypted")
+    return raw
+
+
+def _decrypt_creds(ciphertext: str) -> dict:
+    """Decrypt credentials string back to a dict."""
+    if _connector_fernet:
+        try:
+            return json.loads(_connector_fernet.decrypt(ciphertext.encode()).decode())
+        except Exception:
+            pass  # Fallback: try as plain JSON (for pre-encryption rows)
+    try:
+        return json.loads(ciphertext)
+    except Exception:
+        return {}
+
+
+async def _get_creds(user_id, app_id: str, db: AsyncSession) -> dict | None:
+    """Load and decrypt credentials from DB."""
+    result = await db.execute(
+        select(GhostConnectorCred).where(
+            and_(GhostConnectorCred.user_id == user_id, GhostConnectorCred.app_id == app_id)
+        )
+    )
+    row = result.scalar_one_or_none()
+    if not row:
+        return None
+    return _decrypt_creds(row.encrypted_creds)
+
+
+async def _set_creds(user_id, app_id: str, creds: dict, db: AsyncSession):
+    """Encrypt and upsert credentials in DB."""
+    encrypted = _encrypt_creds(creds)
+    result = await db.execute(
+        select(GhostConnectorCred).where(
+            and_(GhostConnectorCred.user_id == user_id, GhostConnectorCred.app_id == app_id)
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row:
+        row.encrypted_creds = encrypted
+        row.connected_at = datetime.now(timezone.utc)
+    else:
+        db.add(GhostConnectorCred(
+            user_id=user_id, app_id=app_id,
+            encrypted_creds=encrypted,
+        ))
+    await db.flush()
+
+
+async def _del_creds(user_id, app_id: str, db: AsyncSession):
+    """Delete credentials from DB."""
+    result = await db.execute(
+        select(GhostConnectorCred).where(
+            and_(GhostConnectorCred.user_id == user_id, GhostConnectorCred.app_id == app_id)
+        )
+    )
+    row = result.scalar_one_or_none()
+    if row:
+        await db.delete(row)
+        await db.flush()
+
+
+async def _get_connected_app_ids(user_id, db: AsyncSession) -> set[str]:
+    """Get all connected app IDs for a user."""
+    result = await db.execute(
+        select(GhostConnectorCred.app_id).where(GhostConnectorCred.user_id == user_id)
+    )
+    return {row[0] for row in result.all()}
 
 
 # ── App Registry ─────────────────────────────────────────────────────────────
@@ -1210,15 +1294,14 @@ class ActionRequest(BaseModel):
 # ── Endpoints ────────────────────────────────────────────────────────────
 
 @router.get("")
-async def list_connectors(authorization: str = Header(...)):
+async def list_connectors(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """List all available apps with connection status per user."""
     payload = _verify_auth(authorization)
-    email = payload.get("email", "")
-    user_conns = CONNECTOR_STORE.get(email, {})
+    user_id = payload.get("sub")
+    connected_ids = await _get_connected_app_ids(user_id, db)
 
     result = []
     for app_id, info in APP_REGISTRY.items():
-        connected = app_id in user_conns
         result.append({
             "id": app_id,
             "name": info["name"],
@@ -1227,16 +1310,16 @@ async def list_connectors(authorization: str = Header(...)):
             "auth_fields": info["auth_fields"],
             "setup": info["setup"],
             "actions": info["actions"],
-            "connected": connected,
+            "connected": app_id in connected_ids,
         })
     return {"connectors": result, "categories": CATEGORY_ORDER}
 
 
 @router.post("/{app_id}/connect")
-async def connect_app(app_id: str, body: ConnectRequest, authorization: str = Header(...)):
-    """Save credentials for an app."""
+async def connect_app(app_id: str, body: ConnectRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Save credentials for an app (encrypted at rest)."""
     payload = _verify_auth(authorization)
-    email = payload.get("email", "")
+    user_id = payload.get("sub")
 
     if app_id not in APP_REGISTRY:
         raise HTTPException(404, f"Unknown app: {app_id}")
@@ -1247,29 +1330,31 @@ async def connect_app(app_id: str, body: ConnectRequest, authorization: str = He
     if missing:
         raise HTTPException(400, f"Missing required fields: {', '.join(missing)}")
 
-    _set_creds(email, app_id, body.credentials)
+    await _set_creds(user_id, app_id, body.credentials, db)
+    await db.commit()
     return {"status": "connected", "app": app_id}
 
 
 @router.delete("/{app_id}/disconnect")
-async def disconnect_app(app_id: str, authorization: str = Header(...)):
+async def disconnect_app(app_id: str, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Remove credentials for an app."""
     payload = _verify_auth(authorization)
-    email = payload.get("email", "")
-    _del_creds(email, app_id)
+    user_id = payload.get("sub")
+    await _del_creds(user_id, app_id, db)
+    await db.commit()
     return {"status": "disconnected", "app": app_id}
 
 
 @router.post("/{app_id}/action")
-async def execute_action(app_id: str, body: ActionRequest, authorization: str = Header(...)):
+async def execute_action(app_id: str, body: ActionRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Execute an action on a connected app."""
     payload = _verify_auth(authorization)
-    email = payload.get("email", "")
+    user_id = payload.get("sub")
 
     if app_id not in APP_REGISTRY:
         raise HTTPException(404, f"Unknown app: {app_id}")
 
-    creds = _get_creds(email, app_id)
+    creds = await _get_creds(user_id, app_id, db)
     if not creds:
         raise HTTPException(400, f"{APP_REGISTRY[app_id]['name']} is not connected. Go to Settings → Connect Apps to set it up.")
 

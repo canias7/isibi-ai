@@ -187,7 +187,7 @@ class SecurityHeadersMiddleware:
                 # Only add HSTS in production
                 if os.getenv("RENDER"):
                     headers.append(
-                        (b"strict-transport-security", b"max-age=31536000; includeSubDomains")
+                        (b"strict-transport-security", b"max-age=63072000; includeSubDomains")
                     )
                 message["headers"] = headers
             await send(message)

@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput, Alert, ScrollView, ActivityIndicator, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, TextInput, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { getTemplates, saveTemplates, EmailTemplate, getSMSTemplates, saveSMSTemplates, SMSTemplate, getSavedContacts, SavedContact } from '../lib/storage';
-import { sendEmail, sendSMS, sendEmailBulk, sendSMSBulk } from '../lib/actions';
+import { getTemplates, saveTemplates, EmailTemplate, getSMSTemplates, saveSMSTemplates, SMSTemplate } from '../lib/storage';
+import { sendEmail, sendSMS } from '../lib/actions';
 
 type Tab = 'email' | 'sms';
 
@@ -21,16 +21,10 @@ export default function TemplatesScreen({ onBack }: { onBack: () => void }) {
   const [body, setBody] = useState('');
   const [sendTo, setSendTo] = useState('');
   const [showSend, setShowSend] = useState<string | null>(null);
-  // Bulk send state
-  const [savedContacts, setSavedContacts] = useState<SavedContact[]>([]);
-  const [bulkTemplate, setBulkTemplate] = useState<any>(null);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkSending, setBulkSending] = useState(false);
 
   const load = useCallback(async () => {
     setEmailTemplates(await getTemplates());
     setSmsTemplates(await getSMSTemplates());
-    setSavedContacts(await getSavedContacts());
   }, []);
   useEffect(() => { load(); }, []);
 
@@ -87,103 +81,6 @@ export default function TemplatesScreen({ onBack }: { onBack: () => void }) {
     }
     setShowSend(null); setSendTo('');
   };
-
-  const openBulk = (t: any) => {
-    const contacts = tab === 'email'
-      ? savedContacts.filter(c => c.email)
-      : savedContacts.filter(c => c.phone);
-    if (contacts.length === 0) {
-      Alert.alert('No Contacts', `Save contacts with ${tab === 'email' ? 'email addresses' : 'phone numbers'} in Settings first.`);
-      return;
-    }
-    setBulkTemplate(t);
-    setSelectedIds(new Set());
-  };
-
-  const toggleContact = (id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAll = () => {
-    const contacts = tab === 'email' ? savedContacts.filter(c => c.email) : savedContacts.filter(c => c.phone);
-    if (selectedIds.size === contacts.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(contacts.map(c => c.id)));
-    }
-  };
-
-  const executeBulkSend = async () => {
-    if (!bulkTemplate || selectedIds.size === 0) return;
-    setBulkSending(true);
-    try {
-      if (tab === 'email') {
-        const recipients = savedContacts
-          .filter(c => selectedIds.has(c.id) && c.email)
-          .map(c => ({ to: c.email!, subject: (bulkTemplate as EmailTemplate).subject, body: bulkTemplate.body }));
-        const result = await sendEmailBulk(recipients);
-        Alert.alert('Bulk Email Done', `Sent: ${result.sent}, Failed: ${result.failed}`);
-      } else {
-        const recipients = savedContacts
-          .filter(c => selectedIds.has(c.id) && c.phone)
-          .map(c => ({ to: c.phone!, body: bulkTemplate.body }));
-        const result = await sendSMSBulk(recipients);
-        Alert.alert('Bulk SMS Done', `Sent: ${result.sent}, Failed: ${result.failed}`);
-      }
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Bulk send failed');
-    }
-    setBulkSending(false);
-    setBulkTemplate(null);
-  };
-
-  // ==================== BULK SEND MODAL ====================
-  if (bulkTemplate) {
-    const contacts = tab === 'email' ? savedContacts.filter(c => c.email) : savedContacts.filter(c => c.phone);
-    return (
-      <SafeAreaView style={[s.container, { backgroundColor: tc.bg }]}>
-        <View style={s.header}>
-          <TouchableOpacity onPress={() => setBulkTemplate(null)}><Text style={[s.backText, { color: tc.text }]}>Back</Text></TouchableOpacity>
-          <Text style={[s.modalTitle, { color: tc.text }]}>Bulk Send</Text>
-          <View style={{ width: 40 }} />
-        </View>
-        <Text style={[s.bulkSubtitle, { color: tc.textMid }]}>
-          Sending "{bulkTemplate.name}" to {selectedIds.size} of {contacts.length} contacts
-        </Text>
-        <TouchableOpacity style={s.selectAllBtn} onPress={toggleAll}>
-          <Ionicons name={selectedIds.size === contacts.length ? 'checkbox' : 'square-outline'} size={20} color={tc.text} />
-          <Text style={[s.selectAllText, { color: tc.text }]}>Select All</Text>
-        </TouchableOpacity>
-        <FlatList data={contacts} keyExtractor={c => c.id} contentContainerStyle={{ paddingHorizontal: 16 }} renderItem={({ item: c }) => (
-          <TouchableOpacity style={[s.contactItem, { borderColor: tc.border }]} onPress={() => toggleContact(c.id)} activeOpacity={0.7}>
-            <Ionicons name={selectedIds.has(c.id) ? 'checkbox' : 'square-outline'} size={20} color={selectedIds.has(c.id) ? C.primary : tc.textDim} />
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <Text style={[s.contactName, { color: tc.text }]}>{c.name}</Text>
-              <Text style={[s.contactDetail, { color: tc.textDim }]}>{c.label} — {tab === 'email' ? c.email : c.phone}</Text>
-            </View>
-          </TouchableOpacity>
-        )} />
-        <View style={s.bulkFooter}>
-          {bulkSending ? (
-            <ActivityIndicator color={C.primary} />
-          ) : (
-            <TouchableOpacity
-              style={[s.bulkSendBtn, selectedIds.size === 0 && { opacity: 0.4 }]}
-              onPress={executeBulkSend}
-              disabled={selectedIds.size === 0}
-            >
-              <Ionicons name="send" size={16} color="#fff" />
-              <Text style={s.bulkSendText}>Send to {selectedIds.size} contact{selectedIds.size !== 1 ? 's' : ''}</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // ==================== EDIT MODAL ====================
   if (showModal) {
@@ -257,15 +154,9 @@ export default function TemplatesScreen({ onBack }: { onBack: () => void }) {
                 <TouchableOpacity onPress={() => setShowSend(null)}><Text style={s.cancelText}>x</Text></TouchableOpacity>
               </View>
             ) : (
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={s.quickSendBtn} onPress={() => { setShowSend(t.id); setSendTo(''); }}>
-                  <Text style={s.quickSendText}>Quick Send</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[s.quickSendBtn, { backgroundColor: '#e8f4fd' }]} onPress={() => openBulk(t)}>
-                  <Ionicons name="people-outline" size={13} color={C.primary} style={{ marginRight: 4 }} />
-                  <Text style={[s.quickSendText, { color: C.primary }]}>Bulk Send</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity style={s.quickSendBtn} onPress={() => { setShowSend(t.id); setSendTo(''); }}>
+                <Text style={s.quickSendText}>Quick Send</Text>
+              </TouchableOpacity>
             )}
           </View>
         )} />
@@ -316,14 +207,4 @@ const s = StyleSheet.create({
   input: { backgroundColor: '#f5f5f5', borderWidth: 1, borderColor: '#e8e8e8', borderRadius: 12, padding: 14, color: '#1a1a1a', fontSize: 15 },
   delBtn: { marginTop: 32, padding: 16, borderRadius: 12, backgroundColor: '#fef2f2', alignItems: 'center' },
   delText: { color: C.red, fontSize: 15, fontWeight: '600' },
-  // Bulk send
-  bulkSubtitle: { fontSize: 13, paddingHorizontal: 20, marginBottom: 12 },
-  selectAllBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 10 },
-  selectAllText: { fontSize: 14, fontWeight: '600' },
-  contactItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: '#eee' },
-  contactName: { fontSize: 15, fontWeight: '600' },
-  contactDetail: { fontSize: 12, marginTop: 2 },
-  bulkFooter: { padding: 20, paddingBottom: 30 },
-  bulkSendBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#1a1a1a', paddingVertical: 16, borderRadius: 14 },
-  bulkSendText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

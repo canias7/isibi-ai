@@ -39,6 +39,14 @@ RATE_LIMITS: list[tuple[str, int]] = [
     ("/api/auth/reset-password", 5),
     ("/api/auth/", 10),
     ("/api/chat/", 5),
+    # Ghost Mode endpoints
+    ("/api/ghost/login", 5),
+    ("/api/ghost/signup", 5),
+    ("/api/ghost/forgot", 3),
+    ("/api/ghost/reset", 5),
+    ("/api/ghost/connectors", 20),
+    ("/api/ghost/chat/sync", 10),
+    ("/api/ghost/", 30),
     ("/api/apps/", 30),       # Generated app data endpoints
     ("/api/projects/", 40),   # Project management
     ("/api/", 60),
