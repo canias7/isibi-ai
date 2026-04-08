@@ -98,8 +98,8 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
         <View style={isUser ? { maxWidth: '82%' } : { flex: 1 }}>
           {item.role === 'assistant' ? (
             <View>
-              {item.isCreatingFile ? (
-                <PulsingText text="Creating file" />
+              {item.isCreatingFile && !item.content ? (
+                null
               ) : isAnimating ? (
                 <TypewriterText text={item.content} speed={25} style={{ fontSize: 17, color: colors.text, lineHeight: 27, letterSpacing: 0.1 }} onDone={onStopAnimating} />
               ) : (
