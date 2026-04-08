@@ -9,7 +9,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1e1e1e"
     },
     "ios": {
       "supportsTablet": true,
@@ -23,7 +23,7 @@
         "ITSAppUsesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.gofarther.ai",
-      "buildNumber": "14"
+      "buildNumber": "20"
     },
     "android": {
       "permissions": [
@@ -37,10 +37,11 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#1e1e1e"
       },
       "package": "com.gofarther.ai",
-      "versionCode": 1
+      "versionCode": 2
     },
     "scheme": "gofarther",
     "plugins": [
