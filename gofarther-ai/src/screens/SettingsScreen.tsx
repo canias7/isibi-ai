@@ -47,6 +47,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
   const [appCategories, setAppCategories] = useState<string[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
+  const [appSearch, setAppSearch] = useState('');
   const [appCredentials, setAppCredentials] = useState<Record<string, Record<string, string>>>({});
   const [connectingApp, setConnectingApp] = useState<string | null>(null);
   const [connectedCount, setConnectedCount] = useState(0);
@@ -433,7 +434,16 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
           </TouchableOpacity>
           {showApps && (
             <View style={s.expandedSection}>
-              <Text style={[s.expandedHint, { marginBottom: 12 }]}>Connect your apps so the AI can manage them. Say "show my leads" or "create an invoice" and it just works.</Text>
+              <Text style={[s.expandedHint, { marginBottom: 8 }]}>Connect your apps so the AI can manage them. Say "show my leads" or "create an invoice" and it just works.</Text>
+              {/* Search bar */}
+              <TextInput
+                style={[s.contactInput, { color: tc.text, marginBottom: 10 }]}
+                value={appSearch}
+                onChangeText={setAppSearch}
+                placeholder="Search apps..."
+                placeholderTextColor="#bbb"
+                autoCapitalize="none"
+              />
               {/* Category filter */}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
                 <TouchableOpacity
@@ -455,6 +465,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
               {/* App list */}
               {allApps
                 .filter(a => selectedCategory === 'All' || a.category === selectedCategory)
+                .filter(a => !appSearch.trim() || a.name.toLowerCase().includes(appSearch.toLowerCase()) || a.category.toLowerCase().includes(appSearch.toLowerCase()))
                 .map(app => (
                 <View key={app.id} style={{ marginBottom: 2 }}>
                   <TouchableOpacity
@@ -463,7 +474,30 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                     activeOpacity={0.6}
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                      <Ionicons name={(app.icon || 'cube') as any} size={20} color={app.connected ? '#22c55e' : '#999'} />
+                      <View style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: (({
+                        hubspot: '#FF7A59', salesforce: '#00A1E0', pipedrive: '#017737', gohighlevel: '#0F4C81',
+                        zoho_crm: '#E42527', close: '#1A1A1A', freshsales: '#F36C21', copper: '#1DA1A0',
+                        ringy: '#6C63FF', quickbooks: '#2CA01C', xero: '#13B5EA', freshbooks: '#0075DD',
+                        wave: '#1C4E80', sage: '#00DC00', zoho_books: '#E42527',
+                        asana: '#F06A6A', trello: '#0079BF', monday: '#FF3D57', clickup: '#7B68EE',
+                        notion: '#000000', jira: '#0052CC', linear: '#5E6AD2', basecamp: '#1D2D35',
+                        wrike: '#08CF65', todoist: '#E44332', teamwork: '#6B47DC',
+                        slack: '#4A154B', teams: '#6264A7', discord: '#5865F2', zoom: '#2D8CFF',
+                        telegram: '#0088CC', twilio: '#F22F46', whatsapp: '#25D366', intercom: '#286EFA',
+                        google_calendar: '#4285F4', outlook_calendar: '#0078D4', calendly: '#006BFF',
+                        shopify: '#96BF48', stripe: '#635BFF', square: '#006AFF', paypal: '#003087',
+                        woocommerce: '#96588A', amazon_seller: '#FF9900', etsy: '#F16521',
+                        google_drive: '#4285F4', dropbox: '#0061FF', onedrive: '#0078D4',
+                        box: '#0061D5', google_sheets: '#0F9D58', airtable: '#FCBF49',
+                        mailchimp: '#FFE01B', convertkit: '#FB6970', klaviyo: '#1A1A1A',
+                        activecampaign: '#356AE6', brevo: '#0B996E',
+                        zendesk: '#03363D', freshdesk: '#25C16F', helpscout: '#1292EE',
+                        docusign: '#FFD100', hellosign: '#00B4E6', pandadoc: '#4BD964',
+                        bamboohr: '#73C41D', gusto: '#F45D48',
+                        zapier: '#FF4F00', make: '#6D00CC', n8n: '#EA4B71',
+                      } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>
+                        <Ionicons name={(app.icon || 'cube') as any} size={16} color="#fff" />
+                      </View>
                       <View style={{ flex: 1 }}>
                         <Text style={[s.rowLabel, { color: tc.text, fontSize: 14 }]}>{app.name}</Text>
                         <Text style={{ fontSize: 11, color: tc.textMid }}>{app.category}</Text>
