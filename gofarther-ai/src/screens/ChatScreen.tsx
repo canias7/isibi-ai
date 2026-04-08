@@ -471,7 +471,7 @@ RULES:
             ListFooterComponent={isBusy ? (
               <View style={s.typingRow}>
                 <Animated.View style={[s.thinkingPillLeft, { opacity: dotOpacity, backgroundColor: tc.card }]}>
-                  <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...</Text>
+                  <Text style={[s.thinkingText, { color: '#ec4899' }]}>{thinkingWord}...</Text>
                 </Animated.View>
                 <Animated.View style={[s.thinkingPillRight, { opacity: dotOpacity, backgroundColor: tc.card }]}>
                   <Text style={[s.thinkingStats, { color: tc.textMid }]}>{Math.floor(elapsed)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
