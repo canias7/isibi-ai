@@ -473,7 +473,8 @@ RULES:
           {isBusy && (
             <View style={s.typingRow}>
               <Animated.View style={[s.thinkingPill, { opacity: dotOpacity, backgroundColor: tc.card }]}>
-                <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...  {elapsed.toFixed(1)}s</Text>
+                <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...</Text>
+                <Text style={[s.thinkingStats, { color: tc.textMid }]}>{elapsed.toFixed(1)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
               </Animated.View>
             </View>
           )}
@@ -660,8 +661,9 @@ const s = StyleSheet.create({
 
   // Thinking status
   typingRow: { paddingHorizontal: 16, paddingBottom: 8 },
-  thinkingPill: { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
-  thinkingText: { fontSize: 13, fontStyle: 'italic', fontWeight: '500' },
+  thinkingPill: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, alignSelf: 'stretch' as const },
+  thinkingText: { fontSize: 13, fontStyle: 'italic' as const, fontWeight: '500' as const },
+  thinkingStats: { fontSize: 12, fontWeight: '400' as const },
 
   // Smart suggestions
   suggestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
