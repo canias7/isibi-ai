@@ -324,9 +324,9 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                     </View>
                   ) : smtpProvider.includes('Titan') ? (
                     <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to your Titan Email admin panel</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Use your regular email password below</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Titan/Neo.space uses your normal password — no app password needed!</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to your Titan/Neo admin panel</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Go to Settings and enable SMTP/IMAP access</Text>
+                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Use your regular email password below</Text>
                     </View>
                   ) : smtpProvider.includes('Namecheap') ? (
                     <View style={s.smtpInstructions}>
