@@ -109,8 +109,8 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
         setThinkingWord(thinkingWords[Math.floor(Math.random() * thinkingWords.length)]);
       }, 2500);
       const timerInterval = setInterval(() => {
-        setElapsed(prev => prev + 0.1);
-      }, 100);
+        setElapsed(prev => prev + 1);
+      }, 1000);
       const pulse = Animated.loop(Animated.sequence([
         Animated.timing(dotOpacity, { toValue: 0.3, duration: 800, useNativeDriver: true }),
         Animated.timing(dotOpacity, { toValue: 1, duration: 800, useNativeDriver: true }),
@@ -472,9 +472,11 @@ RULES:
           {/* Thinking status word */}
           {isBusy && (
             <View style={s.typingRow}>
-              <Animated.View style={[s.thinkingPill, { opacity: dotOpacity, backgroundColor: tc.card }]}>
+              <Animated.View style={[s.thinkingPillLeft, { opacity: dotOpacity, backgroundColor: tc.card }]}>
                 <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...</Text>
-                <Text style={[s.thinkingStats, { color: tc.textMid }]}>{elapsed.toFixed(1)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
+              </Animated.View>
+              <Animated.View style={[s.thinkingPillRight, { opacity: dotOpacity, backgroundColor: tc.card }]}>
+                <Text style={[s.thinkingStats, { color: tc.textMid }]}>{Math.floor(elapsed)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
               </Animated.View>
             </View>
           )}
@@ -660,8 +662,9 @@ const s = StyleSheet.create({
   suggestionLabel: { fontSize: 14, fontWeight: '500' },
 
   // Thinking status
-  typingRow: { paddingHorizontal: 16, paddingBottom: 8 },
-  thinkingPill: { flexDirection: 'row' as const, alignItems: 'center' as const, justifyContent: 'space-between' as const, paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16, alignSelf: 'stretch' as const },
+  typingRow: { flexDirection: 'row' as const, paddingHorizontal: 16, paddingBottom: 8, gap: 8 },
+  thinkingPillLeft: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16 },
+  thinkingPillRight: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 16 },
   thinkingText: { fontSize: 13, fontStyle: 'italic' as const, fontWeight: '500' as const },
   thinkingStats: { fontSize: 12, fontWeight: '400' as const },
 
