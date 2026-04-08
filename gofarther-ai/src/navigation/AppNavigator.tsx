@@ -9,6 +9,7 @@ import TemplatesScreen from '../screens/TemplatesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ScheduledScreen from '../screens/ScheduledScreen';
 import { getChatSessions, saveChatSessions, ChatSession } from '../lib/storage';
+import { addNotificationResponseListener } from '../lib/notifications';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,13 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
   }, []);
 
   useEffect(() => { loadSessions(); }, []);
+
+  // Deep link: when user taps a notification with sessionId, open that chat
+  useEffect(() => {
+    return addNotificationResponseListener((sessionId) => {
+      openSession(sessionId);
+    });
+  }, []);
 
   const navigate = (screen: NavScreen) => {
     setDrawerOpen(false);

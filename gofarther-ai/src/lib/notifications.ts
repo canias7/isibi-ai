@@ -38,9 +38,20 @@ export async function registerForPushNotifications(): Promise<string | null> {
   return token.data;
 }
 
-export async function scheduleLocalNotification(title: string, body: string, seconds: number = 5) {
+export async function scheduleLocalNotification(title: string, body: string, seconds: number = 5, data?: Record<string, string>) {
   await Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: true },
+    content: { title, body, sound: true, data: data || {} },
     trigger: { seconds, type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL },
   });
+}
+
+/** Listen for notification taps — returns cleanup function */
+export function addNotificationResponseListener(handler: (sessionId: string) => void) {
+  const sub = Notifications.addNotificationResponseReceivedListener(response => {
+    const data = response.notification.request.content.data;
+    if (data?.sessionId) {
+      handler(data.sessionId as string);
+    }
+  });
+  return () => sub.remove();
 }

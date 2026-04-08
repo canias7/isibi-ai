@@ -7,7 +7,8 @@ import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFil
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
-import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addCallRecording, trackEvent } from './storage';
+import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
+import NetInfo from '@react-native-community/netinfo';
 import { scheduleLocalNotification } from './notifications';
 
 interface UseChatOptions {
@@ -86,6 +87,20 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
     // Capture session ID for async operations that may outlive a chat switch
     const operationSessionId = sid;
+    // Helper: schedule notification with session deep link
+    const notify = (title: string, body: string, seconds: number = 1) =>
+      scheduleLocalNotification(title, body, seconds, { sessionId: operationSessionId });
+
+    // Check if offline — queue message for later
+    try {
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) {
+        setMessages(prev => prev.map(m => m.id === userMsg.id ? { ...m, queued: true } : m));
+        await addToOfflineQueue({ sessionId: operationSessionId, text, timestamp: Date.now() });
+        setLoading(false);
+        return;
+      }
+    } catch {} // If NetInfo fails, proceed anyway
 
     try {
       const currentMsgs = messagesRef.current;
@@ -239,7 +254,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             followUpDraft: result.follow_up_email,
             createdAt: Date.now(),
           });
-          scheduleLocalNotification('Call Summary Ready', `Summary for ${result.contact_name || 'call'} is ready`, 1);
+          notify('Call Summary Ready', `Summary for ${result.contact_name || 'call'} is ready`, 1);
         }).catch(e => {
           updateAndPersist(aiMsgIdStream, { content: `Call processing failed: ${e.message}` });
         });
@@ -252,7 +267,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         setLoading(false);
         trackAsync(generateImage(finalAction.target || '')).then(imageUrl => {
           updateAndPersist(aiMsgIdStream, { content: finalText || 'Here\'s your image:', imageUrl });
-          scheduleLocalNotification('Image Ready', 'Your AI-generated image is ready', 1);
+          notify('Image Ready', 'Your AI-generated image is ready', 1);
         }).catch((e: any) => {
           updateAndPersist(aiMsgIdStream, { content: (finalText || '') + '\n\n(Image generation failed: ' + e.message + ')' });
         });
@@ -279,13 +294,13 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             isCreatingFile: false,
           });
           setIsCreating(false);
-          scheduleLocalNotification('File Ready', `${result.filename} has been created`, 1);
+          notify('File Ready', `${result.filename} has been created`, 1);
         }).catch(e => {
           setIsCreating(false);
           if (cancelRef.current) return;
           const errorMsg = 'File creation failed: ' + (e.message || 'Unknown error');
           updateAndPersist(aiMsgIdStream, { content: errorMsg, isCreatingFile: false });
-          scheduleLocalNotification('GoFarther AI', errorMsg, 1);
+          notify('GoFarther AI', errorMsg, 1);
         });
         return;
       }
@@ -320,7 +335,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             isCreatingFile: false,
           });
           setIsCreating(false);
-          scheduleLocalNotification('File Ready', `${result.filename} is ready`, 1);
+          notify('File Ready', `${result.filename} is ready`, 1);
         }).catch(e => {
           setIsCreating(false);
           if (cancelRef.current) return;
@@ -507,7 +522,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         const hourMatch = timeStr.match(/(\d+)\s*hour/);
         if (minuteMatch) delayMinutes = parseInt(minuteMatch[1]);
         else if (hourMatch) delayMinutes = parseInt(hourMatch[1]) * 60;
-        scheduleLocalNotification('Reminder', reminder, delayMinutes * 60);
+        notify('Reminder', reminder, delayMinutes * 60);
         updateAndPersist(aiMsgIdStream, { content: finalText || `Got it! I'll remind you "${reminder}" in ${delayMinutes} minutes.` });
         setLoading(false);
         return;
@@ -515,7 +530,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
 
       if (finalAction?.type === 'set_timer') {
         const minutes = parseInt(finalAction.target || '5') || 5;
-        scheduleLocalNotification('Timer Done', `Your ${minutes}-minute timer is up!`, minutes * 60);
+        notify('Timer Done', `Your ${minutes}-minute timer is up!`, minutes * 60);
         updateAndPersist(aiMsgIdStream, { content: finalText || `Timer set for ${minutes} minutes.` });
         setLoading(false);
         return;
@@ -595,7 +610,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           if (dlResult.status !== 200) throw new Error(`Download failed`);
           updateAndPersist(aiMsgIdStream, { content: `${finalText || 'Your document is ready!'}\n\n**${result.filename}**`, fileUrl: filePath, isCreatingFile: false });
           setIsCreating(false);
-          scheduleLocalNotification('Document Ready', `${result.filename} has been created`, 1);
+          notify('Document Ready', `${result.filename} has been created`, 1);
         }).catch(e => {
           setIsCreating(false);
           if (cancelRef.current) return;
@@ -665,12 +680,12 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionStatus: 'done' } : m));
       // Notify on email sent
       if (msg.action.type === 'email') {
-        scheduleLocalNotification('Email Sent', `Email to ${msg.action.target} was sent successfully`, 1);
+        scheduleLocalNotification('Email Sent', `Email to ${msg.action.target} was sent successfully`, 1, { sessionId: currentSessionId.current || '' });
       }
     } catch (e: any) {
       setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionStatus: 'failed' } : m));
       if (msg.action.type === 'email') {
-        scheduleLocalNotification('Email Failed', e.message || 'Could not send email', 1);
+        scheduleLocalNotification('Email Failed', e.message || 'Could not send email', 1, { sessionId: currentSessionId.current || '' });
       }
     }
   }, []);

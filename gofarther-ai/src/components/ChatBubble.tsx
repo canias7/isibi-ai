@@ -192,9 +192,12 @@ function ChatBubble({ item, aiName, isAnimating, onStopAnimating, onConfirm, onC
               </TouchableOpacity>
             </View>
           )}
-          {/* Timestamp */}
+          {/* Timestamp + queued indicator */}
           {item.timestamp && (
-            <Text style={[s.timestampText, { color: colors.textDim }, isUser && { textAlign: 'right' }]}>{formatTime(item.timestamp)}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 3, justifyContent: isUser ? 'flex-end' : 'flex-start' }}>
+              {item.queued && <Ionicons name="time-outline" size={10} color={colors.textDim} />}
+              <Text style={[s.timestampText, { color: colors.textDim }]}>{item.queued ? 'Queued' : formatTime(item.timestamp)}</Text>
+            </View>
           )}
         </View>
       </View>
@@ -234,5 +237,5 @@ const s = StyleSheet.create({
   retryBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 6, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, backgroundColor: '#fef2f2' },
   retryText: { fontSize: 11, fontWeight: '600', color: '#ef4444' },
   reactionRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 6 },
-  timestampText: { fontSize: 10, marginTop: 3 },
+  timestampText: { fontSize: 10 },
 });

@@ -308,6 +308,27 @@ export async function saveConnectedApps(apps: ConnectedApp[]) {
   await save('connected_apps', apps);
 }
 
+// Offline message queue
+export interface QueuedMessage {
+  sessionId: string;
+  text: string;
+  timestamp: number;
+}
+
+export async function getOfflineQueue(): Promise<QueuedMessage[]> {
+  return load('offline_queue', []);
+}
+
+export async function addToOfflineQueue(msg: QueuedMessage) {
+  const queue = await getOfflineQueue();
+  queue.push(msg);
+  await save('offline_queue', queue);
+}
+
+export async function clearOfflineQueue() {
+  await save('offline_queue', []);
+}
+
 // Call recordings
 export interface CallRecording {
   id: string;
