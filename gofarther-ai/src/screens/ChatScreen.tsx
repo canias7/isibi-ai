@@ -473,8 +473,8 @@ RULES:
                 <Animated.View style={[s.thinkingPillLeft, { opacity: dotOpacity, backgroundColor: tc.card }]}>
                   <Text style={[s.thinkingText, { color: '#ec4899' }]}>{thinkingWord}...</Text>
                 </Animated.View>
-                <Animated.View style={[s.thinkingPillRight, { opacity: dotOpacity, backgroundColor: tc.card }]}>
-                  <Text style={[s.thinkingStats, { color: tc.textMid }]}>{Math.floor(elapsed)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
+                <Animated.View style={[s.thinkingPillRight, { opacity: dotOpacity }]}>
+                  <Text style={[s.thinkingStats, { color: tc.text, fontWeight: '600' }]}>{Math.floor(elapsed)}s · ↓ {Math.round(elapsed * 8)} tokens</Text>
                 </Animated.View>
               </View>
             ) : null}
