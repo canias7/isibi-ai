@@ -467,7 +467,7 @@ RULES:
           {loading && (
             <View style={s.typingRow}>
               <Animated.View style={[s.thinkingPill, { opacity: dotOpacity, backgroundColor: tc.card }]}>
-                <Text style={[s.thinkingText, { color: tc.textSecondary }]}>{thinkingWord}...</Text>
+                <Text style={[s.thinkingText, { color: tc.textDim }]}>{thinkingWord}...</Text>
               </Animated.View>
             </View>
           )}
