@@ -462,7 +462,8 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-              {/* App list */}
+              {/* App list — scrolls independently */}
+              <ScrollView style={{ maxHeight: 400 }} nestedScrollEnabled showsVerticalScrollIndicator>
               {allApps
                 .filter(a => selectedCategory === 'All' || a.category === selectedCategory)
                 .filter(a => !appSearch.trim() || a.name.toLowerCase().includes(appSearch.toLowerCase()) || a.category.toLowerCase().includes(appSearch.toLowerCase()))
@@ -647,6 +648,7 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
                   )}
                 </View>
               ))}
+              </ScrollView>
             </View>
           )}
         </View>
