@@ -1408,9 +1408,18 @@ async def get_usage(authorization: str = Header(...), period: str = "7d", db: As
 
 @router.delete("/account")
 async def delete_account(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Permanently delete user account and all associated data."""
+    """Permanently delete user account and all associated data.
+
+    Unlike other protected routes, this one accepts unverified tokens too —
+    a user who signed up with a typo'd email must still be able to remove
+    the account they can't verify. We decode the JWT directly instead of
+    going through verify_ghost_token (which rejects unverified tokens).
+    """
     token = authorization.replace("Bearer ", "")
-    payload = verify_ghost_token(token)
+    try:
+        payload = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
     result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
     user = result.scalar_one_or_none()
     if not user:
