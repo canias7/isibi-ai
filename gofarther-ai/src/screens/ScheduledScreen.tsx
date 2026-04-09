@@ -8,6 +8,30 @@ import { getScheduledTasks, saveScheduledTasks, ScheduledTask, getAgents, Agent 
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+
+function formatTime(h: number, m: number): string {
+  const mm = String(m).padStart(2, '0');
+  if (h === 0) return `12:${mm} AM`;
+  if (h < 12) return `${h}:${mm} AM`;
+  if (h === 12) return `12:${mm} PM`;
+  return `${h - 12}:${mm} PM`;
+}
+
+function formatTimeShort(h: number, m: number): string {
+  const mm = String(m).padStart(2, '0');
+  if (h === 0) return `12:${mm}am`;
+  if (h < 12) return `${h}:${mm}am`;
+  if (h === 12) return `12:${mm}pm`;
+  return `${h - 12}:${mm}pm`;
+}
+
+/** Parse "H" (legacy) or "H:M" → [hour, minute] */
+function parseHourMinute(s: string): [number, number] {
+  if (!s) return [9, 0];
+  const [hStr, mStr] = s.split(':');
+  return [parseInt(hStr) || 0, parseInt(mStr) || 0];
+}
 
 export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
   const { colors: tc } = useTheme();
@@ -23,6 +47,7 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
   const [schedMode, setSchedMode] = useState<'recurring' | 'once'>('recurring');
   const [selDays, setSelDays] = useState<number[]>([1, 2, 3, 4, 5]);
   const [selHour, setSelHour] = useState(9);
+  const [selMinute, setSelMinute] = useState(0);
   // One-time date
   const [selMonth, setSelMonth] = useState(new Date().getMonth() + 1);
   const [selDay, setSelDay] = useState(new Date().getDate());
@@ -38,7 +63,7 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
 
   const openCreate = () => {
     setEditId(null); setCommand(''); setLabel('');
-    setSelDays([1, 2, 3, 4, 5]); setSelHour(9);
+    setSelDays([1, 2, 3, 4, 5]); setSelHour(9); setSelMinute(0);
     if (agents.length > 0) setAgentId(agents[0].id);
     setShowEdit(true);
   };
@@ -52,37 +77,38 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
       setSelMonth(parseInt(dateParts[0]) || 1);
       setSelDay(parseInt(dateParts[1]) || 1);
       setSelYear(parseInt(dateParts[2]) || 2026);
-      setSelHour(parseInt(parts[2]) || 9);
+      const [h, m] = parseHourMinute(parts[2]);
+      setSelHour(h); setSelMinute(m);
     } else if (parts.length === 2) {
       setSchedMode('recurring');
       setSelDays(parts[0].split(',').map(Number).filter(n => !isNaN(n)));
-      setSelHour(parseInt(parts[1]) || 9);
+      const [h, m] = parseHourMinute(parts[1]);
+      setSelHour(h); setSelMinute(m);
     }
     setShowEdit(true);
   };
 
   const encodeSchedule = () => {
-    if (schedMode === 'once') return `once|${selMonth}/${selDay}/${selYear}|${selHour}`;
-    return `${selDays.join(',')}|${selHour}`;
+    const time = `${selHour}:${selMinute}`;
+    if (schedMode === 'once') return `once|${selMonth}/${selDay}/${selYear}|${time}`;
+    return `${selDays.join(',')}|${time}`;
   };
 
   const getScheduleLabel = (val: string) => {
     if (val.startsWith('once|')) {
       const parts = val.split('|');
       const date = parts[1] || '';
-      const hour = parseInt(parts[2]);
-      const ampm = hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`;
-      return `${date} at ${ampm}`;
+      const [h, m] = parseHourMinute(parts[2]);
+      return `${date} at ${formatTimeShort(h, m)}`;
     }
     const parts = val.split('|');
     if (parts.length !== 2) return val;
     const days = parts[0].split(',').map(Number);
-    const hour = parseInt(parts[1]);
+    const [h, m] = parseHourMinute(parts[1]);
     const dayStr = days.length === 7 ? 'Every day'
       : days.length === 5 && days.join(',') === '1,2,3,4,5' ? 'Weekdays'
       : days.map(d => DAYS[d]).join(', ');
-    const ampm = hour === 0 ? '12am' : hour < 12 ? `${hour}am` : hour === 12 ? '12pm' : `${hour - 12}pm`;
-    return `${dayStr} at ${ampm}`;
+    return `${dayStr} at ${formatTimeShort(h, m)}`;
   };
 
   const save = async () => {
@@ -123,7 +149,7 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
 
   // ==================== EDIT ====================
   if (showEdit) {
-    const ampm = selHour === 0 ? '12:00 AM' : selHour < 12 ? `${selHour}:00 AM` : selHour === 12 ? '12:00 PM' : `${selHour - 12}:00 PM`;
+    const ampm = formatTime(selHour, selMinute);
 
     return (
       <SafeAreaView style={[s.container, { backgroundColor: tc.bg }]}>
@@ -203,6 +229,7 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
           <View style={s.timeDisplay}>
             <Text style={s.timeText}>{ampm}</Text>
           </View>
+          <Text style={[s.subLabel, { color: tc.textDim }]}>Hour</Text>
           <View style={s.hourGrid}>
             {HOURS.map(h => {
               const label2 = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
@@ -213,6 +240,14 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
               );
             })}
           </View>
+          <Text style={[s.subLabel, { color: tc.textDim }]}>Minute</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.minuteRow}>
+            {MINUTES.map(m => (
+              <TouchableOpacity key={m} style={[s.minuteBtn, selMinute === m && s.minuteBtnActive]} onPress={() => setSelMinute(m)} activeOpacity={0.7}>
+                <Text style={[s.minuteBtnText, selMinute === m && s.minuteBtnTextActive]}>{String(m).padStart(2, '0')}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
 
           {editId && <TouchableOpacity style={s.delBtn} onPress={() => { remove(editId); setShowEdit(false); }}><Text style={s.delText}>Delete Task</Text></TouchableOpacity>}
         </ScrollView>
@@ -323,6 +358,12 @@ const s = StyleSheet.create({
   hourBtnActive: { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' },
   hourBtnText: { fontSize: 11, fontWeight: '500', color: '#666' },
   hourBtnTextActive: { color: '#ffffff' },
+  subLabel: { fontSize: 10, fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 14, marginBottom: 6 },
+  minuteRow: { flexDirection: 'row', gap: 6, paddingVertical: 2, paddingRight: 20 },
+  minuteBtn: { minWidth: 40, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#f5f5f5', alignItems: 'center', borderWidth: 1, borderColor: '#e8e8e8' },
+  minuteBtnActive: { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' },
+  minuteBtnText: { fontSize: 12, fontWeight: '500', color: '#666' },
+  minuteBtnTextActive: { color: '#ffffff' },
 
   // Mode toggle
   modeRow: { flexDirection: 'row', backgroundColor: '#f2f2f2', borderRadius: 10, padding: 3, marginBottom: 8 },

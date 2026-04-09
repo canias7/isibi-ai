@@ -34,6 +34,13 @@ async function checkTasks() {
   } catch {}
 }
 
+/** Parse "H" (legacy hour-only) or "H:M" → [hour, minute] */
+function parseHM(s: string): [number, number] {
+  if (!s) return [0, 0];
+  const [hStr, mStr] = s.split(':');
+  return [parseInt(hStr) || 0, parseInt(mStr) || 0];
+}
+
 function shouldRun(task: ScheduledTask, now: Date): boolean {
   const key = task.id;
   const last = lastRun[key] || 0;
@@ -41,19 +48,19 @@ function shouldRun(task: ScheduledTask, now: Date): boolean {
 
   const parts = task.schedule.split('|');
 
-  // One-time format: "once|4/15/2026|9"
+  // One-time format: "once|4/15/2026|9:30" (or legacy "once|4/15/2026|9")
   if (parts[0] === 'once' && parts.length === 3) {
     const [month, day, year] = parts[1].split('/').map(Number);
-    const hour = parseInt(parts[2]);
+    const [hour, minute] = parseHM(parts[2]);
     return now.getMonth() + 1 === month && now.getDate() === day && now.getFullYear() === year
-      && now.getHours() === hour && now.getMinutes() < 2 && elapsed > 3600000;
+      && now.getHours() === hour && now.getMinutes() === minute && elapsed > 120000;
   }
 
-  // Recurring format: "0,1,2,3,4,5,6|9" = days|hour
+  // Recurring format: "0,1,2,3,4,5,6|9:30" = days|hour:minute (legacy: days|hour)
   if (parts.length === 2 && parts[0] !== 'once') {
     const days = parts[0].split(',').map(Number);
-    const hour = parseInt(parts[1]);
-    return days.includes(now.getDay()) && now.getHours() === hour && now.getMinutes() < 2 && elapsed > 3600000;
+    const [hour, minute] = parseHM(parts[1]);
+    return days.includes(now.getDay()) && now.getHours() === hour && now.getMinutes() === minute && elapsed > 120000;
   }
 
   // Legacy format support
