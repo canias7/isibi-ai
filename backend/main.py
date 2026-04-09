@@ -11,6 +11,14 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 import asyncio
 import logging
+
+# ── Logging setup — output to stdout for Render/Docker ──────────────
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-8s [%(name)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    stream=sys.stdout,
+)
 from pathlib import Path
 from datetime import datetime
 from contextlib import asynccontextmanager
