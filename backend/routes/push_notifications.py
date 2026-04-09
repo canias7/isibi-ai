@@ -7,7 +7,7 @@ Push Notifications — subscribe, send, and track push notifications for deploye
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -40,11 +40,10 @@ class SendNotificationBody(BaseModel):
 async def subscribe_push(
     project_id: str,
     body: SubscribeBody,
-    request: "Request" = None,
+    request: Request = None,
     db: AsyncSession = Depends(get_db),
 ):
     """Save a push subscription — requires valid project and origin validation."""
-    from fastapi import Request as _Req  # noqa
     pid = uuid.UUID(project_id)
 
     # Verify the project exists (prevents blind subscription to arbitrary IDs)
