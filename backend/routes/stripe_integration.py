@@ -34,12 +34,15 @@ router = APIRouter(prefix="/apps", tags=["stripe"])
 # ---------------------------------------------------------------------------
 _FERNET_KEY = os.getenv("FERNET_KEY") or os.getenv("SMTP_ENCRYPTION_KEY", "")
 if _FERNET_KEY:
-    _fernet = Fernet(_FERNET_KEY.encode())
-elif os.getenv("RENDER"):
-    raise RuntimeError("CRITICAL: FERNET_KEY must be set in production for Stripe key encryption!")
+    try:
+        _fernet = Fernet(_FERNET_KEY.encode())
+    except Exception:
+        import logging as _stripe_logging
+        _stripe_logging.getLogger(__name__).error("FERNET_KEY/SMTP_ENCRYPTION_KEY is not a valid Fernet key — using ephemeral key")
+        _fernet = Fernet(Fernet.generate_key())
 else:
     import logging as _stripe_logging
-    _stripe_logging.getLogger(__name__).warning("FERNET_KEY not set — using ephemeral key (data lost on restart)")
+    _stripe_logging.getLogger(__name__).warning("FERNET_KEY not set — using ephemeral key (Stripe keys will not survive restart)")
     _fernet = Fernet(Fernet.generate_key())
 
 
