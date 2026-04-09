@@ -77,7 +77,14 @@ export async function chat(messages: Message[], systemPrompt?: string): Promise<
   });
   if (!res.ok) {
     const err = await res.json().catch(() => null);
-    throw new Error(err?.detail || `API error (${res.status})`);
+    const detail = err?.detail;
+    if (res.status === 429 && detail && typeof detail === 'object' && detail.error === 'rate_limit_exceeded') {
+      const e: any = new Error(detail.upgrade_hint || 'Rate limit reached — upgrade for more messages.');
+      e.code = 'rate_limit_exceeded';
+      e.rateLimit = detail;
+      throw e;
+    }
+    throw new Error(typeof detail === 'string' ? detail : `API error (${res.status})`);
   }
   const data = await res.json();
   return data.text || 'No response';
@@ -104,7 +111,14 @@ export async function chatStream(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => null);
-    throw new Error(err?.detail || `API error (${res.status})`);
+    const detail = err?.detail;
+    if (res.status === 429 && detail && typeof detail === 'object' && detail.error === 'rate_limit_exceeded') {
+      const e: any = new Error(detail.upgrade_hint || 'Rate limit reached — upgrade for more messages.');
+      e.code = 'rate_limit_exceeded';
+      e.rateLimit = detail;
+      throw e;
+    }
+    throw new Error(typeof detail === 'string' ? detail : `API error (${res.status})`);
   }
   const data = await res.json();
   const text = data.text || 'No response';

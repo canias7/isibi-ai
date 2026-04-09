@@ -297,6 +297,26 @@ async def execute_ghost_task(task: GhostScheduledTask, db: AsyncSession) -> str:
     if not ANTHROPIC_API_KEY:
         return "ANTHROPIC_API_KEY not configured"
 
+    # Rate-limit check — scheduled runs count against the same rolling window
+    # as chat messages. If the user is at cap, we skip this run silently
+    # rather than raising, so the scheduler keeps running other tasks.
+    try:
+        from worker.ghost_rate_limit import check_and_consume_quota
+        await check_and_consume_quota(task.user_email, db, cost=1, raise_on_block=False)
+    except Exception as e:
+        logger.warning("Rate limit check failed for %s: %s", task.user_email, e)
+    # If user is over quota, just skip this run
+    from sqlalchemy import select as _select
+    from models.ghost_subscription import GhostSubscription as _GS, plan_for as _plan_for
+    _res = await db.execute(_select(_GS).where(_GS.user_email == task.user_email))
+    _sub = _res.scalar_one_or_none()
+    if _sub:
+        _plan = _plan_for(_sub.plan)
+        if _plan["per_5h"] >= 0 and _sub.window_5h_count > _plan["per_5h"]:
+            return f"Skipped: user at 5h rate limit ({_sub.window_5h_count}/{_plan['per_5h']})"
+        if _plan["per_week"] >= 0 and _sub.window_week_count > _plan["per_week"]:
+            return f"Skipped: user at weekly rate limit ({_sub.window_week_count}/{_plan['per_week']})"
+
     token = await _mint_internal_token(task.user_email, db)
     if not token:
         return f"Could not mint token for {task.user_email} (user missing?)"

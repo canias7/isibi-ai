@@ -64,6 +64,7 @@ from .app_email import AppEmail
 from .app_snapshot import AppSnapshot
 from .app_scheduled_command import AppScheduledCommand
 from .ghost_scheduled_task import GhostScheduledTask
+from .ghost_subscription import GhostSubscription
 from .sso_config import SSOConfig
 
 __all__ = [
@@ -92,5 +93,6 @@ __all__ = [
     "AppMessage", "AppEmail", "AppSnapshot",
     "AppScheduledCommand",
     "GhostScheduledTask",
+    "GhostSubscription",
     "SSOConfig",
 ]

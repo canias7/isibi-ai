@@ -354,6 +354,57 @@ export async function getE2EKeyFromServer(): Promise<{ public_key: string | null
   return apiFetch('/e2e/keys');
 }
 
+// ─── Billing / Subscriptions ─────────────────────────────────────────
+
+export interface PlanInfo {
+  id: string;
+  name: string;
+  price_cents: number | null;
+  per_5h: number;
+  per_week: number;
+  max_tasks: number;
+  is_custom: boolean;
+}
+
+export interface UsageSnapshot {
+  plan: string;
+  plan_name: string;
+  status: string;
+  per_5h: number;
+  per_week: number;
+  max_tasks: number;
+  used_5h: number;
+  used_week: number;
+  remaining_5h: number;
+  remaining_week: number;
+  resets_in_seconds_5h: number;
+  resets_in_seconds_week: number;
+  cancel_at_period_end?: boolean;
+  current_period_end?: string | null;
+}
+
+export async function getPlans(): Promise<{ plans: PlanInfo[] }> {
+  return apiFetch('/billing/plans');
+}
+
+export async function getCurrentPlan(): Promise<UsageSnapshot> {
+  return apiFetch('/billing/current');
+}
+
+export async function createCheckout(plan: string): Promise<{ checkout_url: string; session_id: string }> {
+  return apiFetch('/billing/checkout', {
+    method: 'POST',
+    body: JSON.stringify({ plan }),
+  });
+}
+
+export async function openBillingPortal(): Promise<{ portal_url: string }> {
+  return apiFetch('/billing/portal', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
 // ─── Device Check ────────────────────────────────────────────────────
 
 export async function reportDevice(isRooted: boolean, deviceModel: string, osVersion: string) {

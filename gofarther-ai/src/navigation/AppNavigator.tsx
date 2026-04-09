@@ -8,6 +8,7 @@ import AgentsScreen from '../screens/AgentsScreen';
 import TemplatesScreen from '../screens/TemplatesScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import ScheduledScreen from '../screens/ScheduledScreen';
+import SubscriptionScreen from '../screens/SubscriptionScreen';
 import { getChatSessions, saveChatSessions, ChatSession } from '../lib/storage';
 import { addNotificationResponseListener } from '../lib/notifications';
 import { useInactivityTimeout } from '../lib/useInactivityTimeout';
@@ -108,7 +109,16 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
             {() => <ScheduledScreen onBack={() => navigationRef.current?.goBack()} />}
           </Stack.Screen>
           <Stack.Screen name="Settings">
-            {() => <SettingsScreen onLogout={onLogout} onBack={() => navigationRef.current?.goBack()} />}
+            {() => (
+              <SettingsScreen
+                onLogout={onLogout}
+                onBack={() => navigationRef.current?.goBack()}
+                onOpenSubscription={() => navigationRef.current?.navigate('Subscription')}
+              />
+            )}
+          </Stack.Screen>
+          <Stack.Screen name="Subscription">
+            {() => <SubscriptionScreen onBack={() => navigationRef.current?.goBack()} />}
           </Stack.Screen>
         </Stack.Navigator>
       </NavigationContainer>

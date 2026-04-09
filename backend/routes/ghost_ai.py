@@ -8,10 +8,14 @@ import os
 import json
 import base64
 import httpx
-from fastapi import APIRouter, HTTPException, Header, Request
+from fastapi import APIRouter, Depends, HTTPException, Header, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
+
+from db import get_db
+from worker.ghost_rate_limit import check_and_consume_quota
 
 router = APIRouter(prefix="/ghost/ai", tags=["ghost-ai"])
 
@@ -81,11 +85,19 @@ OPENAI_KEY = os.getenv("OPENAI_API_KEY", "")
 
 
 @router.post("/chat")
-async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
+async def chat_proxy(
+    req: ChatRequest,
+    authorization: str = Header(...),
+    db: AsyncSession = Depends(get_db),
+):
     """Proxy chat request to Claude API with native tool use."""
     auth_payload = _verify_auth(authorization)
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "Anthropic API key not configured on server")
+
+    # Rate-limit check BEFORE hitting Anthropic — fail fast on quota exhaustion
+    await check_and_consume_quota(auth_payload.get("email", ""), db, cost=1)
+    await db.commit()
 
     async with httpx.AsyncClient(timeout=60) as client:
         res = await client.post(
@@ -184,11 +196,18 @@ async def chat_proxy(req: ChatRequest, authorization: str = Header(...)):
 
 
 @router.post("/chat-stream")
-async def chat_stream_proxy(req: ChatRequest, authorization: str = Header(...)):
+async def chat_stream_proxy(
+    req: ChatRequest,
+    authorization: str = Header(...),
+    db: AsyncSession = Depends(get_db),
+):
     """Streaming chat — returns Server-Sent Events with text deltas and tool calls."""
-    _verify_auth(authorization)
+    auth_payload = _verify_auth(authorization)
     if not ANTHROPIC_KEY:
         raise HTTPException(500, "Anthropic API key not configured on server")
+
+    await check_and_consume_quota(auth_payload.get("email", ""), db, cost=1)
+    await db.commit()
 
     async def event_generator():
         text_so_far = ""

@@ -19,7 +19,7 @@ import {
 
 interface UserInfo { name?: string; email?: string; }
 
-export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => void; onBack: () => void }) {
+export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }: { onLogout: () => void; onBack: () => void; onOpenSubscription?: () => void }) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [customInstructions, setCustomInstructions] = useState('');
@@ -175,6 +175,19 @@ export default function SettingsScreen({ onLogout, onBack }: { onLogout: () => v
           <Text style={[s.profileName, { color: tc.text }]}>{user?.name || 'Loading...'}</Text>
           <Text style={[s.profileEmail, { color: tc.textMid }]}>{user?.email || ''}</Text>
         </View>
+
+        {/* Subscription */}
+        {onOpenSubscription && (
+          <>
+            <Text style={[s.sectionLabel, { color: tc.textMid }]}>Billing</Text>
+            <View style={[s.card, { backgroundColor: tc.bg }]}>
+              <TouchableOpacity style={s.row} onPress={onOpenSubscription}>
+                <Text style={s.rowLabel}>Subscription & Plans</Text>
+                <Text style={s.chevron}>{'>'}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         {/* Usage Stats */}
         <Text style={[s.sectionLabel, { color: tc.textMid }]}>Usage</Text>

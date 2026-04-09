@@ -669,7 +669,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         } : m);
       });
     } catch (e: any) {
-      setMessages(prev => [...prev, { id: genId(), role: 'system' as const, content: e.message || 'Something went wrong', timestamp: Date.now() }]);
+      const msg = e?.code === 'rate_limit_exceeded'
+        ? `⚠️ ${e.message} Open Settings → Subscription to upgrade.`
+        : (e.message || 'Something went wrong');
+      setMessages(prev => [...prev, { id: genId(), role: 'system' as const, content: msg, timestamp: Date.now() }]);
     } finally {
       setLoading(false);
     }

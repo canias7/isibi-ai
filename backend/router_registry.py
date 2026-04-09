@@ -92,6 +92,7 @@ def _register_app_feature_routers(app):
     from routes.control_center_download import router as control_center_router
     from routes.ghost_auth import router as ghost_auth_router
     from routes.ghost_scheduled_tasks import router as ghost_scheduled_tasks_router
+    from routes.ghost_billing import router as ghost_billing_router
     from routes.ghost_download import router as ghost_download_router
     from routes.ghost_ai import router as ghost_ai_router
     from routes.ghost_tools import router as ghost_tools_router
@@ -136,6 +137,7 @@ def _register_app_feature_routers(app):
     app.include_router(control_center_router, prefix="/api")
     app.include_router(ghost_auth_router, prefix="/api")
     app.include_router(ghost_scheduled_tasks_router, prefix="/api")
+    app.include_router(ghost_billing_router, prefix="/api")
     app.include_router(ghost_download_router, prefix="/api")
     app.include_router(ghost_ai_router, prefix="/api")
     app.include_router(ghost_tools_router, prefix="/api")

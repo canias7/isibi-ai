@@ -93,6 +93,23 @@ async def sync_tasks(
     if len(body.tasks) > 100:
         raise HTTPException(status_code=400, detail="Too many tasks (max 100)")
 
+    # Plan-based task quota check
+    from worker.ghost_rate_limit import get_usage_snapshot
+    snapshot = await get_usage_snapshot(email, db)
+    max_tasks = snapshot.get("max_tasks", 0)
+    enabled_count = sum(1 for t in body.tasks if t.enabled)
+    if max_tasks >= 0 and enabled_count > max_tasks:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": "task_quota_exceeded",
+                "plan": snapshot.get("plan"),
+                "max_tasks": max_tasks,
+                "attempted": enabled_count,
+                "upgrade_hint": f"Your {snapshot.get('plan_name', 'current')} plan allows {max_tasks} active tasks. Upgrade for more.",
+            },
+        )
+
     # Delete existing
     await db.execute(delete(GhostScheduledTask).where(GhostScheduledTask.user_email == email))
 
