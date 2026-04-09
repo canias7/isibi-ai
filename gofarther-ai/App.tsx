@@ -21,7 +21,7 @@ Sentry.init({
     return event;
   },
 });
-import { View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
+import { View, ActivityIndicator, Text, TouchableOpacity, AppState } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Updates from 'expo-updates';
@@ -101,6 +101,37 @@ function App() {
         setAuth(t ? 'yes' : 'no');
       }
     });
+
+    // Re-check auth whenever the app becomes active. On iOS, swiping up
+    // from the app switcher (or even just backgrounding) doesn't kill the
+    // JS runtime, so React state persists across "closing" the app. If the
+    // user logged out in a previous session and the token is gone, we must
+    // flip auth back to 'no' on resume — otherwise they'd see the main app
+    // even though they're no longer authenticated.
+    const sub = AppState.addEventListener('change', async (state) => {
+      if (state !== 'active') return;
+      try {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const forceLogout = await AsyncStorage.getItem('force_logout');
+        if (forceLogout) {
+          await AsyncStorage.removeItem('force_logout');
+          try {
+            const SecureStore = await import('expo-secure-store');
+            await SecureStore.deleteItemAsync('gofurther_token');
+          } catch {}
+          try {
+            const { setActiveUserId } = await import('./src/lib/storage');
+            await setActiveUserId(null);
+          } catch {}
+        }
+      } catch {}
+      const t = await getToken();
+      if (!t) {
+        setAuth('no');
+        setLocked(false);
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   if (auth === 'loading') {
