@@ -24,7 +24,23 @@ export async function clearTokenIfReinstalled() {
 }
 
 export async function getToken(): Promise<string | null> {
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  const tok = await SecureStore.getItemAsync(TOKEN_KEY);
+  // Keep the storage namespace in sync with the token holder. This covers:
+  //   1) Cold starts after an upgrade from the pre-multi-account build
+  //      (no `active_user_id` yet → derive from JWT and migrate).
+  //   2) Any edge case where the two drifted apart.
+  if (tok) {
+    try {
+      const { setActiveUserId } = await import('./storage');
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const current = await AsyncStorage.getItem('active_user_id');
+      const uid = userIdFromJwt(tok);
+      if (uid && current !== uid) {
+        await setActiveUserId(uid);
+      }
+    } catch {}
+  }
+  return tok;
 }
 
 async function setToken(token: string) {
@@ -49,18 +65,18 @@ function userIdFromJwt(token: string): string | null {
 }
 
 /**
- * Install a newly-minted JWT. If this is a *different* account than the one
- * last seen on this device, wipe local user-scoped data first so the new
- * user can't see the previous user's chats/agents/contacts. Scoping is by
- * backend user_id (JWT `sub`), not email — two different accounts could
- * share an email and must still stay isolated.
+ * Install a newly-minted JWT and switch the local storage namespace to
+ * this user's scope. Every subsequent save/load in storage.ts will read
+ * and write from `u_<userId>_*` keys, so two accounts on the same device
+ * each keep their own chats, agents, contacts, etc. — nothing is deleted
+ * when switching, just re-scoped.
  */
 async function acceptNewSession(token: string) {
   const userId = userIdFromJwt(token);
   if (userId) {
     try {
-      const { ensureUserScope } = await import('./storage');
-      await ensureUserScope(userId);
+      const { setActiveUserId } = await import('./storage');
+      await setActiveUserId(userId);
     } catch {}
   }
   await setToken(token);
@@ -222,11 +238,13 @@ export async function logout() {
     // Don't block logout if server is unreachable
   }
   await clearToken();
-  // Wipe all per-user local data so the next account on this device
-  // doesn't see stale chats, agents, contacts, etc.
+  // Clear the active user pointer so `save`/`load` fall back to unscoped
+  // mode until the next login. We intentionally do NOT delete this user's
+  // namespaced data — if they log back in on this device, their chats,
+  // agents, contacts, etc. should still be there.
   try {
-    const { clearLocalUserData } = await import('./storage');
-    await clearLocalUserData();
+    const { setActiveUserId } = await import('./storage');
+    await setActiveUserId(null);
   } catch {
     // Best-effort
   }

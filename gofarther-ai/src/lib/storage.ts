@@ -1,29 +1,33 @@
-/** GoFarther AI — Local Storage */
+/** GoFarther AI — Local Storage
+ *
+ * Multi-account support: every user-specific key is transparently prefixed
+ * with `u_<userId>_` so multiple accounts on the same device keep their own
+ * chats, agents, contacts, etc. and neither leaks nor clobbers the other.
+ *
+ * The prefix is applied by `save`/`load`/`remove` based on the currently
+ * active user_id (JWT `sub` claim). A small allowlist of truly device-wide
+ * keys (theme, language, the active_user_id pointer itself) bypass the
+ * scoping.
+ *
+ * On logout we simply clear the active user pointer — we do NOT delete the
+ * data, so when that account logs back in their chats and agents return.
+ */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export async function save(key: string, data: any) {
-  await AsyncStorage.setItem(key, JSON.stringify(data));
-}
+// Keys that are device-wide and must NOT be namespaced per user.
+const DEVICE_KEYS = new Set<string>([
+  'theme_mode',
+  'app_language',
+  'active_user_id',
+  'storage_migrated_v2',
+]);
 
-export async function load<T>(key: string, fallback: T): Promise<T> {
-  const raw = await AsyncStorage.getItem(key);
-  return raw ? JSON.parse(raw) : fallback;
-}
-
-export async function remove(key: string) {
-  await AsyncStorage.removeItem(key);
-}
-
-/**
- * Keys that hold per-user data and MUST be wiped on logout/login so that
- * switching accounts on a device can't leak data between users. Keep this
- * list in sync with any new storage key added below that is user-specific.
- *
- * Device-level preferences that are fine to keep across accounts (theme,
- * language) are intentionally NOT in this list.
- */
-const USER_SCOPED_KEYS = [
+// Known user-scoped keys — used for the one-time legacy migration below.
+// New keys added to this file don't need to be added here, they get
+// scoped automatically via save/load. This list is purely for migrating
+// pre-multi-account installs where keys were stored unscoped.
+const LEGACY_USER_KEYS = [
   'chat_sessions',
   'agents',
   'email_templates',
@@ -41,49 +45,124 @@ const USER_SCOPED_KEYS = [
   'user_nickname',
 ];
 
-/**
- * Tracks the backend user_id (JWT `sub`) of the last account that logged in
- * on this device. We scope by user_id — not email — because two different
- * accounts could theoretically share an email. On the next login, if the
- * user_id is different we wipe per-user storage so accounts can't see each
- * other's cached data.
- */
-const LAST_USER_ID_KEY = 'last_user_id';
+// Module-level cache for the active user_id so save/load don't have to
+// hit AsyncStorage on every call. `undefined` = not hydrated yet.
+let _activeUserId: string | null | undefined = undefined;
 
-export async function getLastUserId(): Promise<string | null> {
-  try { return await AsyncStorage.getItem(LAST_USER_ID_KEY); } catch { return null; }
-}
-
-export async function setLastUserId(userId: string) {
-  try { await AsyncStorage.setItem(LAST_USER_ID_KEY, userId); } catch {}
-}
-
-/**
- * Call after a successful login. If the incoming user_id differs from
- * whoever was last on this device, wipe per-user storage before the new
- * user's data loads. Same-account re-login keeps its local cache.
- */
-export async function ensureUserScope(userId: string) {
-  if (!userId) return;
-  const previous = await getLastUserId();
-  if (previous && previous !== userId) {
-    await clearLocalUserData();
-  }
-  await setLastUserId(userId);
-}
-
-export async function clearLocalUserData() {
+async function getActiveUserId(): Promise<string | null> {
+  if (_activeUserId !== undefined) return _activeUserId;
   try {
-    // Wipe the known user-scoped keys
-    await AsyncStorage.multiRemove(USER_SCOPED_KEYS);
-    // Chat message blobs are keyed as `chat_<sessionId>` — scan and remove
-    const allKeys = await AsyncStorage.getAllKeys();
-    const chatKeys = allKeys.filter(k => k.startsWith('chat_') && k !== 'chat_sessions');
-    if (chatKeys.length > 0) {
-      await AsyncStorage.multiRemove(chatKeys);
+    _activeUserId = await AsyncStorage.getItem('active_user_id');
+  } catch {
+    _activeUserId = null;
+  }
+  return _activeUserId;
+}
+
+/**
+ * Apply a `u_<userId>_` prefix to a storage key so different accounts on
+ * the same device get independent namespaces. Device-wide keys and the
+ * pre-login case (no active user yet) pass through unchanged.
+ */
+async function scopedKey(key: string): Promise<string> {
+  if (DEVICE_KEYS.has(key)) return key;
+  // If the caller already passed a scoped key (shouldn't happen, but be safe)
+  if (key.startsWith('u_')) return key;
+  const uid = await getActiveUserId();
+  if (!uid) return key;
+  return `u_${uid}_${key}`;
+}
+
+export async function save(key: string, data: any) {
+  const k = await scopedKey(key);
+  await AsyncStorage.setItem(k, JSON.stringify(data));
+}
+
+export async function load<T>(key: string, fallback: T): Promise<T> {
+  const k = await scopedKey(key);
+  const raw = await AsyncStorage.getItem(k);
+  return raw ? JSON.parse(raw) : fallback;
+}
+
+export async function remove(key: string) {
+  const k = await scopedKey(key);
+  await AsyncStorage.removeItem(k);
+}
+
+/**
+ * Install or clear the active account for the current device.
+ *
+ * - Pass a user_id after a successful login: subsequent save/load calls
+ *   will read and write from that user's namespace.
+ * - Pass null on logout: save/load fall back to unscoped keys (which
+ *   should not be touched until the next login).
+ *
+ * The first time a user logs in after upgrading from the pre-multi-account
+ * build, we migrate any legacy unscoped keys into their namespace so they
+ * don't lose their existing chats/agents.
+ */
+export async function setActiveUserId(userId: string | null) {
+  _activeUserId = userId;
+  try {
+    if (userId) {
+      await AsyncStorage.setItem('active_user_id', userId);
+      await _migrateLegacyKeysIfNeeded(userId);
+    } else {
+      await AsyncStorage.removeItem('active_user_id');
     }
   } catch {
-    // Best-effort — don't block logout if storage is momentarily unavailable
+    // Best-effort — the in-memory cache is still set above
+  }
+}
+
+async function _migrateLegacyKeysIfNeeded(userId: string) {
+  try {
+    const alreadyMigrated = await AsyncStorage.getItem('storage_migrated_v2');
+    if (alreadyMigrated) return;
+
+    const allKeys = await AsyncStorage.getAllKeys();
+    const toMigrate: string[] = [];
+
+    for (const k of allKeys) {
+      if (DEVICE_KEYS.has(k)) continue;
+      if (k.startsWith('u_')) continue;
+      if (LEGACY_USER_KEYS.includes(k) || k.startsWith('chat_')) {
+        toMigrate.push(k);
+      }
+    }
+
+    if (toMigrate.length > 0) {
+      const pairs = await AsyncStorage.multiGet(toMigrate);
+      const writes: [string, string][] = [];
+      for (const [k, v] of pairs) {
+        if (v !== null) writes.push([`u_${userId}_${k}`, v]);
+      }
+      if (writes.length > 0) await AsyncStorage.multiSet(writes);
+      await AsyncStorage.multiRemove(toMigrate);
+    }
+
+    await AsyncStorage.setItem('storage_migrated_v2', '1');
+  } catch {
+    // Best-effort — if migration fails the app still works, worst case
+    // the upgrading user just starts with empty local caches
+  }
+}
+
+/**
+ * Delete every AsyncStorage key belonging to the currently active user.
+ * Used for "delete my data" flows — NOT called on logout (we preserve
+ * data across logout/login cycles so accounts can coexist).
+ */
+export async function clearLocalUserData() {
+  try {
+    const uid = await getActiveUserId();
+    if (!uid) return;
+    const allKeys = await AsyncStorage.getAllKeys();
+    const prefix = `u_${uid}_`;
+    const mine = allKeys.filter(k => k.startsWith(prefix));
+    if (mine.length > 0) await AsyncStorage.multiRemove(mine);
+  } catch {
+    // Best-effort
   }
 }
 
