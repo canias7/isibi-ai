@@ -24,6 +24,22 @@ export async function clearTokenIfReinstalled() {
 }
 
 export async function getToken(): Promise<string | null> {
+  // Check the durable SecureStore logout sentinel FIRST. If the user
+  // logged out in a previous session, refuse to honor any token that
+  // somehow survived, wipe it, and return null. The sentinel is
+  // cleared only by a successful login (acceptNewSession).
+  try {
+    const sentinel = await SecureStore.getItemAsync('gofurther_logged_out');
+    if (sentinel) {
+      try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
+      try {
+        const { setActiveUserId } = await import('./storage');
+        await setActiveUserId(null);
+      } catch {}
+      return null;
+    }
+  } catch {}
+
   const tok = await SecureStore.getItemAsync(TOKEN_KEY);
   if (!tok) return null;
 
@@ -102,6 +118,9 @@ async function acceptNewSession(token: string) {
     } catch {}
   }
   await setToken(token);
+  // Clear the logout sentinel so future launches actually honor the new token.
+  try { await SecureStore.deleteItemAsync('gofurther_logged_out'); } catch {}
+  try { await AsyncStorage.removeItem('force_logout'); } catch {}
 }
 
 export async function clearToken() {
@@ -286,10 +305,12 @@ export async function logout() {
     const { setActiveUserId } = await import('./storage');
     await setActiveUserId(null);
   } catch {}
-  // Set a "just logged out" breadcrumb so App.tsx on cold start can
-  // force-route to the login screen even if some stale bundle, cached
-  // state, or Keychain oddity resurrected the token.
+  // Write the logout breadcrumb to BOTH AsyncStorage and SecureStore.
+  // AsyncStorage writes can be buffered; SecureStore writes are durable
+  // and survive the app getting killed mid-write. Either one tripping
+  // is enough to block auto-login on the next launch.
   try { await AsyncStorage.setItem('force_logout', String(Date.now())); } catch {}
+  try { await SecureStore.setItemAsync('gofurther_logged_out', String(Date.now())); } catch {}
 
   // Revoke server-side sessions in the background — don't block on it.
   revokeAllSessions().catch(() => {});

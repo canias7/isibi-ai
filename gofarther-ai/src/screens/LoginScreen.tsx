@@ -347,6 +347,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <TouchableOpacity onPress={() => Linking.openURL('https://isibi.ai/privacy')} style={{ alignItems: 'center', paddingTop: 12 }}>
               <Text style={s.termsText}>By continuing, you agree to our{'\n'}Terms of Service & Privacy Policy</Text>
             </TouchableOpacity>
+            <Text style={{ fontSize: 10, color: '#bbb', textAlign: 'center', marginTop: 6 }}>build auth-fix-7</Text>
           </SafeAreaView>
         </Animated.View>
       </View>
