@@ -257,27 +257,6 @@ class RequestSizeLimitMiddleware:
             await response(scope, receive, send)
             return
 
-        # Also enforce on chunked requests (no Content-Length header)
-        method = scope.get("method", "GET").upper()
-        if method in ("POST", "PUT", "PATCH") and content_length == 0:
-            # No Content-Length = possibly chunked — wrap receive to count bytes
-            bytes_received = 0
-
-            async def size_limited_receive():
-                nonlocal bytes_received
-                message = await receive()
-                if message.get("type") == "http.request":
-                    bytes_received += len(message.get("body", b""))
-                    if bytes_received > MAX_BODY_SIZE:
-                        from starlette.responses import JSONResponse
-                        response = JSONResponse({"detail": f"Request body too large. Max {MAX_BODY_SIZE // 1024 // 1024}MB."}, status_code=413)
-                        await response(scope, receive, send)
-                        return {"type": "http.disconnect"}
-                return message
-
-            await self.app(scope, size_limited_receive, send)
-            return
-
         await self.app(scope, receive, send)
 
 app.add_middleware(RequestSizeLimitMiddleware)
