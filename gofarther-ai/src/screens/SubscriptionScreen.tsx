@@ -261,7 +261,7 @@ export default function SubscriptionScreen({ onBack }: { onBack: () => void }) {
                         ? tc.card2 || tc.border
                         : isFree
                         ? tc.card2 || tc.border
-                        : tc.primary,
+                        : '#1a1a1a',
                       opacity: busyPlan === p.id ? 0.6 : 1,
                     },
                   ]}
