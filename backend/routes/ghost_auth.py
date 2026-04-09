@@ -471,30 +471,11 @@ async def _check_session_valid(db: AsyncSession, jti: str) -> bool:
 
 router = APIRouter(prefix="/ghost", tags=["Ghost Mode Auth"])
 
-@router.post("/dbtest")
-async def ghost_dbtest(db: AsyncSession = Depends(get_db)):
-    """Temporary debug endpoint to test if ghost DB queries work."""
-    from sqlalchemy import text
-    result = await db.execute(text("SELECT COUNT(*) FROM ghost_users"))
-    count = result.scalar()
-    # Also test ORM query
-    try:
-        orm_result = await db.execute(select(GhostUser).limit(1))
-        orm_user = orm_result.scalar_one_or_none()
-        orm_ok = True
-        orm_email = orm_user.email if orm_user else "none"
-    except Exception as e:
-        orm_ok = False
-        orm_email = str(e)
-    return {"ghost_users_count": count, "orm_ok": orm_ok, "orm_detail": orm_email}
-
 @router.post("/signup", response_model=GhostTokenResponse)
 async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_db)):
-    logger.info("SIGNUP START for %s", body.email)
     # Check if email exists
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     existing = result.scalar_one_or_none()
-    logger.info("SIGNUP DB CHECK done for %s, exists=%s", body.email, existing is not None)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -502,13 +483,11 @@ async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_
     pw_err = _validate_password(body.password)
     if pw_err:
         raise HTTPException(status_code=400, detail=pw_err)
-    logger.info("SIGNUP PASSWORD VALIDATED for %s", body.email)
 
     # Create user — requires email verification
     import asyncio as _aio
     hashed = await _aio.to_thread(bcrypt.hashpw, body.password.encode(), bcrypt.gensalt())
     hashed = hashed.decode()
-    logger.info("SIGNUP BCRYPT done for %s", body.email)
     code = generate_code()
     user = GhostUser(
         email=body.email, name=body.name, password_hash=hashed,
@@ -519,21 +498,18 @@ async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_
     db.add(user)
     await db.commit()
     await db.refresh(user)
-    logger.info("SIGNUP DB COMMIT done for %s", body.email)
 
     # Send verification email (non-blocking)
     try:
         await send_verification_email(body.email, code)
     except Exception:
         pass  # Don't fail signup if email sending fails
-    logger.info("SIGNUP EMAIL done for %s", body.email)
 
     # Return a limited token — full access granted only after email verification
     token = create_ghost_token(str(user.id), user.email, token_type="unverified")
     payload = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
     await _create_session(db, str(user.id), payload.get("jti", ""), "Signup (unverified)", "")
     await db.commit()
-    logger.info("SIGNUP COMPLETE for %s", body.email)
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
 
 @router.post("/verify", response_model=GhostTokenResponse)
@@ -676,9 +652,7 @@ async def ghost_login(body: GhostLoginRequest, request: Request, db: AsyncSessio
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     import asyncio as _aio
-    logger.info("LOGIN BCRYPT CHECK start for %s", body.email)
     pw_ok = await _aio.to_thread(bcrypt.checkpw, body.password.encode(), user.password_hash.encode())
-    logger.info("LOGIN BCRYPT CHECK done for %s, ok=%s", body.email, pw_ok)
     if not pw_ok:
         await _record_failed_login(body.email, db)
         db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=False))
