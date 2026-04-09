@@ -15,6 +15,78 @@ export async function remove(key: string) {
   await AsyncStorage.removeItem(key);
 }
 
+/**
+ * Keys that hold per-user data and MUST be wiped on logout/login so that
+ * switching accounts on a device can't leak data between users. Keep this
+ * list in sync with any new storage key added below that is user-specific.
+ *
+ * Device-level preferences that are fine to keep across accounts (theme,
+ * language) are intentionally NOT in this list.
+ */
+const USER_SCOPED_KEYS = [
+  'chat_sessions',
+  'agents',
+  'email_templates',
+  'sms_templates',
+  'scheduled_tasks',
+  'ai_memory',
+  'custom_instructions',
+  'learned_preferences',
+  'saved_contacts',
+  'connected_apps',
+  'call_recordings',
+  'offline_queue',
+  'selected_voice',
+  'ai_name',
+  'user_nickname',
+];
+
+/**
+ * Tracks the backend user_id (JWT `sub`) of the last account that logged in
+ * on this device. We scope by user_id — not email — because two different
+ * accounts could theoretically share an email. On the next login, if the
+ * user_id is different we wipe per-user storage so accounts can't see each
+ * other's cached data.
+ */
+const LAST_USER_ID_KEY = 'last_user_id';
+
+export async function getLastUserId(): Promise<string | null> {
+  try { return await AsyncStorage.getItem(LAST_USER_ID_KEY); } catch { return null; }
+}
+
+export async function setLastUserId(userId: string) {
+  try { await AsyncStorage.setItem(LAST_USER_ID_KEY, userId); } catch {}
+}
+
+/**
+ * Call after a successful login. If the incoming user_id differs from
+ * whoever was last on this device, wipe per-user storage before the new
+ * user's data loads. Same-account re-login keeps its local cache.
+ */
+export async function ensureUserScope(userId: string) {
+  if (!userId) return;
+  const previous = await getLastUserId();
+  if (previous && previous !== userId) {
+    await clearLocalUserData();
+  }
+  await setLastUserId(userId);
+}
+
+export async function clearLocalUserData() {
+  try {
+    // Wipe the known user-scoped keys
+    await AsyncStorage.multiRemove(USER_SCOPED_KEYS);
+    // Chat message blobs are keyed as `chat_<sessionId>` — scan and remove
+    const allKeys = await AsyncStorage.getAllKeys();
+    const chatKeys = allKeys.filter(k => k.startsWith('chat_') && k !== 'chat_sessions');
+    if (chatKeys.length > 0) {
+      await AsyncStorage.multiRemove(chatKeys);
+    }
+  } catch {
+    // Best-effort — don't block logout if storage is momentarily unavailable
+  }
+}
+
 // Agent storage
 export interface Agent {
   id: string;

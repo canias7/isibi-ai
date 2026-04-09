@@ -31,6 +31,41 @@ async function setToken(token: string) {
   await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
 
+/** Decode the `sub` (user_id) claim out of a JWT without verifying the signature. */
+function userIdFromJwt(token: string): string | null {
+  try {
+    const mid = token.split('.')[1];
+    if (!mid) return null;
+    // Base64-url → base64
+    const b64 = mid.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    // atob exists in RN Hermes
+    const json = typeof atob === 'function' ? atob(padded) : Buffer.from(padded, 'base64').toString('utf8');
+    const payload = JSON.parse(json);
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Install a newly-minted JWT. If this is a *different* account than the one
+ * last seen on this device, wipe local user-scoped data first so the new
+ * user can't see the previous user's chats/agents/contacts. Scoping is by
+ * backend user_id (JWT `sub`), not email — two different accounts could
+ * share an email and must still stay isolated.
+ */
+async function acceptNewSession(token: string) {
+  const userId = userIdFromJwt(token);
+  if (userId) {
+    try {
+      const { ensureUserScope } = await import('./storage');
+      await ensureUserScope(userId);
+    } catch {}
+  }
+  await setToken(token);
+}
+
 export async function clearToken() {
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
@@ -69,7 +104,7 @@ export async function signup(email: string, name: string, password: string) {
     method: 'POST',
     body: JSON.stringify({ email, name, password }),
   });
-  if (data.token) await setToken(data.token);
+  if (data.token) await acceptNewSession(data.token);
   return data;
 }
 
@@ -112,7 +147,7 @@ export async function login(email: string, password: string, challengeId?: strin
 
     // If 2FA is required, return the temp_token for the 2FA step
     if (data.requires_2fa) return data;
-    if (data.token) await setToken(data.token);
+    if (data.token) await acceptNewSession(data.token);
     return data;
   } catch (e: any) {
     if (e.name === 'AbortError') throw new Error('Server is taking a moment. Please try again.');
@@ -127,7 +162,7 @@ export async function login2FA(tempToken: string, code: string) {
     method: 'POST',
     body: JSON.stringify({ temp_token: tempToken, code }),
   });
-  if (data.token) await setToken(data.token);
+  if (data.token) await acceptNewSession(data.token);
   return data;
 }
 
@@ -138,7 +173,7 @@ export async function socialLogin(email: string, name: string, provider: 'apple'
       method: 'POST',
       body: JSON.stringify({ email, name, provider, social_token: token }),
     });
-    if (data.token) await setToken(data.token);
+    if (data.token) await acceptNewSession(data.token);
     return data;
   } catch (e: any) {
     // If social-login fails (endpoint missing or user doesn't exist), try signup
@@ -153,7 +188,7 @@ export async function socialLogin(email: string, name: string, provider: 'apple'
         method: 'POST',
         body: JSON.stringify({ email, name, password: securePw }),
       });
-      if (data.token) await setToken(data.token);
+      if (data.token) await acceptNewSession(data.token);
       return data;
     } catch (signupErr: any) {
       // Account exists but social-login failed — user needs to try email login
@@ -187,6 +222,14 @@ export async function logout() {
     // Don't block logout if server is unreachable
   }
   await clearToken();
+  // Wipe all per-user local data so the next account on this device
+  // doesn't see stale chats, agents, contacts, etc.
+  try {
+    const { clearLocalUserData } = await import('./storage');
+    await clearLocalUserData();
+  } catch {
+    // Best-effort
+  }
 }
 
 export async function getMe() {
