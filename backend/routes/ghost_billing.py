@@ -55,6 +55,7 @@ async def _get_sub(email: str, db: AsyncSession) -> GhostSubscription:
 @router.get("/plans")
 async def list_plans():
     """Return the plan structure for the mobile subscription screen."""
+    # Never expose the internal 'owner' plan to the UI
     return {
         "plans": [
             {
@@ -64,6 +65,7 @@ async def list_plans():
                 "is_custom": p["price_cents"] is None,
             }
             for key, p in PLAN_LIMITS.items()
+            if key != "owner"
         ]
     }
 

@@ -104,6 +104,16 @@ PLAN_LIMITS: dict[str, dict] = {
         "max_tasks": -1,
         "stripe_price_id_env": None,
     },
+    # Internal-only: auto-assigned to emails in GHOST_OWNER_EMAILS env var.
+    # Not shown in /billing/plans.
+    "owner": {
+        "name": "Owner",
+        "price_cents": None,
+        "per_5h": -1,
+        "per_week": -1,
+        "max_tasks": -1,
+        "stripe_price_id_env": None,
+    },
 }
 
 

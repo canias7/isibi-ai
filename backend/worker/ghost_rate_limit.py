@@ -13,6 +13,7 @@ models/ghost_subscription.py.
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
@@ -27,6 +28,12 @@ WINDOW_5H = timedelta(hours=5)
 WINDOW_WEEK = timedelta(days=7)
 
 
+def _owner_emails() -> set[str]:
+    """Comma-separated list of emails that get the internal 'owner' plan (unlimited)."""
+    raw = os.getenv("GHOST_OWNER_EMAILS", "")
+    return {e.strip().lower() for e in raw.split(",") if e.strip()}
+
+
 async def _get_or_create_sub(user_email: str, db: AsyncSession) -> GhostSubscription:
     result = await db.execute(
         select(GhostSubscription).where(GhostSubscription.user_email == user_email)
@@ -35,6 +42,11 @@ async def _get_or_create_sub(user_email: str, db: AsyncSession) -> GhostSubscrip
     if sub is None:
         sub = GhostSubscription(user_email=user_email, plan="free")
         db.add(sub)
+        await db.flush()
+    # Auto-promote owner emails (idempotent)
+    if user_email.lower() in _owner_emails() and sub.plan != "owner":
+        sub.plan = "owner"
+        sub.status = "active"
         await db.flush()
     return sub
 
