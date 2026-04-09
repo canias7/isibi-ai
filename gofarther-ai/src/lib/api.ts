@@ -277,18 +277,30 @@ export async function resetPassword(email: string, code: string, newPassword: st
 }
 
 export async function logout() {
-  // Kill the local session FIRST so even if the user kills the app mid-logout
-  // (slow network, server hang, whatever), the token and active-user pointer
-  // are already gone. revokeAllSessions() runs fire-and-forget after.
-  await clearToken();
+  // Kill every persistence layer that could leave the user logged in.
+  // Order matters: we must finish all local clearing BEFORE the app
+  // restarts, and we must tolerate every step failing.
+  try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
+  try { await clearToken(); } catch {}
   try {
     const { setActiveUserId } = await import('./storage');
     await setActiveUserId(null);
-  } catch {
-    // Best-effort
-  }
-  // Revoke server-side sessions in the background — don't block the UI on it.
+  } catch {}
+  // Set a "just logged out" breadcrumb so App.tsx on cold start can
+  // force-route to the login screen even if some stale bundle, cached
+  // state, or Keychain oddity resurrected the token.
+  try { await AsyncStorage.setItem('force_logout', String(Date.now())); } catch {}
+
+  // Revoke server-side sessions in the background — don't block on it.
   revokeAllSessions().catch(() => {});
+
+  // Nuclear option: fully reload the JS bundle so React state, module
+  // caches, and any in-memory token copies are wiped. This guarantees
+  // the next render goes through App.tsx's boot path from scratch.
+  try {
+    const Updates = await import('expo-updates');
+    if (!__DEV__) await Updates.reloadAsync();
+  } catch {}
 }
 
 export async function getMe() {

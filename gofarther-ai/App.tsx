@@ -64,11 +64,32 @@ function App() {
       }
     })();
 
-    clearTokenIfReinstalled().then(() => Promise.all([
-      getToken(),
-      hasCompletedOnboarding(),
-      getBiometricEnabled(),
-    ])).then(async ([t, ob, bioEnabled]) => {
+    clearTokenIfReinstalled().then(async () => {
+      // If the previous session ended in an explicit logout, refuse to
+      // auto-restore the session even if SomethingTM left a token behind.
+      // This is belt-and-suspenders for the "logged out but app still
+      // opens me into the chat screen" bug.
+      try {
+        const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+        const forceLogout = await AsyncStorage.getItem('force_logout');
+        if (forceLogout) {
+          await AsyncStorage.removeItem('force_logout');
+          try {
+            const SecureStore = await import('expo-secure-store');
+            await SecureStore.deleteItemAsync('gofurther_token');
+          } catch {}
+          try {
+            const { setActiveUserId } = await import('./src/lib/storage');
+            await setActiveUserId(null);
+          } catch {}
+        }
+      } catch {}
+      return Promise.all([
+        getToken(),
+        hasCompletedOnboarding(),
+        getBiometricEnabled(),
+      ]);
+    }).then(async ([t, ob, bioEnabled]) => {
       setOnboarded(ob);
       if (t) { startScheduler(); registerForPushNotifications(); pullRemoteSessions(); }
       if (t && bioEnabled) {
