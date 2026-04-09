@@ -386,6 +386,15 @@ async def _cleanup_old_data():
             r = await db.execute(text("DELETE FROM ghost_login_logs WHERE timestamp < :cutoff"), {"cutoff": cutoff_90})
             total += r.rowcount or 0
 
+            # Login attempts > 1 hour (lockout tracking)
+            cutoff_1h = now - timedelta(hours=1)
+            r = await db.execute(text("DELETE FROM ghost_login_attempts WHERE timestamp < :cutoff"), {"cutoff": cutoff_1h})
+            total += r.rowcount or 0
+
+            # Expired login challenges
+            r = await db.execute(text("DELETE FROM ghost_login_challenges WHERE expires < :now"), {"now": now})
+            total += r.rowcount or 0
+
             await db.commit()
             logger.info("Data retention cleanup completed: %d rows removed", total)
         except Exception as e:

@@ -186,60 +186,98 @@ async def log_usage(user_id: str, tokens_in: int, tokens_out: int, db: AsyncSess
     await db.commit()
 
 
-# ── Login Attempt Lockout ─────────────────────────────────────────────
+# ── Login Attempt Lockout (database-backed, survives restarts) ────────
 
 MAX_LOGIN_ATTEMPTS = 5
 LOCKOUT_MINUTES = 15
-_login_attempts: dict[str, list[float]] = {}
 
-def _check_lockout(email: str) -> bool:
-    attempts = _login_attempts.get(email, [])
-    cutoff = time.time() - (LOCKOUT_MINUTES * 60)
-    recent = [t for t in attempts if t > cutoff]
-    _login_attempts[email] = recent
-    return len(recent) >= MAX_LOGIN_ATTEMPTS
+class GhostLoginAttempt(Base):
+    """Track failed login attempts in database (survives restarts)."""
+    __tablename__ = "ghost_login_attempts"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String, nullable=False, index=True)
+    timestamp = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
-def _record_failed_login(email: str):
-    if email not in _login_attempts:
-        _login_attempts[email] = []
-    _login_attempts[email].append(time.time())
+class GhostLoginChallenge(Base):
+    """Login challenges stored in database (survives restarts)."""
+    __tablename__ = "ghost_login_challenges"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String, nullable=False, unique=True, index=True)
+    challenge_id = Column(String, nullable=False)
+    answer = Column(String, nullable=False)
+    expires = Column(DateTime(timezone=True), nullable=False)
 
-def _clear_login_attempts(email: str):
-    _login_attempts.pop(email, None)
+async def _check_lockout(email: str, db: AsyncSession) -> bool:
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=LOCKOUT_MINUTES)
+    result = await db.execute(
+        select(func.count()).select_from(GhostLoginAttempt).where(
+            GhostLoginAttempt.email == email,
+            GhostLoginAttempt.timestamp > cutoff
+        )
+    )
+    count = result.scalar() or 0
+    return count >= MAX_LOGIN_ATTEMPTS
 
-# ── Login Challenge (CAPTCHA alternative) ─────────────────────────────
+async def _record_failed_login(email: str, db: AsyncSession):
+    db.add(GhostLoginAttempt(email=email))
+    await db.flush()
+
+async def _clear_login_attempts(email: str, db: AsyncSession):
+    await db.execute(
+        GhostLoginAttempt.__table__.delete().where(GhostLoginAttempt.email == email)
+    )
+    await db.flush()
+
+# ── Login Challenge (CAPTCHA alternative, database-backed) ────────────
 import random as _random
 
 CHALLENGE_THRESHOLD = 3  # require challenge after this many failed attempts
-_login_challenges: dict[str, dict] = {}  # email -> {answer, expires, challenge_id}
 
-def _should_require_challenge(email: str) -> bool:
-    attempts = _login_attempts.get(email, [])
-    cutoff = time.time() - (LOCKOUT_MINUTES * 60)
-    recent = [t for t in attempts if t > cutoff]
-    return len(recent) >= CHALLENGE_THRESHOLD
+async def _should_require_challenge(email: str, db: AsyncSession) -> bool:
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=LOCKOUT_MINUTES)
+    result = await db.execute(
+        select(func.count()).select_from(GhostLoginAttempt).where(
+            GhostLoginAttempt.email == email,
+            GhostLoginAttempt.timestamp > cutoff
+        )
+    )
+    count = result.scalar() or 0
+    return count >= CHALLENGE_THRESHOLD
 
-def _create_challenge(email: str) -> dict:
+async def _create_challenge(email: str, db: AsyncSession) -> dict:
     a, b = _random.randint(1, 20), _random.randint(1, 20)
     ops = [("+", a + b), ("-", abs(a - b)), ("×", a * b)]
     op_sym, answer = ops[_random.randint(0, 2)]
     if op_sym == "-":
         a, b = max(a, b), min(a, b)
         answer = a - b
-    challenge_id = secrets.token_hex(16)
-    _login_challenges[email] = {"answer": str(answer), "expires": time.time() + 300, "challenge_id": challenge_id}
-    return {"challenge": f"What is {a} {op_sym} {b}?", "challenge_id": challenge_id}
+    cid = secrets.token_hex(16)
+    # Upsert challenge
+    result = await db.execute(select(GhostLoginChallenge).where(GhostLoginChallenge.email == email))
+    existing = result.scalar_one_or_none()
+    if existing:
+        existing.challenge_id = cid
+        existing.answer = str(answer)
+        existing.expires = datetime.now(timezone.utc) + timedelta(minutes=5)
+    else:
+        db.add(GhostLoginChallenge(email=email, challenge_id=cid, answer=str(answer),
+                                    expires=datetime.now(timezone.utc) + timedelta(minutes=5)))
+    await db.flush()
+    return {"challenge": f"What is {a} {op_sym} {b}?", "challenge_id": cid}
 
-def _verify_challenge(email: str, challenge_id: str, answer: str) -> bool:
-    ch = _login_challenges.get(email)
+async def _verify_challenge(email: str, challenge_id: str, answer: str, db: AsyncSession) -> bool:
+    result = await db.execute(select(GhostLoginChallenge).where(GhostLoginChallenge.email == email))
+    ch = result.scalar_one_or_none()
     if not ch:
         return False
-    if ch["challenge_id"] != challenge_id or ch["expires"] < time.time():
-        _login_challenges.pop(email, None)
+    if ch.challenge_id != challenge_id or ch.expires < datetime.now(timezone.utc):
+        await db.execute(GhostLoginChallenge.__table__.delete().where(GhostLoginChallenge.email == email))
+        await db.flush()
         return False
-    if ch["answer"] != answer.strip():
+    if ch.answer != answer.strip():
         return False
-    _login_challenges.pop(email, None)
+    await db.execute(GhostLoginChallenge.__table__.delete().where(GhostLoginChallenge.email == email))
+    await db.flush()
     return True
 
 def _get_device_id(hostname: str, username: str) -> str:
@@ -516,36 +554,36 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
         pass
 
     # Check lockout
-    if _check_lockout(body.email):
-        remaining = LOCKOUT_MINUTES - int((time.time() - min(_login_attempts.get(body.email, [time.time()]))) / 60)
-        raise HTTPException(status_code=429, detail=f"Account locked. Too many failed attempts. Try again in {remaining} minutes.")
+    if await _check_lockout(body.email, db):
+        raise HTTPException(status_code=429, detail=f"Account locked. Too many failed attempts. Try again in {LOCKOUT_MINUTES} minutes.")
 
     # Verify challenge if provided
     if body.challenge_id and body.challenge_answer:
-        if not _verify_challenge(body.email, body.challenge_id, body.challenge_answer):
+        if not await _verify_challenge(body.email, body.challenge_id, body.challenge_answer, db):
             raise HTTPException(status_code=401, detail="Incorrect challenge answer")
 
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
     if not user:
-        _record_failed_login(body.email)
+        await _record_failed_login(body.email, db)
         # Log failed attempt
         db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=False))
         await db.commit()
-        if _should_require_challenge(body.email):
-            challenge = _create_challenge(body.email)
+        if await _should_require_challenge(body.email, db):
+            challenge = await _create_challenge(body.email, db)
+            await db.commit()
             raise HTTPException(status_code=401, detail={"message": "Invalid email or password", "requires_challenge": True, "challenge": challenge["challenge"], "challenge_id": challenge["challenge_id"]})
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if not bcrypt.checkpw(body.password.encode(), user.password_hash.encode()):
-        _record_failed_login(body.email)
+        await _record_failed_login(body.email, db)
         db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=False))
         await db.commit()
-        attempts_left = MAX_LOGIN_ATTEMPTS - len([t for t in _login_attempts.get(body.email, []) if t > time.time() - LOCKOUT_MINUTES * 60])
-        if _should_require_challenge(body.email):
-            challenge = _create_challenge(body.email)
+        if await _should_require_challenge(body.email, db):
+            challenge = await _create_challenge(body.email, db)
+            await db.commit()
             raise HTTPException(status_code=401, detail={"message": "Invalid email or password", "requires_challenge": True, "challenge": challenge["challenge"], "challenge_id": challenge["challenge_id"]})
-        raise HTTPException(status_code=401, detail=f"Invalid email or password. {attempts_left} attempts remaining.")
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     # Email verification disabled for now — auto-verified on signup
 
@@ -560,9 +598,9 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
             if allowed:
                 try:
                     async with httpx.AsyncClient(timeout=5) as client:
-                        resp = await client.get(f"http://ip-api.com/json/{ip}?fields=countryCode")
+                        resp = await client.get(f"https://ipwho.is/{ip}")
                         if resp.status_code == 200:
-                            country = resp.json().get("countryCode", "")
+                            country = resp.json().get("country_code", "")
                             if country and country not in allowed:
                                 await _audit_log(db, body.email, "geo_blocked_login", f"country={country}, ip={ip}")
                                 await db.commit()
@@ -575,7 +613,7 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
         pass  # Never block login due to geo-check failure
 
     # Success — clear lockout, log success
-    _clear_login_attempts(body.email)
+    await _clear_login_attempts(body.email, db)
     db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=True))
 
     # Trust device if requested
