@@ -271,7 +271,7 @@ async def create_file_async(req: CreateFileRequest, authorization: str = Header(
     await db.commit()
     import asyncio
     job_id = str(uuid.uuid4())[:8]
-    JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None}
+    JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None, "owner_email": payload.get("email", "")}
 
     async def _background_create():
         try:
@@ -381,12 +381,15 @@ Return ONLY the document content, no explanations."""
 
 
 @router.get("/job-status/{job_id}")
-async def job_status(job_id: str):
-    """Check if an async file creation job is done."""
+async def job_status(job_id: str, authorization: str = Header(...)):
+    """Check if an async file creation job is done — requires auth + ownership."""
+    payload = _verify_auth(authorization)
     job = JOB_STORE.get(job_id)
     if not job:
         raise HTTPException(404, "Job not found")
-    return job
+    if job.get("owner_email") and job["owner_email"] != payload.get("email", ""):
+        raise HTTPException(404, "Job not found")
+    return {k: v for k, v in job.items() if k != "owner_email"}
 
 
 @router.get("/download/{file_id}")
@@ -424,22 +427,27 @@ async def modify_file_async(req: ModifyFileRequest, authorization: str = Header(
     await db.commit()
     import asyncio
     job_id = str(uuid.uuid4())[:8]
-    JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None}
+    JOB_STORE[job_id] = {"status": "processing", "file_id": None, "error": None, "owner_email": payload.get("email", "")}
 
     async def _background_modify():
         try:
             # Load original file(s) — check cache then R2
+            owner = payload.get("email", "")
             if req.operation == "merge" and req.file_ids:
                 sources = []
                 for fid in req.file_ids:
                     f = await _get_file(fid)
                     if not f:
                         raise ValueError(f"File {fid} not found")
+                    if f.get("owner_email") and f["owner_email"] != owner:
+                        raise ValueError(f"File {fid} not found")
                     content = base64.b64decode(f["data"])
                     sources.append({"filename": f["filename"], "content": content, "mime": f["mime"]})
             elif req.file_id:
                 f = await _get_file(req.file_id)
                 if not f:
+                    raise ValueError("File not found")
+                if f.get("owner_email") and f["owner_email"] != owner:
                     raise ValueError("File not found")
                 original_bytes = base64.b64decode(f["data"])
                 original_filename = f["filename"]
@@ -1537,25 +1545,45 @@ async def run_code(req: RunCodeRequest, authorization: str = Header(...), db: As
         code = code[:-3]
     code = code.strip()
 
-    # Block dangerous imports and operations
-    _BLOCKED = ["import os", "import sys", "import subprocess", "import socket",
-                "import shutil", "import pathlib", "import ctypes", "import pickle",
-                "import http", "import urllib", "import requests", "import httpx",
-                "import ftplib", "import smtplib", "import webbrowser",
-                "from os", "from sys", "from subprocess", "from socket",
-                "__import__", "eval(", "exec(", "compile(", "open(", "breakpoint("]
-    code_lower = code.lower()
-    for blocked in _BLOCKED:
-        if blocked.lower() in code_lower:
-            return {"code": code, "output": f"Blocked: code contains disallowed operation '{blocked}'"}
+    # AST-based security check — whitelist safe modules, block dangerous builtins
+    import ast as _ast
+    _ALLOWED_MODULES = {"math", "statistics", "json", "datetime", "re", "collections",
+                        "itertools", "functools", "decimal", "fractions", "random",
+                        "string", "textwrap", "csv", "operator", "numbers"}
+    _BLOCKED_BUILTINS = {"__import__", "exec", "eval", "compile", "open", "getattr",
+                         "setattr", "delattr", "globals", "locals", "vars", "dir",
+                         "type", "breakpoint", "input", "memoryview", "help"}
 
-    # Execute in a restricted subprocess
+    try:
+        tree = _ast.parse(code)
+    except SyntaxError as se:
+        return {"code": code, "output": f"Syntax error in generated code: {se}"}
+
+    for node in _ast.walk(tree):
+        if isinstance(node, _ast.Import):
+            for alias in node.names:
+                mod = alias.name.split(".")[0]
+                if mod not in _ALLOWED_MODULES:
+                    return {"code": code, "output": f"Blocked: import of '{mod}' is not allowed for security reasons"}
+        elif isinstance(node, _ast.ImportFrom):
+            if node.module:
+                mod = node.module.split(".")[0]
+                if mod not in _ALLOWED_MODULES:
+                    return {"code": code, "output": f"Blocked: import from '{mod}' is not allowed for security reasons"}
+        elif isinstance(node, _ast.Call):
+            func = node.func
+            if isinstance(func, _ast.Name) and func.id in _BLOCKED_BUILTINS:
+                return {"code": code, "output": f"Blocked: '{func.id}()' is not allowed for security reasons"}
+            elif isinstance(func, _ast.Attribute) and func.attr in _BLOCKED_BUILTINS:
+                return {"code": code, "output": f"Blocked: '.{func.attr}()' is not allowed for security reasons"}
+
+    # Execute in a restricted subprocess — minimal env, no HOME
     import subprocess
     try:
         result = subprocess.run(
             ["python3", "-c", code],
             capture_output=True, text=True, timeout=10,
-            env={"PATH": "/usr/bin:/usr/local/bin", "HOME": "/tmp"}
+            env={"PATH": "/usr/bin:/usr/local/bin"}
         )
         output = result.stdout or result.stderr or "No output"
     except subprocess.TimeoutExpired:

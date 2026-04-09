@@ -20,7 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from jose import jwt
-from fastapi import APIRouter, HTTPException, status, Depends, Header
+from fastapi import APIRouter, HTTPException, status, Depends, Header, Request
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
 from sqlalchemy import select, Column, String, Integer, Boolean, DateTime, Date, func, Text
@@ -34,6 +34,7 @@ from db import get_db, Base
 from services.email import send_verification_email, send_password_reset_email, send_login_alert_email
 import time
 import hashlib
+import hmac
 import re
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ _fernet = Fernet(_SMTP_KEY.encode()) if Fernet and _SMTP_KEY else None
 def encrypt_smtp_pass(plaintext: str) -> str:
     if _fernet:
         return _fernet.encrypt(plaintext.encode()).decode()
-    return plaintext  # fallback: store as-is if no key configured
+    raise ValueError("SMTP encryption key not configured — cannot store SMTP password securely")
 
 def decrypt_smtp_pass(ciphertext: str) -> str:
     if _fernet:
@@ -229,7 +230,6 @@ async def _clear_login_attempts(email: str, db: AsyncSession):
     await db.flush()
 
 # ── Login Challenge (CAPTCHA alternative, database-backed) ────────────
-import random as _random
 
 CHALLENGE_THRESHOLD = 3  # require challenge after this many failed attempts
 
@@ -245,22 +245,24 @@ async def _should_require_challenge(email: str, db: AsyncSession) -> bool:
     return count >= CHALLENGE_THRESHOLD
 
 async def _create_challenge(email: str, db: AsyncSession) -> dict:
-    a, b = _random.randint(1, 20), _random.randint(1, 20)
+    a, b = secrets.randbelow(20) + 1, secrets.randbelow(20) + 1
     ops = [("+", a + b), ("-", abs(a - b)), ("×", a * b)]
-    op_sym, answer = ops[_random.randint(0, 2)]
+    op_sym, answer = ops[secrets.randbelow(3)]
     if op_sym == "-":
         a, b = max(a, b), min(a, b)
         answer = a - b
     cid = secrets.token_hex(16)
+    # Hash the answer before storing (server never stores plaintext answer)
+    answer_hash = hashlib.sha256(str(answer).encode()).hexdigest()
     # Upsert challenge
     result = await db.execute(select(GhostLoginChallenge).where(GhostLoginChallenge.email == email))
     existing = result.scalar_one_or_none()
     if existing:
         existing.challenge_id = cid
-        existing.answer = str(answer)
+        existing.answer = answer_hash
         existing.expires = datetime.now(timezone.utc) + timedelta(minutes=5)
     else:
-        db.add(GhostLoginChallenge(email=email, challenge_id=cid, answer=str(answer),
+        db.add(GhostLoginChallenge(email=email, challenge_id=cid, answer=answer_hash,
                                     expires=datetime.now(timezone.utc) + timedelta(minutes=5)))
     await db.flush()
     return {"challenge": f"What is {a} {op_sym} {b}?", "challenge_id": cid}
@@ -270,11 +272,13 @@ async def _verify_challenge(email: str, challenge_id: str, answer: str, db: Asyn
     ch = result.scalar_one_or_none()
     if not ch:
         return False
-    if ch.challenge_id != challenge_id or ch.expires < datetime.now(timezone.utc):
+    if not hmac.compare_digest(ch.challenge_id, challenge_id) or ch.expires < datetime.now(timezone.utc):
         await db.execute(GhostLoginChallenge.__table__.delete().where(GhostLoginChallenge.email == email))
         await db.flush()
         return False
-    if ch.answer != answer.strip():
+    # Compare hashed answer using constant-time comparison (prevents timing attacks)
+    answer_hash = hashlib.sha256(answer.strip().encode()).hexdigest()
+    if not hmac.compare_digest(ch.answer, answer_hash):
         return False
     await db.execute(GhostLoginChallenge.__table__.delete().where(GhostLoginChallenge.email == email))
     await db.flush()
@@ -288,7 +292,7 @@ def _get_device_id(hostname: str, username: str) -> str:
 class GhostSignupRequest(BaseModel):
     email: EmailStr
     name: str = Field(min_length=1, max_length=100)
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=12, max_length=128)
 
 class GhostSocialLoginRequest(BaseModel):
     email: EmailStr
@@ -315,7 +319,7 @@ class GhostForgotRequest(BaseModel):
 class GhostResetRequest(BaseModel):
     email: EmailStr
     code: str = Field(min_length=6, max_length=8)
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=12, max_length=128)
 
 class GhostTokenResponse(BaseModel):
     token: str
@@ -347,8 +351,8 @@ def generate_code() -> str:
 
 def _validate_password(password: str) -> str | None:
     """Return error message if password is weak, or None if strong enough."""
-    if len(password) < 8:
-        return "Password must be at least 8 characters"
+    if len(password) < 12:
+        return "Password must be at least 12 characters"
     if not re.search(r"[A-Z]", password):
         return "Password must contain at least one uppercase letter"
     if not re.search(r"[a-z]", password):
@@ -424,11 +428,11 @@ async def _create_session(db: AsyncSession, user_id, jti: str, device_name: str 
 async def _check_session_valid(db: AsyncSession, jti: str) -> bool:
     """Check if a session (by JTI) is still active and not revoked."""
     if not jti:
-        return True  # Legacy tokens without JTI are allowed
+        return False  # Reject legacy tokens without JTI — forces re-login
     result = await db.execute(select(GhostSession).where(GhostSession.token_jti == jti))
     session = result.scalar_one_or_none()
     if not session:
-        return True  # No session record = legacy token, allow
+        return False  # No session record = unknown token, reject
     if session.revoked:
         return False
     # Update last_active
@@ -544,14 +548,15 @@ async def ghost_resend(body: GhostForgotRequest, db: AsyncSession = Depends(get_
     return {"message": "New code sent"}
 
 @router.post("/login", response_model=GhostTokenResponse)
-async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = Depends(get_db)):
-    # Get IP address
-    ip = "unknown"
-    try:
-        from fastapi import Request
-        # IP will be passed via header in production
-    except:
-        pass
+async def ghost_login(body: GhostLoginRequest, request: Request, db: AsyncSession = Depends(get_db)):
+    # Extract real IP address (handles reverse proxies like Render/Cloudflare)
+    ip = (
+        request.headers.get("X-Forwarded-For", "").split(",")[0].strip()
+        or request.headers.get("X-Real-IP", "")
+        or (request.client.host if request.client else "unknown")
+    )
+    if not ip:
+        ip = "unknown"
 
     # Check lockout
     if await _check_lockout(body.email, db):
@@ -1229,7 +1234,13 @@ async def save_smtp_settings(body: SmtpSettingsRequest, authorization: str = Hea
     user.smtp_host = body.smtp_host
     user.smtp_port = body.smtp_port or 587
     user.smtp_user = body.smtp_user
-    user.smtp_pass_encrypted = encrypt_smtp_pass(body.smtp_pass) if body.smtp_pass else None
+    if body.smtp_pass:
+        try:
+            user.smtp_pass_encrypted = encrypt_smtp_pass(body.smtp_pass)
+        except ValueError:
+            raise HTTPException(status_code=503, detail="SMTP encryption unavailable — server missing encryption key")
+    else:
+        user.smtp_pass_encrypted = None
     user.smtp_from = body.smtp_from
     await db.commit()
     # Update cache

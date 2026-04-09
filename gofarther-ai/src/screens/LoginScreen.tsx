@@ -202,7 +202,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const handleEmailSignup = async () => {
     if (!name || !email || !password) { Alert.alert('Missing fields', 'Please fill in all fields'); return; }
     if (!isValidEmail(email)) { Alert.alert('Invalid email', 'Please enter a valid email address'); return; }
-    if (password.length < 8) { Alert.alert('Weak password', 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'); return; }
+    if (password.length < 12) { Alert.alert('Weak password', 'Password must be at least 12 characters with uppercase, lowercase, number, and special character'); return; }
     setLoading(true);
     try {
       await signup(email.toLowerCase().trim(), name.trim(), password);
@@ -224,7 +224,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
 
   const handleResetPassword = async () => {
     if (!resetCode || !newPassword) { Alert.alert('Missing fields', 'Enter the code and new password'); return; }
-    if (newPassword.length < 8) { Alert.alert('Weak password', 'Password must be at least 8 characters with uppercase, lowercase, number, and special character'); return; }
+    if (newPassword.length < 12) { Alert.alert('Weak password', 'Password must be at least 12 characters with uppercase, lowercase, number, and special character'); return; }
     setLoading(true);
     try {
       await resetPassword(email.toLowerCase().trim(), resetCode.trim(), newPassword);
@@ -443,7 +443,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 </TouchableOpacity>
               )}
               {mode === 'email-signup' && (
-                <Text style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 8, marginLeft: 4 }}>Min 8 chars: uppercase, lowercase, number, special char</Text>
+                <Text style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 8, marginLeft: 4 }}>Min 12 chars: uppercase, lowercase, number, special char</Text>
               )}
 
               {mode === 'email-login' && challengeRequired && (

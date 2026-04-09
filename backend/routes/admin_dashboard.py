@@ -53,15 +53,15 @@ async def admin_stats(admin_token: Optional[str] = Cookie(None)):
 
     async with async_session() as db:
         total_users = (await db.execute(text("SELECT COUNT(*) FROM ghost_users"))).scalar() or 0
-        active_today = (await db.execute(text(f"SELECT COUNT(DISTINCT user_email) FROM ghost_login_logs WHERE timestamp >= '{today}'"))).scalar() or 0
-        active_week = (await db.execute(text(f"SELECT COUNT(DISTINCT user_email) FROM ghost_login_logs WHERE timestamp >= '{week_ago}'"))).scalar() or 0
+        active_today = (await db.execute(text("SELECT COUNT(DISTINCT user_email) FROM ghost_login_logs WHERE timestamp >= :today").bindparams(today=today))).scalar() or 0
+        active_week = (await db.execute(text("SELECT COUNT(DISTINCT user_email) FROM ghost_login_logs WHERE timestamp >= :week_ago").bindparams(week_ago=week_ago))).scalar() or 0
         total_credits = (await db.execute(text("SELECT COALESCE(SUM(credits), 0) FROM ghost_users"))).scalar() or 0
         free_users = (await db.execute(text("SELECT COUNT(*) FROM ghost_users WHERE plan = 'free'"))).scalar() or 0
         premium_users = total_users - free_users
         verified = (await db.execute(text("SELECT COUNT(*) FROM ghost_users WHERE email_verified = true"))).scalar() or 0
-        new_today = (await db.execute(text(f"SELECT COUNT(*) FROM ghost_users WHERE created_at >= '{today}'"))).scalar() or 0
-        new_week = (await db.execute(text(f"SELECT COUNT(*) FROM ghost_users WHERE created_at >= '{week_ago}'"))).scalar() or 0
-        new_month = (await db.execute(text(f"SELECT COUNT(*) FROM ghost_users WHERE created_at >= '{month_ago}'"))).scalar() or 0
+        new_today = (await db.execute(text("SELECT COUNT(*) FROM ghost_users WHERE created_at >= :today").bindparams(today=today))).scalar() or 0
+        new_week = (await db.execute(text("SELECT COUNT(*) FROM ghost_users WHERE created_at >= :week_ago").bindparams(week_ago=week_ago))).scalar() or 0
+        new_month = (await db.execute(text("SELECT COUNT(*) FROM ghost_users WHERE created_at >= :month_ago").bindparams(month_ago=month_ago))).scalar() or 0
         total_logins = (await db.execute(text("SELECT COUNT(*) FROM ghost_login_logs WHERE success = true"))).scalar() or 0
 
     return {
@@ -103,16 +103,22 @@ async def admin_users(admin_token: Optional[str] = Cookie(None), search: str = "
     _check_admin(admin_token)
     query = "SELECT id, email, name, credits, plan, created_at, is_active, email_verified FROM ghost_users"
     conditions = []
+    params = {}
     if search:
-        conditions.append(f"(LOWER(email) LIKE '%{search.lower()}%' OR LOWER(name) LIKE '%{search.lower()}%')")
+        conditions.append("(LOWER(email) LIKE :search OR LOWER(name) LIKE :search)")
+        params["search"] = f"%{search.lower()}%"
     if plan:
-        conditions.append(f"plan = '{plan}'")
+        conditions.append("plan = :plan")
+        params["plan"] = plan
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
     query += " ORDER BY created_at DESC LIMIT 500"
 
     async with async_session() as db:
-        rows = (await db.execute(text(query))).fetchall()
+        stmt = text(query)
+        if params:
+            stmt = stmt.bindparams(**params)
+        rows = (await db.execute(stmt)).fetchall()
     return {"users": [{"id": str(r[0]), "email": r[1], "name": r[2], "credits": r[3], "plan": r[4], "created_at": r[5].isoformat() if r[5] else None, "is_active": r[6], "email_verified": r[7]} for r in rows]}
 
 
@@ -123,9 +129,9 @@ class CreditUpdate(BaseModel):
 async def admin_update_credits(user_id: str, req: CreditUpdate, admin_token: Optional[str] = Cookie(None)):
     _check_admin(admin_token)
     async with async_session() as db:
-        await db.execute(text(f"UPDATE ghost_users SET credits = credits + {req.amount} WHERE id = '{user_id}'"))
+        await db.execute(text("UPDATE ghost_users SET credits = credits + :amount WHERE id = :user_id").bindparams(amount=req.amount, user_id=user_id))
         await db.commit()
-        row = (await db.execute(text(f"SELECT credits FROM ghost_users WHERE id = '{user_id}'"))).fetchone()
+        row = (await db.execute(text("SELECT credits FROM ghost_users WHERE id = :user_id").bindparams(user_id=user_id))).fetchone()
     return {"credits": row[0] if row else 0}
 
 
@@ -136,7 +142,7 @@ class PlanUpdate(BaseModel):
 async def admin_update_plan(user_id: str, req: PlanUpdate, admin_token: Optional[str] = Cookie(None)):
     _check_admin(admin_token)
     async with async_session() as db:
-        await db.execute(text(f"UPDATE ghost_users SET plan = '{req.plan}' WHERE id = '{user_id}'"))
+        await db.execute(text("UPDATE ghost_users SET plan = :plan WHERE id = :user_id").bindparams(plan=req.plan, user_id=user_id))
         await db.commit()
     return {"plan": req.plan}
 
@@ -145,9 +151,9 @@ async def admin_update_plan(user_id: str, req: PlanUpdate, admin_token: Optional
 async def admin_ban_user(user_id: str, admin_token: Optional[str] = Cookie(None)):
     _check_admin(admin_token)
     async with async_session() as db:
-        await db.execute(text(f"UPDATE ghost_users SET is_active = NOT is_active WHERE id = '{user_id}'"))
+        await db.execute(text("UPDATE ghost_users SET is_active = NOT is_active WHERE id = :user_id").bindparams(user_id=user_id))
         await db.commit()
-        row = (await db.execute(text(f"SELECT is_active FROM ghost_users WHERE id = '{user_id}'"))).fetchone()
+        row = (await db.execute(text("SELECT is_active FROM ghost_users WHERE id = :user_id").bindparams(user_id=user_id))).fetchone()
     return {"is_active": row[0] if row else False}
 
 
@@ -159,7 +165,7 @@ async def admin_reset_password(user_id: str, request: Request, admin_token: Opti
     import bcrypt
     hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     async with async_session() as db:
-        await db.execute(text(f"UPDATE ghost_users SET password_hash = '{hashed}' WHERE id = '{user_id}'"))
+        await db.execute(text("UPDATE ghost_users SET password_hash = :hashed WHERE id = :user_id").bindparams(hashed=hashed, user_id=user_id))
         await db.commit()
     return {"message": "Password reset", "new_password": new_password}
 
@@ -168,10 +174,10 @@ async def admin_reset_password(user_id: str, request: Request, admin_token: Opti
 async def admin_user_logins(user_id: str, admin_token: Optional[str] = Cookie(None)):
     _check_admin(admin_token)
     async with async_session() as db:
-        user = (await db.execute(text(f"SELECT email FROM ghost_users WHERE id = '{user_id}'"))).fetchone()
+        user = (await db.execute(text("SELECT email FROM ghost_users WHERE id = :user_id").bindparams(user_id=user_id))).fetchone()
         if not user:
             raise HTTPException(404, "User not found")
-        logs = (await db.execute(text(f"SELECT ip_address, success, timestamp FROM ghost_login_logs WHERE user_email = '{user[0]}' ORDER BY timestamp DESC LIMIT 20"))).fetchall()
+        logs = (await db.execute(text("SELECT ip_address, success, timestamp FROM ghost_login_logs WHERE user_email = :email ORDER BY timestamp DESC LIMIT 20").bindparams(email=user[0]))).fetchall()
     return {"logins": [{"ip": l[0], "success": l[1], "timestamp": l[2].isoformat() if l[2] else None} for l in logs]}
 
 
