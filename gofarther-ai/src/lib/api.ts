@@ -360,9 +360,6 @@ export interface PlanInfo {
   id: string;
   name: string;
   price_cents: number | null;
-  per_5h: number;
-  per_week: number;
-  max_tasks: number;
   is_custom: boolean;
 }
 
@@ -370,13 +367,10 @@ export interface UsageSnapshot {
   plan: string;
   plan_name: string;
   status: string;
-  per_5h: number;
-  per_week: number;
-  max_tasks: number;
-  used_5h: number;
-  used_week: number;
-  remaining_5h: number;
-  remaining_week: number;
+  used_pct_5h: number;
+  used_pct_week: number;
+  unlimited_5h: boolean;
+  unlimited_week: boolean;
   resets_in_seconds_5h: number;
   resets_in_seconds_week: number;
   cancel_at_period_end?: boolean;

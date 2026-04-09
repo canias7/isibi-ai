@@ -27,9 +27,14 @@ function formatPrice(cents: number | null): string {
   return `$${Math.round(cents / 100)}/mo`;
 }
 
-function formatLimit(n: number): string {
-  return n < 0 ? 'Unlimited' : n.toLocaleString();
-}
+// Marketing blurb per plan — keeps exact numbers private
+const PLAN_BLURB: Record<string, string[]> = {
+  free:       ['Light daily use', 'Basic usage limits', 'No scheduled tasks'],
+  pro:        ['Everyday productivity', 'Higher usage limits', '5 scheduled tasks'],
+  business:   ['Heavy daily use', 'Much higher usage limits', '50 scheduled tasks'],
+  max:        ['Power users', 'Maximum usage limits', 'Unlimited scheduled tasks'],
+  enterprise: ['Custom volume', 'Priority support & SLAs', 'Unlimited everything'],
+};
 
 function formatCountdown(seconds: number): string {
   if (seconds <= 0) return 'now';
@@ -108,51 +113,77 @@ export default function SubscriptionScreen({ onBack }: { onBack: () => void }) {
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
-          {current && (
-            <View style={[styles.usageCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
-              <Text style={[styles.usageLabel, { color: tc.textMid }]}>Current plan</Text>
-              <Text style={[styles.usagePlan, { color: tc.text }]}>{current.plan_name}</Text>
+          {current && (() => {
+            const pct5h = current.used_pct_5h;
+            const pctWeek = current.used_pct_week;
+            const unlimited5h = current.unlimited_5h;
+            const unlimitedWeek = current.unlimited_week;
+            return (
+              <View style={[styles.usageCard, { backgroundColor: tc.card, borderColor: tc.border }]}>
+                <Text style={[styles.usageLabel, { color: tc.textMid }]}>Current plan</Text>
+                <Text style={[styles.usagePlan, { color: tc.text }]}>{current.plan_name}</Text>
 
-              <View style={styles.usageRow}>
-                <View style={styles.usageCol}>
-                  <Text style={[styles.usageNum, { color: tc.text }]}>
-                    {current.used_5h}
-                    <Text style={[styles.usageDenom, { color: tc.textMid }]}>
-                      {' / '}
-                      {current.per_5h < 0 ? '∞' : current.per_5h}
+                <View style={styles.usageRow}>
+                  <View style={styles.usageHeaderRow}>
+                    <Text style={[styles.usageTitle, { color: tc.text }]}>Current usage</Text>
+                    <Text style={[styles.usagePct, { color: tc.textMid }]}>
+                      {unlimited5h ? 'Unlimited' : `${pct5h}%`}
                     </Text>
-                  </Text>
+                  </View>
+                  <View style={[styles.barBg, { backgroundColor: tc.border }]}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: unlimited5h ? '0%' : `${pct5h}%`,
+                          backgroundColor: pct5h >= 90 ? tc.red || '#ef4444' : tc.primary,
+                        },
+                      ]}
+                    />
+                  </View>
                   <Text style={[styles.usageSub, { color: tc.textMid }]}>
-                    used in 5h · resets {formatCountdown(current.resets_in_seconds_5h)}
+                    Resets in {formatCountdown(current.resets_in_seconds_5h)}
                   </Text>
                 </View>
-              </View>
 
-              <View style={styles.usageRow}>
-                <View style={styles.usageCol}>
-                  <Text style={[styles.usageNum, { color: tc.text }]}>
-                    {current.used_week}
-                    <Text style={[styles.usageDenom, { color: tc.textMid }]}>
-                      {' / '}
-                      {current.per_week < 0 ? '∞' : current.per_week}
+                <View style={styles.usageRow}>
+                  <View style={styles.usageHeaderRow}>
+                    <Text style={[styles.usageTitle, { color: tc.text }]}>Weekly usage</Text>
+                    <Text style={[styles.usagePct, { color: tc.textMid }]}>
+                      {unlimitedWeek ? 'Unlimited' : `${pctWeek}%`}
                     </Text>
-                  </Text>
+                  </View>
+                  <View style={[styles.barBg, { backgroundColor: tc.border }]}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {
+                          width: unlimitedWeek ? '0%' : `${pctWeek}%`,
+                          backgroundColor: pctWeek >= 90 ? tc.red || '#ef4444' : tc.primary,
+                        },
+                      ]}
+                    />
+                  </View>
                   <Text style={[styles.usageSub, { color: tc.textMid }]}>
-                    used this week · resets {formatCountdown(current.resets_in_seconds_week)}
+                    Resets in {formatCountdown(current.resets_in_seconds_week)}
                   </Text>
                 </View>
-              </View>
 
-              {currentPlanId !== 'free' && (
-                <TouchableOpacity
-                  onPress={handleManage}
-                  style={[styles.manageBtn, { borderColor: tc.border }]}
-                >
-                  <Text style={[styles.manageText, { color: tc.text }]}>Manage subscription</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
+                <Text style={[styles.usageFine, { color: tc.textDim }]}>
+                  Usage depends on the length and complexity of your conversations.
+                </Text>
+
+                {currentPlanId !== 'free' && (
+                  <TouchableOpacity
+                    onPress={handleManage}
+                    style={[styles.manageBtn, { borderColor: tc.border }]}
+                  >
+                    <Text style={[styles.manageText, { color: tc.text }]}>Manage subscription</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })()}
 
           <Text style={[styles.sectionTitle, { color: tc.text }]}>Choose a plan</Text>
 
@@ -179,28 +210,12 @@ export default function SubscriptionScreen({ onBack }: { onBack: () => void }) {
                   </Text>
                 </View>
 
-                <View style={styles.featureRow}>
-                  <Ionicons name="flash" size={14} color={tc.textMid} />
-                  <Text style={[styles.featureText, { color: tc.textMid }]}>
-                    {formatLimit(p.per_5h)} messages per 5 hours
-                  </Text>
-                </View>
-                <View style={styles.featureRow}>
-                  <Ionicons name="calendar" size={14} color={tc.textMid} />
-                  <Text style={[styles.featureText, { color: tc.textMid }]}>
-                    {formatLimit(p.per_week)} messages per week
-                  </Text>
-                </View>
-                <View style={styles.featureRow}>
-                  <Ionicons name="time" size={14} color={tc.textMid} />
-                  <Text style={[styles.featureText, { color: tc.textMid }]}>
-                    {p.max_tasks < 0
-                      ? 'Unlimited scheduled tasks'
-                      : p.max_tasks === 0
-                      ? 'No scheduled tasks'
-                      : `${p.max_tasks} active scheduled tasks`}
-                  </Text>
-                </View>
+                {(PLAN_BLURB[p.id] || []).map((line, idx) => (
+                  <View key={idx} style={styles.featureRow}>
+                    <Ionicons name="checkmark-circle" size={14} color={tc.primary} />
+                    <Text style={[styles.featureText, { color: tc.textMid }]}>{line}</Text>
+                  </View>
+                ))}
 
                 <TouchableOpacity
                   disabled={isCurrent || busyPlan === p.id}
@@ -273,11 +288,19 @@ const styles = StyleSheet.create({
   },
   usageLabel: { fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
   usagePlan: { fontSize: 28, fontWeight: '700', marginTop: 4, marginBottom: 16 },
-  usageRow: { marginBottom: 12 },
-  usageCol: {},
-  usageNum: { fontSize: 22, fontWeight: '600' },
-  usageDenom: { fontSize: 16, fontWeight: '400' },
-  usageSub: { fontSize: 12, marginTop: 2 },
+  usageRow: { marginBottom: 14 },
+  usageHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  usageTitle: { fontSize: 14, fontWeight: '500' },
+  usagePct: { fontSize: 13, fontWeight: '600' },
+  barBg: { height: 8, borderRadius: 4, overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 4 },
+  usageSub: { fontSize: 12, marginTop: 6 },
+  usageFine: { fontSize: 11, fontStyle: 'italic', marginTop: 4, marginBottom: 4 },
   manageBtn: {
     marginTop: 8,
     paddingVertical: 10,

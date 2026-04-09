@@ -61,9 +61,6 @@ async def list_plans():
                 "id": key,
                 "name": p["name"],
                 "price_cents": p["price_cents"],
-                "per_5h": p["per_5h"],
-                "per_week": p["per_week"],
-                "max_tasks": p["max_tasks"],
                 "is_custom": p["price_cents"] is None,
             }
             for key, p in PLAN_LIMITS.items()
@@ -78,12 +75,36 @@ async def get_current_plan(
     authorization: str = Header(...),
     db: AsyncSession = Depends(get_db),
 ):
-    """Return the authenticated user's current plan + rolling usage."""
+    """Return the authenticated user's current plan + usage percentages.
+
+    Raw message counts are intentionally NOT exposed — usage is reported as
+    a 0-100 percentage because real consumption varies with message length.
+    """
     payload = _auth(authorization)
     email = payload.get("email", "")
     snapshot = await get_usage_snapshot(email, db)
     await db.commit()
-    return snapshot
+
+    def _pct(used: int, limit: int) -> int:
+        if limit < 0:
+            return 0  # unlimited
+        if limit == 0:
+            return 100
+        return max(0, min(100, round((used / limit) * 100)))
+
+    return {
+        "plan": snapshot["plan"],
+        "plan_name": snapshot["plan_name"],
+        "status": snapshot["status"],
+        "current_period_end": snapshot.get("current_period_end"),
+        "cancel_at_period_end": snapshot.get("cancel_at_period_end", False),
+        "used_pct_5h": _pct(snapshot["used_5h"], snapshot["per_5h"]),
+        "used_pct_week": _pct(snapshot["used_week"], snapshot["per_week"]),
+        "unlimited_5h": snapshot["per_5h"] < 0,
+        "unlimited_week": snapshot["per_week"] < 0,
+        "resets_in_seconds_5h": snapshot["resets_in_seconds_5h"],
+        "resets_in_seconds_week": snapshot["resets_in_seconds_week"],
+    }
 
 
 # ── Stripe checkout session ─────────────────────────────────────────────
