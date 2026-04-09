@@ -38,6 +38,7 @@ class ScheduledTaskBody(BaseModel):
     label: str = Field(..., min_length=1, max_length=200)
     command: str = Field(..., min_length=1, max_length=4000)
     schedule: str = Field(..., min_length=1, max_length=200)
+    timezone: Optional[str] = Field(None, max_length=64)
     enabled: bool = True
     agent_id: Optional[str] = Field(None, max_length=128)
     agent_name: Optional[str] = Field(None, max_length=200)
@@ -55,6 +56,7 @@ def _serialize(t: GhostScheduledTask) -> dict:
         "label": t.label,
         "command": t.command,
         "schedule": t.schedule,
+        "timezone": t.timezone,
         "enabled": t.enabled,
         "agent_id": t.agent_id,
         "agent_name": t.agent_name,
@@ -120,6 +122,7 @@ async def sync_tasks(
             label=incoming.label,
             command=incoming.command,
             schedule=incoming.schedule,
+            timezone=(incoming.timezone or "UTC"),
             enabled=incoming.enabled,
             agent_id=incoming.agent_id,
             agent_name=incoming.agent_name,

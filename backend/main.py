@@ -125,6 +125,14 @@ async def lifespan(app: FastAPI):
                 await conn.execute(text(f"ALTER TABLE ghost_users ADD COLUMN IF NOT EXISTS {col}"))
             except Exception:
                 pass
+        # Ensure newer ghost_scheduled_tasks columns exist
+        try:
+            await conn.execute(text(
+                "ALTER TABLE ghost_scheduled_tasks "
+                "ADD COLUMN IF NOT EXISTS timezone VARCHAR(64) NOT NULL DEFAULT 'UTC'"
+            ))
+        except Exception:
+            pass
         await conn.commit()
     logger.info("Ghost user columns ensured")
 

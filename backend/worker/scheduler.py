@@ -443,51 +443,59 @@ def _js_weekday(now: datetime) -> int:
 
 
 async def _run_ghost_scheduled_tasks():
-    """Fire user-scoped mobile scheduled tasks whose minute matches the current clock."""
+    """Fire user-scoped mobile scheduled tasks whose minute matches the user's local clock."""
+    from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     async with async_session() as db:
         try:
             from models.ghost_scheduled_task import GhostScheduledTask
             from worker.ghost_task_executor import execute_ghost_task
 
-            now = datetime.now(timezone.utc)
-            # Match the user's LOCAL clock? For now we use UTC — mobile schedule stores local hour/min
-            # but the backend doesn't know the user's timezone. TODO: add tz to GhostUser.
-            # For now assume UTC. The user can compensate when picking the time.
+            now_utc = datetime.now(timezone.utc)
 
             result = await db.execute(
                 select(GhostScheduledTask).where(GhostScheduledTask.enabled == True)
             )
             tasks = result.scalars().all()
 
-            # Filter to tasks that are actually due right now (cheap, synchronous)
+            # Filter to tasks that are actually due right now (cheap, synchronous).
+            # Each task has its own timezone so we convert the current UTC time
+            # into the task's local zone before matching hour/minute.
             due: list = []
             for task in tasks:
                 try:
                     kind, days, hour, minute, once_date = _parse_ghost_schedule(task.schedule)
                     if kind == "invalid":
                         continue
-                    if now.hour != hour or now.minute != minute:
+
+                    tz_name = task.timezone or "UTC"
+                    try:
+                        tz = ZoneInfo(tz_name)
+                    except (ZoneInfoNotFoundError, Exception):
+                        tz = ZoneInfo("UTC")
+                    now_local = now_utc.astimezone(tz)
+
+                    if now_local.hour != hour or now_local.minute != minute:
                         continue
                     if kind == "once":
                         if once_date is None:
                             continue
                         mo, d, y = once_date
-                        if not (now.month == mo and now.day == d and now.year == y):
+                        if not (now_local.month == mo and now_local.day == d and now_local.year == y):
                             continue
                     elif kind == "recurring":
-                        if _js_weekday(now) not in days:
+                        if _js_weekday(now_local) not in days:
                             continue
                     else:
                         continue
                     # Debounce: avoid running the same task twice in the same minute
                     if task.last_run_at:
-                        last = task.last_run_at
+                        last_local = task.last_run_at.astimezone(tz)
                         if (
-                            last.year == now.year
-                            and last.month == now.month
-                            and last.day == now.day
-                            and last.hour == now.hour
-                            and last.minute == now.minute
+                            last_local.year == now_local.year
+                            and last_local.month == now_local.month
+                            and last_local.day == now_local.day
+                            and last_local.hour == now_local.hour
+                            and last_local.minute == now_local.minute
                         ):
                             continue
                     due.append(task)

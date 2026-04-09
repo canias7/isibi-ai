@@ -34,8 +34,11 @@ class GhostScheduledTask(Base):
     agent_name = Column(String, nullable=True)
     agent_system_prompt = Column(Text, nullable=True)
 
-    # "days|H:M" or "once|M/D/Y|H:M"
+    # "days|H:M" or "once|M/D/Y|H:M" — hours/minutes are in the user's local time
     schedule = Column(String, nullable=False)
+    # IANA timezone string (e.g. "America/Los_Angeles"). Defaults to UTC if the
+    # mobile client doesn't send one (older app versions).
+    timezone = Column(String(64), nullable=False, default="UTC", server_default=text("'UTC'"))
     enabled = Column(Boolean, default=True, nullable=False)
 
     last_run_at = Column(DateTime(timezone=True), nullable=True)

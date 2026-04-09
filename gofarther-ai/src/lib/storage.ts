@@ -175,6 +175,11 @@ export async function syncScheduledTasksToBackend(tasks: ScheduledTask[]): Promi
     const agents = await getAgents();
     const agentMap = new Map(agents.map(a => [a.id, a]));
 
+    let deviceTz = 'UTC';
+    try {
+      deviceTz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    } catch {}
+
     const payload = {
       tasks: tasks.map(t => {
         const agent = agentMap.get(t.agentId);
@@ -183,6 +188,7 @@ export async function syncScheduledTasksToBackend(tasks: ScheduledTask[]): Promi
           label: t.label,
           command: t.command,
           schedule: t.schedule,
+          timezone: deviceTz,
           enabled: t.enabled,
           agent_id: t.agentId || null,
           agent_name: agent?.name || null,
