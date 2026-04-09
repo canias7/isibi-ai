@@ -43,10 +43,14 @@ export async function getToken(): Promise<string | null> {
   const tok = await SecureStore.getItemAsync(TOKEN_KEY);
   if (!tok) return null;
 
-  // Reject tokens we can't decode or that are obviously expired, so a
-  // corrupted or stale JWT doesn't leave the app in a half-logged-in state
-  // (where auth === 'yes' but there's no active_user_id and every save/load
-  // is a no-op).
+  // The `LOGGED_OUT` marker is written by logout() as a belt-and-suspenders
+  // override in case the delete fails. Treat it as a hard "no token".
+  if (tok === 'LOGGED_OUT') {
+    try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
+    return null;
+  }
+
+  // Reject tokens we can't decode or that are obviously expired.
   const uid = userIdFromJwt(tok);
   const exp = expFromJwt(tok);
   const nowSec = Math.floor(Date.now() / 1000);
@@ -58,6 +62,18 @@ export async function getToken(): Promise<string | null> {
     } catch {}
     return null;
   }
+
+  // Cross-check: the JWT's user_id MUST match the active_user_id pointer
+  // in AsyncStorage. After logout we wipe active_user_id, so a token
+  // whose sub no longer matches an active user is stale by definition
+  // and we refuse to honor it.
+  try {
+    const stored = await AsyncStorage.getItem('active_user_id');
+    if (!stored || stored !== uid) {
+      try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
+      return null;
+    }
+  } catch {}
 
   // Keep the storage namespace in sync with the token holder (covers upgrade
   // from the pre-multi-account build where active_user_id didn't exist yet).
@@ -296,32 +312,38 @@ export async function resetPassword(email: string, code: string, newPassword: st
 }
 
 export async function logout() {
-  // Kill every persistence layer that could leave the user logged in.
-  // Order matters: we must finish all local clearing BEFORE the app
-  // restarts, and we must tolerate every step failing.
+  // Multi-layer defense. Do everything in order so each step's state
+  // is fully written before the next, and tolerate each failing.
+  // Belt-and-suspenders: we OVERWRITE the token with a known-invalid
+  // string AND delete it. Either one is enough to lock the user out;
+  // both together make it impossible for a stale token to survive.
+  try { await SecureStore.setItemAsync(TOKEN_KEY, 'LOGGED_OUT'); } catch {}
   try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
-  try { await clearToken(); } catch {}
+
+  // Durable sentinel in the iOS Keychain. getToken() checks this first
+  // and refuses to return anything if it's set.
+  try { await SecureStore.setItemAsync('gofurther_logged_out', String(Date.now())); } catch {}
+
+  // Clear the per-user storage scope. Fail-closed save/load will now
+  // drop every write until a new login.
   try {
     const { setActiveUserId } = await import('./storage');
     await setActiveUserId(null);
   } catch {}
-  // Write the logout breadcrumb to BOTH AsyncStorage and SecureStore.
-  // AsyncStorage writes can be buffered; SecureStore writes are durable
-  // and survive the app getting killed mid-write. Either one tripping
-  // is enough to block auto-login on the next launch.
+
+  // AsyncStorage breadcrumb — a second independent signal for App.tsx.
   try { await AsyncStorage.setItem('force_logout', String(Date.now())); } catch {}
-  try { await SecureStore.setItemAsync('gofurther_logged_out', String(Date.now())); } catch {}
 
-  // Revoke server-side sessions in the background — don't block on it.
+  // Give iOS a beat to actually flush the Keychain writes to disk. On
+  // older devices the writes can be in-flight when the process dies.
+  await new Promise(resolve => setTimeout(resolve, 200));
+
+  // Fire the server-side revoke in the background. We do NOT call
+  // Updates.reloadAsync() here anymore — in practice the reload was
+  // killing the JS context before SecureStore writes had persisted,
+  // so the token came back alive on the next cold start. React state
+  // gets handled by the onLogout() callback in the caller.
   revokeAllSessions().catch(() => {});
-
-  // Nuclear option: fully reload the JS bundle so React state, module
-  // caches, and any in-memory token copies are wiped. This guarantees
-  // the next render goes through App.tsx's boot path from scratch.
-  try {
-    const Updates = await import('expo-updates');
-    if (!__DEV__) await Updates.reloadAsync();
-  } catch {}
 }
 
 export async function getMe() {
