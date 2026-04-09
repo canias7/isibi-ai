@@ -477,7 +477,16 @@ async def ghost_dbtest(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import text
     result = await db.execute(text("SELECT COUNT(*) FROM ghost_users"))
     count = result.scalar()
-    return {"ghost_users_count": count}
+    # Also test ORM query
+    try:
+        orm_result = await db.execute(select(GhostUser).limit(1))
+        orm_user = orm_result.scalar_one_or_none()
+        orm_ok = True
+        orm_email = orm_user.email if orm_user else "none"
+    except Exception as e:
+        orm_ok = False
+        orm_email = str(e)
+    return {"ghost_users_count": count, "orm_ok": orm_ok, "orm_detail": orm_email}
 
 @router.post("/signup", response_model=GhostTokenResponse)
 async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_db)):
