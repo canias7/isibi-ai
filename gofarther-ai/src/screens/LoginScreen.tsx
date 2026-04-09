@@ -9,7 +9,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { C } from '../lib/theme';
-import { login, login2FA, signup, socialLogin, forgotPassword, resetPassword } from '../lib/api';
+import { login, login2FA, signup, socialLogin, forgotPassword, resetPassword, verifyEmail, resendVerification } from '../lib/api';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -29,7 +29,8 @@ const PHRASES = [
 ];
 
 export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
-  const [mode, setMode] = useState<'welcome' | 'email-login' | 'email-signup' | 'forgot' | 'reset' | '2fa'>('welcome');
+  const [mode, setMode] = useState<'welcome' | 'email-login' | 'email-signup' | 'forgot' | 'reset' | '2fa' | 'verify-email'>('welcome');
+  const [verifyCode, setVerifyCode] = useState('');
   const [resetCode, setResetCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [tempToken, setTempToken] = useState('');
@@ -206,9 +207,30 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     setLoading(true);
     try {
       await signup(email.toLowerCase().trim(), name.trim(), password);
-      onLogin();
+      // Don't log in yet — require email verification first.
+      switchMode('verify-email');
     } catch (e: any) { Alert.alert('Signup failed', e.message || 'Something went wrong'); }
     finally { setLoading(false); }
+  };
+
+  const handleVerifyEmail = async () => {
+    const code = verifyCode.trim().toUpperCase();
+    if (!code) { Alert.alert('Enter code', 'Please enter the code from your email'); return; }
+    setLoading(true);
+    try {
+      await verifyEmail(email.toLowerCase().trim(), code);
+      setVerifyCode('');
+      onLogin();
+    } catch (e: any) { Alert.alert('Verification failed', e.message || 'Invalid or expired code'); }
+    finally { setLoading(false); }
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+    try {
+      await resendVerification(email.toLowerCase().trim());
+      Alert.alert('Code sent', 'Check your email for a new verification code');
+    } catch (e: any) { Alert.alert('Could not resend', e.message || 'Try again in a moment'); }
   };
 
   const handleForgotPassword = async () => {
@@ -391,6 +413,51 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 </View>
                 <TouchableOpacity style={[s.submitBtn, (!resetCode || !newPassword) && { opacity: 0.4 }]} onPress={handleResetPassword} disabled={!resetCode || !newPassword} activeOpacity={0.8}>
                   <Text style={s.submitText}>Reset Password</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </TouchableWithoutFeedback>
+      </SafeAreaView>
+    );
+  }
+
+  if (mode === 'verify-email') {
+    return (
+      <SafeAreaView style={s.formRoot}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <ScrollView contentContainerStyle={s.formScroll} keyboardShouldPersistTaps="handled">
+              <View style={s.formNav}>
+                <TouchableOpacity onPress={() => switchMode('email-signup')}><Text style={s.navBack}>{'<'}</Text></TouchableOpacity>
+                <Text style={s.navTitle}>Verify Email</Text>
+                <View style={{ width: 28 }} />
+              </View>
+              <View style={s.formCenter}>
+                <Text style={s.formHeading}>Check your inbox</Text>
+                <Text style={s.formSub}>We sent a verification code to {email}</Text>
+                <View style={[s.inputBox, focusedField === 'vcode' && s.inputBoxFocus]}>
+                  <TextInput
+                    style={s.formInput}
+                    placeholder="Verification code"
+                    placeholderTextColor="#999"
+                    value={verifyCode}
+                    onChangeText={setVerifyCode}
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={12}
+                    onFocus={() => setFocusedField('vcode')}
+                    onBlur={() => setFocusedField('')}
+                    onSubmitEditing={handleVerifyEmail}
+                    returnKeyType="done"
+                    accessibilityLabel="Verification code"
+                  />
+                </View>
+                <TouchableOpacity style={[s.submitBtn, !verifyCode && { opacity: 0.4 }]} onPress={handleVerifyEmail} disabled={!verifyCode || loading} activeOpacity={0.8}>
+                  {loading ? <ActivityIndicator color="#fff" /> : <Text style={s.submitText}>Verify & Continue</Text>}
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleResendVerification} style={{ marginTop: 18 }}>
+                  <Text style={{ color: '#666', fontSize: 14, textAlign: 'center' }}>Didn't get it? <Text style={{ color: '#1a1a1a', fontWeight: '600' }}>Resend code</Text></Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

@@ -425,9 +425,17 @@ def _create_2fa_temp_token(user_id: str, email: str) -> str:
 def verify_ghost_token(token: str) -> dict:
     try:
         payload = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
-        return payload
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+    # Unverified signup tokens must not grant access to any protected route.
+    # The /verify endpoint doesn't call this — it looks up the user by email
+    # and code directly — so rejecting here is safe.
+    if payload.get("type") == "unverified":
+        raise HTTPException(
+            status_code=403,
+            detail="Please verify your email before using your account",
+        )
+    return payload
 
 
 async def verify_ghost_token_with_session(authorization: str, db: AsyncSession, require_verified: bool = True) -> dict:

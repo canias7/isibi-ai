@@ -61,31 +61,38 @@ async function getActiveUserId(): Promise<string | null> {
 
 /**
  * Apply a `u_<userId>_` prefix to a storage key so different accounts on
- * the same device get independent namespaces. Device-wide keys and the
- * pre-login case (no active user yet) pass through unchanged.
+ * the same device get independent namespaces. Device-wide keys pass
+ * through unchanged.
+ *
+ * If no user is active (pre-login or mid-logout), returns null. Callers
+ * then fail closed — reads return the fallback, writes become no-ops.
+ * This guarantees that a newly signed-up account can NEVER accidentally
+ * see a previous account's data via a stray unscoped key.
  */
-async function scopedKey(key: string): Promise<string> {
+async function scopedKey(key: string): Promise<string | null> {
   if (DEVICE_KEYS.has(key)) return key;
-  // If the caller already passed a scoped key (shouldn't happen, but be safe)
   if (key.startsWith('u_')) return key;
   const uid = await getActiveUserId();
-  if (!uid) return key;
+  if (!uid) return null;
   return `u_${uid}_${key}`;
 }
 
 export async function save(key: string, data: any) {
   const k = await scopedKey(key);
+  if (k === null) return; // No active user → drop the write
   await AsyncStorage.setItem(k, JSON.stringify(data));
 }
 
 export async function load<T>(key: string, fallback: T): Promise<T> {
   const k = await scopedKey(key);
+  if (k === null) return fallback; // No active user → return fallback
   const raw = await AsyncStorage.getItem(k);
   return raw ? JSON.parse(raw) : fallback;
 }
 
 export async function remove(key: string) {
   const k = await scopedKey(key);
+  if (k === null) return;
   await AsyncStorage.removeItem(k);
 }
 
@@ -257,7 +264,7 @@ export async function searchAllChats(query: string): Promise<{ session: ChatSess
 export async function deleteChatSession(sessionId: string) {
   const sessions = await getChatSessions();
   await saveChatSessions(sessions.filter(s => s.id !== sessionId));
-  await AsyncStorage.removeItem(`chat_${sessionId}`);
+  await remove(`chat_${sessionId}`);
 }
 
 // Email templates

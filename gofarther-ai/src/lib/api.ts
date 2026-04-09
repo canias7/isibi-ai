@@ -120,8 +120,32 @@ export async function signup(email: string, name: string, password: string) {
     method: 'POST',
     body: JSON.stringify({ email, name, password }),
   });
+  // Intentionally do NOT install the token here. The backend returns an
+  // "unverified" token for compatibility, but until the user enters the
+  // emailed code via verifyEmail() we must not grant access — otherwise
+  // someone could sign up with a typo'd address and use the account.
+  return data;
+}
+
+/**
+ * Finish the signup flow by exchanging the email verification code for a
+ * real access token. Called from the verify screen shown after signup().
+ */
+export async function verifyEmail(email: string, code: string) {
+  const data = await apiFetch('/verify', {
+    method: 'POST',
+    body: JSON.stringify({ email, code }),
+  });
   if (data.token) await acceptNewSession(data.token);
   return data;
+}
+
+/** Ask the backend to re-send the email verification code. */
+export async function resendVerification(email: string) {
+  return apiFetch('/resend', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
 
 export async function login(email: string, password: string, challengeId?: string, challengeAnswer?: string) {
