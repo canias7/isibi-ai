@@ -25,21 +25,34 @@ export async function clearTokenIfReinstalled() {
 
 export async function getToken(): Promise<string | null> {
   const tok = await SecureStore.getItemAsync(TOKEN_KEY);
-  // Keep the storage namespace in sync with the token holder. This covers:
-  //   1) Cold starts after an upgrade from the pre-multi-account build
-  //      (no `active_user_id` yet → derive from JWT and migrate).
-  //   2) Any edge case where the two drifted apart.
-  if (tok) {
+  if (!tok) return null;
+
+  // Reject tokens we can't decode or that are obviously expired, so a
+  // corrupted or stale JWT doesn't leave the app in a half-logged-in state
+  // (where auth === 'yes' but there's no active_user_id and every save/load
+  // is a no-op).
+  const uid = userIdFromJwt(tok);
+  const exp = expFromJwt(tok);
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!uid || (exp !== null && exp < nowSec)) {
+    try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
     try {
       const { setActiveUserId } = await import('./storage');
-      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
-      const current = await AsyncStorage.getItem('active_user_id');
-      const uid = userIdFromJwt(tok);
-      if (uid && current !== uid) {
-        await setActiveUserId(uid);
-      }
+      await setActiveUserId(null);
     } catch {}
+    return null;
   }
+
+  // Keep the storage namespace in sync with the token holder (covers upgrade
+  // from the pre-multi-account build where active_user_id didn't exist yet).
+  try {
+    const { setActiveUserId } = await import('./storage');
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    const current = await AsyncStorage.getItem('active_user_id');
+    if (current !== uid) {
+      await setActiveUserId(uid);
+    }
+  } catch {}
   return tok;
 }
 
@@ -47,21 +60,30 @@ async function setToken(token: string) {
   await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
 
-/** Decode the `sub` (user_id) claim out of a JWT without verifying the signature. */
-function userIdFromJwt(token: string): string | null {
+/** Decode a JWT payload without verifying the signature. */
+function jwtPayload(token: string): any | null {
   try {
     const mid = token.split('.')[1];
     if (!mid) return null;
-    // Base64-url → base64
     const b64 = mid.replace(/-/g, '+').replace(/_/g, '/');
     const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
-    // atob exists in RN Hermes
     const json = typeof atob === 'function' ? atob(padded) : Buffer.from(padded, 'base64').toString('utf8');
-    const payload = JSON.parse(json);
-    return typeof payload.sub === 'string' ? payload.sub : null;
+    return JSON.parse(json);
   } catch {
     return null;
   }
+}
+
+/** Decode the `sub` (user_id) claim out of a JWT without verifying the signature. */
+function userIdFromJwt(token: string): string | null {
+  const payload = jwtPayload(token);
+  return payload && typeof payload.sub === 'string' ? payload.sub : null;
+}
+
+/** Decode the `exp` claim (epoch seconds) out of a JWT. */
+function expFromJwt(token: string): number | null {
+  const payload = jwtPayload(token);
+  return payload && typeof payload.exp === 'number' ? payload.exp : null;
 }
 
 /**
@@ -255,23 +277,18 @@ export async function resetPassword(email: string, code: string, newPassword: st
 }
 
 export async function logout() {
-  try {
-    // Revoke all server sessions so stolen tokens are invalidated
-    await revokeAllSessions();
-  } catch {
-    // Don't block logout if server is unreachable
-  }
+  // Kill the local session FIRST so even if the user kills the app mid-logout
+  // (slow network, server hang, whatever), the token and active-user pointer
+  // are already gone. revokeAllSessions() runs fire-and-forget after.
   await clearToken();
-  // Clear the active user pointer so `save`/`load` fall back to unscoped
-  // mode until the next login. We intentionally do NOT delete this user's
-  // namespaced data — if they log back in on this device, their chats,
-  // agents, contacts, etc. should still be there.
   try {
     const { setActiveUserId } = await import('./storage');
     await setActiveUserId(null);
   } catch {
     // Best-effort
   }
+  // Revoke server-side sessions in the background — don't block the UI on it.
+  revokeAllSessions().catch(() => {});
 }
 
 export async function getMe() {
