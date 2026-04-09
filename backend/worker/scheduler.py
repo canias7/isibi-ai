@@ -459,16 +459,15 @@ async def _run_ghost_scheduled_tasks():
             )
             tasks = result.scalars().all()
 
-            fired = 0
+            # Filter to tasks that are actually due right now (cheap, synchronous)
+            due: list = []
             for task in tasks:
                 try:
                     kind, days, hour, minute, once_date = _parse_ghost_schedule(task.schedule)
                     if kind == "invalid":
                         continue
-
                     if now.hour != hour or now.minute != minute:
                         continue
-
                     if kind == "once":
                         if once_date is None:
                             continue
@@ -480,7 +479,6 @@ async def _run_ghost_scheduled_tasks():
                             continue
                     else:
                         continue
-
                     # Debounce: avoid running the same task twice in the same minute
                     if task.last_run_at:
                         last = task.last_run_at
@@ -492,17 +490,35 @@ async def _run_ghost_scheduled_tasks():
                             and last.minute == now.minute
                         ):
                             continue
-
-                    result_text = await execute_ghost_task(task, db)
-                    task.last_run_at = now
-                    task.last_result = (result_text or "")[:2000]
-                    fired += 1
-                    logger.info("Ghost scheduled task fired: %s (%s) → %s", task.label, task.user_email, (result_text or "")[:120])
+                    due.append(task)
                 except Exception as e:
-                    logger.warning("Ghost task %s failed: %s", task.label, e, exc_info=True)
+                    logger.warning("Ghost task filter %s failed: %s", task.label, e)
 
-            if fired:
-                await db.commit()
+            if not due:
+                return
+
+            # Run due tasks concurrently, but cap concurrency so we don't
+            # blow out Anthropic rate limits or SMTP providers. Each task
+            # gets its own DB session so they don't fight over one cursor.
+            sem = asyncio.Semaphore(10)
+
+            async def _run_one(t):
+                async with sem:
+                    try:
+                        async with async_session() as task_db:
+                            result_text = await execute_ghost_task(t, task_db)
+                        t.last_run_at = now
+                        t.last_result = (result_text or "")[:2000]
+                        logger.info(
+                            "Ghost scheduled task fired: %s (%s) → %s",
+                            t.label, t.user_email, (result_text or "")[:120],
+                        )
+                    except Exception as e:
+                        logger.warning("Ghost task %s failed: %s", t.label, e, exc_info=True)
+
+            await asyncio.gather(*(_run_one(t) for t in due), return_exceptions=True)
+            await db.commit()
+            logger.info("Ghost scheduler fired %d tasks in parallel", len(due))
         except Exception as e:
             logger.warning("Ghost scheduled tasks check failed: %s", e, exc_info=True)
 
