@@ -218,22 +218,19 @@ async def admin_health(admin_token: Optional[str] = Cookie(None)):
             await db.execute(text("SELECT 1"))
         checks["database"] = "ok"
     except Exception as e:
-        checks["database"] = f"error: {e}"
+        checks["database"] = "error"
 
     # Backend API
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             r = await client.get("https://api.isibi.ai/health")
-            checks["api"] = "ok" if r.status_code == 200 else f"status {r.status_code}"
-    except Exception as e:
-        checks["api"] = f"error: {e}"
+            checks["api"] = "ok" if r.status_code == 200 else "error"
+    except Exception:
+        checks["api"] = "error"
 
-    # Anthropic
-    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
-    checks["anthropic_key"] = "configured" if anthropic_key else "missing"
-    checks["openai_key"] = "configured" if os.getenv("OPENAI_API_KEY") else "missing"
-    checks["elevenlabs_key"] = "configured" if os.getenv("ELEVENLABS_API_KEY") else "missing"
-    checks["teams_bot"] = "configured" if os.getenv("TEAMS_APP_ID") else "not set up"
+    # Service status — only show ok/missing, never reveal key values or names
+    checks["ai_service"] = "ok" if os.getenv("ANTHROPIC_API_KEY") else "missing"
+    checks["email_service"] = "ok" if os.getenv("RESEND_API_KEY") else "missing"
 
     return checks
 

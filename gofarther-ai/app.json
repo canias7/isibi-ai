@@ -23,7 +23,7 @@
         "ITSAppUsesNonExemptEncryption": true
       },
       "bundleIdentifier": "com.gofarther.ai",
-      "buildNumber": "23"
+      "buildNumber": "24"
     },
     "android": {
       "permissions": [
@@ -41,7 +41,7 @@
         "backgroundColor": "#1e1e1e"
       },
       "package": "com.gofarther.ai",
-      "versionCode": 4
+      "versionCode": 5
     },
     "scheme": "gofarther",
     "plugins": [

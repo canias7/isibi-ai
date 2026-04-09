@@ -172,6 +172,9 @@ app = FastAPI(
 # CORS — default to known origins; never fall back to "*" with credentials
 _DEFAULT_ORIGINS = "http://localhost:5173,http://localhost:3000,https://isibi.ai,https://www.isibi.ai,https://isibi-frontend.onrender.com"
 _ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", _DEFAULT_ORIGINS).split(",")
+# Strip localhost origins in production
+if os.getenv("RENDER"):
+    _ALLOWED_ORIGINS = [o for o in _ALLOWED_ORIGINS if "localhost" not in o and "127.0.0.1" not in o]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[o.strip() for o in _ALLOWED_ORIGINS if o.strip() and o.strip() != "*" and o.strip().startswith(("http://", "https://"))],

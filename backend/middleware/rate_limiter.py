@@ -24,8 +24,12 @@ import json
 import logging
 from typing import Optional
 
-# Disable rate limiting during tests
-RATE_LIMIT_DISABLED = os.getenv("TESTING", "").lower() in ("1", "true", "yes")
+# Disable rate limiting during tests — never in production
+_is_production = bool(os.getenv("RENDER"))
+RATE_LIMIT_DISABLED = (
+    not _is_production
+    and os.getenv("TESTING", "").lower() in ("1", "true", "yes")
+)
 
 logger = logging.getLogger(__name__)
 

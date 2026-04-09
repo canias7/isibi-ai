@@ -62,7 +62,10 @@ def decrypt_smtp_pass(ciphertext: str) -> str:
     return ciphertext
 
 # ── Chat Content Encryption ──────────────────────────────────────────
-_CHAT_KEY = os.getenv("CHAT_ENCRYPTION_KEY") or os.getenv("SMTP_ENCRYPTION_KEY", "")
+_CHAT_KEY = os.getenv("CHAT_ENCRYPTION_KEY") or ""
+if not _CHAT_KEY and os.getenv("SMTP_ENCRYPTION_KEY", ""):
+    logger.warning("CHAT_ENCRYPTION_KEY not set — falling back to SMTP_ENCRYPTION_KEY (set a separate key in production)")
+    _CHAT_KEY = os.getenv("SMTP_ENCRYPTION_KEY", "")
 _chat_fernet = Fernet(_CHAT_KEY.encode()) if Fernet and _CHAT_KEY else None
 
 def encrypt_chat_content(plaintext: str) -> str:
@@ -364,18 +367,29 @@ def _validate_password(password: str) -> str | None:
         return "Password must contain at least one special character"
     return None
 
-# ── Verify/Reset Attempt Tracking ────────────────────────────────────
+# ── Verify/Reset Attempt Tracking (database-backed, survives restarts) ──
 MAX_VERIFY_ATTEMPTS = 5
-_verify_attempts: dict[str, int] = {}
 
-def _check_verify_lockout(email: str) -> bool:
-    return _verify_attempts.get(email, 0) >= MAX_VERIFY_ATTEMPTS
+async def _check_verify_lockout(email: str, db: AsyncSession) -> bool:
+    cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+    result = await db.execute(
+        select(func.count()).select_from(GhostLoginAttempt).where(
+            GhostLoginAttempt.email == f"verify:{email}",
+            GhostLoginAttempt.timestamp > cutoff
+        )
+    )
+    count = result.scalar() or 0
+    return count >= MAX_VERIFY_ATTEMPTS
 
-def _record_failed_verify(email: str):
-    _verify_attempts[email] = _verify_attempts.get(email, 0) + 1
+async def _record_failed_verify(email: str, db: AsyncSession):
+    db.add(GhostLoginAttempt(email=f"verify:{email}"))
+    await db.flush()
 
-def _clear_verify_attempts(email: str):
-    _verify_attempts.pop(email, None)
+async def _clear_verify_attempts(email: str, db: AsyncSession):
+    await db.execute(
+        GhostLoginAttempt.__table__.delete().where(GhostLoginAttempt.email == f"verify:{email}")
+    )
+    await db.flush()
 
 # ── JWT Config ────────────────────────────────────────────────────────
 
@@ -416,13 +430,16 @@ def verify_ghost_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
-async def verify_ghost_token_with_session(authorization: str, db: AsyncSession) -> dict:
+async def verify_ghost_token_with_session(authorization: str, db: AsyncSession, require_verified: bool = True) -> dict:
     """Verify JWT AND check session is not revoked. Use for all authenticated endpoints."""
     token = authorization.replace("Bearer ", "")
     payload = verify_ghost_token(token)
     jti = payload.get("jti", "")
     if not await _check_session_valid(db, jti):
         raise HTTPException(status_code=401, detail="Session revoked. Please log in again.")
+    # Block unverified accounts from accessing protected endpoints
+    if require_verified and payload.get("type") == "unverified":
+        raise HTTPException(status_code=403, detail="Please verify your email before accessing this feature")
     return payload
 
 
@@ -486,16 +503,16 @@ async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_
     except Exception:
         pass  # Don't fail signup if email sending fails
 
-    token = create_ghost_token(str(user.id), user.email)
-    # Create session
+    # Return a limited token — full access granted only after email verification
+    token = create_ghost_token(str(user.id), user.email, token_type="unverified")
     payload = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
-    await _create_session(db, str(user.id), payload.get("jti", ""), "Signup", "")
+    await _create_session(db, str(user.id), payload.get("jti", ""), "Signup (unverified)", "")
     await db.commit()
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
 
 @router.post("/verify", response_model=GhostTokenResponse)
 async def ghost_verify(body: GhostVerifyRequest, db: AsyncSession = Depends(get_db)):
-    if _check_verify_lockout(body.email):
+    if await _check_verify_lockout(body.email, db):
         raise HTTPException(status_code=429, detail="Too many attempts. Request a new code.")
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
@@ -506,19 +523,20 @@ async def ghost_verify(body: GhostVerifyRequest, db: AsyncSession = Depends(get_
     if user.verification_expires and user.verification_expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Verification code expired. Request a new one.")
     if not user.verification_code or user.verification_code != body.code.upper():
-        _record_failed_verify(body.email)
+        await _record_failed_verify(body.email, db)
         # If max attempts reached, invalidate the code
-        if _check_verify_lockout(body.email):
+        if await _check_verify_lockout(body.email, db):
             user.verification_code = None
             await db.commit()
             raise HTTPException(status_code=429, detail="Too many attempts. Code invalidated. Request a new one.")
+        await db.commit()
         raise HTTPException(status_code=400, detail="Invalid verification code")
 
     user.email_verified = True
     user.verification_code = None
     user.verification_expires = None
     await db.commit()
-    _clear_verify_attempts(body.email)
+    await _clear_verify_attempts(body.email, db)
 
     token = create_ghost_token(str(user.id), user.email)
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
@@ -756,17 +774,18 @@ async def ghost_forgot(body: GhostForgotRequest, db: AsyncSession = Depends(get_
 @router.post("/reset")
 async def ghost_reset(body: GhostResetRequest, db: AsyncSession = Depends(get_db)):
     reset_key = f"reset:{body.email}"
-    if _check_verify_lockout(reset_key):
+    if await _check_verify_lockout(reset_key, db):
         raise HTTPException(status_code=429, detail="Too many attempts. Request a new reset code.")
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
     if not user or not user.reset_code or user.reset_code != body.code.upper():
-        _record_failed_verify(reset_key)
-        if _check_verify_lockout(reset_key):
+        await _record_failed_verify(reset_key, db)
+        if await _check_verify_lockout(reset_key, db):
             if user:
                 user.reset_code = None
                 await db.commit()
             raise HTTPException(status_code=429, detail="Too many attempts. Code invalidated.")
+        await db.commit()
         raise HTTPException(status_code=400, detail="Invalid reset code")
     if user.reset_expires and user.reset_expires < datetime.now(timezone.utc):
         raise HTTPException(status_code=400, detail="Reset code expired")
@@ -781,7 +800,7 @@ async def ghost_reset(body: GhostResetRequest, db: AsyncSession = Depends(get_db
     user.reset_expires = None
     await _audit_log(db, body.email, "password_reset", "Password reset via code")
     await db.commit()
-    _clear_verify_attempts(reset_key)
+    await _clear_verify_attempts(reset_key, db)
     return {"message": "Password reset successfully"}
 
 @router.get("/me")
@@ -852,7 +871,7 @@ async def ghost_2fa_verify(body: Ghost2FACodeRequest, authorization: str = Heade
         raise HTTPException(status_code=400, detail="Call /2fa/setup first")
 
     totp = pyotp.TOTP(user.totp_secret)
-    if not totp.verify(body.code):
+    if not totp.verify(body.code, valid_window=0):
         raise HTTPException(status_code=400, detail="Invalid code")
 
     user.is_2fa_enabled = True
@@ -874,7 +893,7 @@ async def ghost_2fa_disable(body: Ghost2FACodeRequest, authorization: str = Head
         raise HTTPException(status_code=400, detail="2FA is not enabled")
 
     totp = pyotp.TOTP(user.totp_secret)
-    if not totp.verify(body.code):
+    if not totp.verify(body.code, valid_window=0):
         raise HTTPException(status_code=400, detail="Invalid code")
 
     user.is_2fa_enabled = False
@@ -901,7 +920,7 @@ async def ghost_2fa_login(body: Ghost2FALoginRequest, db: AsyncSession = Depends
         raise HTTPException(status_code=401, detail="User not found")
 
     totp = pyotp.TOTP(user.totp_secret)
-    if not totp.verify(body.code):
+    if not totp.verify(body.code, valid_window=0):
         raise HTTPException(status_code=400, detail="Invalid 2FA code")
 
     # Issue full token
@@ -1471,7 +1490,7 @@ async def export_my_data(authorization: str = Header(...), db: AsyncSession = De
 
     return JSONResponse(
         content=export,
-        headers={"Content-Disposition": f'attachment; filename="gofarther_export_{user.email}.json"'},
+        headers={"Content-Disposition": f'attachment; filename="gofarther_export_{hashlib.sha256(user.email.encode()).hexdigest()[:12]}.json"'},
     )
 
 

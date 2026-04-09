@@ -7,9 +7,9 @@ _raw_url = os.getenv("DATABASE_URL", "postgresql+asyncpg://postgres:postgres@loc
 import logging
 _db_logger = logging.getLogger(__name__)
 
-# Warn (but don't crash) if running in production with default credentials
+# Crash in production if using default credentials
 if _raw_url == "postgresql+asyncpg://postgres:postgres@localhost:5432/crm" and os.getenv("RENDER"):
-    _db_logger.warning("DATABASE_URL is using the default value in production — set it in your Render environment variables")
+    raise RuntimeError("CRITICAL: DATABASE_URL must be set in production! Using default localhost credentials.")
 
 # Render gives postgres:// but asyncpg needs postgresql+asyncpg://
 DATABASE_URL = _raw_url

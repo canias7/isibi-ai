@@ -61,7 +61,7 @@ def _get_ttl(path: str) -> int:
 def _make_cache_key(path: str, query_string: str, org_id: str) -> str:
     """Create a cache key from request components."""
     raw = f"{path}|{query_string}|{org_id}"
-    return hashlib.md5(raw.encode()).hexdigest()
+    return hashlib.sha256(raw.encode()).hexdigest()
 
 
 def _get_path_prefix(path: str) -> str:

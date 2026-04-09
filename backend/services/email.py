@@ -1,7 +1,10 @@
 from __future__ import annotations
 import html as _html
+import logging
 import os
 import resend
+
+logger = logging.getLogger(__name__)
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "isibi.ai <onboarding@resend.dev>")
@@ -17,8 +20,8 @@ async def send_verification_email(to: str, code: str) -> bool:
     _init()
 
     if not RESEND_API_KEY:
-        # Dev fallback: print to console
-        print(f"[DEV] Verification code for {to}: {code}")
+        # Dev fallback — log at debug level only (never print codes to stdout)
+        logger.debug("Email service not configured — verification email skipped for %s", to)
         return True
 
     html = f"""
@@ -41,7 +44,7 @@ async def send_verification_email(to: str, code: str) -> bool:
         })
         return True
     except Exception as e:
-        print(f"[EMAIL ERROR] {e}")
+        logger.error("Failed to send verification email to %s: %s", to, e)
         return False
 
 
@@ -50,7 +53,7 @@ async def send_login_alert_email(to: str, ip_address: str, device_name: str, tim
     _init()
 
     if not RESEND_API_KEY:
-        print(f"[DEV] Login alert for {to}: new IP {ip_address} from {device_name}")
+        logger.debug("Email service not configured — login alert skipped for %s", to)
         return True
 
     html = f"""
@@ -76,7 +79,7 @@ async def send_login_alert_email(to: str, ip_address: str, device_name: str, tim
         })
         return True
     except Exception as e:
-        print(f"[EMAIL ERROR] {e}")
+        logger.error("Failed to send login alert email to %s: %s", to, e)
         return False
 
 
@@ -85,7 +88,7 @@ async def send_password_reset_email(to: str, code: str) -> bool:
     _init()
 
     if not RESEND_API_KEY:
-        print(f"[DEV] Password reset code for {to}: {code}")
+        logger.debug("Email service not configured — reset email skipped for %s", to)
         return True
 
     html = f"""
@@ -108,5 +111,5 @@ async def send_password_reset_email(to: str, code: str) -> bool:
         })
         return True
     except Exception as e:
-        print(f"[EMAIL ERROR] {e}")
+        logger.error("Failed to send password reset email to %s: %s", to, e)
         return False

@@ -46,7 +46,10 @@ try:
 except ImportError:
     Fernet = None  # type: ignore
 
-_CONNECTOR_KEY = os.getenv("CONNECTOR_ENCRYPTION_KEY") or os.getenv("SMTP_ENCRYPTION_KEY", "")
+_CONNECTOR_KEY = os.getenv("CONNECTOR_ENCRYPTION_KEY") or ""
+if not _CONNECTOR_KEY and os.getenv("SMTP_ENCRYPTION_KEY", ""):
+    logging.getLogger(__name__).warning("CONNECTOR_ENCRYPTION_KEY not set — falling back to SMTP_ENCRYPTION_KEY (set a separate key in production)")
+    _CONNECTOR_KEY = os.getenv("SMTP_ENCRYPTION_KEY", "")
 _connector_fernet = Fernet(_CONNECTOR_KEY.encode()) if Fernet and _CONNECTOR_KEY else None
 
 
