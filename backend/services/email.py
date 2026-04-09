@@ -1,4 +1,5 @@
 from __future__ import annotations
+import asyncio
 import html as _html
 import logging
 import os
@@ -13,6 +14,11 @@ FROM_EMAIL = os.getenv("FROM_EMAIL", "isibi.ai <onboarding@resend.dev>")
 def _init():
     if RESEND_API_KEY:
         resend.api_key = RESEND_API_KEY
+
+
+def _send_email_sync(params: dict) -> None:
+    """Synchronous email send — meant to be called via asyncio.to_thread()."""
+    resend.Emails.send(params)
 
 
 async def send_verification_email(to: str, code: str) -> bool:
@@ -36,7 +42,7 @@ async def send_verification_email(to: str, code: str) -> bool:
     """
 
     try:
-        resend.Emails.send({
+        await asyncio.to_thread(_send_email_sync, {
             "from": FROM_EMAIL,
             "to": [to],
             "subject": f"Your isibi.ai verification code: {code}",
@@ -71,7 +77,7 @@ async def send_login_alert_email(to: str, ip_address: str, device_name: str, tim
     """
 
     try:
-        resend.Emails.send({
+        await asyncio.to_thread(_send_email_sync, {
             "from": FROM_EMAIL,
             "to": [to],
             "subject": "New login to your GoFarther AI account",
@@ -103,7 +109,7 @@ async def send_password_reset_email(to: str, code: str) -> bool:
     """
 
     try:
-        resend.Emails.send({
+        await asyncio.to_thread(_send_email_sync, {
             "from": FROM_EMAIL,
             "to": [to],
             "subject": f"Your isibi.ai password reset code: {code}",
