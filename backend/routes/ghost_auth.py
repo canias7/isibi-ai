@@ -471,6 +471,14 @@ async def _check_session_valid(db: AsyncSession, jti: str) -> bool:
 
 router = APIRouter(prefix="/ghost", tags=["Ghost Mode Auth"])
 
+@router.post("/dbtest")
+async def ghost_dbtest(db: AsyncSession = Depends(get_db)):
+    """Temporary debug endpoint to test if ghost DB queries work."""
+    from sqlalchemy import text
+    result = await db.execute(text("SELECT COUNT(*) FROM ghost_users"))
+    count = result.scalar()
+    return {"ghost_users_count": count}
+
 @router.post("/signup", response_model=GhostTokenResponse)
 async def ghost_signup(body: GhostSignupRequest, db: AsyncSession = Depends(get_db)):
     # Check if email exists
