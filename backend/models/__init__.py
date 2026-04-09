@@ -63,6 +63,7 @@ from .app_message import AppMessage
 from .app_email import AppEmail
 from .app_snapshot import AppSnapshot
 from .app_scheduled_command import AppScheduledCommand
+from .ghost_scheduled_task import GhostScheduledTask
 from .sso_config import SSOConfig
 
 __all__ = [
@@ -90,5 +91,6 @@ __all__ = [
     "AppStatusRule", "AppDuplicateRule",
     "AppMessage", "AppEmail", "AppSnapshot",
     "AppScheduledCommand",
+    "GhostScheduledTask",
     "SSOConfig",
 ]

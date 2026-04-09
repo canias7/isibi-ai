@@ -150,12 +150,81 @@ export interface ScheduledTask {
   enabled: boolean;
 }
 
+const BACKEND_BASE = 'https://isibi-backend.onrender.com';
+const SCHED_URL = `${BACKEND_BASE}/api/ghost/scheduled-tasks`;
+
 export async function getScheduledTasks(): Promise<ScheduledTask[]> {
   return load('scheduled_tasks', []);
 }
 
+/** Save locally AND sync to backend so the server-side scheduler can fire them. */
 export async function saveScheduledTasks(tasks: ScheduledTask[]) {
   await save('scheduled_tasks', tasks);
+  // Fire-and-forget sync — if it fails the local copy is still correct
+  syncScheduledTasksToBackend(tasks).catch(() => {});
+}
+
+/** Push the current task list to the backend. Enriches with agent details. */
+export async function syncScheduledTasksToBackend(tasks: ScheduledTask[]): Promise<boolean> {
+  try {
+    const { getToken } = await import('./api');
+    const token = await getToken();
+    if (!token) return false;
+
+    // Pull agents so we can send the system prompt with each task
+    const agents = await getAgents();
+    const agentMap = new Map(agents.map(a => [a.id, a]));
+
+    const payload = {
+      tasks: tasks.map(t => {
+        const agent = agentMap.get(t.agentId);
+        return {
+          client_id: t.id,
+          label: t.label,
+          command: t.command,
+          schedule: t.schedule,
+          enabled: t.enabled,
+          agent_id: t.agentId || null,
+          agent_name: agent?.name || null,
+          agent_system_prompt: agent?.instructions || null,
+        };
+      }),
+    };
+
+    const res = await fetch(`${SCHED_URL}/sync`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** Trigger a task immediately for testing. */
+export async function runScheduledTaskNow(clientId: string): Promise<{ ok: boolean; result?: string; error?: string }> {
+  try {
+    const { getToken } = await import('./api');
+    const token = await getToken();
+    if (!token) return { ok: false, error: 'Not logged in' };
+
+    const res = await fetch(`${SCHED_URL}/${encodeURIComponent(clientId)}/run-now`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      return { ok: false, error: txt || `HTTP ${res.status}` };
+    }
+    const data = await res.json();
+    return { ok: true, result: data.result };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Request failed' };
+  }
 }
 
 // AI Name (what the user calls their AI — like "Hey Chris")

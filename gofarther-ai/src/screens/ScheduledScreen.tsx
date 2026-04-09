@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { getScheduledTasks, saveScheduledTasks, ScheduledTask, getAgents, Agent } from '../lib/storage';
+import { getScheduledTasks, saveScheduledTasks, ScheduledTask, getAgents, Agent, runScheduledTaskNow } from '../lib/storage';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -137,6 +137,23 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
   const toggle = async (id: string) => {
     const u = tasks.map(t => t.id === id ? { ...t, enabled: !t.enabled } : t);
     await saveScheduledTasks(u); setTasks(u);
+  };
+
+  const runNow = async (id: string) => {
+    Alert.alert('Run Now', 'Trigger this task immediately?', [
+      { text: 'Cancel' },
+      {
+        text: 'Run',
+        onPress: async () => {
+          const res = await runScheduledTaskNow(id);
+          if (res.ok) {
+            Alert.alert('Done', res.result ? String(res.result).slice(0, 500) : 'Task executed.');
+          } else {
+            Alert.alert('Failed', res.error || 'Could not run task');
+          }
+        },
+      },
+    ]);
   };
 
   const toggleDay = (day: number) => {
@@ -342,6 +359,15 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
               <Text style={s.cardMetaText}>{getScheduleLabel(t.schedule)}</Text>
               <Text style={s.cardMetaDot}>  ·  </Text>
               <Text style={s.cardMetaText}>{getAgentName(t.agentId)}</Text>
+              <View style={{ flex: 1 }} />
+              <TouchableOpacity
+                style={s.runNowBtn}
+                onPress={(e) => { e.stopPropagation?.(); runNow(t.id); }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="play" size={11} color="#fff" />
+                <Text style={s.runNowText}>Run now</Text>
+              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         )} />
@@ -371,6 +397,8 @@ const s = StyleSheet.create({
   cardMeta: { flexDirection: 'row', alignItems: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e8e8e8' },
   cardMetaText: { fontSize: 12, color: '#999', fontWeight: '500' },
   cardMetaDot: { fontSize: 12, color: '#ddd' },
+  runNowBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#1a1a1a', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  runNowText: { color: '#fff', fontSize: 11, fontWeight: '600' },
 
   // Edit
   editContent: { padding: 20, paddingTop: 8, paddingBottom: 40 },

@@ -32,6 +32,7 @@ async def run_scheduler():
             await _send_daily_digest_reports()
             await _cleanup_expired_record_locks()
             await _run_scheduled_commands()
+            await _run_ghost_scheduled_tasks()
             await _cleanup_old_data()
         except asyncio.CancelledError:
             logger.info("Scheduler cancelled, shutting down")
@@ -389,6 +390,121 @@ async def _run_scheduled_commands():
 
         except Exception as e:
             logger.warning(f"Scheduled commands check failed: {e}")
+
+
+def _parse_ghost_schedule(schedule: str) -> tuple[str, list[int], int, int, tuple[int, int, int] | None]:
+    """Parse the mobile schedule format.
+    Returns (kind, days, hour, minute, once_date).
+      kind = 'recurring' | 'once' | 'invalid'
+      days = list of weekday ints (JS Date.getDay: Sun=0..Sat=6) — only for recurring
+      once_date = (month, day, year) — only for once
+    """
+    if not schedule:
+        return ("invalid", [], 0, 0, None)
+
+    parts = schedule.split("|")
+
+    def parse_hm(s: str) -> tuple[int, int]:
+        if not s:
+            return (0, 0)
+        bits = s.split(":")
+        try:
+            h = int(bits[0])
+        except Exception:
+            h = 0
+        try:
+            m = int(bits[1]) if len(bits) > 1 else 0
+        except Exception:
+            m = 0
+        return (max(0, min(23, h)), max(0, min(59, m)))
+
+    if parts[0] == "once" and len(parts) == 3:
+        try:
+            mo, d, y = [int(x) for x in parts[1].split("/")]
+        except Exception:
+            return ("invalid", [], 0, 0, None)
+        h, mi = parse_hm(parts[2])
+        return ("once", [], h, mi, (mo, d, y))
+
+    if len(parts) == 2 and parts[0] != "once":
+        try:
+            days = [int(x) for x in parts[0].split(",") if x.strip() != ""]
+        except Exception:
+            return ("invalid", [], 0, 0, None)
+        h, mi = parse_hm(parts[1])
+        return ("recurring", days, h, mi, None)
+
+    return ("invalid", [], 0, 0, None)
+
+
+def _js_weekday(now: datetime) -> int:
+    """Python Monday=0..Sunday=6 → JS Sunday=0..Saturday=6."""
+    return (now.weekday() + 1) % 7
+
+
+async def _run_ghost_scheduled_tasks():
+    """Fire user-scoped mobile scheduled tasks whose minute matches the current clock."""
+    async with async_session() as db:
+        try:
+            from models.ghost_scheduled_task import GhostScheduledTask
+            from worker.ghost_task_executor import execute_ghost_task
+
+            now = datetime.now(timezone.utc)
+            # Match the user's LOCAL clock? For now we use UTC — mobile schedule stores local hour/min
+            # but the backend doesn't know the user's timezone. TODO: add tz to GhostUser.
+            # For now assume UTC. The user can compensate when picking the time.
+
+            result = await db.execute(
+                select(GhostScheduledTask).where(GhostScheduledTask.enabled == True)
+            )
+            tasks = result.scalars().all()
+
+            fired = 0
+            for task in tasks:
+                try:
+                    kind, days, hour, minute, once_date = _parse_ghost_schedule(task.schedule)
+                    if kind == "invalid":
+                        continue
+
+                    if now.hour != hour or now.minute != minute:
+                        continue
+
+                    if kind == "once":
+                        if once_date is None:
+                            continue
+                        mo, d, y = once_date
+                        if not (now.month == mo and now.day == d and now.year == y):
+                            continue
+                    elif kind == "recurring":
+                        if _js_weekday(now) not in days:
+                            continue
+                    else:
+                        continue
+
+                    # Debounce: avoid running the same task twice in the same minute
+                    if task.last_run_at:
+                        last = task.last_run_at
+                        if (
+                            last.year == now.year
+                            and last.month == now.month
+                            and last.day == now.day
+                            and last.hour == now.hour
+                            and last.minute == now.minute
+                        ):
+                            continue
+
+                    result_text = await execute_ghost_task(task, db)
+                    task.last_run_at = now
+                    task.last_result = (result_text or "")[:2000]
+                    fired += 1
+                    logger.info("Ghost scheduled task fired: %s (%s) → %s", task.label, task.user_email, (result_text or "")[:120])
+                except Exception as e:
+                    logger.warning("Ghost task %s failed: %s", task.label, e, exc_info=True)
+
+            if fired:
+                await db.commit()
+        except Exception as e:
+            logger.warning("Ghost scheduled tasks check failed: %s", e, exc_info=True)
 
 
 async def _cleanup_old_data():
