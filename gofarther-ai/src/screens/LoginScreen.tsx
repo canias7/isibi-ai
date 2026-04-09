@@ -110,6 +110,9 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [googleRequest, googleResponse, googlePromptAsync] = Google.useAuthRequest({
     webClientId: GOOGLE_CLIENT_ID_WEB,
     iosClientId: GOOGLE_CLIENT_ID_IOS,
+    // Always show the Google account picker so users can switch accounts
+    // after logout — by default Google silently reuses the cached session.
+    extraParams: { prompt: 'select_account' },
   });
 
   useEffect(() => {
@@ -146,6 +149,27 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
       const appleName = credential.fullName
         ? `${credential.fullName.givenName || ''} ${credential.fullName.familyName || ''}`.trim()
         : 'Apple User';
+
+      // iOS only allows one Apple ID per device, so Apple Sign-In will
+      // always re-auth the same Apple ID silently after the first consent.
+      // Show an explicit confirmation so the user can bail out and pick a
+      // different sign-in method (or log in to a different GoFarther
+      // account via email + password).
+      const confirmed = await new Promise<boolean>((resolve) => {
+        Alert.alert(
+          'Continue with Apple?',
+          appleEmail
+            ? `Sign in to GoFarther AI as ${appleEmail}?`
+            : 'Sign in to GoFarther AI with your Apple ID?',
+          [
+            { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
+            { text: 'Continue', onPress: () => resolve(true) },
+          ],
+          { cancelable: true, onDismiss: () => resolve(false) },
+        );
+      });
+      if (!confirmed) { setLoading(false); return; }
+
       await socialLogin(appleEmail, appleName, 'apple', credential.identityToken || '');
       onLogin();
     } catch (e: any) {
