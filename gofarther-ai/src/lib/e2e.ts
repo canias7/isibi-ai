@@ -55,33 +55,31 @@ export async function setE2EEnabled(enabled: boolean): Promise<void> {
 // ── AES-256-CBC Encryption ─────────────────────────────────────────
 
 /**
- * Encrypt a message using AES-256-CBC.
+ * Encrypt a message using AES-256-GCM (authenticated encryption).
  * Output format: E2E:<iv_hex>:<ciphertext_hex>
+ * GCM provides both confidentiality and integrity (prevents tampering).
  */
 export async function encryptMessage(plaintext: string): Promise<string> {
   const keyHex = await getE2EKey();
-  if (!keyHex) return plaintext;
+  if (!keyHex) throw new Error('E2E encryption key not available');
 
-  try {
-    const keyBytes = hexToBytes(keyHex);
-    const iv = await Crypto.getRandomBytesAsync(16);
-    const data = new TextEncoder().encode(plaintext);
+  const keyBytes = hexToBytes(keyHex);
+  const iv = await Crypto.getRandomBytesAsync(12); // 12 bytes for GCM
+  const data = new TextEncoder().encode(plaintext);
 
-    const cryptoKey = await crypto.subtle.importKey(
-      'raw', keyBytes, { name: 'AES-CBC' }, false, ['encrypt']
-    );
-    const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-CBC', iv }, cryptoKey, data
-    );
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt']
+  );
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv }, cryptoKey, data
+  );
 
-    return `E2E:${bytesToHex(new Uint8Array(iv))}:${bytesToHex(new Uint8Array(encrypted))}`;
-  } catch {
-    return plaintext; // Fallback if SubtleCrypto unavailable
-  }
+  return `E2E:${bytesToHex(new Uint8Array(iv))}:${bytesToHex(new Uint8Array(encrypted))}`;
 }
 
 /**
- * Decrypt a message encrypted with AES-256-CBC.
+ * Decrypt a message encrypted with AES-256-GCM.
+ * Also supports legacy AES-CBC messages (iv length 32 hex = 16 bytes).
  */
 export async function decryptMessage(ciphertext: string): Promise<string> {
   if (!ciphertext.startsWith('E2E:')) return ciphertext;
@@ -97,11 +95,13 @@ export async function decryptMessage(ciphertext: string): Promise<string> {
     const ct = hexToBytes(parts[2]);
     const keyBytes = hexToBytes(keyHex);
 
+    // Detect GCM (12-byte IV) vs legacy CBC (16-byte IV)
+    const algo = iv.length === 12 ? 'AES-GCM' : 'AES-CBC';
     const cryptoKey = await crypto.subtle.importKey(
-      'raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']
+      'raw', keyBytes, { name: algo }, false, ['decrypt']
     );
     const decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-CBC', iv }, cryptoKey, ct
+      { name: algo, iv }, cryptoKey, ct
     );
 
     return new TextDecoder().decode(decrypted);

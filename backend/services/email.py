@@ -1,4 +1,5 @@
 from __future__ import annotations
+import html as _html
 import os
 import resend
 
@@ -57,9 +58,9 @@ async def send_login_alert_email(to: str, ip_address: str, device_name: str, tim
       <h2 style="font-size:20px;font-weight:600;color:#000;margin:0 0 8px">New login detected</h2>
       <p style="font-size:14px;color:#666;margin:0 0 24px">A new login to your GoFarther AI account was detected:</p>
       <div style="background:#f5f5f5;border-radius:12px;padding:20px;margin-bottom:24px">
-        <p style="font-size:14px;color:#333;margin:0 0 8px"><strong>IP Address:</strong> {ip_address}</p>
-        <p style="font-size:14px;color:#333;margin:0 0 8px"><strong>Device:</strong> {device_name}</p>
-        <p style="font-size:14px;color:#333;margin:0"><strong>Time:</strong> {timestamp}</p>
+        <p style="font-size:14px;color:#333;margin:0 0 8px"><strong>IP Address:</strong> {_html.escape(ip_address)}</p>
+        <p style="font-size:14px;color:#333;margin:0 0 8px"><strong>Device:</strong> {_html.escape(device_name)}</p>
+        <p style="font-size:14px;color:#333;margin:0"><strong>Time:</strong> {_html.escape(timestamp)}</p>
       </div>
       <p style="font-size:13px;color:#e11d48;font-weight:500;margin:0 0 8px">If this wasn't you, change your password immediately.</p>
       <p style="font-size:12px;color:#999;margin:0">You're receiving this because a login from a new location was detected on your account.</p>

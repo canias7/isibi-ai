@@ -21,7 +21,11 @@ from sqlalchemy import text
 
 router = APIRouter(tags=["admin"])
 
-ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "gofarther-admin-2026")
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
+if os.getenv("RENDER") and not ADMIN_PASSWORD:
+    raise RuntimeError("CRITICAL: ADMIN_PASSWORD must be set in production!")
+if not ADMIN_PASSWORD:
+    ADMIN_PASSWORD = "local-dev-only-password"  # Only used in local development
 ADMIN_TOKEN = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()[:32]
 
 
@@ -38,7 +42,7 @@ async def admin_login(request: Request):
     if body.get("password") != ADMIN_PASSWORD:
         return JSONResponse({"error": "Wrong password"}, status_code=401)
     response = JSONResponse({"token": ADMIN_TOKEN})
-    response.set_cookie("admin_token", ADMIN_TOKEN, httponly=True, max_age=86400 * 7, samesite="lax")
+    response.set_cookie("admin_token", ADMIN_TOKEN, httponly=True, max_age=86400 * 7, samesite="lax", secure=bool(os.getenv("RENDER")))
     return response
 
 
@@ -161,13 +165,15 @@ async def admin_ban_user(user_id: str, admin_token: Optional[str] = Cookie(None)
 async def admin_reset_password(user_id: str, request: Request, admin_token: Optional[str] = Cookie(None)):
     _check_admin(admin_token)
     body = await request.json()
-    new_password = body.get("password", "TempPass123")
+    new_password = body.get("password", "")
+    if not new_password or len(new_password) < 12:
+        raise HTTPException(400, "Password must be at least 12 characters")
     import bcrypt
     hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     async with async_session() as db:
         await db.execute(text("UPDATE ghost_users SET password_hash = :hashed WHERE id = :user_id").bindparams(hashed=hashed, user_id=user_id))
         await db.commit()
-    return {"message": "Password reset", "new_password": new_password}
+    return {"message": "Password reset successfully"}
 
 
 @router.get("/api/admin/users/{user_id}/logins")

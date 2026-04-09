@@ -199,7 +199,7 @@ async def flight_status(req: FlightStatusRequest, authorization: str = Header(..
         api_key = os.getenv("AVIATIONSTACK_KEY", "")
         if api_key:
             try:
-                r = await client.get(f"http://api.aviationstack.com/v1/flights?access_key={api_key}&flight_iata={req.flight}")
+                r = await client.get(f"https://api.aviationstack.com/v1/flights?access_key={api_key}&flight_iata={req.flight}")
                 r.raise_for_status()
                 flights = r.json().get("data", [])
                 if flights:

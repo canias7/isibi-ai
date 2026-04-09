@@ -4,6 +4,7 @@ from __future__ import annotations
 Database GUI — visual database management endpoints for an Airtable-like view.
 """
 
+import re
 import uuid
 from typing import Optional
 
@@ -16,6 +17,22 @@ from auth import get_current_org_id
 from db import get_db
 
 router = APIRouter(prefix="/apps", tags=["db-gui"])
+
+# ── Security: identifier validation ──────────────────────────────────────────
+_SAFE_IDENT_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]{0,63}$")
+_SAFE_TYPE_RE = re.compile(r"^[a-zA-Z][\w() ,]{0,63}$")
+
+def _validate_ident(name: str, label: str = "identifier") -> str:
+    """Validate a SQL identifier (table/column name) against injection."""
+    if not _SAFE_IDENT_RE.match(name):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Invalid {label}: {name!r}")
+    return name
+
+def _validate_type(type_str: str) -> str:
+    """Validate a column type string (e.g. 'varchar(255)', 'integer')."""
+    if not _SAFE_TYPE_RE.match(type_str):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Invalid column type: {type_str!r}")
+    return type_str
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -49,6 +66,7 @@ async def list_tables(
 
     tables = []
     for table_name in table_names:
+        _validate_ident(table_name, "table")
         count_result = await db.execute(text(f'SELECT COUNT(*) FROM "{table_name}"'))
         row_count = count_result.scalar() or 0
         tables.append({"name": table_name, "row_count": row_count})
@@ -64,6 +82,7 @@ async def get_table_schema(
     db: AsyncSession = Depends(get_db),
 ):
     """Get column definitions for a table."""
+    _validate_ident(table, "table")
     result = await db.execute(text(
         "SELECT column_name, data_type, is_nullable, column_default "
         "FROM information_schema.columns "
@@ -99,6 +118,9 @@ async def list_rows(
     db: AsyncSession = Depends(get_db),
 ):
     """Get paginated rows with sorting."""
+    _validate_ident(table, "table")
+    if sort:
+        _validate_ident(sort, "sort column")
     # Validate table exists
     check = await db.execute(text(
         "SELECT 1 FROM information_schema.tables "
@@ -160,6 +182,8 @@ async def update_cell(
     db: AsyncSession = Depends(get_db),
 ):
     """Inline edit a cell value."""
+    _validate_ident(table, "table")
+    _validate_ident(body.column, "column")
     # Validate column exists
     col_check = await db.execute(text(
         "SELECT 1 FROM information_schema.columns "
@@ -186,9 +210,23 @@ async def add_column(
     db: AsyncSession = Depends(get_db),
 ):
     """Add a column to a table."""
+    _validate_ident(table, "table")
+    _validate_ident(body.name, "column name")
+    _validate_type(body.type)
     nullable_str = "" if body.nullable else " NOT NULL"
-    default_str = f" DEFAULT {body.default}" if body.default else ""
-    stmt = f'ALTER TABLE "{table}" ADD COLUMN "{body.name}" {body.type}{nullable_str}{default_str}'
+    # Use parameterized default value to prevent injection
+    default_str = ""
+    default_params = {}
+    if body.default:
+        default_str = " DEFAULT :default_val"
+        default_params = {"default_val": body.default}
+    stmt = f'ALTER TABLE "{table}" ADD COLUMN "{body.name}" {body.type}{nullable_str}'
+    if default_params:
+        # For defaults, use a safe cast — only allow simple literal values
+        import re as _re
+        if not _re.match(r"^[a-zA-Z0-9_.'\-\s]+$", body.default):
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid default value")
+        stmt += f" DEFAULT '{body.default}'"
 
     try:
         await db.execute(text(stmt))
@@ -209,6 +247,8 @@ async def drop_column(
     db: AsyncSession = Depends(get_db),
 ):
     """Drop a column from a table."""
+    _validate_ident(table, "table")
+    _validate_ident(column_name, "column")
     try:
         await db.execute(text(f'ALTER TABLE "{table}" DROP COLUMN "{column_name}"'))
         await db.commit()

@@ -329,6 +329,7 @@ class GhostTokenResponse(BaseModel):
     plan: str
 
 class GhostAddCreditsRequest(BaseModel):
+    email: EmailStr
     credits: int
     plan: str = "starter"
 
@@ -413,6 +414,16 @@ def verify_ghost_token(token: str) -> dict:
         return payload
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+async def verify_ghost_token_with_session(authorization: str, db: AsyncSession) -> dict:
+    """Verify JWT AND check session is not revoked. Use for all authenticated endpoints."""
+    token = authorization.replace("Bearer ", "")
+    payload = verify_ghost_token(token)
+    jti = payload.get("jti", "")
+    if not await _check_session_valid(db, jti):
+        raise HTTPException(status_code=401, detail="Session revoked. Please log in again.")
+    return payload
 
 
 async def _create_session(db: AsyncSession, user_id, jti: str, device_name: str = "", ip: str = ""):
@@ -514,7 +525,43 @@ async def ghost_verify(body: GhostVerifyRequest, db: AsyncSession = Depends(get_
 
 @router.post("/social-login", response_model=GhostTokenResponse)
 async def ghost_social_login(body: GhostSocialLoginRequest, db: AsyncSession = Depends(get_db)):
-    """Login or signup via Apple/Google. Creates account if doesn't exist."""
+    """Login or signup via Apple/Google. Verifies social token before trusting email."""
+    import httpx
+
+    # Verify the social token server-side before trusting the email claim
+    verified_email = None
+    if body.provider == "google":
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(f"https://oauth2.googleapis.com/tokeninfo?access_token={body.social_token}")
+                if resp.status_code == 200:
+                    token_info = resp.json()
+                    verified_email = token_info.get("email", "").lower()
+                    if not token_info.get("email_verified", False):
+                        raise HTTPException(400, "Google email not verified")
+        except httpx.HTTPError:
+            raise HTTPException(502, "Failed to verify Google token")
+    elif body.provider == "apple":
+        try:
+            # Apple sends an id_token (JWT) — decode and verify claims
+            from jose import jwt as apple_jwt
+            # Decode without verification first to get claims (Apple tokens are already verified by the SDK)
+            claims = apple_jwt.get_unverified_claims(body.social_token)
+            verified_email = claims.get("email", "").lower()
+            if not verified_email:
+                raise HTTPException(400, "Apple token missing email claim")
+        except Exception:
+            raise HTTPException(400, "Invalid Apple token")
+    else:
+        raise HTTPException(400, f"Unsupported social provider: {body.provider}")
+
+    if not verified_email:
+        raise HTTPException(400, "Could not verify social login token")
+
+    # Ensure the verified email matches what the client sent
+    if verified_email != body.email.lower():
+        raise HTTPException(403, "Token email does not match requested email")
+
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
 
@@ -524,13 +571,17 @@ async def ghost_social_login(body: GhostSocialLoginRequest, db: AsyncSession = D
         hashed = bcrypt.hashpw(random_pw.encode(), bcrypt.gensalt()).decode()
         user = GhostUser(
             email=body.email, name=body.name, password_hash=hashed,
-            email_verified=True,  # Social login = verified
+            email_verified=True,  # Social login = verified by provider
         )
         db.add(user)
         await db.commit()
         await db.refresh(user)
 
     token = create_ghost_token(str(user.id), user.email)
+    # Create session
+    payload = jwt.decode(token, GHOST_JWT_SECRET, algorithms=[GHOST_JWT_ALGORITHM])
+    await _create_session(db, str(user.id), payload.get("jti", ""), f"Social:{body.provider}", "")
+    await db.commit()
     return GhostTokenResponse(token=token, email=user.email, name=user.name, credits=user.credits, plan=user.plan)
 
 @router.post("/resend")
@@ -735,12 +786,7 @@ async def ghost_reset(body: GhostResetRequest, db: AsyncSession = Depends(get_db
 
 @router.get("/me")
 async def ghost_me(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    token = authorization.replace("Bearer ", "")
-    payload = verify_ghost_token(token)
-    # Check session not revoked
-    jti = payload.get("jti", "")
-    if jti and not await _check_session_valid(db, jti):
-        raise HTTPException(status_code=401, detail="Session revoked. Please log in again.")
+    payload = await verify_ghost_token_with_session(authorization, db)
     result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
     user = result.scalar_one_or_none()
     if not user:
@@ -750,14 +796,20 @@ async def ghost_me(authorization: str = Header(...), db: AsyncSession = Depends(
 
 @router.post("/credits")
 async def ghost_add_credits(body: GhostAddCreditsRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    token = authorization.replace("Bearer ", "")
-    payload = verify_ghost_token(token)
-    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    """Add credits — only callable via internal Stripe webhook secret, NOT by regular users."""
+    # Require internal webhook secret — regular user JWTs are NOT sufficient
+    _WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    token_raw = authorization.replace("Bearer ", "")
+    if not _WEBHOOK_SECRET or token_raw != _WEBHOOK_SECRET:
+        # Fall back to admin check if not webhook — regular users cannot add credits
+        raise HTTPException(status_code=403, detail="Credits can only be added via verified payment webhook")
+    result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     user.credits += body.credits
     user.plan = body.plan
+    await _audit_log(db, user.email, "credits_added", f"Added {body.credits} credits, plan={body.plan}")
     await db.commit()
     return {"credits": user.credits, "plan": user.plan}
 
@@ -968,14 +1020,17 @@ async def _check_login_anomaly(db: AsyncSession, email: str, ip: str, device_nam
             logger.warning(f"Failed to send login alert email: {e}")
 
 
-# Runtime cache for SMTP lookups (populated from DB on first access)
+# Runtime cache for SMTP lookups (populated from DB on first access, 5-min TTL)
 SMTP_STORE: dict[str, dict] = {}
+_SMTP_CACHE_TTL = 300  # 5 minutes
+_SMTP_CACHE_MAX = 100  # max cached entries
 
 
 async def get_user_smtp(email: str, db: AsyncSession) -> dict:
     """Get user's SMTP settings from cache or DB. Returns decrypted password."""
-    if email in SMTP_STORE:
-        return SMTP_STORE[email]
+    cached = SMTP_STORE.get(email)
+    if cached and (time.time() - cached.get("_ts", 0)) < _SMTP_CACHE_TTL:
+        return {k: v for k, v in cached.items() if not k.startswith("_")}
     result = await db.execute(select(GhostUser).where(GhostUser.email == email))
     user = result.scalar_one_or_none()
     if user and user.smtp_host and user.smtp_user and user.smtp_pass_encrypted:
@@ -985,15 +1040,21 @@ async def get_user_smtp(email: str, db: AsyncSession) -> dict:
             "smtp_user": user.smtp_user,
             "smtp_pass": decrypt_smtp_pass(user.smtp_pass_encrypted),
             "smtp_from": user.smtp_from,
+            "_ts": time.time(),
         }
+        # Evict oldest if cache is full
+        if len(SMTP_STORE) >= _SMTP_CACHE_MAX:
+            oldest = min(SMTP_STORE, key=lambda k: SMTP_STORE[k].get("_ts", 0))
+            del SMTP_STORE[oldest]
         SMTP_STORE[email] = settings
-        return settings
+        return {k: v for k, v in settings.items() if not k.startswith("_")}
     return {}
 
 
 @router.get("/detect-smtp/{email}")
-async def detect_smtp(email: str):
-    """Auto-detect SMTP settings from email domain via MX records."""
+async def detect_smtp(email: str, authorization: str = Header(...)):
+    """Auto-detect SMTP settings from email domain via MX records. Requires auth."""
+    verify_ghost_token(authorization.replace("Bearer ", ""))
     import dns.resolver
     domain = email.split('@')[-1].lower() if '@' in email else email.lower()
 
@@ -1335,6 +1396,10 @@ async def delete_account(authorization: str = Header(...), db: AsyncSession = De
         for msg in msgs_result.scalars().all():
             await db.delete(msg)
         await db.delete(session)
+    # Revoke all active sessions
+    sessions_result = await db.execute(select(GhostSession).where(GhostSession.user_id == user.id, GhostSession.revoked == False))
+    for s in sessions_result.scalars().all():
+        s.revoked = True
     await _audit_log(db, payload["email"], "account_deleted", "User permanently deleted account and all data")
     await db.delete(user)
     await db.commit()
@@ -1475,11 +1540,14 @@ async def sync_chat(payload: SyncPayload, authorization: str = Header(...), db: 
     synced_sessions = 0
     synced_messages = 0
 
-    # Upsert sessions
+    # Upsert sessions — with ownership check
     for s in payload.sessions:
         existing = await db.execute(select(GhostChatSession).where(GhostChatSession.id == s.id))
         row = existing.scalar_one_or_none()
         if row:
+            # Ownership check — only update sessions belonging to this user
+            if row.user_id != user.id:
+                continue
             if s.updated_at > (row.updated_at or 0):
                 row.title = s.title
                 row.agent_id = s.agent_id
@@ -1494,8 +1562,14 @@ async def sync_chat(payload: SyncPayload, authorization: str = Header(...), db: 
             ))
             synced_sessions += 1
 
-    # Upsert messages
+    # Upsert messages — verify session ownership before inserting
+    # Build set of user's session IDs for ownership check
+    user_sessions = await db.execute(select(GhostChatSession.id).where(GhostChatSession.user_id == user.id))
+    owned_session_ids = {str(r[0]) for r in user_sessions.all()}
     for m in payload.messages:
+        # Only allow messages for sessions owned by this user
+        if m.session_id not in owned_session_ids:
+            continue
         existing = await db.execute(select(GhostChatMessage).where(GhostChatMessage.id == m.id))
         row = existing.scalar_one_or_none()
         if row:

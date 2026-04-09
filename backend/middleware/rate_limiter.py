@@ -78,11 +78,14 @@ _request_counter = 0
 
 
 def _get_client_ip(scope: dict) -> str:
-    """Extract the client IP from ASGI scope, respecting X-Forwarded-For if present."""
+    """Extract the client IP from ASGI scope. Uses rightmost XFF entry to prevent spoofing."""
     headers = dict(scope.get("headers", []))
     forwarded = headers.get(b"x-forwarded-for")
     if forwarded:
-        return forwarded.decode().split(",")[0].strip()
+        # Rightmost non-empty entry is the one added by our trusted proxy (Render/Cloudflare)
+        parts = [p.strip() for p in forwarded.decode().split(",") if p.strip()]
+        if parts:
+            return parts[-1]  # Rightmost = added by trusted proxy
     client = scope.get("client")
     if client:
         return client[0]

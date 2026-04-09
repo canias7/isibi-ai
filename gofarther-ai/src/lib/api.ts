@@ -180,6 +180,12 @@ export async function resetPassword(email: string, code: string, newPassword: st
 }
 
 export async function logout() {
+  try {
+    // Revoke all server sessions so stolen tokens are invalidated
+    await revokeAllSessions();
+  } catch {
+    // Don't block logout if server is unreachable
+  }
   await clearToken();
 }
 
@@ -200,7 +206,7 @@ export async function getUsage(period: string = '7d'): Promise<{
   total_tokens: number; credits_remaining: number; plan: string;
   daily: { date: string; tokens_in: number; tokens_out: number; requests: number }[];
 }> {
-  return apiFetch(`/usage?period=${period}`);
+  return apiFetch(`/usage?period=${encodeURIComponent(period)}`);
 }
 
 export async function saveSmtpSettings(settings: { smtp_host?: string; smtp_port?: number; smtp_user?: string; smtp_pass?: string; smtp_from?: string }) {
@@ -244,7 +250,7 @@ export async function getRemoteSessions(): Promise<{ sessions: SyncSession[] }> 
 }
 
 export async function getRemoteMessages(sessionId: string): Promise<{ messages: SyncMessage[] }> {
-  return apiFetch(`/chat/sessions/${sessionId}/messages`);
+  return apiFetch(`/chat/sessions/${encodeURIComponent(sessionId)}/messages`);
 }
 
 // ─── App Connectors ─────────────────────────────────────────────────────
@@ -256,18 +262,18 @@ export async function getConnectors(): Promise<{ connectors: any[]; categories: 
 }
 
 export async function connectApp(appId: string, credentials: Record<string, string>) {
-  return apiFetch(`${CONNECTORS}/${appId}/connect`, {
+  return apiFetch(`${CONNECTORS}/${encodeURIComponent(appId)}/connect`, {
     method: 'POST',
     body: JSON.stringify({ credentials }),
   });
 }
 
 export async function disconnectApp(appId: string) {
-  return apiFetch(`${CONNECTORS}/${appId}/disconnect`, { method: 'DELETE' });
+  return apiFetch(`${CONNECTORS}/${encodeURIComponent(appId)}/disconnect`, { method: 'DELETE' });
 }
 
 export async function connectorAction(appId: string, action: string, params: Record<string, any> = {}) {
-  return apiFetch(`${CONNECTORS}/${appId}/action`, {
+  return apiFetch(`${CONNECTORS}/${encodeURIComponent(appId)}/action`, {
     method: 'POST',
     body: JSON.stringify({ action, params }),
   });
@@ -309,7 +315,7 @@ export async function getSessions(): Promise<SessionInfo[]> {
 }
 
 export async function revokeSession(sessionId: string): Promise<{ ok: boolean }> {
-  return apiFetch(`/sessions/${sessionId}`, { method: 'DELETE' });
+  return apiFetch(`/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
 }
 
 export async function revokeAllSessions(): Promise<{ ok: boolean; revoked: number }> {

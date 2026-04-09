@@ -45,22 +45,23 @@ export async function secureSet(key: string, value: string): Promise<void> {
   try {
     const keyHex = await getEncryptionKey();
     const keyBytes = hexToBytes(keyHex);
-    const iv = await Crypto.getRandomBytesAsync(16);
+    const iv = await Crypto.getRandomBytesAsync(12); // 12 bytes for GCM
     const data = new TextEncoder().encode(value);
 
     const cryptoKey = await crypto.subtle.importKey(
-      'raw', keyBytes, { name: 'AES-CBC' }, false, ['encrypt']
+      'raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt']
     );
     const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-CBC', iv }, cryptoKey, data
+      { name: 'AES-GCM', iv }, cryptoKey, data
     );
 
     const ivHex = bytesToHex(new Uint8Array(iv));
     const ctHex = bytesToHex(new Uint8Array(encrypted));
     await AsyncStorage.setItem(key, `${AES_PREFIX}${ivHex}:${ctHex}`);
-  } catch {
-    // Fallback to plain storage if AES encryption fails
-    await AsyncStorage.setItem(key, value);
+  } catch (e) {
+    // Log error but do NOT fall back to plaintext — that's a false sense of security
+    console.error('secureSet encryption failed:', e);
+    throw e;
   }
 }
 
@@ -83,11 +84,13 @@ export async function secureGet(key: string): Promise<string | null> {
       const iv = hexToBytes(ivHex);
       const ct = hexToBytes(ctHex);
 
+      // Detect GCM (12-byte IV) vs legacy CBC (16-byte IV)
+      const algo = iv.length === 12 ? 'AES-GCM' : 'AES-CBC';
       const cryptoKey = await crypto.subtle.importKey(
-        'raw', keyBytes, { name: 'AES-CBC' }, false, ['decrypt']
+        'raw', keyBytes, { name: algo }, false, ['decrypt']
       );
       const decrypted = await crypto.subtle.decrypt(
-        { name: 'AES-CBC', iv }, cryptoKey, ct
+        { name: algo, iv }, cryptoKey, ct
       );
       return new TextDecoder().decode(decrypted);
     }

@@ -220,43 +220,80 @@ async def invoke_function(
         raise HTTPException(status_code=400, detail="Function code exceeds maximum size (50 KB)")
 
     try:
-        # Reject dangerous patterns before execution
-        code_lower = func_obj.code.lower()
-        _BLOCKED_PATTERNS = ["import ", "__import__", "eval(", "exec(", "open(", "compile(",
-                             "__class__", "__subclasses__", "__globals__", "__builtins__",
-                             "getattr", "setattr", "delattr", "vars(", "dir(", "globals(",
-                             "locals(", "breakpoint"]
-        for pattern in _BLOCKED_PATTERNS:
-            if pattern in code_lower:
-                raise HTTPException(status_code=400, detail=f"Forbidden pattern in function code: {pattern.strip()}")
+        import ast as _ast
+        import subprocess as _sp
+        import json as _json
+        import tempfile as _tf
 
-        # Restricted builtins — no file I/O, no imports, no eval/exec nesting
-        safe_builtins = {
-            "abs": abs, "all": all, "any": any, "bool": bool,
-            "dict": dict, "enumerate": enumerate, "filter": filter,
-            "float": float, "int": int, "isinstance": isinstance,
-            "len": len, "list": list, "map": map, "max": max,
-            "min": min, "print": print, "range": range, "round": round,
-            "set": set, "sorted": sorted, "str": str, "sum": sum,
-            "tuple": tuple, "type": type, "zip": zip,
-            "True": True, "False": False, "None": None,
-        }
-        sandbox_globals = {"__builtins__": safe_builtins}
-        sandbox_locals = {"input_data": invoke_input, "result": None}
+        # AST-based security check — whitelist safe modules, block dangerous builtins
+        _ALLOWED_MODULES = {"math", "statistics", "json", "datetime", "re", "collections",
+                            "itertools", "functools", "decimal", "fractions", "random",
+                            "string", "textwrap", "csv", "operator", "numbers"}
+        _BLOCKED_BUILTINS = {"__import__", "exec", "eval", "compile", "open", "getattr",
+                             "setattr", "delattr", "globals", "locals", "vars", "dir",
+                             "type", "breakpoint", "input", "memoryview", "help"}
 
-        # Compile first to catch syntax errors without executing
-        compiled = compile(func_obj.code, "<serverless>", "exec")
+        tree = _ast.parse(func_obj.code)
+        for node in _ast.walk(tree):
+            if isinstance(node, _ast.Import):
+                for alias in node.names:
+                    mod = alias.name.split(".")[0]
+                    if mod not in _ALLOWED_MODULES:
+                        raise HTTPException(400, f"Blocked: import of '{mod}' is not allowed")
+            elif isinstance(node, _ast.ImportFrom):
+                if node.module:
+                    mod = node.module.split(".")[0]
+                    if mod not in _ALLOWED_MODULES:
+                        raise HTTPException(400, f"Blocked: import from '{mod}' is not allowed")
+            elif isinstance(node, _ast.Call):
+                func = node.func
+                if isinstance(func, _ast.Name) and func.id in _BLOCKED_BUILTINS:
+                    raise HTTPException(400, f"Blocked: '{func.id}()' is not allowed")
+                elif isinstance(func, _ast.Attribute) and func.attr in _BLOCKED_BUILTINS:
+                    raise HTTPException(400, f"Blocked: '.{func.attr}()' is not allowed")
+            # Block attribute access to dunder methods (class hierarchy escape)
+            elif isinstance(node, _ast.Attribute) and node.attr.startswith("__") and node.attr.endswith("__"):
+                raise HTTPException(400, f"Blocked: access to '{node.attr}' is not allowed")
 
-        # Execute the stored code (Python runtime)
-        exec(compiled, sandbox_globals, sandbox_locals)
+        # Execute in isolated subprocess instead of in-process exec()
+        wrapper = f"""
+import json, sys
+input_data = json.loads(sys.argv[1]) if len(sys.argv) > 1 else {{}}
+result = None
 
-        # If the code defines a handler(input_data) function, call it
-        if "handler" in sandbox_locals and callable(sandbox_locals["handler"]):
-            exec_output = sandbox_locals["handler"](invoke_input)
-        elif sandbox_locals.get("result") is not None:
-            exec_output = sandbox_locals["result"]
-        else:
-            exec_output = {"status": "executed", "message": "Function executed (no handler or result found)"}
+{func_obj.code}
+
+if 'handler' in dir() and callable(handler):
+    output = handler(input_data)
+elif result is not None:
+    output = result
+else:
+    output = {{"status": "executed", "message": "Function executed"}}
+print(json.dumps(output, default=str))
+"""
+        with _tf.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
+            tmp.write(wrapper)
+            tmp_path = tmp.name
+
+        try:
+            proc = _sp.run(
+                ["python3", tmp_path, _json.dumps(invoke_input)],
+                capture_output=True, text=True, timeout=10,
+                env={"PATH": "/usr/bin:/usr/local/bin"}
+            )
+            if proc.returncode != 0:
+                exec_error = proc.stderr[:500] if proc.stderr else "Execution failed"
+            else:
+                try:
+                    exec_output = _json.loads(proc.stdout)
+                except _json.JSONDecodeError:
+                    exec_output = {"status": "executed", "output": proc.stdout.strip()}
+        finally:
+            import os as _os
+            _os.unlink(tmp_path)
+
+    except HTTPException:
+        raise
     except Exception as e:
         exec_error = str(e)
 

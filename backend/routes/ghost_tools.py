@@ -46,10 +46,15 @@ def _audit_log_lazy():
 
 # In-memory file cache — backed by R2 for persistence across restarts
 FILE_STORE: dict[str, dict] = {}
+_FILE_STORE_MAX = 500  # max files in memory
 
 
 async def _store_file(file_id: str, filename: str, mime: str, file_bytes: bytes, owner_email: str = ""):
     """Store file in memory cache AND upload to R2 for persistence."""
+    # Evict oldest files if cache is full
+    if len(FILE_STORE) >= _FILE_STORE_MAX:
+        oldest = min(FILE_STORE, key=lambda k: FILE_STORE[k].get("created", ""))
+        del FILE_STORE[oldest]
     file_b64 = base64.b64encode(file_bytes).decode()
     FILE_STORE[file_id] = {"filename": filename, "mime": mime, "data": file_b64, "created": datetime.utcnow().isoformat(), "owner_email": owner_email}
     # Persist to R2 (best-effort, non-fatal)
@@ -499,13 +504,36 @@ Return ONLY the Python code, no explanations."""
                 import subprocess, tempfile
                 clean_code = code.replace("```python", "").replace("```", "").strip()
 
-                # Block dangerous imports
-                _BLOCKED_IMPORTS = ["os", "sys", "subprocess", "socket", "shutil", "pathlib",
-                                    "ctypes", "importlib", "pickle", "shelve", "webbrowser",
-                                    "http", "urllib", "requests", "httpx", "ftplib", "smtplib"]
-                for blocked in _BLOCKED_IMPORTS:
-                    if f"import {blocked}" in clean_code or f"from {blocked}" in clean_code:
-                        raise HTTPException(400, f"Chart code contains blocked import: {blocked}")
+                # AST-based security check for chart code
+                import ast as _chart_ast
+                _CHART_ALLOWED = {"matplotlib", "math", "statistics", "json", "datetime", "re",
+                                  "collections", "itertools", "functools", "decimal", "random",
+                                  "string", "csv", "io", "sys", "numpy", "pandas"}
+                _CHART_BLOCKED_BUILTINS = {"__import__", "exec", "eval", "compile", "open",
+                                           "getattr", "setattr", "delattr", "globals", "locals",
+                                           "vars", "dir", "type", "breakpoint", "input", "help"}
+                try:
+                    chart_tree = _chart_ast.parse(clean_code)
+                    for cnode in _chart_ast.walk(chart_tree):
+                        if isinstance(cnode, _chart_ast.Import):
+                            for alias in cnode.names:
+                                mod = alias.name.split(".")[0]
+                                if mod not in _CHART_ALLOWED:
+                                    raise HTTPException(400, f"Chart code: blocked import '{mod}'")
+                        elif isinstance(cnode, _chart_ast.ImportFrom) and cnode.module:
+                            mod = cnode.module.split(".")[0]
+                            if mod not in _CHART_ALLOWED:
+                                raise HTTPException(400, f"Chart code: blocked import '{mod}'")
+                        elif isinstance(cnode, _chart_ast.Call):
+                            fn = cnode.func
+                            if isinstance(fn, _chart_ast.Name) and fn.id in _CHART_BLOCKED_BUILTINS:
+                                raise HTTPException(400, f"Chart code: blocked '{fn.id}()'")
+                            elif isinstance(fn, _chart_ast.Attribute) and fn.attr in _CHART_BLOCKED_BUILTINS:
+                                raise HTTPException(400, f"Chart code: blocked '.{fn.attr}()'")
+                        elif isinstance(cnode, _chart_ast.Attribute) and cnode.attr.startswith("__") and cnode.attr.endswith("__"):
+                            raise HTTPException(400, f"Chart code: blocked dunder '{cnode.attr}'")
+                except SyntaxError as se:
+                    raise HTTPException(400, f"Chart code syntax error: {se}")
 
                 # Write a self-contained script that outputs PNG to stdout
                 with tempfile.NamedTemporaryFile(mode="w", suffix=".py", delete=False) as tmp:
@@ -563,9 +591,11 @@ Return ONLY the filtered data in the same format (CSV for CSV, JSON array for XL
                     raise ValueError("Compare requires at least 2 file IDs")
                 texts = []
                 for fid in req.file_ids[:2]:
-                    if fid not in FILE_STORE:
+                    f = await _get_file(fid)
+                    if not f:
                         raise ValueError(f"File {fid} not found")
-                    f = FILE_STORE[fid]
+                    if f.get("owner_email") and f["owner_email"] != owner:
+                        raise ValueError(f"File {fid} not found")
                     content = base64.b64decode(f["data"])
                     texts.append({"name": f["filename"], "content": _extract_text(content, f["mime"])})
                 system = """You are a spreadsheet analyst. Compare two spreadsheets and produce a detailed comparison report.
@@ -587,9 +617,11 @@ Use markdown formatting with tables where appropriate. Be thorough but concise."
                     raise ValueError("Reconcile requires 2 file IDs (bank statement + your records)")
                 texts = []
                 for fid in req.file_ids[:2]:
-                    if fid not in FILE_STORE:
+                    f = await _get_file(fid)
+                    if not f:
                         raise ValueError(f"File {fid} not found")
-                    f = FILE_STORE[fid]
+                    if f.get("owner_email") and f["owner_email"] != owner:
+                        raise ValueError(f"File {fid} not found")
                     content = base64.b64decode(f["data"])
                     texts.append({"name": f["filename"], "content": _extract_text(content, f["mime"])})
 
@@ -1292,13 +1324,15 @@ Return ONLY valid JSON."""
     except:
         slides_data = [{"title": "Presentation", "bullets": [content]}]
 
-    # Create simple HTML presentation
+    # Create simple HTML presentation (escape all AI-generated content)
+    import html as _html
     html_slides = []
     for i, slide in enumerate(slides_data):
-        bullets_html = "".join(f"<li>{b}</li>" for b in slide.get("bullets", []))
+        bullets_html = "".join(f"<li>{_html.escape(str(b))}</li>" for b in slide.get("bullets", []))
+        title = _html.escape(str(slide.get('title', f'Slide {i+1}')))
         html_slides.append(f"""
         <div style="page-break-after: always; padding: 60px; font-family: -apple-system, sans-serif;">
-            <h1 style="font-size: 36px; color: #1a1a1a; margin-bottom: 24px;">{slide.get('title', f'Slide {i+1}')}</h1>
+            <h1 style="font-size: 36px; color: #1a1a1a; margin-bottom: 24px;">{title}</h1>
             <ul style="font-size: 20px; line-height: 2; color: #444;">{bullets_html}</ul>
             <p style="position: absolute; bottom: 30px; right: 40px; color: #999; font-size: 14px;">{i+1} / {len(slides_data)}</p>
         </div>""")

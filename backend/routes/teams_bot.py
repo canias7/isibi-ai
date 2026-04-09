@@ -211,9 +211,40 @@ async def _execute_tool(tool_name: str, tool_input: dict) -> dict:
             description = tool_input.get("description", "")
             code = await ask_claude(f"Write Python code to: {description}\n\nReturn ONLY the code.", "Python code generator. Safe, clean, standard library only.")
             code = code.strip().removeprefix("```python").removeprefix("```").removesuffix("```").strip()
-            import subprocess
-            proc = subprocess.run(["python3", "-c", code], capture_output=True, text=True, timeout=30)
-            output = proc.stdout or proc.stderr or "(no output)"
+            # AST-based security check before execution
+            import ast as _ast, subprocess
+            _ALLOWED_MODULES = {"math", "statistics", "json", "datetime", "re", "collections",
+                                "itertools", "functools", "decimal", "random", "string", "csv"}
+            _BLOCKED_BUILTINS = {"__import__", "exec", "eval", "compile", "open", "getattr",
+                                 "setattr", "delattr", "globals", "locals", "vars", "dir",
+                                 "type", "breakpoint", "input", "help"}
+            blocked_reason = None
+            try:
+                tree = _ast.parse(code)
+                for node in _ast.walk(tree):
+                    if isinstance(node, _ast.Import):
+                        for alias in node.names:
+                            if alias.name.split(".")[0] not in _ALLOWED_MODULES:
+                                blocked_reason = f"Blocked import: {alias.name}"
+                    elif isinstance(node, _ast.ImportFrom) and node.module:
+                        if node.module.split(".")[0] not in _ALLOWED_MODULES:
+                            blocked_reason = f"Blocked import: {node.module}"
+                    elif isinstance(node, _ast.Call):
+                        func = node.func
+                        if isinstance(func, _ast.Name) and func.id in _BLOCKED_BUILTINS:
+                            blocked_reason = f"Blocked builtin: {func.id}"
+                        elif isinstance(func, _ast.Attribute) and func.attr in _BLOCKED_BUILTINS:
+                            blocked_reason = f"Blocked: .{func.attr}()"
+                    elif isinstance(node, _ast.Attribute) and node.attr.startswith("__") and node.attr.endswith("__"):
+                        blocked_reason = f"Blocked dunder access: {node.attr}"
+            except SyntaxError as se:
+                blocked_reason = f"Syntax error: {se}"
+            if blocked_reason:
+                output = f"Security: {blocked_reason}"
+            else:
+                proc = subprocess.run(["python3", "-c", code], capture_output=True, text=True, timeout=30,
+                                      env={"PATH": "/usr/bin:/usr/local/bin"})
+                output = proc.stdout or proc.stderr or "(no output)"
             result["text"] = f"**Code:**\n```python\n{code}\n```\n\n**Output:**\n```\n{output}\n```"
 
         elif tool_name == "translate":
