@@ -21,12 +21,14 @@ from sqlalchemy import text
 
 router = APIRouter(tags=["admin"])
 
+import secrets as _secrets
+
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 if os.getenv("RENDER") and not ADMIN_PASSWORD:
     raise RuntimeError("CRITICAL: ADMIN_PASSWORD must be set in production!")
 if not ADMIN_PASSWORD:
-    ADMIN_PASSWORD = "local-dev-only-password"  # Only used in local development
-ADMIN_TOKEN = hashlib.sha256(ADMIN_PASSWORD.encode()).hexdigest()[:32]
+    ADMIN_PASSWORD = _secrets.token_urlsafe(32)  # Random per-run in dev (no hardcoded fallback)
+ADMIN_TOKEN = _secrets.token_urlsafe(32)  # Cryptographically random, not derived from password
 
 
 def _check_admin(admin_token: Optional[str] = None):
@@ -39,7 +41,8 @@ def _check_admin(admin_token: Optional[str] = None):
 @router.post("/api/admin/login")
 async def admin_login(request: Request):
     body = await request.json()
-    if body.get("password") != ADMIN_PASSWORD:
+    import hmac as _hmac
+    if not _hmac.compare_digest(body.get("password", ""), ADMIN_PASSWORD):
         return JSONResponse({"error": "Wrong password"}, status_code=401)
     response = JSONResponse({"token": ADMIN_TOKEN})
     response.set_cookie("admin_token", ADMIN_TOKEN, httponly=True, max_age=86400 * 7, samesite="lax", secure=bool(os.getenv("RENDER")))

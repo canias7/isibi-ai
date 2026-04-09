@@ -64,30 +64,37 @@ async def _store_reset_code(key: str, code: str) -> None:
     }
 
 
-async def _get_reset_code(key: str) -> str | None:
-    """Retrieve a reset code from Redis or in-memory."""
+async def _get_and_delete_reset_code(key: str) -> str | None:
+    """Atomically retrieve AND delete a reset code (prevents reuse via race condition)."""
     redis_client = await _get_redis()
     if redis_client:
         try:
             import json
+            # GETDEL is atomic — retrieves and deletes in one operation
+            raw = await redis_client.getdel(f"reset:{key}")
+            if raw:
+                return json.loads(raw).get("code")
+            return None
+        except AttributeError:
+            # Redis < 6.2 fallback: GET + DELETE (small race window but better than nothing)
             raw = await redis_client.get(f"reset:{key}")
+            await redis_client.delete(f"reset:{key}")
             if raw:
                 return json.loads(raw).get("code")
             return None
         except Exception:
             pass
-    # Fallback to in-memory
-    stored = _reset_codes.get(key)
+    # Fallback to in-memory — pop is atomic in CPython (GIL)
+    stored = _reset_codes.pop(key, None)
     if not stored:
         return None
     if datetime.now(timezone.utc) > stored["expires"]:
-        _reset_codes.pop(key, None)
         return None
     return stored["code"]
 
 
 async def _delete_reset_code(key: str) -> None:
-    """Remove a reset code from Redis and in-memory."""
+    """Remove a reset code from Redis and in-memory (for cleanup only)."""
     redis_client = await _get_redis()
     if redis_client:
         try:
@@ -496,7 +503,8 @@ async def app_reset_password(
     Verifies the code, updates the password, and invalidates the code.
     """
     store_key = f"{project_id}:{body.email}"
-    stored_code = await _get_reset_code(store_key)
+    # Atomically get AND delete the code (prevents race-condition reuse)
+    stored_code = await _get_and_delete_reset_code(store_key)
 
     if not stored_code:
         raise HTTPException(status_code=400, detail="Invalid or expired reset code.")
@@ -504,6 +512,7 @@ async def app_reset_password(
     # Check code (timing-safe)
     import hmac
     if not hmac.compare_digest(stored_code, body.code):
+        # Code was already consumed — don't put it back
         raise HTTPException(status_code=400, detail="Invalid reset code.")
 
     # Validate new password
@@ -525,7 +534,6 @@ async def app_reset_password(
     app_user.password_hash = _hash_password(body.new_password)
     await db.commit()
 
-    # Invalidate the code
-    await _delete_reset_code(store_key)
+    # Code already consumed by _get_and_delete_reset_code() above
 
     return {"message": "Password reset successfully. You can now log in with your new password."}

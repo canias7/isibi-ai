@@ -10,7 +10,7 @@ _logger = logging.getLogger(__name__)
 
 JWT_SECRET = os.getenv("JWT_SECRET", "change-me-in-production")
 if JWT_SECRET == "change-me-in-production" and os.getenv("RENDER"):
-    _logger.warning("JWT_SECRET is using the default value in production — set it in your Render environment variables")
+    raise RuntimeError("CRITICAL: JWT_SECRET must be set to a secure random value in production!")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 _ALLOWED_ALGORITHMS = {"HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512"}
 if JWT_ALGORITHM.lower() == "none" or JWT_ALGORITHM not in _ALLOWED_ALGORITHMS:

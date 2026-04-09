@@ -312,7 +312,8 @@ def _verify_admin(request) -> None:
     if not admin_key:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access not configured")
     provided = request.headers.get("x-admin-key", "") or request.query_params.get("key", "")
-    if not provided or provided != admin_key:
+    import hmac
+    if not provided or not hmac.compare_digest(provided, admin_key):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid admin key")
     # IP allowlist (optional)
     allowed_ips = os.getenv("ADMIN_ALLOWED_IPS", "")

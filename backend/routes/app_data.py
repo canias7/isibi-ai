@@ -60,11 +60,21 @@ async def _get_app_auth(
     - App-user JWT (type=app_user): verifies project_id matches
     - No token: returns 401
     """
-    # Allow preview/owner mode (skip auth for Control Center / builder preview)
+    # Preview/skip-auth mode requires a valid platform JWT to prevent unauthorized access.
+    # The flag only controls whether we enforce project-level ownership (for builder previews).
     preview = request.query_params.get("preview") or request.headers.get("x-preview")
     skip_auth = request.query_params.get("skip_auth") or request.headers.get("x-skip-auth")
     if preview or skip_auth:
-        return  # Owner access from Control Center or builder preview
+        # Still require a valid platform token — just skip project ownership check
+        auth_header = request.headers.get("authorization", "")
+        if not auth_header.startswith("Bearer "):
+            raise HTTPException(status_code=401, detail="Authentication required")
+        token = auth_header.split(" ", 1)[1]
+        try:
+            jwt.decode(token, _JWT_SECRET, algorithms=[_JWT_ALGORITHM])
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        return  # Valid platform user — allow preview access
 
     auth_header = request.headers.get("authorization", "")
     if not auth_header.startswith("Bearer "):
@@ -171,7 +181,7 @@ async def _ensure_table_exists(
     if not resolved:
         raise HTTPException(
             status_code=404,
-            detail=f"Table '{table_name}' not found in project schema. Available: {', '.join(tables)}",
+            detail=f"Table '{table_name}' not found in project schema.",
         )
     return resolved
 

@@ -1361,7 +1361,8 @@ async def web_search(req: WebSearchRequest, authorization: str = Header(...), db
 
     # Use DuckDuckGo instant answer API (free, no key needed)
     async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.get(f"https://api.duckduckgo.com/?q={req.query}&format=json&no_html=1")
+        from urllib.parse import quote
+        res = await client.get(f"https://api.duckduckgo.com/?q={quote(req.query)}&format=json&no_html=1")
         data = res.json()
 
     results = []
@@ -1489,7 +1490,8 @@ async def weather_report(req: WeatherRequest, authorization: str = Header(...), 
     payload = _verify_auth(authorization)
 
     async with httpx.AsyncClient(timeout=10) as client:
-        res = await client.get(f"https://wttr.in/{req.location}?format=j1")
+        from urllib.parse import quote
+        res = await client.get(f"https://wttr.in/{quote(req.location, safe='')}?format=j1")
         data = res.json()
 
     current = data.get("current_condition", [{}])[0]
@@ -1521,7 +1523,8 @@ async def news(req: NewsRequest, authorization: str = Header(...), db: AsyncSess
 
     # Use DuckDuckGo news
     async with httpx.AsyncClient(timeout=15) as client:
-        res = await client.get(f"https://api.duckduckgo.com/?q={req.topic}&format=json&no_html=1")
+        from urllib.parse import quote
+        res = await client.get(f"https://api.duckduckgo.com/?q={quote(req.topic)}&format=json&no_html=1")
         data = res.json()
 
     # Get AI to provide news summary based on its knowledge

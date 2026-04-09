@@ -156,8 +156,11 @@ async def check_duplicates(
     if not rules:
         return {"duplicates_found": False, "matches": [], "action": None}
 
+    import re
     schema = get_schema_name(project_id)
     table = body.entity.lower()
+    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]{0,63}$", table):
+        raise HTTPException(status_code=400, detail="Invalid entity name")
     all_matches = []
     strongest_action = "warn"  # escalate to block if any rule says block
 

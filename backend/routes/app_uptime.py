@@ -62,7 +62,18 @@ async def _perform_check(project_id: str, base_url: str | None = None) -> dict:
     """
     live_path = _get_live_url(project_id)
 
-    # Build absolute URL for the HTTP call
+    # Build absolute URL for the HTTP call — only allow HTTPS external URLs
+    if base_url:
+        from urllib.parse import urlparse
+        parsed = urlparse(base_url)
+        # Block internal/private URLs (SSRF protection)
+        if parsed.scheme not in ("https",):
+            base_url = None  # Fall back to local check
+        elif parsed.hostname and any(
+            parsed.hostname.startswith(p) for p in ("127.", "10.", "192.168.", "172.", "0.", "localhost", "[::1]")
+        ):
+            base_url = None  # Block private IPs
+
     if base_url:
         url = f"{base_url.rstrip('/')}{live_path}"
     else:

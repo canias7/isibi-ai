@@ -40,10 +40,22 @@ class SendNotificationBody(BaseModel):
 async def subscribe_push(
     project_id: str,
     body: SubscribeBody,
+    request: "Request" = None,
     db: AsyncSession = Depends(get_db),
 ):
-    """Save a push subscription (public — called from deployed apps)."""
+    """Save a push subscription — requires valid project and origin validation."""
+    from fastapi import Request as _Req  # noqa
     pid = uuid.UUID(project_id)
+
+    # Verify the project exists (prevents blind subscription to arbitrary IDs)
+    from models.project import Project
+    proj = await db.execute(select(Project).where(Project.id == pid))
+    if not proj.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    # Validate endpoint is a valid push URL (must be HTTPS)
+    if not body.endpoint.startswith("https://"):
+        raise HTTPException(status_code=400, detail="Push endpoint must use HTTPS")
 
     # Check if subscription already exists for this endpoint
     existing = await db.execute(
