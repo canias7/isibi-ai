@@ -25,7 +25,7 @@ import { View, ActivityIndicator, Text, TouchableOpacity, AppState } from 'react
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as Updates from 'expo-updates';
-import { getToken, clearTokenIfReinstalled } from './src/lib/api';
+import { getToken, clearTokenIfReinstalled, authLog } from './src/lib/api';
 import { C } from './src/lib/theme';
 import { ThemeProvider } from './src/lib/ThemeContext';
 import { hasCompletedOnboarding, getBiometricEnabled } from './src/lib/storage';
@@ -90,6 +90,7 @@ function App() {
         getBiometricEnabled(),
       ]);
     }).then(async ([t, ob, bioEnabled]) => {
+      await authLog(`boot: getToken returned ${t ? 'TOKEN' : 'null'}`);
       setOnboarded(ob);
       if (t) { startScheduler(); registerForPushNotifications(); pullRemoteSessions(); }
       if (t && bioEnabled) {

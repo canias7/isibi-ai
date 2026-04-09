@@ -9,7 +9,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { C } from '../lib/theme';
-import { login, login2FA, signup, socialLogin, forgotPassword, resetPassword, verifyEmail, resendVerification } from '../lib/api';
+import { login, login2FA, signup, socialLogin, forgotPassword, resetPassword, verifyEmail, resendVerification, readAuthLog, clearAuthLog } from '../lib/api';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -347,7 +347,22 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
             <TouchableOpacity onPress={() => Linking.openURL('https://isibi.ai/privacy')} style={{ alignItems: 'center', paddingTop: 12 }}>
               <Text style={s.termsText}>By continuing, you agree to our{'\n'}Terms of Service & Privacy Policy</Text>
             </TouchableOpacity>
-            <Text style={{ fontSize: 10, color: '#bbb', textAlign: 'center', marginTop: 6 }}>build auth-fix-8</Text>
+            <TouchableOpacity
+              onLongPress={async () => {
+                const lines = await readAuthLog();
+                Alert.alert(
+                  'Auth Debug Log',
+                  lines.length > 0 ? lines.join('\n') : '(empty)',
+                  [
+                    { text: 'Clear', onPress: () => clearAuthLog() },
+                    { text: 'Close', style: 'cancel' },
+                  ]
+                );
+              }}
+              delayLongPress={500}
+            >
+              <Text style={{ fontSize: 10, color: '#bbb', textAlign: 'center', marginTop: 6 }}>build auth-fix-9 (hold to debug)</Text>
+            </TouchableOpacity>
           </SafeAreaView>
         </Animated.View>
       </View>

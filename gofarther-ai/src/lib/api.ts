@@ -7,6 +7,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const BASE = 'https://isibi-backend.onrender.com/api/ghost';
 const TOKEN_KEY = 'gofurther_token';
 const INSTALLED_KEY = 'gofurther_installed';
+const DEBUG_LOG_KEY = 'auth_debug_log';
+
+/** Append a diagnostic line to the persistent auth debug log. Capped at 50 entries. */
+export async function authLog(line: string) {
+  try {
+    const raw = await AsyncStorage.getItem(DEBUG_LOG_KEY);
+    const arr: string[] = raw ? JSON.parse(raw) : [];
+    const stamp = new Date().toISOString().slice(11, 19);
+    arr.push(`${stamp} ${line}`);
+    while (arr.length > 50) arr.shift();
+    await AsyncStorage.setItem(DEBUG_LOG_KEY, JSON.stringify(arr));
+  } catch {}
+}
+
+export async function readAuthLog(): Promise<string[]> {
+  try {
+    const raw = await AsyncStorage.getItem(DEBUG_LOG_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function clearAuthLog() {
+  try { await AsyncStorage.removeItem(DEBUG_LOG_KEY); } catch {}
+}
 
 /** Clear Keychain token on fresh install (Keychain survives app deletion, AsyncStorage does not) */
 export async function clearTokenIfReinstalled() {
@@ -24,37 +50,11 @@ export async function clearTokenIfReinstalled() {
 }
 
 export async function getToken(): Promise<string | null> {
-  // Check the durable SecureStore logout sentinel FIRST. If the user
-  // logged out in a previous session, refuse to honor any token that
-  // somehow survived, wipe it, and return null. The sentinel is
-  // cleared only by a successful login (acceptNewSession).
-  try {
-    const sentinel = await SecureStore.getItemAsync('gofurther_logged_out');
-    if (sentinel) {
-      try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
-      try {
-        const { setActiveUserId } = await import('./storage');
-        await setActiveUserId(null);
-      } catch {}
-      return null;
-    }
-  } catch {}
-
-  const tok = await SecureStore.getItemAsync(TOKEN_KEY);
-  if (!tok) return null;
-
-  // The `LOGGED_OUT` marker is written by logout() as a belt-and-suspenders
-  // override in case the delete fails. Treat it as a hard "no token".
-  if (tok === 'LOGGED_OUT') {
-    try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
-    return null;
-  }
-
-  // Reject tokens we can't decode or that are obviously expired.
-  const uid = userIdFromJwt(tok);
-  const exp = expFromJwt(tok);
-  const nowSec = Math.floor(Date.now() / 1000);
-  if (!uid || (exp !== null && exp < nowSec)) {
+  // Sentinel check
+  let sentinel: string | null = null;
+  try { sentinel = await SecureStore.getItemAsync('gofurther_logged_out'); } catch {}
+  if (sentinel) {
+    authLog(`getToken: sentinel=SET → refusing token`);
     try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
     try {
       const { setActiveUserId } = await import('./storage');
@@ -63,17 +63,38 @@ export async function getToken(): Promise<string | null> {
     return null;
   }
 
-  // Cross-check: the JWT's user_id MUST match the active_user_id pointer
-  // in AsyncStorage. After logout we wipe active_user_id, so a token
-  // whose sub no longer matches an active user is stale by definition
-  // and we refuse to honor it.
+  const tok = await SecureStore.getItemAsync(TOKEN_KEY);
+  if (!tok) { authLog(`getToken: no token in SecureStore`); return null; }
+
+  if (tok === 'LOGGED_OUT') {
+    authLog(`getToken: token=LOGGED_OUT marker → refusing`);
+    try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
+    return null;
+  }
+
+  const uid = userIdFromJwt(tok);
+  const exp = expFromJwt(tok);
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!uid || (exp !== null && exp < nowSec)) {
+    authLog(`getToken: JWT invalid/expired uid=${uid} exp=${exp}`);
+    try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
+    try {
+      const { setActiveUserId } = await import('./storage');
+      await setActiveUserId(null);
+    } catch {}
+    return null;
+  }
+
   try {
     const stored = await AsyncStorage.getItem('active_user_id');
     if (!stored || stored !== uid) {
+      authLog(`getToken: uid mismatch sub=${uid.slice(0,8)} stored=${stored ? stored.slice(0,8) : 'null'} → refusing`);
       try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
       return null;
     }
   } catch {}
+
+  authLog(`getToken: OK uid=${uid.slice(0,8)}`);
 
   // Keep the storage namespace in sync with the token holder (covers upgrade
   // from the pre-multi-account build where active_user_id didn't exist yet).
@@ -127,6 +148,7 @@ function expFromJwt(token: string): number | null {
  */
 async function acceptNewSession(token: string) {
   const userId = userIdFromJwt(token);
+  await authLog(`acceptNewSession: uid=${userId ? userId.slice(0,8) : 'null'}`);
   if (userId) {
     try {
       const { setActiveUserId } = await import('./storage');
@@ -134,9 +156,9 @@ async function acceptNewSession(token: string) {
     } catch {}
   }
   await setToken(token);
-  // Clear the logout sentinel so future launches actually honor the new token.
   try { await SecureStore.deleteItemAsync('gofurther_logged_out'); } catch {}
   try { await AsyncStorage.removeItem('force_logout'); } catch {}
+  await authLog('acceptNewSession: done');
 }
 
 export async function clearToken() {
@@ -312,38 +334,28 @@ export async function resetPassword(email: string, code: string, newPassword: st
 }
 
 export async function logout() {
-  // Multi-layer defense. Do everything in order so each step's state
-  // is fully written before the next, and tolerate each failing.
-  // Belt-and-suspenders: we OVERWRITE the token with a known-invalid
-  // string AND delete it. Either one is enough to lock the user out;
-  // both together make it impossible for a stale token to survive.
-  try { await SecureStore.setItemAsync(TOKEN_KEY, 'LOGGED_OUT'); } catch {}
-  try { await SecureStore.deleteItemAsync(TOKEN_KEY); } catch {}
-
-  // Durable sentinel in the iOS Keychain. getToken() checks this first
-  // and refuses to return anything if it's set.
-  try { await SecureStore.setItemAsync('gofurther_logged_out', String(Date.now())); } catch {}
-
-  // Clear the per-user storage scope. Fail-closed save/load will now
-  // drop every write until a new login.
+  await authLog('logout: START');
+  try { await SecureStore.setItemAsync(TOKEN_KEY, 'LOGGED_OUT'); await authLog('logout: wrote LOGGED_OUT marker'); } catch (e: any) { await authLog(`logout: marker ERR ${e?.message}`); }
+  try { await SecureStore.deleteItemAsync(TOKEN_KEY); await authLog('logout: deleted token'); } catch (e: any) { await authLog(`logout: delete ERR ${e?.message}`); }
+  try { await SecureStore.setItemAsync('gofurther_logged_out', String(Date.now())); await authLog('logout: wrote sentinel'); } catch (e: any) { await authLog(`logout: sentinel ERR ${e?.message}`); }
   try {
     const { setActiveUserId } = await import('./storage');
     await setActiveUserId(null);
+    await authLog('logout: cleared active_user_id');
+  } catch (e: any) { await authLog(`logout: clear uid ERR ${e?.message}`); }
+  try { await AsyncStorage.setItem('force_logout', String(Date.now())); await authLog('logout: wrote force_logout'); } catch (e: any) { await authLog(`logout: force_logout ERR ${e?.message}`); }
+
+  // Verify what's actually in storage right now
+  try {
+    const t = await SecureStore.getItemAsync(TOKEN_KEY);
+    const s = await SecureStore.getItemAsync('gofurther_logged_out');
+    const u = await AsyncStorage.getItem('active_user_id');
+    await authLog(`logout: VERIFY token=${t ? (t === 'LOGGED_OUT' ? 'marker' : 'PRESENT!') : 'null'} sentinel=${s ? 'set' : 'null'} uid=${u || 'null'}`);
   } catch {}
 
-  // AsyncStorage breadcrumb — a second independent signal for App.tsx.
-  try { await AsyncStorage.setItem('force_logout', String(Date.now())); } catch {}
-
-  // Give iOS a beat to actually flush the Keychain writes to disk. On
-  // older devices the writes can be in-flight when the process dies.
   await new Promise(resolve => setTimeout(resolve, 200));
-
-  // Fire the server-side revoke in the background. We do NOT call
-  // Updates.reloadAsync() here anymore — in practice the reload was
-  // killing the JS context before SecureStore writes had persisted,
-  // so the token came back alive on the next cold start. React state
-  // gets handled by the onLogout() callback in the caller.
   revokeAllSessions().catch(() => {});
+  await authLog('logout: DONE');
 }
 
 export async function getMe() {
