@@ -27,13 +27,29 @@ function formatPrice(cents: number | null): string {
   return `$${Math.round(cents / 100)}/mo`;
 }
 
-// Marketing blurb per plan — keeps exact numbers private
-const PLAN_BLURB: Record<string, string[]> = {
-  free:       ['Light daily use', 'Basic usage limits', 'No scheduled tasks'],
-  pro:        ['Everyday productivity', 'Higher usage limits', '5 scheduled tasks'],
-  business:   ['Heavy daily use', 'Much higher usage limits', '50 scheduled tasks'],
-  max:        ['Power users', 'Maximum usage limits', 'Unlimited scheduled tasks'],
-  enterprise: ['Custom volume', 'Priority support & SLAs', 'Unlimited everything'],
+// Plan marketing copy — mirrors Claude's capacity/best-for style.
+// Intentionally avoids exposing numeric quotas.
+const PLAN_COPY: Record<string, { capacity: string; bestFor: string }> = {
+  free: {
+    capacity: 'Limited',
+    bestFor: 'Occasional use',
+  },
+  pro: {
+    capacity: 'Standard',
+    bestFor: 'Regular use',
+  },
+  business: {
+    capacity: '5x Pro capacity per session',
+    bestFor: 'Frequent users who work with GoFarther AI on a variety of tasks',
+  },
+  max: {
+    capacity: '20x Pro capacity per session',
+    bestFor: 'Daily users who collaborate often with GoFarther AI for most tasks',
+  },
+  enterprise: {
+    capacity: 'Custom capacity',
+    bestFor: 'Organizations and teams with custom needs',
+  },
 };
 
 function formatCountdown(seconds: number): string {
@@ -210,12 +226,30 @@ export default function SubscriptionScreen({ onBack }: { onBack: () => void }) {
                   </Text>
                 </View>
 
-                {(PLAN_BLURB[p.id] || []).map((line, idx) => (
-                  <View key={idx} style={styles.featureRow}>
-                    <Ionicons name="checkmark-circle" size={14} color={tc.primary} />
-                    <Text style={[styles.featureText, { color: tc.textMid }]}>{line}</Text>
-                  </View>
-                ))}
+                {(() => {
+                  const copy = PLAN_COPY[p.id];
+                  if (!copy) return null;
+                  return (
+                    <>
+                      <View style={styles.planMetaRow}>
+                        <Text style={[styles.planMetaLabel, { color: tc.textDim }]}>
+                          Usage capacity
+                        </Text>
+                        <Text style={[styles.planMetaValue, { color: tc.text }]}>
+                          {copy.capacity}
+                        </Text>
+                      </View>
+                      <View style={styles.planMetaRow}>
+                        <Text style={[styles.planMetaLabel, { color: tc.textDim }]}>
+                          Best for
+                        </Text>
+                        <Text style={[styles.planMetaValue, { color: tc.text }]}>
+                          {copy.bestFor}
+                        </Text>
+                      </View>
+                    </>
+                  );
+                })()}
 
                 <TouchableOpacity
                   disabled={isCurrent || busyPlan === p.id}
@@ -330,6 +364,20 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   featureText: { fontSize: 13 },
+  planMetaRow: {
+    marginBottom: 10,
+  },
+  planMetaLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+    fontWeight: '600',
+  },
+  planMetaValue: {
+    fontSize: 14,
+    lineHeight: 19,
+  },
   ctaBtn: {
     marginTop: 14,
     paddingVertical: 12,
