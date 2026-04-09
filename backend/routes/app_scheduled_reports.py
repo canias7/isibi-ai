@@ -154,18 +154,95 @@ async def send_report_now(
     if not report:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scheduled report not found")
 
-    # In production, this would generate and email the report.
-    # For now, we update last_sent_at and return a confirmation.
-    report.last_sent_at = datetime.now(timezone.utc)
-    await db.commit()
-    await db.refresh(report)
+    # Build the report and send via Resend
+    from services.email import send_generic_email
+    from generator.app_db import get_schema_name
+    from sqlalchemy import text
+
+    schema = get_schema_name(str(report.project_id))
+    now = datetime.now(timezone.utc)
+
+    import re as _re
+    _IDENT = _re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+    entity_rows = []
+    for entity_name in (report.entities or []):
+        try:
+            entity_table = (entity_name or "").lower() + "s"
+            if not _IDENT.match(entity_table):
+                entity_rows.append((entity_name, None))
+                continue
+            count_result = await db.execute(
+                text(f"SELECT COUNT(*) FROM {schema}.{entity_table} WHERE deleted_at IS NULL")
+            )
+            count = count_result.scalar() or 0
+            entity_rows.append((entity_name, count))
+        except Exception:
+            entity_rows.append((entity_name, None))
+
+    rows_html = "".join(
+        f'<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">{name}</td>'
+        f'<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">'
+        f'{count if count is not None else "—"}</td></tr>'
+        for (name, count) in entity_rows
+    )
+    html = f"""
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:40px 20px">
+      <h2 style="font-size:20px;font-weight:600;color:#000;margin:0 0 8px">{report.name}</h2>
+      <p style="font-size:14px;color:#666;margin:0 0 24px">Manual report — {now.strftime('%B %d, %Y')}</p>
+      <table style="width:100%;border-collapse:collapse;font-size:14px">
+        <thead><tr>
+          <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #000">Entity</th>
+          <th style="padding:8px 12px;text-align:right;border-bottom:2px solid #000">Records</th>
+        </tr></thead>
+        <tbody>{rows_html or '<tr><td colspan="2" style="padding:12px;color:#999">No data</td></tr>'}</tbody>
+      </table>
+      <p style="font-size:12px;color:#999;margin:24px 0 0">Sent by isibi.ai</p>
+    </div>
+    """
+
+    # Prefer per-user SMTP — fall back to Resend if not configured
+    ok = False
+    try:
+        from models.project import Project
+        from routes.ghost_auth import GhostUser, get_user_smtp
+        from sqlalchemy import select as _select
+        proj_res = await db.execute(_select(Project).where(Project.id == report.project_id))
+        proj = proj_res.scalar_one_or_none()
+        if proj and proj.user_id:
+            user_res = await db.execute(_select(GhostUser).where(GhostUser.id == proj.user_id))
+            owner = user_res.scalar_one_or_none()
+            if owner:
+                settings = await get_user_smtp(owner.email, db)
+                if settings.get("smtp_host"):
+                    from services.email import send_via_smtp
+                    ok = await send_via_smtp(
+                        settings,
+                        to=report.recipient_email,
+                        subject=f"[isibi] {report.name}",
+                        html=html,
+                    )
+    except Exception:
+        pass
+
+    if not ok:
+        ok = await send_generic_email(
+            to=report.recipient_email,
+            subject=f"[isibi] {report.name}",
+            html=html,
+        )
+
+    if ok:
+        report.last_sent_at = now
+        await db.commit()
+        await db.refresh(report)
 
     return {
-        "detail": "Report triggered",
+        "detail": "Report sent" if ok else "Report send failed (email service not configured)",
         "report_name": report.name,
         "recipient_email": report.recipient_email,
         "entities": report.entities or [],
         "report_type": report.report_type,
-        "sent_at": report.last_sent_at.isoformat(),
-        "success": True,
+        "sent_at": report.last_sent_at.isoformat() if report.last_sent_at else None,
+        "success": ok,
     }

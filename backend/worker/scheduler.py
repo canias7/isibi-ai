@@ -151,35 +151,56 @@ async def _check_expired_subscriptions():
             logger.warning(f"Expired subscription check failed: {e}")
 
 
+def _is_report_due(schedule: str, last_sent_at: datetime | None, now: datetime) -> bool:
+    """Decide whether a scheduled report should fire now."""
+    if schedule == "daily":
+        return last_sent_at is None or (now - last_sent_at) >= timedelta(hours=24)
+    if schedule == "weekly_monday":
+        if now.weekday() != 0:
+            return False
+        return last_sent_at is None or (now - last_sent_at) >= timedelta(hours=20)
+    if schedule == "weekly_friday":
+        if now.weekday() != 4:
+            return False
+        return last_sent_at is None or (now - last_sent_at) >= timedelta(hours=20)
+    if schedule == "monthly_first":
+        if now.day != 1:
+            return False
+        return last_sent_at is None or last_sent_at.month != now.month or last_sent_at.year != now.year
+    if schedule == "monthly_last":
+        import calendar
+        last_day = calendar.monthrange(now.year, now.month)[1]
+        if now.day != last_day:
+            return False
+        return last_sent_at is None or last_sent_at.month != now.month or last_sent_at.year != now.year
+    return False
+
+
 async def _send_daily_digest_reports():
-    """Send daily digest emails for AppScheduledReport entries with schedule=daily."""
+    """Send scheduled report emails via Resend."""
     async with async_session() as db:
         try:
             from models.app_scheduled_report import AppScheduledReport
+            from services.email import send_generic_email
 
             now = datetime.now(timezone.utc)
-            cutoff = now - timedelta(hours=24)
 
-            # Find daily reports that haven't been sent in the last 24 hours
             result = await db.execute(
-                select(AppScheduledReport).where(
-                    AppScheduledReport.enabled == True,
-                    AppScheduledReport.schedule == "daily",
-                    (
-                        (AppScheduledReport.last_sent_at.is_(None))
-                        | (AppScheduledReport.last_sent_at < cutoff)
-                    ),
-                )
+                select(AppScheduledReport).where(AppScheduledReport.enabled == True)
             )
             reports = result.scalars().all()
 
+            sent_count = 0
             for report in reports:
                 try:
+                    if not _is_report_due(report.schedule, report.last_sent_at, now):
+                        continue
+
                     # Build a summary of entities for this project
                     from generator.app_db import get_schema_name
                     schema = get_schema_name(str(report.project_id))
 
-                    entity_summaries = []
+                    entity_rows = []
                     for entity_name in (report.entities or []):
                         try:
                             entity_table = _safe_ident(entity_name.lower() + "s")
@@ -187,49 +208,75 @@ async def _send_daily_digest_reports():
                                 text(f"SELECT COUNT(*) FROM {schema}.{entity_table} WHERE deleted_at IS NULL")
                             )
                             count = count_result.scalar() or 0
-                            entity_summaries.append(f"{entity_name}: {count} records")
+                            entity_rows.append((entity_name, count))
                         except Exception:
-                            entity_summaries.append(f"{entity_name}: unable to count")
+                            entity_rows.append((entity_name, None))
 
-                    summary = "\n".join(entity_summaries) if entity_summaries else "No entity data available."
+                    rows_html = "".join(
+                        f'<tr><td style="padding:8px 12px;border-bottom:1px solid #eee">{name}</td>'
+                        f'<td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right">'
+                        f'{count if count is not None else "—"}</td></tr>'
+                        for (name, count) in entity_rows
+                    )
+                    html = f"""
+                    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:40px 20px">
+                      <h2 style="font-size:20px;font-weight:600;color:#000;margin:0 0 8px">{report.name}</h2>
+                      <p style="font-size:14px;color:#666;margin:0 0 24px">Scheduled report — {now.strftime('%B %d, %Y')}</p>
+                      <table style="width:100%;border-collapse:collapse;font-size:14px">
+                        <thead><tr>
+                          <th style="padding:8px 12px;text-align:left;border-bottom:2px solid #000">Entity</th>
+                          <th style="padding:8px 12px;text-align:right;border-bottom:2px solid #000">Records</th>
+                        </tr></thead>
+                        <tbody>{rows_html or '<tr><td colspan="2" style="padding:12px;color:#999">No data</td></tr>'}</tbody>
+                      </table>
+                      <p style="font-size:12px;color:#999;margin:24px 0 0">Sent by isibi.ai</p>
+                    </div>
+                    """
 
-                    # Send email via SMTP if configured, otherwise log
-                    import os
-                    smtp_host = os.getenv("SMTP_HOST")
-                    if smtp_host:
-                        import smtplib
-                        from email.mime.text import MIMEText
+                    # Look up the project owner's SMTP settings — prefer user SMTP, fall back to Resend
+                    ok = False
+                    try:
+                        from models.project import Project
+                        from routes.ghost_auth import GhostUser, get_user_smtp
+                        proj_res = await db.execute(select(Project).where(Project.id == report.project_id))
+                        proj = proj_res.scalar_one_or_none()
+                        if proj and proj.user_id:
+                            user_res = await db.execute(select(GhostUser).where(GhostUser.id == proj.user_id))
+                            owner = user_res.scalar_one_or_none()
+                            if owner:
+                                settings = await get_user_smtp(owner.email, db)
+                                if settings.get("smtp_host"):
+                                    from services.email import send_via_smtp
+                                    ok = await send_via_smtp(
+                                        settings,
+                                        to=report.recipient_email,
+                                        subject=f"[isibi] {report.name}",
+                                        html=html,
+                                    )
+                    except Exception as lookup_err:
+                        logger.warning(f"SMTP lookup failed for report '{report.name}': {lookup_err}")
 
-                        msg = MIMEText(
-                            f"Daily Report: {report.name}\n\n{summary}\n\nGenerated at {now.isoformat()}",
-                            "plain",
+                    if not ok:
+                        ok = await send_generic_email(
+                            to=report.recipient_email,
+                            subject=f"[isibi] {report.name}",
+                            html=html,
                         )
-                        msg["Subject"] = f"[isibi] Daily Report: {report.name}"
-                        msg["From"] = os.getenv("SMTP_FROM", "noreply@isibi.ai")
-                        msg["To"] = report.recipient_email
-
-                        with smtplib.SMTP(smtp_host, int(os.getenv("SMTP_PORT", "587"))) as server:
-                            smtp_user = os.getenv("SMTP_USER")
-                            if smtp_user:
-                                server.starttls()
-                                server.login(smtp_user, os.getenv("SMTP_PASS", ""))
-                            server.send_message(msg)
-
-                        logger.info(f"Sent daily digest '{report.name}' to {report.recipient_email}")
+                    if ok:
+                        report.last_sent_at = now
+                        report.updated_at = now
+                        sent_count += 1
+                        logger.info(f"Scheduled report sent: '{report.name}' → {report.recipient_email}")
                     else:
-                        logger.info(f"Daily digest '{report.name}' ready (no SMTP configured): {summary[:200]}")
-
-                    # Mark as sent
-                    report.last_sent_at = now
-                    report.updated_at = now
+                        logger.warning(f"Scheduled report send failed: '{report.name}' → {report.recipient_email}")
                 except Exception as e:
-                    logger.warning(f"Failed to send digest '{report.name}': {e}")
+                    logger.warning(f"Failed to process report '{report.name}': {e}", exc_info=True)
 
-            if reports:
+            if sent_count:
                 await db.commit()
-                logger.info(f"Processed {len(reports)} daily digest reports")
+                logger.info(f"Sent {sent_count} scheduled reports")
         except Exception as e:
-            logger.warning(f"Daily digest check failed: {e}")
+            logger.warning(f"Scheduled report check failed: {e}", exc_info=True)
 
 
 async def _cleanup_expired_record_locks():

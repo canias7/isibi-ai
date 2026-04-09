@@ -89,6 +89,73 @@ async def send_login_alert_email(to: str, ip_address: str, device_name: str, tim
         return False
 
 
+def _send_smtp_sync(host: str, port: int, user: str, password: str, from_addr: str, to: str, subject: str, html: str) -> None:
+    """Synchronous SMTP send — call via asyncio.to_thread()."""
+    import smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = from_addr or user
+    msg["To"] = to
+    msg.attach(MIMEText(html, "html"))
+
+    with smtplib.SMTP(host, int(port), timeout=30) as server:
+        server.ehlo()
+        try:
+            server.starttls()
+            server.ehlo()
+        except Exception:
+            pass  # Host may not support STARTTLS
+        if user and password:
+            server.login(user, password)
+        server.sendmail(from_addr or user, [to], msg.as_string())
+
+
+async def send_via_smtp(smtp_settings: dict, to: str, subject: str, html: str) -> bool:
+    """Send an email using the provided SMTP settings dict.
+    smtp_settings must contain: smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from (optional)
+    """
+    try:
+        host = smtp_settings.get("smtp_host")
+        port = smtp_settings.get("smtp_port") or 587
+        user = smtp_settings.get("smtp_user")
+        password = smtp_settings.get("smtp_pass")
+        from_addr = smtp_settings.get("smtp_from") or user
+        if not host or not user or not password:
+            logger.warning("SMTP settings incomplete for %s — skipping", to)
+            return False
+        await asyncio.to_thread(_send_smtp_sync, host, port, user, password, from_addr, to, subject, html)
+        logger.info("SMTP email sent to %s via %s (subject=%s)", to, host, subject)
+        return True
+    except Exception as e:
+        logger.error("SMTP send failed to %s: %s", to, e)
+        return False
+
+
+async def send_generic_email(to: str, subject: str, html: str) -> bool:
+    """Send an arbitrary email via Resend (used for scheduled reports, etc.)."""
+    _init()
+
+    if not RESEND_API_KEY:
+        logger.warning("Email service not configured — generic email skipped for %s (subject=%s)", to, subject)
+        return False
+
+    try:
+        await asyncio.to_thread(_send_email_sync, {
+            "from": FROM_EMAIL,
+            "to": [to],
+            "subject": subject,
+            "html": html,
+        })
+        logger.info("Generic email sent to %s (subject=%s)", to, subject)
+        return True
+    except Exception as e:
+        logger.error("Failed to send generic email to %s: %s", to, e)
+        return False
+
+
 async def send_password_reset_email(to: str, code: str) -> bool:
     """Send a password reset code."""
     _init()
