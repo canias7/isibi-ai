@@ -7,8 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { getScheduledTasks, saveScheduledTasks, ScheduledTask, getAgents, Agent } from '../lib/storage';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
 function formatTime(h: number, m: number): string {
   const mm = String(m).padStart(2, '0');
@@ -149,8 +147,6 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
 
   // ==================== EDIT ====================
   if (showEdit) {
-    const ampm = formatTime(selHour, selMinute);
-
     return (
       <SafeAreaView style={[s.container, { backgroundColor: tc.bg }]}>
         <ScrollView contentContainerStyle={s.editContent} keyboardShouldPersistTaps="handled">
@@ -224,30 +220,85 @@ export default function ScheduledScreen({ onBack }: { onBack: () => void }) {
             </>
           )}
 
-          {/* Hour picker */}
+          {/* Time picker — big display + steppers */}
           <Text style={[s.sLabel, { color: tc.textDim }]}>Time</Text>
-          <View style={s.timeDisplay}>
-            <Text style={s.timeText}>{ampm}</Text>
-          </View>
-          <Text style={[s.subLabel, { color: tc.textDim }]}>Hour</Text>
-          <View style={s.hourGrid}>
-            {HOURS.map(h => {
-              const label2 = h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`;
-              return (
-                <TouchableOpacity key={h} style={[s.hourBtn, selHour === h && s.hourBtnActive]} onPress={() => setSelHour(h)} activeOpacity={0.7}>
-                  <Text style={[s.hourBtnText, selHour === h && s.hourBtnTextActive]}>{label2}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <Text style={[s.subLabel, { color: tc.textDim }]}>Minute</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.minuteRow}>
-            {MINUTES.map(m => (
-              <TouchableOpacity key={m} style={[s.minuteBtn, selMinute === m && s.minuteBtnActive]} onPress={() => setSelMinute(m)} activeOpacity={0.7}>
-                <Text style={[s.minuteBtnText, selMinute === m && s.minuteBtnTextActive]}>{String(m).padStart(2, '0')}</Text>
+          <View style={s.timeBox}>
+            {/* Hour column */}
+            <View style={s.timeCol}>
+              <TouchableOpacity
+                style={s.stepBtn}
+                onPress={() => setSelHour((selHour + 1) % 24)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="chevron-up" size={22} color="#666" />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
+              <Text style={s.timeBigText}>
+                {selHour === 0 || selHour === 12 ? '12' : selHour > 12 ? selHour - 12 : selHour}
+              </Text>
+              <TouchableOpacity
+                style={s.stepBtn}
+                onPress={() => setSelHour((selHour + 23) % 24)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="chevron-down" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={s.timeColon}>:</Text>
+
+            {/* Minute column */}
+            <View style={s.timeCol}>
+              <TouchableOpacity
+                style={s.stepBtn}
+                onPress={() => setSelMinute((selMinute + 1) % 60)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="chevron-up" size={22} color="#666" />
+              </TouchableOpacity>
+              <Text style={s.timeBigText}>{String(selMinute).padStart(2, '0')}</Text>
+              <TouchableOpacity
+                style={s.stepBtn}
+                onPress={() => setSelMinute((selMinute + 59) % 60)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="chevron-down" size={22} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            {/* AM/PM toggle */}
+            <View style={s.ampmCol}>
+              <TouchableOpacity
+                style={[s.ampmBtn, selHour < 12 && s.ampmBtnActive]}
+                onPress={() => { if (selHour >= 12) setSelHour(selHour - 12); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[s.ampmText, selHour < 12 && s.ampmTextActive]}>AM</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[s.ampmBtn, selHour >= 12 && s.ampmBtnActive]}
+                onPress={() => { if (selHour < 12) setSelHour(selHour + 12); }}
+                activeOpacity={0.7}
+              >
+                <Text style={[s.ampmText, selHour >= 12 && s.ampmTextActive]}>PM</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Quick time presets */}
+          <View style={s.timePresetRow}>
+            <TouchableOpacity style={s.presetBtn} onPress={() => { setSelHour(9); setSelMinute(0); }}>
+              <Text style={s.presetText}>9:00 AM</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.presetBtn} onPress={() => { setSelHour(12); setSelMinute(0); }}>
+              <Text style={s.presetText}>Noon</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.presetBtn} onPress={() => { setSelHour(18); setSelMinute(0); }}>
+              <Text style={s.presetText}>6:00 PM</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={s.presetBtn} onPress={() => { setSelHour(21); setSelMinute(0); }}>
+              <Text style={s.presetText}>9:00 PM</Text>
+            </TouchableOpacity>
+          </View>
 
           {editId && <TouchableOpacity style={s.delBtn} onPress={() => { remove(editId); setShowEdit(false); }}><Text style={s.delText}>Delete Task</Text></TouchableOpacity>}
         </ScrollView>
@@ -350,20 +401,38 @@ const s = StyleSheet.create({
   presetBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: '#f0f0f0' },
   presetText: { fontSize: 11, fontWeight: '500', color: '#666' },
 
-  // Time picker
-  timeDisplay: { backgroundColor: '#f5f5f5', borderRadius: 12, padding: 14, alignItems: 'center', marginBottom: 10, borderWidth: 1, borderColor: '#e8e8e8' },
-  timeText: { fontSize: 20, fontWeight: '700', color: '#1a1a1a' },
-  hourGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  hourBtn: { width: '12%', paddingVertical: 8, borderRadius: 8, backgroundColor: '#f5f5f5', alignItems: 'center', borderWidth: 1, borderColor: '#e8e8e8' },
-  hourBtnActive: { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' },
-  hourBtnText: { fontSize: 11, fontWeight: '500', color: '#666' },
-  hourBtnTextActive: { color: '#ffffff' },
-  subLabel: { fontSize: 10, fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 14, marginBottom: 6 },
-  minuteRow: { flexDirection: 'row', gap: 6, paddingVertical: 2, paddingRight: 20 },
-  minuteBtn: { minWidth: 40, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 8, backgroundColor: '#f5f5f5', alignItems: 'center', borderWidth: 1, borderColor: '#e8e8e8' },
-  minuteBtnActive: { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' },
-  minuteBtnText: { fontSize: 12, fontWeight: '500', color: '#666' },
-  minuteBtnTextActive: { color: '#ffffff' },
+  // Time picker (stepper style)
+  timeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e8e8e8',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  timeCol: { alignItems: 'center', justifyContent: 'center', minWidth: 70 },
+  stepBtn: { padding: 6 },
+  timeBigText: { fontSize: 44, fontWeight: '700', color: '#1a1a1a', fontVariant: ['tabular-nums'], marginVertical: 2 },
+  timeColon: { fontSize: 40, fontWeight: '700', color: '#1a1a1a', marginBottom: 8 },
+  ampmCol: { marginLeft: 14, gap: 6 },
+  ampmBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    backgroundColor: '#ffffff',
+    minWidth: 52,
+    alignItems: 'center',
+  },
+  ampmBtnActive: { backgroundColor: '#1a1a1a', borderColor: '#1a1a1a' },
+  ampmText: { fontSize: 13, fontWeight: '600', color: '#666' },
+  ampmTextActive: { color: '#ffffff' },
+  timePresetRow: { flexDirection: 'row', gap: 8, marginTop: 12, flexWrap: 'wrap' },
 
   // Mode toggle
   modeRow: { flexDirection: 'row', backgroundColor: '#f2f2f2', borderRadius: 10, padding: 3, marginBottom: 8 },
