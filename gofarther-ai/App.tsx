@@ -24,6 +24,7 @@ Sentry.init({
 import { View, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import * as Updates from 'expo-updates';
 import { getToken, clearTokenIfReinstalled } from './src/lib/api';
 import { C } from './src/lib/theme';
 import { ThemeProvider } from './src/lib/ThemeContext';
@@ -45,6 +46,24 @@ function App() {
 
   useEffect(() => {
     fetch('https://isibi-backend.onrender.com/api/ghost/me').catch(() => {});
+
+    // Apply any pending OTA update IMMEDIATELY on launch. By default expo-updates
+    // loads the cached bundle and downloads the new one in the background, so
+    // users only see the new code on their *second* launch. Reload here so
+    // critical fixes (security, auth, etc.) land on the first launch after a push.
+    (async () => {
+      if (__DEV__) return;
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          await Updates.reloadAsync();
+        }
+      } catch {
+        // Ignore — we'll fall back to the cached bundle
+      }
+    })();
+
     clearTokenIfReinstalled().then(() => Promise.all([
       getToken(),
       hasCompletedOnboarding(),
