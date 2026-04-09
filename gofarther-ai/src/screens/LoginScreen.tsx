@@ -42,6 +42,10 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
   const [appleAvailable, setAppleAvailable] = useState(false);
   const [focusedField, setFocusedField] = useState('');
   const [phraseIdx, setPhraseIdx] = useState(0);
+  const [challengeRequired, setChallengeRequired] = useState(false);
+  const [challengeQuestion, setChallengeQuestion] = useState('');
+  const [challengeId, setChallengeId] = useState('');
+  const [challengeAnswer, setChallengeAnswer] = useState('');
 
   // Animations
   const phraseOpacity = useRef(new Animated.Value(1)).current;
@@ -157,13 +161,29 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
     if (!isValidEmail(email)) { Alert.alert('Invalid email', 'Please enter a valid email address'); return; }
     setLoading(true);
     try {
-      const data = await login(email.toLowerCase().trim(), password);
+      const data = await login(
+        email.toLowerCase().trim(),
+        password,
+        challengeRequired ? challengeId : undefined,
+        challengeRequired ? challengeAnswer : undefined,
+      );
+      // Challenge required — show challenge UI
+      if (data.requires_challenge) {
+        setChallengeRequired(true);
+        setChallengeQuestion(data.challenge_question || 'Solve the challenge to continue');
+        setChallengeId(data.challenge_id || '');
+        setChallengeAnswer('');
+        setLoading(false);
+        return;
+      }
       if (data.requires_2fa) {
         setTempToken(data.temp_token);
+        setChallengeRequired(false);
         setLoading(false);
         switchMode('2fa');
         return;
       }
+      setChallengeRequired(false);
       onLogin();
     } catch (e: any) { Alert.alert('Login failed', e.message || 'Check your credentials and try again'); }
     finally { setLoading(false); }
@@ -426,7 +446,16 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
                 <Text style={{ fontSize: 12, color: '#999', marginTop: -8, marginBottom: 8, marginLeft: 4 }}>Min 8 chars: uppercase, lowercase, number, special char</Text>
               )}
 
-              <TouchableOpacity style={[s.submitBtn, (!email || !password) && { opacity: 0.4 }]} onPress={mode === 'email-login' ? handleEmailLogin : handleEmailSignup} activeOpacity={0.8} disabled={!email || !password}>
+              {mode === 'email-login' && challengeRequired && (
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{ fontSize: 13, color: '#888', marginBottom: 8, textAlign: 'center' }}>{challengeQuestion}</Text>
+                  <View style={[s.inputBox, focusedField === 'challenge' && s.inputBoxFocus]}>
+                    <TextInput style={s.formInput} placeholder="Your answer" placeholderTextColor="#999" value={challengeAnswer} onChangeText={setChallengeAnswer} keyboardType="default" autoCapitalize="none" onFocus={() => setFocusedField('challenge')} onBlur={() => setFocusedField('')} returnKeyType="done" onSubmitEditing={handleEmailLogin} accessibilityLabel="Challenge answer" />
+                  </View>
+                </View>
+              )}
+
+              <TouchableOpacity style={[s.submitBtn, (!email || !password || (challengeRequired && !challengeAnswer)) && { opacity: 0.4 }]} onPress={mode === 'email-login' ? handleEmailLogin : handleEmailSignup} activeOpacity={0.8} disabled={!email || !password || (mode === 'email-login' && challengeRequired && !challengeAnswer)}>
                 <Text style={s.submitText}>{mode === 'email-login' ? 'Log In' : 'Create Account'}</Text>
               </TouchableOpacity>
 

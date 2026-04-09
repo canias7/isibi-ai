@@ -73,15 +73,53 @@ export async function signup(email: string, name: string, password: string) {
   return data;
 }
 
-export async function login(email: string, password: string) {
-  const data = await apiFetch('/login', {
-    method: 'POST',
-    body: JSON.stringify({ email, password }),
-  });
-  // If 2FA is required, return the temp_token for the 2FA step
-  if (data.requires_2fa) return data;
-  if (data.token) await setToken(data.token);
-  return data;
+export async function login(email: string, password: string, challengeId?: string, challengeAnswer?: string) {
+  const body: any = { email, password };
+  if (challengeId && challengeAnswer) {
+    body.challenge_id = challengeId;
+    body.challenge_answer = challengeAnswer;
+  }
+
+  // Use raw fetch to handle challenge responses (428) without throwing
+  const token = await getToken();
+  const headers: any = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const res = await fetch(`${BASE}/login`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    const data = await res.json();
+
+    // Challenge required — return challenge data for the UI
+    if ((res.status === 428 || res.status === 401) && data.requires_challenge) {
+      return data;
+    }
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        await clearToken();
+        throw new Error('Session expired. Please log in again.');
+      }
+      throw new Error(data.detail || `HTTP ${res.status}`);
+    }
+
+    // If 2FA is required, return the temp_token for the 2FA step
+    if (data.requires_2fa) return data;
+    if (data.token) await setToken(data.token);
+    return data;
+  } catch (e: any) {
+    if (e.name === 'AbortError') throw new Error('Server is taking a moment. Please try again.');
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export async function login2FA(tempToken: string, code: string) {
@@ -282,4 +320,39 @@ export async function revokeAllSessions(): Promise<{ ok: boolean; revoked: numbe
 
 export async function exportMyData() {
   return apiFetch('/export');
+}
+
+// ─── Geo-Blocking ────────────────────────────────────────────────────
+
+export async function getGeoSettings(): Promise<{ enabled: boolean; allowed_countries: string[] }> {
+  return apiFetch('/geo-settings');
+}
+
+export async function updateGeoSettings(enabled: boolean, allowedCountries: string[]) {
+  return apiFetch('/geo-settings', {
+    method: 'POST',
+    body: JSON.stringify({ enabled, allowed_countries: allowedCountries }),
+  });
+}
+
+// ─── E2E Encryption ──────────────────────────────────────────────────
+
+export async function storeE2EKey(publicKey: string) {
+  return apiFetch('/e2e/keys', {
+    method: 'POST',
+    body: JSON.stringify({ public_key: publicKey }),
+  });
+}
+
+export async function getE2EKeyFromServer(): Promise<{ public_key: string | null }> {
+  return apiFetch('/e2e/keys');
+}
+
+// ─── Device Check ────────────────────────────────────────────────────
+
+export async function reportDevice(isRooted: boolean, deviceModel: string, osVersion: string) {
+  return apiFetch('/device-check', {
+    method: 'POST',
+    body: JSON.stringify({ is_rooted: isRooted, device_model: deviceModel, os_version: osVersion }),
+  });
 }

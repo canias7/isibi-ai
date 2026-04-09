@@ -435,6 +435,19 @@ async def health_check():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 
+@app.get("/.well-known/security.txt", response_class=Response)
+async def security_txt():
+    from datetime import datetime, timedelta
+    expires = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+    content = f"""Contact: security@gofarther.ai
+Preferred-Languages: en
+Canonical: https://isibi-backend.onrender.com/.well-known/security.txt
+Policy: https://gofarther.ai/security-policy
+Expires: {expires}
+"""
+    return Response(content=content, media_type="text/plain")
+
+
 # ── Serve deployed apps ──
 from generator.deployer import BUILDS_DIR
 import json as _json

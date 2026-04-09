@@ -103,6 +103,7 @@ class GhostUser(Base):
     smtp_user = Column(String, nullable=True)
     smtp_pass_encrypted = Column(String, nullable=True)
     smtp_from = Column(String, nullable=True)
+    public_key = Column(Text, nullable=True)  # E2E encryption public key
 
 # ── Login Logs & Trusted Devices ──────────────────────────────────────
 
@@ -206,6 +207,41 @@ def _record_failed_login(email: str):
 def _clear_login_attempts(email: str):
     _login_attempts.pop(email, None)
 
+# ── Login Challenge (CAPTCHA alternative) ─────────────────────────────
+import random as _random
+
+CHALLENGE_THRESHOLD = 3  # require challenge after this many failed attempts
+_login_challenges: dict[str, dict] = {}  # email -> {answer, expires, challenge_id}
+
+def _should_require_challenge(email: str) -> bool:
+    attempts = _login_attempts.get(email, [])
+    cutoff = time.time() - (LOCKOUT_MINUTES * 60)
+    recent = [t for t in attempts if t > cutoff]
+    return len(recent) >= CHALLENGE_THRESHOLD
+
+def _create_challenge(email: str) -> dict:
+    a, b = _random.randint(1, 20), _random.randint(1, 20)
+    ops = [("+", a + b), ("-", abs(a - b)), ("×", a * b)]
+    op_sym, answer = ops[_random.randint(0, 2)]
+    if op_sym == "-":
+        a, b = max(a, b), min(a, b)
+        answer = a - b
+    challenge_id = secrets.token_hex(16)
+    _login_challenges[email] = {"answer": str(answer), "expires": time.time() + 300, "challenge_id": challenge_id}
+    return {"challenge": f"What is {a} {op_sym} {b}?", "challenge_id": challenge_id}
+
+def _verify_challenge(email: str, challenge_id: str, answer: str) -> bool:
+    ch = _login_challenges.get(email)
+    if not ch:
+        return False
+    if ch["challenge_id"] != challenge_id or ch["expires"] < time.time():
+        _login_challenges.pop(email, None)
+        return False
+    if ch["answer"] != answer.strip():
+        return False
+    _login_challenges.pop(email, None)
+    return True
+
 def _get_device_id(hostname: str, username: str) -> str:
     return hashlib.sha256(f"{hostname}:{username}".encode()).hexdigest()[:16]
 
@@ -232,6 +268,8 @@ class GhostLoginRequest(BaseModel):
     device_id: str = ""
     device_name: str = ""
     trust_device: bool = False
+    challenge_id: str = ""
+    challenge_answer: str = ""
 
 class GhostForgotRequest(BaseModel):
     email: EmailStr
@@ -482,6 +520,11 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
         remaining = LOCKOUT_MINUTES - int((time.time() - min(_login_attempts.get(body.email, [time.time()]))) / 60)
         raise HTTPException(status_code=429, detail=f"Account locked. Too many failed attempts. Try again in {remaining} minutes.")
 
+    # Verify challenge if provided
+    if body.challenge_id and body.challenge_answer:
+        if not _verify_challenge(body.email, body.challenge_id, body.challenge_answer):
+            raise HTTPException(status_code=401, detail="Incorrect challenge answer")
+
     result = await db.execute(select(GhostUser).where(GhostUser.email == body.email))
     user = result.scalar_one_or_none()
     if not user:
@@ -489,6 +532,9 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
         # Log failed attempt
         db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=False))
         await db.commit()
+        if _should_require_challenge(body.email):
+            challenge = _create_challenge(body.email)
+            raise HTTPException(status_code=401, detail={"message": "Invalid email or password", "requires_challenge": True, "challenge": challenge["challenge"], "challenge_id": challenge["challenge_id"]})
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     if not bcrypt.checkpw(body.password.encode(), user.password_hash.encode()):
@@ -496,9 +542,37 @@ async def ghost_login(body: GhostLoginRequest, request=None, db: AsyncSession = 
         db.add(GhostLoginLog(user_email=body.email, ip_address=ip, device_id=body.device_id, success=False))
         await db.commit()
         attempts_left = MAX_LOGIN_ATTEMPTS - len([t for t in _login_attempts.get(body.email, []) if t > time.time() - LOCKOUT_MINUTES * 60])
+        if _should_require_challenge(body.email):
+            challenge = _create_challenge(body.email)
+            raise HTTPException(status_code=401, detail={"message": "Invalid email or password", "requires_challenge": True, "challenge": challenge["challenge"], "challenge_id": challenge["challenge_id"]})
         raise HTTPException(status_code=401, detail=f"Invalid email or password. {attempts_left} attempts remaining.")
 
     # Email verification disabled for now — auto-verified on signup
+
+    # Geo-blocking check
+    try:
+        geo_result = await db.execute(select(GhostGeoRestriction).where(GhostGeoRestriction.user_id == user.id))
+        geo = geo_result.scalar_one_or_none()
+        if geo and geo.enabled:
+            import json as _json
+            import httpx
+            allowed = _json.loads(geo.allowed_countries or "[]")
+            if allowed:
+                try:
+                    async with httpx.AsyncClient(timeout=5) as client:
+                        resp = await client.get(f"http://ip-api.com/json/{ip}?fields=countryCode")
+                        if resp.status_code == 200:
+                            country = resp.json().get("countryCode", "")
+                            if country and country not in allowed:
+                                await _audit_log(db, body.email, "geo_blocked_login", f"country={country}, ip={ip}")
+                                await db.commit()
+                                raise HTTPException(403, "Login from this location is not allowed. Update your location restrictions in settings.")
+                except httpx.HTTPError:
+                    pass  # If geo-lookup fails, allow login
+    except HTTPException:
+        raise
+    except Exception:
+        pass  # Never block login due to geo-check failure
 
     # Success — clear lockout, log success
     _clear_login_attempts(body.email)
@@ -1440,3 +1514,94 @@ async def get_chat_messages(session_id: str, authorization: str = Header(...), d
         {"id": m.id, "session_id": m.session_id, "role": m.role, "content": decrypt_chat_content(m.content or ""), "timestamp": m.timestamp, "reaction": m.reaction}
         for m in messages
     ]}
+
+
+# ── Geo-Blocking ──────────────────────────────────────────────────────
+
+class GhostGeoRestriction(Base):
+    __tablename__ = "ghost_geo_restrictions"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), unique=True, nullable=False, index=True)
+    allowed_countries = Column(Text, nullable=True)  # JSON array of country codes
+    enabled = Column(Boolean, default=False)
+
+class GhostGeoSettingsRequest(BaseModel):
+    enabled: bool = False
+    allowed_countries: list[str] = []
+
+@router.get("/geo-settings")
+async def get_geo_settings(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = verify_ghost_token(authorization.replace("Bearer ", ""))
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(401, "User not found")
+    result = await db.execute(select(GhostGeoRestriction).where(GhostGeoRestriction.user_id == user.id))
+    geo = result.scalar_one_or_none()
+    if not geo:
+        return {"enabled": False, "allowed_countries": []}
+    import json
+    return {"enabled": geo.enabled, "allowed_countries": json.loads(geo.allowed_countries or "[]")}
+
+@router.post("/geo-settings")
+async def update_geo_settings(body: GhostGeoSettingsRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = verify_ghost_token(authorization.replace("Bearer ", ""))
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(401, "User not found")
+    import json
+    result = await db.execute(select(GhostGeoRestriction).where(GhostGeoRestriction.user_id == user.id))
+    geo = result.scalar_one_or_none()
+    if geo:
+        geo.enabled = body.enabled
+        geo.allowed_countries = json.dumps(body.allowed_countries)
+    else:
+        db.add(GhostGeoRestriction(user_id=user.id, enabled=body.enabled, allowed_countries=json.dumps(body.allowed_countries)))
+    await _audit_log(db, payload["email"], "geo_settings_updated", f"enabled={body.enabled}, countries={body.allowed_countries}")
+    await db.commit()
+    return {"ok": True}
+
+
+# ── Device Security Check ─────────────────────────────────────────────
+
+class DeviceCheckRequest(BaseModel):
+    is_rooted: bool = False
+    device_model: str = ""
+    os_version: str = ""
+
+@router.post("/device-check")
+async def device_check(body: DeviceCheckRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = verify_ghost_token(authorization.replace("Bearer ", ""))
+    if body.is_rooted:
+        await _audit_log(db, payload["email"], "rooted_device_detected", f"model={body.device_model}, os={body.os_version}")
+        await db.commit()
+        return {"allowed": True, "warning": "This device appears to be rooted/jailbroken. Your data may be at risk."}
+    return {"allowed": True, "warning": None}
+
+
+# ── E2E Encryption Key Storage ────────────────────────────────────────
+
+class E2EKeyRequest(BaseModel):
+    public_key: str
+
+@router.post("/e2e/keys")
+async def store_e2e_key(body: E2EKeyRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = verify_ghost_token(authorization.replace("Bearer ", ""))
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(401, "User not found")
+    user.public_key = body.public_key
+    await _audit_log(db, payload["email"], "e2e_key_stored", "Public key updated")
+    await db.commit()
+    return {"ok": True}
+
+@router.get("/e2e/keys")
+async def get_e2e_key(authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    payload = verify_ghost_token(authorization.replace("Bearer ", ""))
+    result = await db.execute(select(GhostUser).where(GhostUser.email == payload["email"]))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(401, "User not found")
+    return {"public_key": user.public_key}
