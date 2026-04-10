@@ -549,7 +549,8 @@ APP_REGISTRY: dict[str, dict] = {
     "excel_online": {
         "name": "Microsoft Excel Online", "category": "Storage", "icon": "grid",
         "auth_fields": [{"key": "access_token", "label": "Microsoft Graph Access Token", "secure": True}],
-        "setup": "Go to portal.azure.com → Azure AD → App Registrations → New → Add Microsoft Graph permissions (Files.ReadWrite, Sites.ReadWrite.All) → Generate an access token via OAuth 2.0. Paste the bearer token here.",
+        "oauth_flow": "microsoft",
+        "setup": "Tap 'Connect with Microsoft' to sign in with your Microsoft account. You'll be asked to allow GoFarther to read and write your Excel files in OneDrive.",
         "actions": ["list_workbooks", "get_worksheets", "read_range", "write_range", "add_row", "create_workbook"],
         "action_hints": {
             "list_workbooks": "no params — lists up to 25 Excel (.xlsx) files in the user's OneDrive",
@@ -1335,6 +1336,7 @@ async def list_connectors(authorization: str = Header(...), db: AsyncSession = D
             "setup": info["setup"],
             "actions": info["actions"],
             "action_hints": info.get("action_hints", {}),
+            "oauth_flow": info.get("oauth_flow"),
             "connected": app_id in connected_ids,
         })
     return {"connectors": result, "categories": CATEGORY_ORDER}
@@ -1376,6 +1378,214 @@ async def disconnect_app(app_id: str, authorization: str = Header(...), db: Asyn
     return {"status": "disconnected", "app": app_id}
 
 
+# ── Microsoft OAuth 2.0 flow (for Excel Online, OneDrive, etc.) ──────────────
+# Uses authorization code flow with client secret. The mobile app opens the
+# authorize URL in the system browser, Microsoft redirects to our backend
+# callback, we exchange the code for tokens and store them encrypted.
+
+_MS_AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
+_MS_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+_MS_SCOPES = {
+    "excel_online": "Files.ReadWrite offline_access",
+    # Future: outlook, onedrive, teams can share the same flow with different scopes
+}
+
+# In-memory map of oauth states → {user_id, app_id, created_at}
+# (short-lived — states expire after 10 minutes)
+_oauth_states: dict[str, dict] = {}
+
+
+def _prune_old_oauth_states() -> None:
+    cutoff = datetime.now(timezone.utc).timestamp() - 600  # 10 min
+    for state, data in list(_oauth_states.items()):
+        if data.get("ts", 0) < cutoff:
+            _oauth_states.pop(state, None)
+
+
+@router.post("/{app_id}/oauth/start")
+async def oauth_start(app_id: str, authorization: str = Header(...)):
+    """Begin OAuth flow for Microsoft apps. Returns an authorize URL the
+    client should open in the system browser."""
+    payload = _verify_auth(authorization)
+    user_id = payload.get("sub")
+
+    if app_id not in APP_REGISTRY:
+        raise HTTPException(404, f"Unknown app: {app_id}")
+
+    info = APP_REGISTRY[app_id]
+    if info.get("oauth_flow") != "microsoft":
+        raise HTTPException(400, f"{info['name']} does not use the Microsoft OAuth flow")
+
+    client_id = os.getenv("MICROSOFT_CLIENT_ID")
+    redirect_uri = os.getenv("MICROSOFT_REDIRECT_URI")
+    if not client_id or not redirect_uri:
+        raise HTTPException(
+            500,
+            "Microsoft OAuth is not configured on the server. "
+            "Set MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, and MICROSOFT_REDIRECT_URI.",
+        )
+
+    _prune_old_oauth_states()
+    state = uuid.uuid4().hex
+    _oauth_states[state] = {
+        "user_id": str(user_id),
+        "app_id": app_id,
+        "ts": datetime.now(timezone.utc).timestamp(),
+    }
+
+    scope = _MS_SCOPES.get(app_id, "Files.ReadWrite offline_access")
+    from urllib.parse import urlencode
+    params = {
+        "client_id": client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "response_mode": "query",
+        "scope": scope,
+        "state": state,
+        "prompt": "select_account",
+    }
+    authorize_url = f"{_MS_AUTH_URL}?{urlencode(params)}"
+    return {"authorize_url": authorize_url, "state": state}
+
+
+@router.get("/oauth/microsoft/callback")
+async def oauth_microsoft_callback(
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    error_description: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle Microsoft OAuth redirect. Exchange code for tokens, save them,
+    and show a success page the user can close."""
+    from fastapi.responses import HTMLResponse
+
+    def _html(title: str, body: str, ok: bool = True) -> HTMLResponse:
+        color = "#16a34a" if ok else "#dc2626"
+        return HTMLResponse(
+            f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title></head><body style="font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:40px 20px;background:#fafafa"><div style="max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:32px 24px;box-shadow:0 2px 12px rgba(0,0,0,.06)"><div style="font-size:48px;margin-bottom:12px">{'✅' if ok else '⚠️'}</div><h1 style="color:{color};font-size:22px;margin:0 0 12px">{title}</h1><p style="color:#555;font-size:15px;line-height:1.5;margin:0 0 20px">{body}</p><p style="color:#999;font-size:13px;margin:0">You can close this window and return to the app.</p></div></body></html>"""
+        )
+
+    if error:
+        return _html("Connection Failed", error_description or error, ok=False)
+    if not code or not state:
+        return _html("Connection Failed", "Missing authorization code or state.", ok=False)
+
+    _prune_old_oauth_states()
+    session = _oauth_states.pop(state, None)
+    if not session:
+        return _html(
+            "Connection Failed",
+            "This link has expired or was already used. Please try connecting again from the app.",
+            ok=False,
+        )
+
+    user_id = session["user_id"]
+    app_id = session["app_id"]
+
+    client_id = os.getenv("MICROSOFT_CLIENT_ID")
+    client_secret = os.getenv("MICROSOFT_CLIENT_SECRET")
+    redirect_uri = os.getenv("MICROSOFT_REDIRECT_URI")
+    if not client_id or not client_secret or not redirect_uri:
+        return _html("Server Misconfigured", "Microsoft OAuth env vars are not set.", ok=False)
+
+    # Exchange code for tokens
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                _MS_TOKEN_URL,
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                    "scope": _MS_SCOPES.get(app_id, "Files.ReadWrite offline_access"),
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if r.status_code != 200:
+                logger.error(f"Microsoft token exchange failed: {r.status_code} {r.text}")
+                return _html("Token Exchange Failed", r.text[:200], ok=False)
+            tokens = r.json()
+    except Exception as e:
+        logger.exception("Microsoft token exchange errored")
+        return _html("Token Exchange Error", str(e), ok=False)
+
+    access_token = tokens.get("access_token")
+    refresh_token = tokens.get("refresh_token")
+    expires_in = int(tokens.get("expires_in") or 3600)
+    if not access_token:
+        return _html("Invalid Response", "Microsoft did not return an access token.", ok=False)
+
+    expires_at = datetime.now(timezone.utc).timestamp() + expires_in - 60  # 60s buffer
+    creds = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": expires_at,
+        "token_type": tokens.get("token_type", "Bearer"),
+    }
+
+    await _set_creds(user_id, app_id, creds, db)
+    await db.commit()
+    logger.info(f"Microsoft OAuth success: user={user_id} app={app_id}")
+    app_name = APP_REGISTRY.get(app_id, {}).get("name", app_id)
+    return _html(
+        "Connected!",
+        f"{app_name} is now linked to your GoFarther account.",
+        ok=True,
+    )
+
+
+async def _refresh_microsoft_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+    """If the Microsoft access token is expired or close to it, use the
+    refresh token to get a new one and persist it. Returns updated creds."""
+    expires_at = float(creds.get("expires_at") or 0)
+    now = datetime.now(timezone.utc).timestamp()
+    if expires_at > now + 30:  # still fresh
+        return creds
+
+    refresh_token = creds.get("refresh_token")
+    if not refresh_token:
+        return creds  # caller will get a 401 from Graph
+
+    client_id = os.getenv("MICROSOFT_CLIENT_ID")
+    client_secret = os.getenv("MICROSOFT_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return creds
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                _MS_TOKEN_URL,
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                    "scope": _MS_SCOPES.get(app_id, "Files.ReadWrite offline_access"),
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if r.status_code != 200:
+                logger.warning(f"Microsoft token refresh failed: {r.status_code} {r.text}")
+                return creds
+            tokens = r.json()
+    except Exception:
+        logger.exception("Microsoft token refresh errored")
+        return creds
+
+    new_creds = dict(creds)
+    new_creds["access_token"] = tokens.get("access_token", creds.get("access_token"))
+    if tokens.get("refresh_token"):
+        new_creds["refresh_token"] = tokens["refresh_token"]
+    new_creds["expires_at"] = now + int(tokens.get("expires_in") or 3600) - 60
+
+    await _set_creds(user_id, app_id, new_creds, db)
+    await db.commit()
+    return new_creds
+
+
 @router.post("/{app_id}/action")
 async def execute_action(app_id: str, body: ActionRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
     """Execute an action on a connected app."""
@@ -1388,6 +1598,10 @@ async def execute_action(app_id: str, body: ActionRequest, authorization: str = 
     creds = await _get_creds(user_id, app_id, db)
     if not creds:
         raise HTTPException(400, f"{APP_REGISTRY[app_id]['name']} is not connected. Go to Settings → Connect Apps to set it up.")
+
+    # Refresh Microsoft OAuth tokens if they're close to expiring
+    if APP_REGISTRY[app_id].get("oauth_flow") == "microsoft":
+        creds = await _refresh_microsoft_token(user_id, app_id, creds, db)
 
     if body.action not in APP_REGISTRY[app_id]["actions"]:
         raise HTTPException(400, f"Action '{body.action}' not available for {APP_REGISTRY[app_id]['name']}")

@@ -447,6 +447,10 @@ export async function disconnectApp(appId: string) {
   return apiFetch(`${CONNECTORS}/${encodeURIComponent(appId)}/disconnect`, { method: 'DELETE' });
 }
 
+export async function startOAuth(appId: string): Promise<{ authorize_url: string; state: string }> {
+  return apiFetch(`${CONNECTORS}/${encodeURIComponent(appId)}/oauth/start`, { method: 'POST' });
+}
+
 export async function connectorAction(appId: string, action: string, params: Record<string, any> = {}) {
   return apiFetch(`${CONNECTORS}/${encodeURIComponent(appId)}/action`, {
     method: 'POST',

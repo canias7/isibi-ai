@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData } from '../lib/api';
+import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth } from '../lib/api';
+import * as WebBrowser from 'expo-web-browser';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
 import { getBiometricEnabled, saveBiometricEnabled } from '../lib/storage';
@@ -716,6 +717,41 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                             }}
                           >
                             <Text style={[s.saveBtnText, { color: '#ef4444' }]}>Disconnect</Text>
+                          </TouchableOpacity>
+                        </>
+                      ) : app.oauth_flow === 'microsoft' ? (
+                        <>
+                          <View style={s.smtpInstructions}>
+                            <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{app.setup}</Text>
+                          </View>
+                          <TouchableOpacity
+                            style={[s.saveBtn, { marginTop: 10, backgroundColor: '#2f2f2f', opacity: connectingApp === app.id ? 0.5 : 1 }]}
+                            disabled={connectingApp === app.id}
+                            onPress={async () => {
+                              setConnectingApp(app.id);
+                              try {
+                                const { authorize_url } = await startOAuth(app.id);
+                                await WebBrowser.openBrowserAsync(authorize_url);
+                                // After the browser closes, refresh the connectors list to see if it succeeded
+                                const data = await getConnectors();
+                                const fresh = data?.connectors || [];
+                                const updated = fresh.find((a: any) => a.id === app.id);
+                                if (updated?.connected) {
+                                  setAllApps(prev => prev.map(a => a.id === app.id ? { ...a, connected: true } : a));
+                                  setConnectedCount(prev => prev + 1);
+                                  const connected = fresh.filter((a: any) => a.connected);
+                                  saveConnectedApps(connected.map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions, action_hints: a.action_hints || {} })));
+                                  setExpandedApp(null);
+                                  Alert.alert('Connected', `${app.name} is now connected! Try saying "list my Excel files" in chat.`);
+                                } else {
+                                  Alert.alert('Not Connected', 'It looks like you didn\u2019t finish the Microsoft sign-in. Try again when ready.');
+                                }
+                              } catch (e: any) {
+                                Alert.alert('Connection Failed', e.message || 'Could not start OAuth');
+                              } finally { setConnectingApp(null); }
+                            }}
+                          >
+                            <Text style={[s.saveBtnText, { color: '#fff' }]}>{connectingApp === app.id ? 'Connecting...' : 'Connect with Microsoft'}</Text>
                           </TouchableOpacity>
                         </>
                       ) : (
