@@ -546,6 +546,20 @@ APP_REGISTRY: dict[str, dict] = {
         "setup": "Go to console.cloud.google.com → APIs → Enable Sheets API → Create OAuth credentials.",
         "actions": ["get_spreadsheet", "update_cells", "create_spreadsheet", "search"],
     },
+    "excel_online": {
+        "name": "Microsoft Excel Online", "category": "Storage", "icon": "grid",
+        "auth_fields": [{"key": "access_token", "label": "Microsoft Graph Access Token", "secure": True}],
+        "setup": "Go to portal.azure.com → Azure AD → App Registrations → New → Add Microsoft Graph permissions (Files.ReadWrite, Sites.ReadWrite.All) → Generate an access token via OAuth 2.0. Paste the bearer token here.",
+        "actions": ["list_workbooks", "get_worksheets", "read_range", "write_range", "add_row", "create_workbook"],
+        "action_hints": {
+            "list_workbooks": "no params — lists up to 25 Excel (.xlsx) files in the user's OneDrive",
+            "get_worksheets": "workbook_id=<OneDrive item id of the .xlsx file>",
+            "read_range": "workbook_id=<item id>|worksheet=<sheet name, e.g. Sheet1>|range=<A1 notation, e.g. A1:C10>",
+            "write_range": "workbook_id=<item id>|worksheet=<sheet name>|range=<A1 notation>|values=<JSON 2D array, e.g. [[\"a\",1],[\"b\",2]]>",
+            "add_row": "workbook_id=<item id>|worksheet=<sheet name>|values=<JSON 1D array, e.g. [\"name\",42,\"2026-04-10\"]>",
+            "create_workbook": "name=<filename without extension, .xlsx is added automatically>",
+        },
+    },
     "airtable": {
         "name": "Airtable", "category": "Storage", "icon": "apps",
         "auth_fields": [{"key": "api_key", "label": "Personal Access Token", "secure": True}],
@@ -1627,6 +1641,211 @@ async def _ringy_adapter(action: str, params: dict, creds: dict) -> dict:
     return {"error": f"Unknown Ringy action: {action}"}
 
 
+async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
+    """Microsoft Excel Online adapter via Microsoft Graph API.
+
+    Auth: OAuth 2.0 bearer token from Azure AD. The token must be scoped for
+    Files.ReadWrite (and Sites.ReadWrite.All if the file is on SharePoint).
+
+    Exposed actions:
+      - list_workbooks    → find .xlsx files in the user's OneDrive
+      - get_worksheets    → list sheets in a workbook
+      - read_range        → read a cell range from a worksheet
+      - write_range       → overwrite a cell range with a 2D array
+      - add_row           → append a single row to a worksheet's used range
+      - create_workbook   → create a new empty .xlsx in OneDrive root
+    """
+    token = creds.get("access_token") or creds.get("api_key")
+    if not token:
+        return {
+            "error": (
+                "Excel Online is not connected. Please add a Microsoft Graph "
+                "access token in Settings → My Apps → Microsoft Excel Online."
+            )
+        }
+
+    base = "https://graph.microsoft.com/v1.0"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        if action == "list_workbooks":
+            # Search OneDrive for .xlsx files
+            r = await client.get(
+                f"{base}/me/drive/root/search(q='.xlsx')",
+                headers=headers,
+                params={"$top": 25, "$select": "id,name,webUrl,lastModifiedDateTime,size"},
+            )
+            if r.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired. Reconnect in Settings → My Apps → Microsoft Excel Online."}
+            r.raise_for_status()
+            items = (r.json() or {}).get("value", [])
+            workbooks = [
+                {
+                    "id": it.get("id"),
+                    "name": it.get("name"),
+                    "url": it.get("webUrl"),
+                    "modified": it.get("lastModifiedDateTime"),
+                    "size": it.get("size"),
+                }
+                for it in items
+                if (it.get("name") or "").lower().endswith(".xlsx")
+            ]
+            return {"workbooks": workbooks, "count": len(workbooks)}
+
+        if action == "get_worksheets":
+            workbook_id = params.get("workbook_id") or params.get("workbookId")
+            if not workbook_id:
+                return {"error": "workbook_id is required"}
+            r = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets",
+                headers=headers,
+            )
+            if r.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired."}
+            r.raise_for_status()
+            sheets = (r.json() or {}).get("value", [])
+            return {
+                "worksheets": [
+                    {"id": s.get("id"), "name": s.get("name"), "position": s.get("position"), "visibility": s.get("visibility")}
+                    for s in sheets
+                ],
+                "count": len(sheets),
+            }
+
+        if action == "read_range":
+            workbook_id = params.get("workbook_id") or params.get("workbookId")
+            worksheet = params.get("worksheet") or params.get("sheet")
+            cell_range = params.get("range") or params.get("address")
+            if not workbook_id or not worksheet or not cell_range:
+                return {"error": "workbook_id, worksheet, and range are required"}
+            r = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')",
+                headers=headers,
+            )
+            if r.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired."}
+            r.raise_for_status()
+            data = r.json() or {}
+            return {
+                "range": cell_range,
+                "worksheet": worksheet,
+                "values": data.get("values", []),
+                "text": data.get("text", []),
+                "formulas": data.get("formulas", []),
+                "rowCount": data.get("rowCount"),
+                "columnCount": data.get("columnCount"),
+            }
+
+        if action == "write_range":
+            workbook_id = params.get("workbook_id") or params.get("workbookId")
+            worksheet = params.get("worksheet") or params.get("sheet")
+            cell_range = params.get("range") or params.get("address")
+            values = params.get("values")
+            if isinstance(values, str):
+                try:
+                    values = json.loads(values)
+                except Exception:
+                    return {"error": "values must be a JSON 2D array, e.g. [[\"a\",1],[\"b\",2]]"}
+            if not workbook_id or not worksheet or not cell_range or values is None:
+                return {"error": "workbook_id, worksheet, range, and values are required"}
+            r = await client.patch(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')",
+                headers=headers,
+                json={"values": values},
+            )
+            if r.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired."}
+            r.raise_for_status()
+            return {"message": f"Wrote values to {worksheet}!{cell_range}", "range": cell_range}
+
+        if action == "add_row":
+            workbook_id = params.get("workbook_id") or params.get("workbookId")
+            worksheet = params.get("worksheet") or params.get("sheet")
+            values = params.get("values")
+            if isinstance(values, str):
+                try:
+                    values = json.loads(values)
+                except Exception:
+                    return {"error": "values must be a JSON array, e.g. [\"name\",42,\"note\"]"}
+            if not workbook_id or not worksheet or not isinstance(values, list):
+                return {"error": "workbook_id, worksheet, and values (JSON array) are required"}
+            # First fetch the used range so we can append below it
+            u = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/usedRange",
+                headers=headers,
+            )
+            if u.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired."}
+            u.raise_for_status()
+            used = u.json() or {}
+            row_count = used.get("rowCount") or 0
+            col_count = used.get("columnCount") or len(values)
+            next_row = row_count + 1
+            # Pad or trim values to match column count so the Graph API accepts it
+            if len(values) < col_count:
+                values = values + [""] * (col_count - len(values))
+            elif len(values) > col_count:
+                col_count = len(values)
+            # Build A1 address for the target row — works up to column ZZ
+            def col_letter(n: int) -> str:
+                s = ""
+                while n > 0:
+                    n, rem = divmod(n - 1, 26)
+                    s = chr(65 + rem) + s
+                return s
+            last_col = col_letter(col_count)
+            target = f"A{next_row}:{last_col}{next_row}"
+            r = await client.patch(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{target}')",
+                headers=headers,
+                json={"values": [values]},
+            )
+            r.raise_for_status()
+            return {"message": f"Appended row to {worksheet}!{target}", "range": target}
+
+        if action == "create_workbook":
+            name = params.get("name") or "New Workbook"
+            if not name.lower().endswith(".xlsx"):
+                name = f"{name}.xlsx"
+            # Create an empty .xlsx by uploading a minimal file via the Graph upload endpoint
+            upload_headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            }
+            # Minimal valid .xlsx (empty workbook) — use openpyxl if available, otherwise use a pre-built blank
+            try:
+                from openpyxl import Workbook  # type: ignore
+                from io import BytesIO
+                wb = Workbook()
+                buf = BytesIO()
+                wb.save(buf)
+                blob = buf.getvalue()
+            except Exception:
+                return {"error": "Cannot create empty workbook: openpyxl is not installed on the server."}
+            r = await client.put(
+                f"{base}/me/drive/root:/{name}:/content",
+                headers=upload_headers,
+                content=blob,
+            )
+            if r.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired."}
+            r.raise_for_status()
+            data = r.json() or {}
+            return {
+                "message": f"Created workbook: {name}",
+                "workbook": {
+                    "id": data.get("id"),
+                    "name": data.get("name"),
+                    "url": data.get("webUrl"),
+                },
+            }
+
+    return {"error": f"Unknown Excel Online action: {action}"}
+
+
 async def _pipedrive_adapter(action: str, params: dict, creds: dict) -> dict:
     token = creds["api_key"]
     base = "https://api.pipedrive.com/v1"
@@ -2220,6 +2439,7 @@ ADAPTERS: dict[str, Any] = {
     "shopify": _shopify_adapter,
     # Storage
     "airtable": _airtable_adapter,
+    "excel_online": _excel_online_adapter,
     # Automation
     "zapier": _webhook_adapter,
     "make": _webhook_adapter,
