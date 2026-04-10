@@ -569,6 +569,17 @@ APP_REGISTRY: dict[str, dict] = {
             "find_cell", "sum_column", "get_last_row", "filter_rows", "sort_range",
             # File-level utilities
             "download_as_pdf", "protect_sheet", "share_workbook",
+            # Tier 6 — advanced
+            "calculate_workbook", "list_tables", "list_pivot_tables", "refresh_pivot",
+            "list_comments", "set_cell_comment",
+            "insert_rows", "insert_columns",
+            "set_column_width", "set_row_height",
+            "freeze_panes", "unfreeze_panes",
+            "merge_cells", "unmerge_cells",
+            "create_named_range", "list_named_ranges",
+            "add_hyperlink", "unprotect_sheet",
+            "range_details", "set_conditional_format",
+            "execute_function",
         ],
         "action_hints": {
             "list_workbooks": "no params — lists every .xlsx in the user's OneDrive",
@@ -600,6 +611,27 @@ APP_REGISTRY: dict[str, dict] = {
             "download_as_pdf": "workbook_id=<partial name> — returns a download URL for a PDF version",
             "protect_sheet": "workbook_id=<partial name>|worksheet=<sheet name, defaults to Sheet1>",
             "share_workbook": "workbook_id=<partial name>|scope=<view or edit, defaults to view>",
+            "calculate_workbook": "workbook_id=<partial name>|type=<Recalculate, Full, or FullRebuild> — forces formula recalculation",
+            "list_tables": "workbook_id=<partial name> — lists every Excel Table in the workbook",
+            "list_pivot_tables": "workbook_id=<partial name>|worksheet=<sheet name, optional>",
+            "refresh_pivot": "workbook_id=<partial name>|worksheet=<sheet name>|pivot=<pivot table name, optional — refreshes all if omitted>",
+            "list_comments": "workbook_id=<partial name> — lists every cell comment in the workbook",
+            "set_cell_comment": "workbook_id=<partial name>|worksheet=<sheet name>|cell=<A1>|text=<comment text>",
+            "insert_rows": "workbook_id=<partial name>|worksheet=<sheet name>|row=<1-based row>|count=<how many to insert, defaults 1>",
+            "insert_columns": "workbook_id=<partial name>|worksheet=<sheet name>|column=<column letter>|count=<how many to insert, defaults 1>",
+            "set_column_width": "workbook_id=<partial name>|worksheet=<sheet name>|column=<letter or range like A:C>|width=<points, e.g. 120>",
+            "set_row_height": "workbook_id=<partial name>|worksheet=<sheet name>|row=<row number or range like 1:3>|height=<points, e.g. 24>",
+            "freeze_panes": "workbook_id=<partial name>|worksheet=<sheet name>|rows=<number of top rows to freeze>|columns=<number of left columns to freeze>",
+            "unfreeze_panes": "workbook_id=<partial name>|worksheet=<sheet name>",
+            "merge_cells": "workbook_id=<partial name>|worksheet=<sheet name>|range=<A1 notation>|across=<true/false, true merges per-row>",
+            "unmerge_cells": "workbook_id=<partial name>|worksheet=<sheet name>|range=<A1 notation>",
+            "create_named_range": "workbook_id=<partial name>|name=<name of the named range>|reference=<A1 notation like Sheet1!A1:B10>|comment=<optional>",
+            "list_named_ranges": "workbook_id=<partial name> — lists every workbook-level named range",
+            "add_hyperlink": "workbook_id=<partial name>|worksheet=<sheet name>|cell=<A1>|url=<https://...>|display=<link text, optional>",
+            "unprotect_sheet": "workbook_id=<partial name>|worksheet=<sheet name>",
+            "range_details": "workbook_id=<partial name>|worksheet=<sheet name>|range=<A1> — returns values, formulas, formats, and used range info",
+            "set_conditional_format": "workbook_id=<partial name>|worksheet=<sheet name>|range=<A1>|rule=<colorScale, dataBar, iconSet, top, bottom, aboveAverage, presetCriteria, custom>|color=<hex for simple rules>",
+            "execute_function": "function=<Excel function name like VLOOKUP, SUMIF, XLOOKUP>|args=<JSON array of arguments, can include range refs like Sheet1!A1:B10>|workbook_id=<partial name>",
         },
     },
     "airtable": {
@@ -2810,6 +2842,522 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             data = r.json() or {}
             link = (data.get("link") or {}).get("webUrl")
             return {"message": f"Share link ({link_type}) created", "share_url": link}
+
+        # ── Tier 6: advanced features ───────────────────────────────────
+        if action == "calculate_workbook":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            calc_type = params.get("type") or params.get("calculation_type") or "Recalculate"
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/application/calculate",
+                headers=headers,
+                json={"calculationType": calc_type},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not calculate: {r.text[:200]}"}
+            return {"message": f"Recalculated workbook ({calc_type})"}
+
+        if action == "list_tables":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            r = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/tables",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not list tables: {r.text[:200]}"}
+            tables = (r.json() or {}).get("value", [])
+            return {
+                "tables": [
+                    {"id": t.get("id"), "name": t.get("name"), "showHeaders": t.get("showHeaders"), "style": t.get("style")}
+                    for t in tables
+                ],
+                "count": len(tables),
+            }
+
+        if action == "list_pivot_tables":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet")
+            if worksheet:
+                url = f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/pivotTables"
+            else:
+                url = f"{base}/me/drive/items/{workbook_id}/workbook/worksheets"
+            # If no worksheet provided, iterate and gather pivots from each
+            if not worksheet:
+                wr = await client.get(url, headers=headers)
+                if wr.status_code >= 400:
+                    return {"error": f"Could not list worksheets: {wr.text[:200]}"}
+                sheets = (wr.json() or {}).get("value", [])
+                all_pivots: list[dict] = []
+                for s in sheets:
+                    sname = s.get("name")
+                    pr = await client.get(
+                        f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{sname}')/pivotTables",
+                        headers=headers,
+                    )
+                    if pr.status_code == 200:
+                        for p in (pr.json() or {}).get("value", []):
+                            all_pivots.append({"worksheet": sname, "name": p.get("name"), "id": p.get("id")})
+                return {"pivot_tables": all_pivots, "count": len(all_pivots)}
+            r = await client.get(url, headers=headers)
+            if r.status_code >= 400:
+                return {"error": f"Could not list pivots: {r.text[:200]}"}
+            pivots = (r.json() or {}).get("value", [])
+            return {
+                "pivot_tables": [{"name": p.get("name"), "id": p.get("id")} for p in pivots],
+                "count": len(pivots),
+            }
+
+        if action == "refresh_pivot":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            pivot = params.get("pivot") or params.get("name")
+            if pivot:
+                r = await client.post(
+                    f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/pivotTables('{pivot}')/refresh",
+                    headers=headers,
+                )
+            else:
+                r = await client.post(
+                    f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/pivotTables/refreshAll",
+                    headers=headers,
+                )
+            if r.status_code >= 400:
+                return {"error": f"Could not refresh pivot: {r.text[:200]}"}
+            return {"message": f"Refreshed pivot{'s on ' + worksheet if not pivot else ' ' + pivot}"}
+
+        if action == "list_comments":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            r = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/comments",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not list comments: {r.text[:200]}"}
+            comments = (r.json() or {}).get("value", [])
+            return {
+                "comments": [
+                    {
+                        "id": c.get("id"),
+                        "content": (c.get("content") or {}).get("content"),
+                        "cell": c.get("cellAddress"),
+                    }
+                    for c in comments
+                ],
+                "count": len(comments),
+            }
+
+        if action == "set_cell_comment":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            cell = params.get("cell") or params.get("address")
+            text = params.get("text") or params.get("comment")
+            if not cell or not text:
+                return {"error": "cell and text are required"}
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/comments",
+                headers=headers,
+                json={
+                    "cellAddress": f"{worksheet}!{cell}",
+                    "content": {"content": text, "contentType": "plain"},
+                },
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not set comment: {r.text[:200]}"}
+            return {"message": f"Added comment on {worksheet}!{cell}"}
+
+        if action == "insert_rows":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            try:
+                row = int(params.get("row") or 1)
+                count = int(params.get("count") or 1)
+            except Exception:
+                return {"error": "row and count must be integers"}
+            end_row = row + count - 1
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{row}:{end_row}')/insert",
+                headers=headers,
+                json={"shift": "Down"},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not insert rows: {r.text[:200]}"}
+            return {"message": f"Inserted {count} row(s) starting at row {row}"}
+
+        if action == "insert_columns":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            column = (params.get("column") or "A").strip().upper()
+            try:
+                count = int(params.get("count") or 1)
+            except Exception:
+                return {"error": "count must be an integer"}
+            # Build the column range to insert — e.g. for A with count=3, that's A:C
+            start_idx = 0
+            for c in column:
+                start_idx = start_idx * 26 + (ord(c) - 64)
+            end_idx = start_idx + count - 1
+            def _col_letter(n: int) -> str:
+                s = ""
+                while n > 0:
+                    n, rem = divmod(n - 1, 26)
+                    s = chr(65 + rem) + s
+                return s
+            end_col = _col_letter(end_idx)
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{column}:{end_col}')/insert",
+                headers=headers,
+                json={"shift": "Right"},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not insert columns: {r.text[:200]}"}
+            return {"message": f"Inserted {count} column(s) starting at {column}"}
+
+        if action == "set_column_width":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            column = (params.get("column") or "A").strip().upper()
+            try:
+                width = float(params.get("width") or 64)
+            except Exception:
+                return {"error": "width must be a number"}
+            # Accept either a single column "A" or a range "A:C"
+            addr = column if ":" in column else f"{column}:{column}"
+            r = await client.patch(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{addr}')/format",
+                headers=headers,
+                json={"columnWidth": width},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not set column width: {r.text[:200]}"}
+            return {"message": f"Set column(s) {addr} width to {width}"}
+
+        if action == "set_row_height":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            row = str(params.get("row") or "1")
+            try:
+                height = float(params.get("height") or 18)
+            except Exception:
+                return {"error": "height must be a number"}
+            addr = row if ":" in row else f"{row}:{row}"
+            r = await client.patch(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{addr}')/format",
+                headers=headers,
+                json={"rowHeight": height},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not set row height: {r.text[:200]}"}
+            return {"message": f"Set row(s) {addr} height to {height}"}
+
+        if action == "freeze_panes":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            try:
+                rows = int(params.get("rows") or 0)
+                cols = int(params.get("columns") or params.get("cols") or 0)
+            except Exception:
+                return {"error": "rows and columns must be integers"}
+            if rows <= 0 and cols <= 0:
+                return {"error": "At least one of rows or columns must be > 0"}
+            if rows > 0 and cols <= 0:
+                endpoint = "freezeRows"
+                body = {"count": rows}
+            elif cols > 0 and rows <= 0:
+                endpoint = "freezeColumns"
+                body = {"count": cols}
+            else:
+                # Freeze at a specific cell — col letter for cols, row num for rows
+                def _cl(n: int) -> str:
+                    s = ""
+                    while n > 0:
+                        n, rem = divmod(n - 1, 26)
+                        s = chr(65 + rem) + s
+                    return s
+                target = f"{_cl(cols + 1)}{rows + 1}"
+                r = await client.post(
+                    f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/freezePanes/freezeAt",
+                    headers=headers,
+                    json={"frozenRange": target},
+                )
+                if r.status_code >= 400:
+                    return {"error": f"Could not freeze panes: {r.text[:200]}"}
+                return {"message": f"Froze panes at {target}"}
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/freezePanes/{endpoint}",
+                headers=headers,
+                json=body,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not freeze panes: {r.text[:200]}"}
+            return {"message": f"Froze {rows or cols} {'row(s)' if rows else 'column(s)'}"}
+
+        if action == "unfreeze_panes":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/freezePanes/unfreeze",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not unfreeze: {r.text[:200]}"}
+            return {"message": f"Unfroze panes on {worksheet}"}
+
+        if action == "merge_cells":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            cell_range = params.get("range") or params.get("address")
+            if not cell_range:
+                return {"error": "range is required"}
+            across = str(params.get("across", "false")).lower() == "true"
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')/merge",
+                headers=headers,
+                json={"across": across},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not merge: {r.text[:200]}"}
+            return {"message": f"Merged {worksheet}!{cell_range}"}
+
+        if action == "unmerge_cells":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            cell_range = params.get("range") or params.get("address")
+            if not cell_range:
+                return {"error": "range is required"}
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')/unmerge",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not unmerge: {r.text[:200]}"}
+            return {"message": f"Unmerged {worksheet}!{cell_range}"}
+
+        if action == "create_named_range":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            name = params.get("name")
+            reference = params.get("reference") or params.get("range")
+            if not name or not reference:
+                return {"error": "name and reference are required"}
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/names/add",
+                headers=headers,
+                json={
+                    "name": name,
+                    "reference": reference,
+                    "comment": params.get("comment", ""),
+                },
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not create named range: {r.text[:200]}"}
+            return {"message": f"Created named range '{name}' → {reference}"}
+
+        if action == "list_named_ranges":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            r = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/names",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not list names: {r.text[:200]}"}
+            names = (r.json() or {}).get("value", [])
+            return {
+                "named_ranges": [
+                    {"name": n.get("name"), "value": n.get("value"), "type": n.get("type"), "comment": n.get("comment")}
+                    for n in names
+                ],
+                "count": len(names),
+            }
+
+        if action == "add_hyperlink":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            cell = params.get("cell") or params.get("address")
+            url = params.get("url") or params.get("link")
+            if not cell or not url:
+                return {"error": "cell and url are required"}
+            display = params.get("display") or url
+            # Hyperlinks in Graph are set via the HYPERLINK formula
+            formula = f'=HYPERLINK("{url}","{display}")'
+            r = await client.patch(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell}')",
+                headers=headers,
+                json={"formulas": [[formula]]},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not add hyperlink: {r.text[:200]}"}
+            return {"message": f"Added hyperlink in {worksheet}!{cell} → {url}"}
+
+        if action == "unprotect_sheet":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/protection/unprotect",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not unprotect: {r.text[:200]}"}
+            return {"message": f"Unprotected worksheet '{worksheet}'"}
+
+        if action == "range_details":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            cell_range = params.get("range") or params.get("address")
+            if not cell_range:
+                return {"error": "range is required"}
+            r = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not get range details: {r.text[:200]}"}
+            data = r.json() or {}
+            return {
+                "address": data.get("address"),
+                "values": data.get("values"),
+                "text": data.get("text"),
+                "formulas": data.get("formulas"),
+                "numberFormat": data.get("numberFormat"),
+                "rowCount": data.get("rowCount"),
+                "columnCount": data.get("columnCount"),
+                "cellCount": data.get("cellCount"),
+                "valueTypes": data.get("valueTypes"),
+            }
+
+        if action == "set_conditional_format":
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
+            cell_range = params.get("range") or params.get("address")
+            if not cell_range:
+                return {"error": "range is required"}
+            rule = (params.get("rule") or "colorScale").strip()
+            # Build a minimal body per rule type — Graph accepts richer configs too
+            body: dict = {"type": rule[0].upper() + rule[1:]}  # normalize to PascalCase
+            if rule.lower() == "colorscale":
+                body["colorScale"] = {
+                    "criteria": {
+                        "minimum": {"type": "LowestValue", "color": params.get("min_color", "#FFFFFF")},
+                        "maximum": {"type": "HighestValue", "color": params.get("max_color", "#FF0000")},
+                    }
+                }
+            elif rule.lower() == "databar":
+                body["dataBar"] = {"axisFormat": "Automatic", "barDirection": "LeftToRight"}
+            elif rule.lower() == "iconset":
+                body["iconSet"] = {"style": params.get("style", "ThreeTrafficLights1")}
+            elif rule.lower() in ("top", "bottom"):
+                body["topBottom"] = {
+                    "rank": int(params.get("rank", 10)),
+                    "type": "Items" if str(params.get("type", "items")).lower() == "items" else "Percent",
+                    "isTopRanked": rule.lower() == "top",
+                }
+            elif rule.lower() == "aboveaverage":
+                body["aboveAverage"] = {"isAboveAverage": True}
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')/conditionalFormats/add",
+                headers=headers,
+                json=body,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not set conditional format: {r.text[:200]}"}
+            return {"message": f"Added {rule} conditional format to {worksheet}!{cell_range}"}
+
+        if action == "execute_function":
+            # This is the meta-action — lets the AI call ANY Excel worksheet function
+            # (400+ functions like VLOOKUP, XLOOKUP, SUMIF, TEXTJOIN, TRIM, etc.)
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            func = params.get("function") or params.get("name")
+            if not func:
+                return {"error": "function name is required (e.g. VLOOKUP, SUMIF, XLOOKUP)"}
+            args = params.get("args")
+            if isinstance(args, str):
+                try:
+                    args = json.loads(args)
+                except Exception:
+                    # Fall back to comma-split for simple cases
+                    args = [a.strip() for a in args.split(",")]
+            if not isinstance(args, list):
+                args = []
+            # Graph expects each arg as a discrete field — map positionally
+            body = {f"arg{i+1}": a for i, a in enumerate(args)} if len(args) > 1 else {"values": args[0] if args else ""}
+            # Graph's function API uses function names in camelCase (e.g. vLookup). Convert:
+            func_name = func[0].lower() + func[1:] if func else ""
+            r = await client.post(
+                f"{base}/me/drive/items/{workbook_id}/workbook/functions/{func_name}",
+                headers=headers,
+                json=body,
+            )
+            if r.status_code >= 400:
+                return {
+                    "error": f"Could not execute {func}: {r.text[:300]}",
+                    "hint": "Make sure args match the function signature. Range refs should be full addresses like 'Sheet1!A1:B10'.",
+                }
+            data = r.json() or {}
+            return {
+                "function": func,
+                "value": data.get("value"),
+                "error_code": data.get("error"),
+            }
 
         if action == "create_workbook":
             name = params.get("name") or "New Workbook"
