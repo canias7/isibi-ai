@@ -442,13 +442,70 @@ def _js_weekday(now: datetime) -> int:
     return (now.weekday() + 1) % 7
 
 
+# Cap how many ghost tasks can be running concurrently across the whole
+# backend, regardless of how many scheduler ticks have spawned them. Prevents
+# Anthropic / SMTP rate-limit blowouts when many tasks pile up at once.
+_GHOST_TASK_SEM = asyncio.Semaphore(10)
+
+# How far back to still consider a task "due". With fire-and-forget execution
+# the scheduler tick is non-blocking, but the executor itself can still slow
+# the loop on a busy event loop, and DB / network hiccups can delay a tick.
+# A 5-minute window means a task fires even if the scheduler missed its exact
+# minute, and the per-task last_run_at debounce stops any double-fire.
+_GHOST_DUE_WINDOW = timedelta(minutes=5)
+
+
+def _ghost_most_recent_instance(
+    kind: str,
+    days: list[int],
+    hour: int,
+    minute: int,
+    once_date: tuple[int, int, int] | None,
+    now_local: datetime,
+) -> datetime | None:
+    """Return the most recent at-or-before scheduled fire time in `now_local`'s
+    timezone, or None if the task has no due instance."""
+    if kind == "once":
+        if once_date is None:
+            return None
+        mo, d, y = once_date
+        try:
+            return now_local.replace(
+                year=y, month=mo, day=d, hour=hour, minute=minute, second=0, microsecond=0
+            )
+        except ValueError:
+            return None
+
+    if kind == "recurring":
+        # Today's instance at hour:minute
+        today_inst = now_local.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        candidates: list[datetime] = []
+        if _js_weekday(today_inst) in days and today_inst <= now_local:
+            candidates.append(today_inst)
+        # Also consider yesterday — handles tasks scheduled near midnight
+        # where "today's" instance is still in the future but yesterday's
+        # instance is just a few minutes ago.
+        y_inst = today_inst - timedelta(days=1)
+        if _js_weekday(y_inst) in days and y_inst <= now_local:
+            candidates.append(y_inst)
+        return max(candidates) if candidates else None
+
+    return None
+
+
 async def _run_ghost_scheduled_tasks():
-    """Fire user-scoped mobile scheduled tasks whose minute matches the user's local clock."""
+    """Fire user-scoped mobile scheduled tasks within a 5-minute due window.
+
+    Each due task is dispatched as a background asyncio.Task so a slow run
+    can never block the scheduler loop. last_run_at is stamped synchronously
+    BEFORE dispatch so the next tick won't double-fire it while it's still
+    running. The shared _GHOST_TASK_SEM caps total concurrency across all
+    background runs.
+    """
     from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
     async with async_session() as db:
         try:
             from models.ghost_scheduled_task import GhostScheduledTask
-            from worker.ghost_task_executor import execute_ghost_task
 
             now_utc = datetime.now(timezone.utc)
 
@@ -457,9 +514,6 @@ async def _run_ghost_scheduled_tasks():
             )
             tasks = result.scalars().all()
 
-            # Filter to tasks that are actually due right now (cheap, synchronous).
-            # Each task has its own timezone so we convert the current UTC time
-            # into the task's local zone before matching hour/minute.
             due: list = []
             for task in tasks:
                 try:
@@ -474,30 +528,22 @@ async def _run_ghost_scheduled_tasks():
                         tz = ZoneInfo("UTC")
                     now_local = now_utc.astimezone(tz)
 
-                    if now_local.hour != hour or now_local.minute != minute:
+                    scheduled_local = _ghost_most_recent_instance(
+                        kind, days, hour, minute, once_date, now_local
+                    )
+                    if scheduled_local is None:
                         continue
-                    if kind == "once":
-                        if once_date is None:
-                            continue
-                        mo, d, y = once_date
-                        if not (now_local.month == mo and now_local.day == d and now_local.year == y):
-                            continue
-                    elif kind == "recurring":
-                        if _js_weekday(now_local) not in days:
-                            continue
-                    else:
+
+                    # Within the grace window?
+                    if (now_local - scheduled_local) > _GHOST_DUE_WINDOW:
                         continue
-                    # Debounce: avoid running the same task twice in the same minute
-                    if task.last_run_at:
-                        last_local = task.last_run_at.astimezone(tz)
-                        if (
-                            last_local.year == now_local.year
-                            and last_local.month == now_local.month
-                            and last_local.day == now_local.day
-                            and last_local.hour == now_local.hour
-                            and last_local.minute == now_local.minute
-                        ):
+
+                    # Debounce: did we already run this exact instance?
+                    if task.last_run_at is not None:
+                        scheduled_utc = scheduled_local.astimezone(timezone.utc)
+                        if task.last_run_at >= scheduled_utc:
                             continue
+
                     due.append(task)
                 except Exception as e:
                     logger.warning("Ghost task filter %s failed: %s", task.label, e)
@@ -505,33 +551,54 @@ async def _run_ghost_scheduled_tasks():
             if not due:
                 return
 
-            # Run due tasks concurrently, but cap concurrency so we don't
-            # blow out Anthropic rate limits or SMTP providers. Each task
-            # gets its own DB session so they don't fight over one cursor.
-            sem = asyncio.Semaphore(10)
-
-            async def _run_one(t):
-                async with sem:
-                    try:
-                        async with async_session() as task_db:
-                            result_text = await execute_ghost_task(t, task_db)
-                        # last_run_at is stored in UTC for consistency. Was previously
-                        # referencing an undefined `now` and crashing silently here,
-                        # which prevented the success log from ever appearing.
-                        t.last_run_at = now_utc
-                        t.last_result = (result_text or "")[:2000]
-                        logger.info(
-                            "Ghost scheduled task fired: %s (%s) → %s",
-                            t.label, t.user_email, (result_text or "")[:120],
-                        )
-                    except Exception as e:
-                        logger.warning("Ghost task %s failed: %s", t.label, e, exc_info=True)
-
-            await asyncio.gather(*(_run_one(t) for t in due), return_exceptions=True)
+            # Stamp last_run_at NOW so the next scheduler tick can't pick the
+            # same task up again while it's still running in the background.
+            for t in due:
+                t.last_run_at = now_utc
             await db.commit()
-            logger.info("Ghost scheduler fired %d tasks in parallel", len(due))
+
+            # Fire-and-forget: each task runs in its own background asyncio
+            # Task with its own DB session. The scheduler loop returns
+            # immediately and resumes ticking on time even if a task takes
+            # several minutes.
+            for t in due:
+                asyncio.create_task(_run_one_ghost_task_bg(t.id))
+            logger.info("Ghost scheduler dispatched %d tasks (background)", len(due))
         except Exception as e:
             logger.warning("Ghost scheduled tasks check failed: %s", e, exc_info=True)
+
+
+async def _run_one_ghost_task_bg(task_id):
+    """Background runner for a single ghost scheduled task. Uses its own DB
+    session so it can outlive the scheduler tick that dispatched it. Caps
+    global concurrency via _GHOST_TASK_SEM."""
+    async with _GHOST_TASK_SEM:
+        try:
+            async with async_session() as task_db:
+                from models.ghost_scheduled_task import GhostScheduledTask
+                from worker.ghost_task_executor import execute_ghost_task
+
+                res = await task_db.execute(
+                    select(GhostScheduledTask).where(GhostScheduledTask.id == task_id)
+                )
+                t = res.scalar_one_or_none()
+                if t is None:
+                    return
+
+                try:
+                    result_text = await execute_ghost_task(t, task_db)
+                    t.last_result = (result_text or "")[:2000]
+                    logger.info(
+                        "Ghost scheduled task fired: %s (%s) → %s",
+                        t.label, t.user_email, (result_text or "")[:120],
+                    )
+                except Exception as e:
+                    t.last_result = f"Error: {e}"[:2000]
+                    logger.warning("Ghost task %s failed: %s", t.label, e, exc_info=True)
+
+                await task_db.commit()
+        except Exception as e:
+            logger.warning("Background ghost task wrapper failed: %s", e, exc_info=True)
 
 
 async def _cleanup_old_data():
