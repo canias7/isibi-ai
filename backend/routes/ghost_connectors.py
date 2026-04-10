@@ -1912,35 +1912,79 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
 
     async def _resolve_workbook_id(client: httpx.AsyncClient, workbook_ref: str) -> tuple[Optional[str], Optional[str]]:
         """Accept either a Graph item id OR a filename. Returns (item_id, error)."""
+        from urllib.parse import quote as _q
         if not workbook_ref:
             return None, "workbook_id is required"
-        # If it looks like a filename (contains .xlsx or a slash), resolve via the drive path lookup
+        # Graph item ids look like "01ABCXYZ..." — no dots, no slashes, all uppercase hex-ish
         looks_like_filename = (
             workbook_ref.lower().endswith(".xlsx")
             or "/" in workbook_ref
-            or "." in workbook_ref and not workbook_ref.startswith("01")  # Graph item ids start with 01
+            or ("." in workbook_ref and not workbook_ref.startswith("01"))
+            or " " in workbook_ref
         )
-        if looks_like_filename:
-            # Try direct path lookup in the root first
-            name = workbook_ref.lstrip("/")
-            if not name.lower().endswith(".xlsx"):
-                name = f"{name}.xlsx"
-            r = await client.get(f"{base}/me/drive/root:/{name}", headers=headers)
-            if r.status_code == 200:
-                return r.json().get("id"), None
-            # Fall back: search the drive
-            r = await client.get(
-                f"{base}/me/drive/root/search(q='{name}')",
+        if not looks_like_filename:
+            return workbook_ref, None
+
+        name = workbook_ref.lstrip("/")
+        if not name.lower().endswith(".xlsx"):
+            name = f"{name}.xlsx"
+        name_lower = name.lower()
+        encoded = _q(name)
+
+        # Attempt 1: direct drive-path lookup in root
+        r = await client.get(f"{base}/me/drive/root:/{encoded}", headers=headers)
+        if r.status_code == 200:
+            return r.json().get("id"), None
+
+        # Attempt 2: Graph search (works across all folders + indexed drive)
+        r = await client.get(
+            f"{base}/me/drive/root/search(q='{_q(name.rsplit('.', 1)[0])}')",
+            headers=headers,
+            params={"$top": 25, "$select": "id,name,parentReference"},
+        )
+        if r.status_code == 200:
+            for it in (r.json() or {}).get("value", []):
+                if (it.get("name") or "").lower() == name_lower:
+                    return it.get("id"), None
+
+        # Attempt 3: list all children of the drive root
+        candidate_names: list[str] = []
+        r = await client.get(
+            f"{base}/me/drive/root/children",
+            headers=headers,
+            params={"$top": 200, "$select": "id,name,folder"},
+        )
+        subfolder_ids: list[str] = []
+        if r.status_code == 200:
+            for it in (r.json() or {}).get("value", []):
+                nm = it.get("name") or ""
+                if it.get("folder"):
+                    subfolder_ids.append(it.get("id"))
+                    continue
+                candidate_names.append(nm)
+                if nm.lower() == name_lower:
+                    return it.get("id"), None
+
+        # Attempt 4: scan one level of subfolders
+        for fid in subfolder_ids[:20]:
+            rr = await client.get(
+                f"{base}/me/drive/items/{fid}/children",
                 headers=headers,
-                params={"$top": 10, "$select": "id,name"},
+                params={"$top": 200, "$select": "id,name"},
             )
-            if r.status_code == 200:
-                for it in (r.json() or {}).get("value", []):
-                    if (it.get("name") or "").lower() == name.lower():
+            if rr.status_code == 200:
+                for it in (rr.json() or {}).get("value", []):
+                    nm = it.get("name") or ""
+                    candidate_names.append(nm)
+                    if nm.lower() == name_lower:
                         return it.get("id"), None
-            return None, f"Could not find a workbook named '{workbook_ref}' in your OneDrive"
-        # Otherwise assume it's already a Graph item id
-        return workbook_ref, None
+
+        found_preview = ", ".join(candidate_names[:10]) if candidate_names else "nothing"
+        return None, (
+            f"Could not find a workbook named '{workbook_ref}' in your OneDrive. "
+            f"Files I did find: {found_preview}. "
+            f"Tip: make sure the file is saved to OneDrive root (not Personal Vault), and try 'list my Excel files' to see the exact filename."
+        )
 
     async with httpx.AsyncClient(timeout=30) as client:
         if action == "list_workbooks":
