@@ -24,9 +24,14 @@ executor (`run_plan`) or from a standalone HTTP endpoint.
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import logging
+import os
+import shutil
+import tempfile
+import uuid
 from typing import Tuple
 
 logger = logging.getLogger(__name__)
@@ -340,6 +345,10 @@ def convert_bytes(data: bytes, from_ext: str, to_ext: str, *, out_name: str = "o
     """Convert `data` from `from_ext` to `to_ext`. Returns (bytes, mime, filename).
 
     Raises ValueError if the conversion pair isn't supported.
+
+    This is the synchronous, pure-Python dispatcher. For LibreOffice-backed
+    conversions (true pixel-preserving docx↔pdf, docx↔xlsx, pdf→docx, etc.)
+    use `convert_bytes_async` instead.
     """
     src = _norm_ext(from_ext)
     dst = _norm_ext(to_ext)
@@ -358,3 +367,167 @@ def convert_bytes(data: bytes, from_ext: str, to_ext: str, *, out_name: str = "o
         raise ValueError(f"Unsupported conversion: {src} → {dst}. Supported: {', '.join(list_supported())}")
 
     return fn(data), _mime_for(dst), f"{out_name}.{dst}"
+
+
+# ── LibreOffice headless converter ─────────────────────────────────────────
+#
+# When the Docker image has `soffice` on PATH, we delegate high-fidelity
+# office conversions to it. The native Python converters above stay as a
+# fallback so local dev and older deployments keep working.
+
+# Formats LibreOffice can read (from the common file type registry).
+_LO_INPUT = {
+    "doc", "docx", "odt", "rtf", "txt", "md", "html", "htm",
+    "xls", "xlsx", "ods", "csv", "tsv",
+    "ppt", "pptx", "odp",
+    "pdf",  # import filter (read-only)
+    "epub",
+}
+# Formats LibreOffice can write.
+_LO_OUTPUT = {
+    "pdf",
+    "docx", "doc", "odt", "rtf", "txt", "html",
+    "xlsx", "xls", "ods", "csv",
+    "pptx", "ppt", "odp",
+    "png", "jpg", "svg", "epub",
+}
+
+# Which (src, dst) pairs we PREFER to route through LibreOffice even if a
+# native converter also exists. We use LO for anything where layout matters.
+_LO_PREFERRED: set[tuple[str, str]] = {
+    ("docx", "pdf"), ("doc", "pdf"), ("odt", "pdf"), ("rtf", "pdf"),
+    ("pptx", "pdf"), ("ppt", "pdf"), ("odp", "pdf"),
+    ("xlsx", "pdf"), ("xls", "pdf"), ("ods", "pdf"),
+    ("html", "pdf"),
+    # Office ↔ office (for editing flows)
+    ("pdf", "docx"), ("pdf", "odt"), ("pdf", "txt"),
+    ("docx", "odt"), ("odt", "docx"),
+    ("xlsx", "ods"), ("ods", "xlsx"),
+    ("pptx", "odp"), ("odp", "pptx"),
+    # Cross-family edits (LO does a best-effort layout)
+    ("docx", "html"), ("xlsx", "html"),
+}
+
+_LO_LOCK = asyncio.Lock()  # serialize soffice calls — the headless process
+                           # is not safe to run fully concurrent with a
+                           # shared user profile
+
+
+def _soffice_available() -> bool:
+    """Return True if soffice is on PATH. Cached via env lookup."""
+    return shutil.which("soffice") is not None
+
+
+def _lo_target_filter(dst: str) -> str:
+    """Some target extensions need a specific LibreOffice export filter to
+    force the modern OOXML output instead of the legacy binary format."""
+    return {
+        "docx": "docx:MS Word 2007 XML",
+        "xlsx": "xlsx:Calc Office Open XML",
+        "pptx": "pptx:Impress MS PowerPoint 2007 XML",
+        "pdf": "pdf",
+    }.get(dst, dst)
+
+
+async def _convert_with_libreoffice(data: bytes, src_ext: str, dst_ext: str) -> bytes:
+    """Run `soffice --headless --convert-to` in a unique temp dir.
+
+    Each call gets its own user profile so multiple requests can safely
+    share one process pool. The overall _LO_LOCK still serializes calls
+    because soffice can still race on shared font caches if you hammer it.
+    """
+    if not _soffice_available():
+        raise RuntimeError("LibreOffice (soffice) not available on this host")
+
+    workdir = tempfile.mkdtemp(prefix="lo-")
+    profile = os.path.join(workdir, "profile")
+    outdir = os.path.join(workdir, "out")
+    os.makedirs(profile, exist_ok=True)
+    os.makedirs(outdir, exist_ok=True)
+    in_name = f"input-{uuid.uuid4().hex}.{src_ext}"
+    in_path = os.path.join(workdir, in_name)
+    with open(in_path, "wb") as f:
+        f.write(data)
+
+    target = _lo_target_filter(dst_ext)
+    cmd = [
+        "soffice",
+        "--headless",
+        "--nologo",
+        "--nofirststartwizard",
+        "--norestore",
+        f"-env:UserInstallation=file://{profile}",
+        "--convert-to", target,
+        "--outdir", outdir,
+        in_path,
+    ]
+
+    async with _LO_LOCK:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            try:
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
+            except asyncio.TimeoutError:
+                proc.kill()
+                raise RuntimeError("LibreOffice conversion timed out after 120s")
+            if proc.returncode != 0:
+                raise RuntimeError(f"soffice exited {proc.returncode}: {stderr.decode('utf-8', 'replace')[:400]}")
+
+            # soffice names the output after the input file with the new ext
+            base_in = os.path.splitext(in_name)[0]
+            out_path = os.path.join(outdir, f"{base_in}.{dst_ext}")
+            if not os.path.exists(out_path):
+                # Fall back to whatever file actually landed in outdir
+                candidates = [f for f in os.listdir(outdir) if f.startswith(base_in)]
+                if not candidates:
+                    raise RuntimeError(f"soffice produced no output. stderr={stderr.decode('utf-8','replace')[:400]}")
+                out_path = os.path.join(outdir, candidates[0])
+            with open(out_path, "rb") as f:
+                return f.read()
+        finally:
+            shutil.rmtree(workdir, ignore_errors=True)
+
+
+async def convert_bytes_async(data: bytes, from_ext: str, to_ext: str, *, out_name: str = "output") -> Tuple[bytes, str, str]:
+    """Async dispatcher. Prefers LibreOffice for office-format conversions
+    when `soffice` is available; falls back to the pure-Python converters
+    otherwise. Image conversions always stay on the Python path (Pillow is
+    faster and more predictable than LO for bitmaps).
+    """
+    src = _norm_ext(from_ext)
+    dst = _norm_ext(to_ext)
+
+    if src == dst:
+        return data, _mime_for(dst), f"{out_name}.{dst}"
+
+    # Images — always Python/Pillow
+    if src in _IMAGE_EXTS and (dst in _IMAGE_EXTS or dst == "pdf"):
+        return convert_bytes(data, src, dst, out_name=out_name)
+
+    use_lo = (
+        _soffice_available()
+        and src in _LO_INPUT
+        and dst in _LO_OUTPUT
+        and ((src, dst) in _LO_PREFERRED or (src, dst) not in _TABLE)
+    )
+    if use_lo:
+        try:
+            out = await _convert_with_libreoffice(data, src, dst)
+            return out, _mime_for(dst), f"{out_name}.{dst}"
+        except Exception as e:
+            # Log and try the Python fallback if one exists
+            logger.warning("LibreOffice conversion %s→%s failed: %s", src, dst, e)
+            if (src, dst) not in _TABLE and not (src in _IMAGE_EXTS):
+                raise
+
+    # Fall through to the sync Python dispatcher
+    return convert_bytes(data, src, dst, out_name=out_name)
+
+
+def list_supported_lo() -> list[str]:
+    """Return the LibreOffice-backed pairs we'll prefer when soffice exists."""
+    return sorted(f"{a}→{b}" for (a, b) in _LO_PREFERRED)

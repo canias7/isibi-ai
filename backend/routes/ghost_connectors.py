@@ -1905,9 +1905,9 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                 # Infer from_ext from filename if still missing
                 if not from_hint and "." in src_name:
                     from_hint = src_name.rsplit(".", 1)[-1]
-                from services.file_convert import convert_bytes as _convert_bytes
+                from services.file_convert import convert_bytes_async as _convert_bytes_async
                 out_name_base = (src_name.rsplit(".", 1)[0] or "file")
-                out_bytes, out_mime, out_filename = _convert_bytes(src_bytes, from_hint, to_hint, out_name=out_name_base)
+                out_bytes, out_mime, out_filename = await _convert_bytes_async(src_bytes, from_hint, to_hint, out_name=out_name_base)
                 outputs[sid] = {"bytes": out_bytes, "filename": out_filename, "content_type": out_mime, "size": len(out_bytes)}
                 step_results.append({"id": sid, "type": "convert_file", "ok": True, "result": {"filename": out_filename, "size": len(out_bytes), "from": from_hint, "to": to_hint}})
 
@@ -1983,7 +1983,7 @@ async def convert_file_endpoint(
     convert_file step of /run_plan instead.
     """
     _verify_auth(authorization)  # auth is required, but we don't need the sub
-    from services.file_convert import convert_bytes as _convert_bytes
+    from services.file_convert import convert_bytes_async as _convert_bytes_async
 
     data = await file.read()
     if not data:
@@ -2000,7 +2000,7 @@ async def convert_file_endpoint(
         raise HTTPException(400, "Could not detect source format — include from_ext")
 
     try:
-        out_bytes, out_mime, out_filename = _convert_bytes(
+        out_bytes, out_mime, out_filename = await _convert_bytes_async(
             data, source_hint, to,
             out_name=(file.filename.rsplit(".", 1)[0] if file.filename else "file"),
         )
@@ -2020,10 +2020,18 @@ async def convert_file_endpoint(
 @router.get("/convert/supported")
 async def convert_supported(authorization: str = Header(...)):
     """List every conversion pair supported by /convert and the convert_file
-    plan step. Used by the chat UI to gate the convert button."""
+    plan step. Used by the chat UI to gate the convert button.
+
+    Returns pure-Python pairs under `pairs` and LibreOffice-backed pairs
+    (only active when soffice is on PATH in the container) under `lo_pairs`.
+    """
     _verify_auth(authorization)
-    from services.file_convert import list_supported
-    return {"pairs": list_supported()}
+    from services.file_convert import list_supported, list_supported_lo, _soffice_available
+    return {
+        "pairs": list_supported(),
+        "lo_pairs": list_supported_lo(),
+        "lo_available": _soffice_available(),
+    }
 
 
 # ── Adapter implementations ─────────────────────────────────────────────
