@@ -1383,8 +1383,34 @@ async def disconnect_app(app_id: str, authorization: str = Header(...), db: Asyn
 # authorize URL in the system browser, Microsoft redirects to our backend
 # callback, we exchange the code for tokens and store them encrypted.
 
-_MS_AUTH_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
-_MS_TOKEN_URL = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+def _ms_client_id() -> str:
+    # Prefer the dedicated env var, fall back to the Teams bot's App ID since
+    # both point at the same Azure AD App Registration in practice.
+    return os.getenv("MICROSOFT_CLIENT_ID") or os.getenv("TEAMS_APP_ID") or ""
+
+
+def _ms_client_secret() -> str:
+    return os.getenv("MICROSOFT_CLIENT_SECRET") or os.getenv("TEAMS_APP_PASSWORD") or ""
+
+
+def _ms_redirect_uri() -> str:
+    return os.getenv("MICROSOFT_REDIRECT_URI") or "https://isibi-backend.onrender.com/api/ghost/connectors/oauth/microsoft/callback"
+
+
+def _ms_tenant() -> str:
+    # If the Azure app is single-tenant the tenant GUID is required in the
+    # authorize/token URLs. For multi-tenant apps "common" works.
+    return os.getenv("MICROSOFT_TENANT_ID") or os.getenv("TEAMS_TENANT_ID") or "common"
+
+
+def _ms_auth_url() -> str:
+    return f"https://login.microsoftonline.com/{_ms_tenant()}/oauth2/v2.0/authorize"
+
+
+def _ms_token_url() -> str:
+    return f"https://login.microsoftonline.com/{_ms_tenant()}/oauth2/v2.0/token"
+
+
 _MS_SCOPES = {
     "excel_online": "Files.ReadWrite offline_access",
     # Future: outlook, onedrive, teams can share the same flow with different scopes
@@ -1416,13 +1442,13 @@ async def oauth_start(app_id: str, authorization: str = Header(...)):
     if info.get("oauth_flow") != "microsoft":
         raise HTTPException(400, f"{info['name']} does not use the Microsoft OAuth flow")
 
-    client_id = os.getenv("MICROSOFT_CLIENT_ID")
-    redirect_uri = os.getenv("MICROSOFT_REDIRECT_URI")
-    if not client_id or not redirect_uri:
+    client_id = _ms_client_id()
+    redirect_uri = _ms_redirect_uri()
+    if not client_id:
         raise HTTPException(
             500,
             "Microsoft OAuth is not configured on the server. "
-            "Set MICROSOFT_CLIENT_ID, MICROSOFT_CLIENT_SECRET, and MICROSOFT_REDIRECT_URI.",
+            "Set MICROSOFT_CLIENT_ID (or TEAMS_APP_ID) and MICROSOFT_CLIENT_SECRET.",
         )
 
     _prune_old_oauth_states()
@@ -1444,7 +1470,7 @@ async def oauth_start(app_id: str, authorization: str = Header(...)):
         "state": state,
         "prompt": "select_account",
     }
-    authorize_url = f"{_MS_AUTH_URL}?{urlencode(params)}"
+    authorize_url = f"{_ms_auth_url()}?{urlencode(params)}"
     return {"authorize_url": authorize_url, "state": state}
 
 
@@ -1483,17 +1509,17 @@ async def oauth_microsoft_callback(
     user_id = session["user_id"]
     app_id = session["app_id"]
 
-    client_id = os.getenv("MICROSOFT_CLIENT_ID")
-    client_secret = os.getenv("MICROSOFT_CLIENT_SECRET")
-    redirect_uri = os.getenv("MICROSOFT_REDIRECT_URI")
-    if not client_id or not client_secret or not redirect_uri:
+    client_id = _ms_client_id()
+    client_secret = _ms_client_secret()
+    redirect_uri = _ms_redirect_uri()
+    if not client_id or not client_secret:
         return _html("Server Misconfigured", "Microsoft OAuth env vars are not set.", ok=False)
 
     # Exchange code for tokens
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.post(
-                _MS_TOKEN_URL,
+                _ms_token_url(),
                 data={
                     "client_id": client_id,
                     "client_secret": client_secret,
@@ -1549,15 +1575,15 @@ async def _refresh_microsoft_token(user_id, app_id: str, creds: dict, db: AsyncS
     if not refresh_token:
         return creds  # caller will get a 401 from Graph
 
-    client_id = os.getenv("MICROSOFT_CLIENT_ID")
-    client_secret = os.getenv("MICROSOFT_CLIENT_SECRET")
+    client_id = _ms_client_id()
+    client_secret = _ms_client_secret()
     if not client_id or not client_secret:
         return creds
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             r = await client.post(
-                _MS_TOKEN_URL,
+                _ms_token_url(),
                 data={
                     "client_id": client_id,
                     "client_secret": client_secret,
