@@ -208,6 +208,14 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
         switchMode('2fa');
         return;
       }
+      // Email not verified — backend just sent a fresh code, route to verify screen.
+      if (data.requires_verification) {
+        setChallengeRequired(false);
+        setLoading(false);
+        Alert.alert('Verify your email', 'We just sent you a new verification code. Please enter it to continue.');
+        switchMode('verify-email');
+        return;
+      }
       setChallengeRequired(false);
       onLogin();
     } catch (e: any) { Alert.alert('Login failed', e.message || 'Check your credentials and try again'); }

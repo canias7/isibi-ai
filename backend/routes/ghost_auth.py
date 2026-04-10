@@ -671,7 +671,26 @@ async def ghost_login(body: GhostLoginRequest, request: Request, db: AsyncSessio
             raise HTTPException(status_code=401, detail={"message": "Invalid email or password", "requires_challenge": True, "challenge": challenge["challenge"], "challenge_id": challenge["challenge_id"]})
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    # Email verification disabled for now — auto-verified on signup
+    # Block unverified accounts from logging in. Generate a fresh code
+    # and tell the mobile client to route to the verify-email screen.
+    if not user.email_verified:
+        code = generate_code()
+        user.verification_code = code
+        user.verification_expires = datetime.now(timezone.utc) + timedelta(minutes=15)
+        await db.commit()
+        try:
+            await send_verification_email(user.email, code)
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "message": "Please verify your email before logging in. We just sent you a new code.",
+                "requires_verification": True,
+                "email": user.email,
+            },
+        )
+
 
     # Geo-blocking check
     try:

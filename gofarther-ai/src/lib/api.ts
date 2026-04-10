@@ -256,12 +256,18 @@ export async function login(email: string, password: string, challengeId?: strin
       return data;
     }
 
+    // Email not verified — backend returns 403 with detail.requires_verification.
+    // Return that to the UI so it can switch to the verify-email screen.
+    if (res.status === 403 && data?.detail?.requires_verification) {
+      return { requires_verification: true, email: data.detail.email };
+    }
+
     if (!res.ok) {
       if (res.status === 401) {
         await clearToken();
         throw new Error('Session expired. Please log in again.');
       }
-      throw new Error(data.detail || `HTTP ${res.status}`);
+      throw new Error(typeof data.detail === 'string' ? data.detail : (data.detail?.message || `HTTP ${res.status}`));
     }
 
     // If 2FA is required, return the temp_token for the 2FA step
