@@ -2693,16 +2693,67 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             column = (params.get("column") or "").strip().upper()
             if not column:
                 return {"error": "column letter is required (e.g. B)"}
-            # Use Graph's SUM worksheet function
-            r = await client.post(
-                f"{base}/me/drive/items/{workbook_id}/workbook/functions/sum",
+            # Read the used range, then sum the requested column locally.
+            # This is more reliable than Graph's function API, which is picky
+            # about range formats and fails on full-column references.
+            u = await client.get(
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/usedRange(valuesOnly=true)",
                 headers=headers,
-                json={"values": f"{worksheet}!{column}:{column}"},
             )
-            if r.status_code >= 400:
-                return {"error": f"Could not sum column: {r.text[:200]}"}
-            data = r.json() or {}
-            return {"column": column, "sum": data.get("value")}
+            if u.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired."}
+            if u.status_code >= 400:
+                return {"error": f"Worksheet '{worksheet}' is empty or unreadable"}
+            used = u.json() or {}
+            values = used.get("values") or []
+            if not values:
+                return {"column": column, "sum": 0, "count": 0}
+            # Figure out which index the requested column maps to inside the used range
+            addr = used.get("address", f"{worksheet}!A1")
+            try:
+                top_left = addr.split("!")[-1].split(":")[0]
+                start_col_letters = "".join(c for c in top_left if c.isalpha()) or "A"
+            except Exception:
+                start_col_letters = "A"
+            def _letters_to_idx(letters: str) -> int:
+                n = 0
+                for c in letters.upper():
+                    n = n * 26 + (ord(c) - 64)
+                return n
+            start_idx = _letters_to_idx(start_col_letters)
+            target_idx = _letters_to_idx(column)
+            col_offset = target_idx - start_idx
+            if col_offset < 0:
+                return {"column": column, "sum": 0, "count": 0}
+            # Sum numeric cells in the chosen column, skipping a header if the
+            # first row contains non-numeric text in that slot
+            total = 0.0
+            count = 0
+            rows_iter = values
+            # Skip header row if the first cell in this column isn't a number
+            if rows_iter:
+                first_val = rows_iter[0][col_offset] if col_offset < len(rows_iter[0]) else None
+                if first_val is not None and not isinstance(first_val, (int, float)):
+                    rows_iter = rows_iter[1:]
+            for row in rows_iter:
+                if col_offset >= len(row):
+                    continue
+                val = row[col_offset]
+                if isinstance(val, (int, float)):
+                    total += float(val)
+                    count += 1
+                elif isinstance(val, str):
+                    # Handle strings that look like numbers ("1500", "$299.99")
+                    cleaned = val.replace("$", "").replace(",", "").strip()
+                    if cleaned:
+                        try:
+                            total += float(cleaned)
+                            count += 1
+                        except ValueError:
+                            pass
+            # Cast to int when the result is whole so the display is clean
+            final: float | int = int(total) if total == int(total) else round(total, 2)
+            return {"column": column, "sum": final, "count": count, "worksheet": worksheet}
 
         if action == "get_last_row":
             ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
