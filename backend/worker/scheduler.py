@@ -515,7 +515,10 @@ async def _run_ghost_scheduled_tasks():
                     try:
                         async with async_session() as task_db:
                             result_text = await execute_ghost_task(t, task_db)
-                        t.last_run_at = now
+                        # last_run_at is stored in UTC for consistency. Was previously
+                        # referencing an undefined `now` and crashing silently here,
+                        # which prevented the success log from ever appearing.
+                        t.last_run_at = now_utc
                         t.last_result = (result_text or "")[:2000]
                         logger.info(
                             "Ghost scheduled task fired: %s (%s) → %s",
