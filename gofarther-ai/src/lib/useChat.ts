@@ -648,7 +648,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           if (data.payments) formatted += '\n\n' + data.payments.map((p: any) => `**$${p.amount}** ${p.currency?.toUpperCase() || ''} · ${p.status} ${p.description ? `· ${p.description}` : ''}`).join('\n');
           if (data.available !== undefined) formatted += `\n\nAvailable: $${data.available}\nPending: $${data.pending}`;
           if (data.payment_link) formatted += `\n\n[Payment Link](${data.payment_link})`;
-          if (data.count !== undefined && !formatted.includes('count')) formatted += `\n\n_${data.count} results_`;
+          if (data.sum !== undefined) formatted += `\n\n**Sum of column ${data.column || ''}:** ${typeof data.sum === 'number' ? data.sum.toLocaleString() : data.sum}${data.count !== undefined ? ` _(${data.count} values)_` : ''}`;
+          else if (data.count !== undefined && !formatted.includes('count')) formatted += `\n\n_${data.count} results_`;
           if (!formatted.trim()) formatted = JSON.stringify(data, null, 2).slice(0, 2000);
           updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + formatted.trim() });
         }).catch(e => {
