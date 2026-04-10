@@ -175,9 +175,9 @@ APP_REGISTRY: dict[str, dict] = {
     },
     "ringy": {
         "name": "Ringy", "category": "CRM", "icon": "call",
-        "auth_fields": [{"key": "sid", "label": "SID"}, {"key": "auth_token", "label": "Auth Token", "secure": True}],
-        "setup": "Go to Ringy → Settings → Lead Vendors → Create vendor → Copy the SID and Auth Token.",
-        "actions": ["get_leads", "create_lead"],
+        "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
+        "setup": "Go to Ringy → Settings → Account Settings → Manage Account → API Keys → Create API Key (enable permissions: Lead data, Call data, Call recordings, Lead sold products, Create appointment). Paste the key here.",
+        "actions": ["get_lead", "get_call", "get_sold_products", "get_call_recordings", "create_appointment"],
     },
     "close": {
         "name": "Close", "category": "CRM", "icon": "checkmark-circle",
@@ -1483,6 +1483,142 @@ async def _salesforce_adapter(action: str, params: dict, creds: dict) -> dict:
     return {"error": f"Unknown action: {action}"}
 
 
+async def _ringy_adapter(action: str, params: dict, creds: dict) -> dict:
+    """Ringy CRM adapter.
+
+    Ringy's public API uses POST requests with the API key in the JSON body
+    (not a header), and every lookup is per-ID rather than collection-based.
+    We expose the 5 documented endpoints:
+
+      - get_lead              → POST /get-lead              (one lead by id)
+      - get_call              → POST /get-calls             (one call by id)
+      - get_sold_products     → POST /get-lead-sold-products (date-range list)
+      - get_call_recordings   → POST /get-call-recordings    (date-range list)
+      - create_appointment    → POST /create-appointment     (write)
+
+    Note: Ringy does NOT offer a "list all leads" endpoint. The closest
+    thing is to call get_sold_products for a date range and walk the
+    returned leadIds — callers that want "recent leads" can do that.
+    """
+    api_key = creds.get("api_key")
+    if not api_key:
+        # User has an old SID/Auth Token-based connection from the Lead Vendor
+        # era. Tell them to reconnect with a real API key.
+        return {
+            "error": (
+                "Ringy is connected with old credentials. Please reconnect "
+                "in Settings → My Apps → Ringy using an API Key from "
+                "Ringy → Settings → Account Settings → Manage Account → API Keys."
+            )
+        }
+
+    base = "https://app.ringy.com/api/public/external"
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        if action == "get_lead":
+            lead_id = params.get("lead_id") or params.get("leadId")
+            if not lead_id:
+                return {"error": "lead_id is required"}
+            r = await client.post(
+                f"{base}/get-lead",
+                json={"apiKey": api_key, "leadId": lead_id},
+            )
+            r.raise_for_status()
+            return {"lead": r.json()}
+
+        if action == "get_call":
+            call_id = params.get("call_id") or params.get("callId")
+            if not call_id:
+                return {"error": "call_id is required"}
+            r = await client.post(
+                f"{base}/get-calls",
+                json={"apiKey": api_key, "callId": call_id},
+            )
+            r.raise_for_status()
+            return {"call": r.json()}
+
+        if action == "get_sold_products":
+            start = params.get("start_date") or params.get("startDate")
+            end = params.get("end_date") or params.get("endDate")
+            # Default to the last 30 days if the caller didn't specify a range
+            if not start or not end:
+                from datetime import datetime as _dt, timedelta as _td
+                _now = _dt.utcnow()
+                end = _now.strftime("%Y-%m-%d %H:%M:%S")
+                start = (_now - _td(days=30)).strftime("%Y-%m-%d 00:00:00")
+            body: dict = {"apiKey": api_key, "startDate": start, "endDate": end}
+            if params.get("limit"):
+                body["limit"] = int(params["limit"])
+            r = await client.post(f"{base}/get-lead-sold-products", json=body)
+            r.raise_for_status()
+            data = r.json() or []
+            return {
+                "sold_products": data,
+                "count": len(data),
+                "start_date": start,
+                "end_date": end,
+            }
+
+        if action == "get_call_recordings":
+            start = params.get("start_date") or params.get("startDate")
+            end = params.get("end_date") or params.get("endDate")
+            if not start or not end:
+                from datetime import datetime as _dt, timedelta as _td
+                _now = _dt.utcnow()
+                end = _now.strftime("%Y-%m-%d %H:%M:%S")
+                start = (_now - _td(days=30)).strftime("%Y-%m-%d 00:00:00")
+            body = {"apiKey": api_key, "startDate": start, "endDate": end}
+            if params.get("limit"):
+                body["limit"] = int(params["limit"])
+            r = await client.post(f"{base}/get-call-recordings", json=body)
+            r.raise_for_status()
+            data = r.json() or []
+            return {
+                "recordings": data,
+                "count": len(data),
+                "start_date": start,
+                "end_date": end,
+            }
+
+        if action == "create_appointment":
+            start_time = params.get("start")
+            if not start_time:
+                return {
+                    "error": "start time is required (format: YYYY-MM-DD HH:mm:ss, UTC)"
+                }
+            # Need EITHER leadId OR leadPhoneNumber per Ringy's docs
+            lead_id = params.get("lead_id") or params.get("leadId")
+            lead_phone = params.get("lead_phone") or params.get("leadPhoneNumber")
+            if not lead_id and not lead_phone:
+                return {"error": "Either lead_id or lead_phone is required"}
+            body = {"apiKey": api_key, "start": start_time}
+            if lead_id:
+                body["leadId"] = lead_id
+            if lead_phone:
+                body["leadPhoneNumber"] = lead_phone
+            if params.get("lead_first_name"):
+                body["leadFirstName"] = params["lead_first_name"]
+            if params.get("lead_last_name"):
+                body["leadLastName"] = params["lead_last_name"]
+            if params.get("lead_email"):
+                body["leadEmail"] = params["lead_email"]
+            if params.get("comments"):
+                body["comments"] = params["comments"]
+            if params.get("duration_minutes"):
+                body["durationInMinutes"] = int(params["duration_minutes"])
+            r = await client.post(f"{base}/create-appointment", json=body)
+            r.raise_for_status()
+            data = r.json() or {}
+            if data.get("status") == 200:
+                return {"message": "Appointment created"}
+            return {
+                "error": data.get("message")
+                or f"Ringy returned status {data.get('status')}"
+            }
+
+    return {"error": f"Unknown Ringy action: {action}"}
+
+
 async def _pipedrive_adapter(action: str, params: dict, creds: dict) -> dict:
     token = creds["api_key"]
     base = "https://api.pipedrive.com/v1"
@@ -2058,6 +2194,7 @@ ADAPTERS: dict[str, Any] = {
     # CRM
     "hubspot": _hubspot_adapter,
     "salesforce": _salesforce_adapter,
+    "ringy": _ringy_adapter,
     "pipedrive": _pipedrive_adapter,
     # PM
     "asana": _asana_adapter,
