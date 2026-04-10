@@ -361,7 +361,7 @@ export default function LoginScreen({ onLogin }: { onLogin: () => void }) {
               }}
               delayLongPress={500}
             >
-              <Text style={{ fontSize: 10, color: '#bbb', textAlign: 'center', marginTop: 6 }}>build auth-fix-9 (hold to debug)</Text>
+              <Text style={{ fontSize: 10, color: '#bbb', textAlign: 'center', marginTop: 6 }}>build auth-fix-10 (hold to debug)</Text>
             </TouchableOpacity>
           </SafeAreaView>
         </Animated.View>

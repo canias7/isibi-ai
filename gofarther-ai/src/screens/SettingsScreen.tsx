@@ -107,7 +107,9 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
   const handleLogout = () => {
     Alert.alert('Log Out', 'Are you sure?', [
       { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: async () => { await logout(); onLogout(); } },
+      // onLogout is now the full handleFullLogout from AppNavigator which
+      // already calls api.logout() internally — just invoke it directly.
+      { text: 'Log Out', style: 'destructive', onPress: () => onLogout() },
     ]);
   };
 

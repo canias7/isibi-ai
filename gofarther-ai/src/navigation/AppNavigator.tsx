@@ -12,16 +12,23 @@ import SubscriptionScreen from '../screens/SubscriptionScreen';
 import { getChatSessions, saveChatSessions, ChatSession } from '../lib/storage';
 import { addNotificationResponseListener } from '../lib/notifications';
 import { useInactivityTimeout } from '../lib/useInactivityTimeout';
-import { clearToken } from '../lib/api';
+import { clearToken, logout as apiLogout } from '../lib/api';
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
-  // SOC 2: auto-logout after 30 minutes of inactivity
-  const { resetTimer } = useInactivityTimeout(async () => {
-    await clearToken();
+  // Full logout handler: runs the api.ts logout() which clears the
+  // SecureStore token, writes the logout sentinel, clears active_user_id,
+  // etc. — then calls the navigation callback to flip React state. Both
+  // the drawer's "Log out" button and the inactivity timeout use this
+  // so token clearing can never be skipped.
+  const handleFullLogout = useCallback(async () => {
+    try { await apiLogout(); } catch {}
     onLogout();
-  });
+  }, [onLogout]);
+
+  // SOC 2: auto-logout after 30 minutes of inactivity
+  const { resetTimer } = useInactivityTimeout(handleFullLogout);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
@@ -111,7 +118,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           <Stack.Screen name="Settings">
             {() => (
               <SettingsScreen
-                onLogout={onLogout}
+                onLogout={handleFullLogout}
                 onBack={() => navigationRef.current?.goBack()}
                 onOpenSubscription={() => navigationRef.current?.navigate('Subscription')}
               />
@@ -128,7 +135,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
         onClose={() => setDrawerOpen(false)}
         activeScreen={activeScreen}
         onNavigate={navigate}
-        onLogout={onLogout}
+        onLogout={handleFullLogout}
         sessions={sessions}
         activeSessionId={activeSessionId}
         onSelectSession={openSession}
