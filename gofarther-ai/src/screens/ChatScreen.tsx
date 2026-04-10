@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Image,
   KeyboardAvoidingView, Platform, ActivityIndicator, Animated,
@@ -22,9 +23,10 @@ import { useChat } from '../lib/useChat';
 import {
   getAgents, Agent, getAIName, getUserNickname,
   getChatSessions, saveChatSessions, ChatSession,
-  getMemory, getCustomInstructions, getLanguage, getSavedContacts, getConnectedApps, trackEvent,
+  getMemory, getCustomInstructions, getLanguage, getSavedContacts, getConnectedApps, saveConnectedApps, trackEvent,
   getLearnedPreferences,
 } from '../lib/storage';
+import { getConnectors } from '../lib/api';
 import { runAnalysisIfNeeded } from '../lib/preferenceAnalysis';
 import { HamburgerButton } from '../components/Drawer';
 import VoicePicker, { VoiceOption, VOICES } from '../components/VoicePicker';
@@ -123,14 +125,24 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
   }, [isBusy]);
 
   // Load agents and AI name, build system prompt
-  useEffect(() => {
-    getAgents().then(a => {
-      setAgents(a);
-      if (a.length > 0) setActiveAgent(a.find(x => x.isActive) || a[0]);
-    });
-    getUserNickname().then(n => setUserNickname(n || ''));
-    // Build system prompt with memory, instructions, language
-    Promise.all([getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts(), getConnectedApps(), getLearnedPreferences()]).then(([memory, custom, lang, nick, savedContacts, connectedApps, learnedPrefs]) => {
+  const rebuildSystemPrompt = useCallback(async () => {
+    // Refresh connected apps from the server so newly-added connectors
+    // (e.g. Ringy reconnected with a new API key) show up in the prompt
+    // without requiring a full app restart. Fall back to local cache on
+    // network failure.
+    try {
+      const data = await getConnectors();
+      const freshConnected = (data?.connectors || [])
+        .filter((a: any) => a.connected)
+        .map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions }));
+      await saveConnectedApps(freshConnected);
+    } catch {
+      // Offline or server hiccup — fall through to local cache below
+    }
+
+    const [memory, custom, lang, nick, savedContacts, connectedApps, learnedPrefs] = await Promise.all([
+      getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts(), getConnectedApps(), getLearnedPreferences(),
+    ]);
       setUserNickname(nick || '');
       const langMap: Record<string, string> = { en: '', es: '\n\nIMPORTANT: Always respond in Spanish.', fr: '\n\nIMPORTANT: Always respond in French.', pt: '\n\nIMPORTANT: Always respond in Portuguese.', de: '\n\nIMPORTANT: Always respond in German.' };
       const memoryStr = memory.length > 0 ? '\n\nYou remember these facts about the user:\n' + memory.map((m: any) => '- ' + m.fact).join('\n') : '';
@@ -261,8 +273,27 @@ RULES:
       setSystemPrompt(base + actions + connectedAppsStr + contactsStr + memoryStr + prefsStr + customStr + nicknameStr + (langMap[lang] || ''));
       // Run preference analysis on launch if enough reactions accumulated
       runAnalysisIfNeeded().catch(() => {});
-    });
   }, []);
+
+  // Mount-once: load agents (they rarely change during a session)
+  useEffect(() => {
+    getAgents().then(a => {
+      setAgents(a);
+      if (a.length > 0) setActiveAgent(a.find(x => x.isActive) || a[0]);
+    });
+    getUserNickname().then(n => setUserNickname(n || ''));
+  }, []);
+
+  // Rebuild the system prompt every time this screen becomes focused. This is
+  // what makes a newly-connected app (e.g. Ringy reconnected with a new API
+  // key from Settings) show up in the chat's available tool list without
+  // needing a full app restart. Also re-reads memory/prefs/contacts so any
+  // edits the user just made land immediately.
+  useFocusEffect(
+    useCallback(() => {
+      rebuildSystemPrompt();
+    }, [rebuildSystemPrompt])
+  );
 
   const openMenu = () => {
     Keyboard.dismiss();
