@@ -3290,22 +3290,47 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             # Normalize a few friendly aliases
             target_fmt = {"excel": "xlsx", "spreadsheet": "xlsx", "word": "docx", "text": "txt", "markdown": "md"}.get(target_fmt, target_fmt)
 
-            # Fetch file metadata (gives us name + pre-authed downloadUrl)
+            # Fetch minimal metadata for name/size. We do NOT use $select
+            # here because some Graph tenants drop the @microsoft.graph.downloadUrl
+            # annotation when $select is used — and we want it in either
+            # case for fallback. We'll get the actual download URL from
+            # /content below regardless.
             r = await client.get(
-                f"{base}/me/drive/items/{workbook_id}?$select=id,name,size,@microsoft.graph.downloadUrl",
+                f"{base}/me/drive/items/{workbook_id}",
                 headers=headers,
             )
             if r.status_code >= 400:
-                return {"error": f"Could not fetch download URL: {r.status_code} {r.text[:200]}"}
+                return {"error": f"Could not fetch file metadata: {r.status_code} {r.text[:200]}"}
             meta = r.json() or {}
             raw_name = meta.get("name") or "workbook.xlsx"
             stem = raw_name.rsplit(".", 1)[0]
 
-            # Fast path: raw .xlsx — just hand back the Graph pre-authed URL
+            async def _graph_content_url(format_hint: str | None = None) -> tuple[str | None, str | None]:
+                """Ask Graph for the short-lived download URL via /content.
+                Graph responds with a 302 whose Location is a pre-authed
+                CDN URL. Works on every tenant, no $select weirdness."""
+                url = f"{base}/me/drive/items/{workbook_id}/content"
+                if format_hint:
+                    url += f"?format={format_hint}"
+                rr = await client.get(
+                    url,
+                    headers={"Authorization": f"Bearer {token}"},
+                    follow_redirects=False,
+                )
+                if rr.status_code in (301, 302):
+                    loc = rr.headers.get("Location") or rr.headers.get("location")
+                    return loc, None
+                return None, f"Graph /content returned {rr.status_code}: {rr.text[:200]}"
+
+            # Fast path: raw .xlsx — use /content (no format param) to get
+            # the pre-authed download URL. Fall back to the metadata's
+            # downloadUrl annotation if /content doesn't redirect.
             if target_fmt in ("xlsx", ""):
-                dl = meta.get("@microsoft.graph.downloadUrl")
+                dl, cerr = await _graph_content_url(None)
                 if not dl:
-                    return {"error": "Graph did not return a downloadUrl for this file"}
+                    dl = meta.get("@microsoft.graph.downloadUrl") or meta.get("@content.downloadUrl")
+                if not dl:
+                    return {"error": cerr or "Could not obtain a download URL for this file"}
                 return {
                     "download_url": dl,
                     "filename": raw_name,
@@ -3314,31 +3339,28 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
                     "message": f"{raw_name} ready to download",
                 }
 
-            # Fast path: PDF via Graph's native export (same path as
-            # download_as_pdf, avoids a LibreOffice hop)
+            # Fast path: PDF via Graph's native export
             if target_fmt == "pdf":
-                rp = await client.get(
-                    f"{base}/me/drive/items/{workbook_id}/content?format=pdf",
-                    headers={"Authorization": f"Bearer {token}"},
-                    follow_redirects=False,
-                )
-                if rp.status_code in (301, 302):
+                dl, cerr = await _graph_content_url("pdf")
+                if dl:
                     return {
-                        "download_url": rp.headers.get("Location"),
+                        "download_url": dl,
                         "filename": f"{stem}.pdf",
                         "mime_type": "application/pdf",
                         "message": f"{stem}.pdf ready to download",
                     }
-                return {"error": f"Graph PDF export failed: {rp.status_code}"}
+                return {"error": cerr or "Graph PDF export failed"}
 
             # Slow path: fetch the raw xlsx bytes, then convert server-side
             # to whatever target the user asked for (csv, txt, docx, ods,
             # html, png, etc.). The converted bytes come back inline as
             # base64 so the chat client can write them to cacheDirectory.
-            dl = meta.get("@microsoft.graph.downloadUrl")
-            if not dl:
-                return {"error": "Graph did not return a downloadUrl for the source file"}
-            rb = await client.get(dl, headers={"Authorization": f"Bearer {token}"}, follow_redirects=True)
+            src_url, cerr = await _graph_content_url(None)
+            if not src_url:
+                src_url = meta.get("@microsoft.graph.downloadUrl") or meta.get("@content.downloadUrl")
+            if not src_url:
+                return {"error": cerr or "Could not obtain the source xlsx download URL"}
+            rb = await client.get(src_url, headers={"Authorization": f"Bearer {token}"}, follow_redirects=True)
             if rb.status_code != 200:
                 return {"error": f"Could not fetch source xlsx bytes: {rb.status_code}"}
             try:

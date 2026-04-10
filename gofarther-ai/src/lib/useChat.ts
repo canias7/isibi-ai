@@ -186,7 +186,14 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       let streamedAction: any = null;
       const startTime = Date.now();
       const result = await chatStream(history, systemPromptRef.current, (chunk) => {
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: chunk } : m));
+        // Hide any action JSON from the streaming display so the user
+        // doesn't see raw `{"type":"connector",...}` characters scrolling
+        // in while the model emits it. Only show the prose before the
+        // first `{"type"` occurrence. The final parsed content is set
+        // below once streaming finishes.
+        const jsonStart = chunk.indexOf('{"type"');
+        const displayText = jsonStart >= 0 ? chunk.slice(0, jsonStart).trimEnd() : chunk;
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: displayText } : m));
       }, (action) => {
         streamedAction = action;
       });
