@@ -1764,37 +1764,134 @@ def _resolve_plan_refs(value: Any, outputs: dict[str, dict]) -> Any:
     return value
 
 
+def _xlsx_base_name(n: str) -> str:
+    """Same fuzzy normalization the Excel adapter uses for workbook matching:
+    lowercase, strip repeated .xlsx extensions, drop spaces/underscores/dashes."""
+    s = (n or "").lower().strip()
+    while s.endswith(".xlsx"):
+        s = s[:-5]
+    for ch in (" ", "_", "-"):
+        s = s.replace(ch, "")
+    return s
+
+
+async def _list_all_xlsx(client: "httpx.AsyncClient", token: str) -> list[dict]:
+    """Module-level copy of the Excel adapter's _collect_all_xlsx. Returns
+    every .xlsx in the user's OneDrive (root, first-level subfolders, and
+    the search index). Kept identical so the plan executor's PDF helper
+    matches the same files the Excel adapter would."""
+    base = "https://graph.microsoft.com/v1.0"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    seen: dict[str, dict] = {}
+
+    r = await client.get(
+        f"{base}/me/drive/root/children",
+        headers=headers,
+        params={"$top": 200, "$select": "id,name,folder,webUrl,lastModifiedDateTime"},
+    )
+    subfolder_ids: list[str] = []
+    if r.status_code == 200:
+        for it in (r.json() or {}).get("value", []):
+            if it.get("folder"):
+                if it.get("id"):
+                    subfolder_ids.append(it["id"])
+                continue
+            name = it.get("name") or ""
+            if name.lower().endswith(".xlsx") and it.get("id"):
+                seen[it["id"]] = it
+
+    for fid in subfolder_ids[:20]:
+        rr = await client.get(
+            f"{base}/me/drive/items/{fid}/children",
+            headers=headers,
+            params={"$top": 200, "$select": "id,name,webUrl,lastModifiedDateTime"},
+        )
+        if rr.status_code == 200:
+            for it in (rr.json() or {}).get("value", []):
+                name = it.get("name") or ""
+                if name.lower().endswith(".xlsx") and it.get("id"):
+                    seen.setdefault(it["id"], it)
+
+    rs = await client.get(
+        f"{base}/me/drive/root/search(q='.xlsx')",
+        headers=headers,
+        params={"$top": 50, "$select": "id,name,webUrl,lastModifiedDateTime"},
+    )
+    if rs.status_code == 200:
+        for it in (rs.json() or {}).get("value", []):
+            name = it.get("name") or ""
+            if name.lower().endswith(".xlsx") and it.get("id"):
+                seen.setdefault(it["id"], it)
+    return list(seen.values())
+
+
+async def _resolve_xlsx(client: "httpx.AsyncClient", token: str, workbook_ref: str) -> tuple[str | None, str | None]:
+    """Shared workbook resolver for the plan executor. Mirrors the logic in
+    _excel_online_adapter._resolve_workbook_id: exact → substring → fallback,
+    plus auto-pick when there's only one file.
+
+    Returns (item_id, error_message).
+    """
+    # Graph item id heuristic (40+ chars, starts with "01", no separators)
+    if (
+        workbook_ref
+        and len(workbook_ref) > 20
+        and workbook_ref.startswith("01")
+        and "." not in workbook_ref
+        and "/" not in workbook_ref
+        and " " not in workbook_ref
+    ):
+        return workbook_ref, None
+
+    all_wbs = await _list_all_xlsx(client, token)
+    if not all_wbs:
+        return None, "No Excel files found in OneDrive."
+
+    if not workbook_ref:
+        if len(all_wbs) == 1:
+            return all_wbs[0]["id"], None
+        names = ", ".join([w.get("name", "") for w in all_wbs[:10]])
+        return None, f"Multiple Excel files — specify which one: {names}"
+
+    target = _xlsx_base_name(workbook_ref)
+    exact = [w for w in all_wbs if _xlsx_base_name(w.get("name", "")) == target]
+    if len(exact) == 1:
+        return exact[0]["id"], None
+    if len(exact) > 1:
+        names = ", ".join([w.get("name", "") for w in exact[:10]])
+        return None, f"Multiple matches for '{workbook_ref}': {names}"
+
+    partial = [
+        w for w in all_wbs
+        if target in _xlsx_base_name(w.get("name", ""))
+        or _xlsx_base_name(w.get("name", "")) in target
+    ]
+    if len(partial) == 1:
+        return partial[0]["id"], None
+    if len(partial) > 1:
+        names = ", ".join([w.get("name", "") for w in partial[:10]])
+        return None, f"Multiple matches for '{workbook_ref}': {names}"
+
+    all_names = ", ".join([w.get("name", "") for w in all_wbs[:10]])
+    return None, f"No Excel file matches '{workbook_ref}'. Your files: {all_names}"
+
+
 async def _fetch_excel_pdf_bytes(workbook_ref: str, creds: dict) -> tuple[bytes | None, str | None]:
     """Download an xlsx file from OneDrive as a PDF via Graph.
 
-    Returns (bytes, error). Uses the same workbook resolver as the Excel
-    adapter so users can pass a partial filename.
+    Uses the shared fuzzy resolver so "budget" matches "Test Budget.xlsx",
+    "budget-2024.xlsx", etc. the same way the Excel adapter does.
     """
     import httpx
     token = creds.get("access_token") or creds.get("api_key")
     if not token:
         return None, "Excel Online is not connected."
     base = "https://graph.microsoft.com/v1.0"
-    headers_json = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     async with httpx.AsyncClient(timeout=60) as client:
-        # Reuse _excel_online_adapter's resolver via a minimal inline lookup:
-        # try search first, then direct path.
-        wid = None
-        # direct item id (rare)
-        if workbook_ref and len(workbook_ref) > 30 and "!" in workbook_ref:
-            wid = workbook_ref
-        if not wid:
-            rs = await client.get(
-                f"{base}/me/drive/root/search(q='{workbook_ref}')",
-                headers=headers_json,
-                params={"$top": 25, "$select": "id,name"},
-            )
-            if rs.status_code == 200:
-                items = (rs.json() or {}).get("value", [])
-                xlsx = [it for it in items if (it.get("name") or "").lower().endswith(".xlsx")]
-                if xlsx:
-                    wid = xlsx[0].get("id")
+        wid, err = await _resolve_xlsx(client, token, workbook_ref or "")
+        if err:
+            return None, err
         if not wid:
             return None, f"Workbook '{workbook_ref}' not found"
         # follow_redirects=True so httpx pulls the signed URL and returns bytes
