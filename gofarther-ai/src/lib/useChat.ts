@@ -666,7 +666,34 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           if (data.sum !== undefined) formatted += `\n\n**Sum of column ${data.column || ''}:** ${typeof data.sum === 'number' ? data.sum.toLocaleString() : data.sum}${data.count !== undefined ? ` _(${data.count} values)_` : ''}`;
           else if (data.count !== undefined && !formatted.includes('count')) formatted += `\n\n_${data.count} results_`;
           if (!formatted.trim()) formatted = JSON.stringify(data, null, 2).slice(0, 2000);
-          updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + formatted.trim() });
+
+          // If the connector returned a file URL (pdf_url, download_url,
+          // share_url, webUrl), grab the file into local cache so it shows
+          // up in the chat as a tappable attachment instead of just text.
+          const fileUrlFromResult: string | undefined =
+            data.download_url || data.pdf_url || data.file_url || data.share_url || data.webUrl;
+          const fileNameFromResult: string = data.filename || data.name || (data.pdf_url ? 'file.pdf' : 'file');
+          const fileMimeFromResult: string = data.mime_type || (data.pdf_url ? 'application/pdf' : 'application/octet-stream');
+          if (fileUrlFromResult && /^https?:\/\//.test(fileUrlFromResult)) {
+            (async () => {
+              try {
+                const localPath = `${FileSystem.cacheDirectory}${Date.now()}-${fileNameFromResult}`;
+                const dl = await FileSystem.downloadAsync(fileUrlFromResult, localPath);
+                if (dl.status === 200) {
+                  updateAndPersist(aiMsgIdStream, {
+                    content: (finalText ? finalText + '\n\n' : '') + formatted.trim() + `\n\n**${fileNameFromResult}**`,
+                    fileUrl: localPath,
+                    fileMimeType: fileMimeFromResult,
+                  });
+                  return;
+                }
+              } catch {}
+              // Fall back to inline link if we couldn't download
+              updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + formatted.trim() + `\n\n[${fileNameFromResult}](${fileUrlFromResult})` });
+            })();
+          } else {
+            updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + formatted.trim() });
+          }
         }).catch(e => {
           updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ ${e.message || 'Connection failed'}` });
         });

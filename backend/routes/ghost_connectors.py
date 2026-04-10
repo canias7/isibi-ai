@@ -569,7 +569,7 @@ APP_REGISTRY: dict[str, dict] = {
             # Queries & analysis
             "find_cell", "sum_column", "get_last_row", "filter_rows", "sort_range",
             # File-level utilities
-            "download_as_pdf", "protect_sheet", "share_workbook",
+            "download_as_pdf", "download_workbook", "protect_sheet", "share_workbook",
             # Tier 6 — advanced
             "calculate_workbook", "list_tables", "list_pivot_tables", "refresh_pivot",
             "list_comments", "set_cell_comment",
@@ -610,6 +610,7 @@ APP_REGISTRY: dict[str, dict] = {
             "filter_rows": "workbook_id=<partial name>|column=<column letter>|value=<value to match>",
             "sort_range": "workbook_id=<partial name>|range=<A1>|column=<0-based column index>|ascending=<true/false>",
             "download_as_pdf": "workbook_id=<partial name> — returns a download URL for a PDF version",
+            "download_workbook": "workbook_id=<partial name> — returns a direct download URL for the raw .xlsx file itself (use this when the user wants the Excel file in chat, not a PDF)",
             "protect_sheet": "workbook_id=<partial name>|worksheet=<sheet name, defaults to Sheet1>",
             "share_workbook": "workbook_id=<partial name>|scope=<view or edit, defaults to view>",
             "calculate_workbook": "workbook_id=<partial name>|type=<Recalculate, Full, or FullRebuild> — forces formula recalculation",
@@ -3268,10 +3269,36 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             )
             # Graph returns a 302 redirect to the actual file content
             if r.status_code in (302, 301):
-                return {"pdf_url": r.headers.get("Location"), "message": "PDF ready to download"}
+                return {"pdf_url": r.headers.get("Location"), "download_url": r.headers.get("Location"), "filename": "workbook.pdf", "mime_type": "application/pdf", "message": "PDF ready to download"}
             if r.status_code == 200:
                 return {"message": "PDF generated (content inline, not URL)"}
             return {"error": f"Could not generate PDF: {r.status_code} {r.text[:200]}"}
+
+        if action == "download_workbook":
+            # Return a short-lived, pre-authenticated direct-download URL for
+            # the raw .xlsx file. Graph exposes this as @microsoft.graph.downloadUrl
+            # on the item metadata — no extra auth needed by the client.
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            r = await client.get(
+                f"{base}/me/drive/items/{workbook_id}?$select=id,name,size,@microsoft.graph.downloadUrl",
+                headers=headers,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not fetch download URL: {r.status_code} {r.text[:200]}"}
+            meta = r.json() or {}
+            dl = meta.get("@microsoft.graph.downloadUrl")
+            if not dl:
+                return {"error": "Graph did not return a downloadUrl for this file"}
+            return {
+                "download_url": dl,
+                "filename": meta.get("name") or "workbook.xlsx",
+                "size": meta.get("size"),
+                "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "message": f"{meta.get('name') or 'workbook.xlsx'} ready to download",
+            }
 
         if action == "protect_sheet":
             ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
