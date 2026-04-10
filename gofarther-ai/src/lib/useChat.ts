@@ -209,6 +209,21 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
         if (!finalText) finalText = "Got it, I'll remember that!";
       }
 
+      // Sidecar: any action can carry a save_contact hint so the LLM can
+      // both save a new contact AND run a plan/connector in the same turn.
+      // Example: {type:'plan', steps:[...], save_contact:{label:'my boss', name:'John', email:'john@x.com'}}
+      const sidecar = (finalAction as any)?.save_contact;
+      if (sidecar && typeof sidecar === 'object' && sidecar.label) {
+        try {
+          await addSavedContact({
+            label: String(sidecar.label),
+            name: String(sidecar.name || sidecar.label),
+            email: sidecar.email ? String(sidecar.email) : undefined,
+            phone: sidecar.phone ? String(sidecar.phone) : undefined,
+          });
+        } catch {}
+      }
+
       // Handle save contact from chat
       if (finalAction?.type === 'save_contact') {
         const label = finalAction.target || 'Contact';

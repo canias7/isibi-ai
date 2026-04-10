@@ -549,7 +549,21 @@ export async function saveSavedContacts(contacts: SavedContact[]) {
 
 export async function addSavedContact(contact: Omit<SavedContact, 'id'>) {
   const contacts = await getSavedContacts();
-  contacts.push({ ...contact, id: Date.now().toString() });
+  // Dedupe by label (case-insensitive). If the label already exists, update
+  // the record in place so "my boss" never becomes three copies with slightly
+  // different casing after repeated chat references.
+  const normalizedLabel = (contact.label || '').trim().toLowerCase();
+  const existingIdx = contacts.findIndex(c => (c.label || '').trim().toLowerCase() === normalizedLabel);
+  if (existingIdx >= 0) {
+    contacts[existingIdx] = {
+      ...contacts[existingIdx],
+      ...contact,
+      // Preserve the original id so other code holding references stays valid
+      id: contacts[existingIdx].id,
+    };
+  } else {
+    contacts.push({ ...contact, id: Date.now().toString() });
+  }
   await saveSavedContacts(contacts);
 }
 
