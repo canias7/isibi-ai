@@ -18,7 +18,8 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Header, Depends
+from fastapi import APIRouter, HTTPException, Header, Depends, UploadFile, File, Form
+from fastapi.responses import Response
 from pydantic import BaseModel
 from sqlalchemy import Column, String, Text, DateTime, select, and_
 from sqlalchemy.dialects.postgresql import UUID
@@ -1865,6 +1866,51 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                 # Don't echo bytes back to the client — just the size.
                 step_results.append({"id": sid, "type": "excel_pdf", "ok": True, "result": {"filename": filename, "size": len(pdf_bytes or b"")}})
 
+            elif step.type == "convert_file":
+                # Inputs (choose one): attach_from=<stepId>, url=<http url>,
+                #                     content_base64=<base64 string>
+                # Required: from_ext (or from_mime), to_ext (or to_mime)
+                src_bytes: bytes | None = None
+                src_name = resolved_params.get("filename") or "file"
+                from_hint = resolved_params.get("from_ext") or resolved_params.get("from") or resolved_params.get("from_mime") or ""
+                to_hint = resolved_params.get("to_ext") or resolved_params.get("to") or resolved_params.get("to_mime") or ""
+                if not to_hint:
+                    raise ValueError("convert_file step requires to_ext (e.g. 'pdf')")
+                # 1. prior step bytes
+                if resolved_params.get("attach_from"):
+                    src = outputs.get(resolved_params["attach_from"]) or {}
+                    src_bytes = src.get("bytes")
+                    src_name = src.get("filename") or src_name
+                    if not from_hint and src.get("content_type"):
+                        from_hint = src["content_type"]
+                # 2. arbitrary url
+                if src_bytes is None and resolved_params.get("url"):
+                    import httpx as _httpx
+                    async with _httpx.AsyncClient(timeout=60, follow_redirects=True) as _c:
+                        _r = await _c.get(resolved_params["url"])
+                        if _r.status_code != 200:
+                            raise ValueError(f"Could not download {resolved_params['url']}: HTTP {_r.status_code}")
+                        src_bytes = _r.content
+                        if not from_hint:
+                            ct = _r.headers.get("content-type", "").split(";")[0].strip()
+                            from_hint = ct or resolved_params["url"].rsplit(".", 1)[-1]
+                        if "filename" not in resolved_params:
+                            src_name = resolved_params["url"].rsplit("/", 1)[-1] or src_name
+                # 3. inline base64 from client (used by standalone /convert path too)
+                if src_bytes is None and resolved_params.get("content_base64"):
+                    import base64 as _b64
+                    src_bytes = _b64.b64decode(resolved_params["content_base64"])
+                if src_bytes is None:
+                    raise ValueError("convert_file needs attach_from, url, or content_base64")
+                # Infer from_ext from filename if still missing
+                if not from_hint and "." in src_name:
+                    from_hint = src_name.rsplit(".", 1)[-1]
+                from services.file_convert import convert_bytes as _convert_bytes
+                out_name_base = (src_name.rsplit(".", 1)[0] or "file")
+                out_bytes, out_mime, out_filename = _convert_bytes(src_bytes, from_hint, to_hint, out_name=out_name_base)
+                outputs[sid] = {"bytes": out_bytes, "filename": out_filename, "content_type": out_mime, "size": len(out_bytes)}
+                step_results.append({"id": sid, "type": "convert_file", "ok": True, "result": {"filename": out_filename, "size": len(out_bytes), "from": from_hint, "to": to_hint}})
+
             elif step.type == "email":
                 to = resolved_params.get("to") or ""
                 subject = resolved_params.get("subject") or "Report"
@@ -1918,6 +1964,66 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
             return {"status": "error", "failed_at": sid, "steps": step_results}
 
     return {"status": "ok", "steps": step_results}
+
+
+@router.post("/convert")
+async def convert_file_endpoint(
+    file: UploadFile = File(...),
+    to: str = Form(...),
+    from_ext: str | None = Form(default=None),
+    authorization: str = Header(...),
+):
+    """Ad-hoc file conversion. POST multipart with `file` + `to` (e.g. 'pdf')
+    and optionally `from_ext`. Returns the converted file bytes directly with
+    the right content-type header — the client can save it, attach it to a
+    plan step, or share it.
+
+    This is the simplest path for a user who uploads a file in chat and says
+    "convert this to PDF". For plan-driven multi-step flows use the
+    convert_file step of /run_plan instead.
+    """
+    _verify_auth(authorization)  # auth is required, but we don't need the sub
+    from services.file_convert import convert_bytes as _convert_bytes
+
+    data = await file.read()
+    if not data:
+        raise HTTPException(400, "Empty upload")
+
+    # Prefer the explicit from_ext, then the uploaded filename suffix, then
+    # the mime type the client sent.
+    source_hint = (
+        from_ext
+        or (file.filename.rsplit(".", 1)[-1] if file.filename and "." in file.filename else "")
+        or (file.content_type or "")
+    )
+    if not source_hint:
+        raise HTTPException(400, "Could not detect source format — include from_ext")
+
+    try:
+        out_bytes, out_mime, out_filename = _convert_bytes(
+            data, source_hint, to,
+            out_name=(file.filename.rsplit(".", 1)[0] if file.filename else "file"),
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    except Exception as e:
+        logger.exception("File conversion failed")
+        raise HTTPException(500, f"Conversion error: {e}")
+
+    return Response(
+        content=out_bytes,
+        media_type=out_mime,
+        headers={"Content-Disposition": f'attachment; filename="{out_filename}"'},
+    )
+
+
+@router.get("/convert/supported")
+async def convert_supported(authorization: str = Header(...)):
+    """List every conversion pair supported by /convert and the convert_file
+    plan step. Used by the chat UI to gate the convert button."""
+    _verify_auth(authorization)
+    from services.file_convert import list_supported
+    return {"pairs": list_supported()}
 
 
 # ── Adapter implementations ─────────────────────────────────────────────

@@ -687,6 +687,7 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             let label = '';
             if (s.type === 'connector') label = `${s.app} · ${s.action}`;
             else if (s.type === 'excel_pdf') label = `Export PDF${s.result?.filename ? ` (${s.result.filename}, ${Math.round((s.result.size || 0) / 1024)} KB)` : ''}`;
+            else if (s.type === 'convert_file') label = `Convert ${s.result?.from || ''} → ${s.result?.to || ''}${s.result?.filename ? ` (${s.result.filename}, ${Math.round((s.result.size || 0) / 1024)} KB)` : ''}`;
             else if (s.type === 'email') label = `Email → ${s.result?.to || ''}${s.result?.attachment_count ? ` (${s.result.attachment_count} attachment)` : ''}`;
             else label = s.type;
             lines.push(`${icon} ${label}${s.error ? ` — ${s.error}` : ''}`);

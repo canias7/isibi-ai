@@ -596,6 +596,47 @@ export async function runConnectorAction(appId: string, action: string, paramsSt
   return res.json();
 }
 
+/** Convert a file (xlsx↔csv↔pdf↔txt↔docx↔pptx, images, etc.) by uploading
+ * it to the backend conversion service. Returns the converted bytes as a
+ * base64 data URL so the caller can save/share it without another round trip. */
+export async function convertFile(fileUri: string, filename: string, mimeType: string | undefined, to: string): Promise<{ filename: string; mime: string; base64: string }> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const form = new FormData();
+  // React Native FormData file format
+  form.append('file', { uri: fileUri, name: filename, type: mimeType || 'application/octet-stream' } as any);
+  form.append('to', to);
+  // Strip Content-Type so the runtime sets the right multipart boundary
+  const h: any = { ...headers };
+  delete h['Content-Type'];
+  delete h['content-type'];
+  const res = await fetchWithTimeout(`https://isibi-backend.onrender.com/api/ghost/connectors/convert`, {
+    method: 'POST', headers: h, body: form as any,
+  }, 120000);
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || `Conversion failed (${res.status})`);
+  }
+  const disposition = res.headers.get('content-disposition') || '';
+  const nameMatch = disposition.match(/filename="?([^";]+)"?/);
+  const outName = nameMatch ? nameMatch[1] : `converted.${to}`;
+  const outMime = res.headers.get('content-type') || 'application/octet-stream';
+  const blob = await res.blob();
+  // React Native Blob → base64 via FileReader
+  const base64: string = await new Promise((resolve, reject) => {
+    const reader: any = new FileReader();
+    reader.onerror = () => reject(new Error('Failed to read converted file'));
+    reader.onload = () => {
+      const result = reader.result as string;
+      // result is "data:<mime>;base64,<payload>" — strip the prefix
+      const idx = result.indexOf(',');
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.readAsDataURL(blob);
+  });
+  return { filename: outName, mime: outMime, base64 };
+}
+
 /** Run a multi-step connector plan (e.g. build an Excel report, export as
  * PDF, email it). Each step is a connector action, an internal helper, or
  * an email. Steps can reference prior step outputs via "$stepId.field". */
