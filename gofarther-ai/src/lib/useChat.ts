@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Alert, AppState } from 'react-native';
 import { ChatMsg, genId, parseAction, actionLabel } from './types';
-import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, processCallRecording } from './ai';
+import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFile, webSearch, readURL, runCode, translateText, youtubeSearch, deepResearch, generateQR, cryptoPortfolio, createInvoice, createCalendarEvent, socialPost, compareURLs, createMeme, barcodeLookup, runConnectorAction, runConnectorPlan, processCallRecording } from './ai';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
@@ -654,6 +654,46 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + formatted.trim() });
         }).catch(e => {
           updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ ${e.message || 'Connection failed'}` });
+        });
+        return;
+      }
+
+      // Handle multi-step plan (e.g. build Excel report → export PDF → email)
+      if (finalAction?.type === 'plan') {
+        // The LLM puts the steps JSON array in the `key` field as a string, or
+        // directly on the action as `steps`. Accept both.
+        let steps: any[] = [];
+        const rawSteps = (finalAction as any).steps || finalAction.key;
+        try {
+          steps = Array.isArray(rawSteps) ? rawSteps : JSON.parse(rawSteps || '[]');
+        } catch {
+          steps = [];
+        }
+        if (!steps.length) {
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ Plan had no steps` });
+          return;
+        }
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || 'Running plan...') } : m));
+        setLoading(false);
+        trackAsync(runConnectorPlan(steps)).then(result => {
+          const lines: string[] = [];
+          if (result.status === 'error') {
+            lines.push(`⚠️ Plan failed at step \`${result.failed_at}\``);
+          } else {
+            lines.push('**Plan completed**');
+          }
+          for (const s of (result.steps || [])) {
+            const icon = s.ok ? '✅' : '❌';
+            let label = '';
+            if (s.type === 'connector') label = `${s.app} · ${s.action}`;
+            else if (s.type === 'excel_pdf') label = `Export PDF${s.result?.filename ? ` (${s.result.filename}, ${Math.round((s.result.size || 0) / 1024)} KB)` : ''}`;
+            else if (s.type === 'email') label = `Email → ${s.result?.to || ''}${s.result?.attachment_count ? ` (${s.result.attachment_count} attachment)` : ''}`;
+            else label = s.type;
+            lines.push(`${icon} ${label}${s.error ? ` — ${s.error}` : ''}`);
+          }
+          updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + lines.join('\n') });
+        }).catch(e => {
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ ${e.message || 'Plan failed'}` });
         });
         return;
       }

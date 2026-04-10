@@ -89,17 +89,46 @@ async def send_login_alert_email(to: str, ip_address: str, device_name: str, tim
         return False
 
 
-def _send_smtp_sync(host: str, port: int, user: str, password: str, from_addr: str, to: str, subject: str, html: str) -> None:
-    """Synchronous SMTP send — call via asyncio.to_thread()."""
+def _send_smtp_sync(host: str, port: int, user: str, password: str, from_addr: str, to: str, subject: str, html: str, attachments: list | None = None) -> None:
+    """Synchronous SMTP send — call via asyncio.to_thread().
+
+    attachments: optional list of dicts with keys:
+      - filename (str)
+      - content (bytes)
+      - content_type (str, optional — defaults to application/octet-stream)
+    """
     import smtplib
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
+    from email.mime.base import MIMEBase
+    from email import encoders
 
-    msg = MIMEMultipart("alternative")
+    # When there are attachments we need a "mixed" outer container so that
+    # the HTML body and the binary parts can live side-by-side.
+    outer_subtype = "mixed" if attachments else "alternative"
+    msg = MIMEMultipart(outer_subtype)
     msg["Subject"] = subject
     msg["From"] = from_addr or user
     msg["To"] = to
-    msg.attach(MIMEText(html, "html"))
+
+    if attachments:
+        # Put the HTML inside an inner "alternative" part so clients still
+        # treat it as the message body.
+        body = MIMEMultipart("alternative")
+        body.attach(MIMEText(html, "html"))
+        msg.attach(body)
+        for att in attachments:
+            filename = att.get("filename") or "attachment.bin"
+            content = att.get("content") or b""
+            ctype = att.get("content_type") or "application/octet-stream"
+            maintype, _, subtype = ctype.partition("/")
+            part = MIMEBase(maintype or "application", subtype or "octet-stream")
+            part.set_payload(content)
+            encoders.encode_base64(part)
+            part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
+            msg.attach(part)
+    else:
+        msg.attach(MIMEText(html, "html"))
 
     with smtplib.SMTP(host, int(port), timeout=30) as server:
         server.ehlo()
@@ -113,9 +142,10 @@ def _send_smtp_sync(host: str, port: int, user: str, password: str, from_addr: s
         server.sendmail(from_addr or user, [to], msg.as_string())
 
 
-async def send_via_smtp(smtp_settings: dict, to: str, subject: str, html: str) -> bool:
+async def send_via_smtp(smtp_settings: dict, to: str, subject: str, html: str, attachments: list | None = None) -> bool:
     """Send an email using the provided SMTP settings dict.
     smtp_settings must contain: smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from (optional)
+    attachments: optional list of {filename, content (bytes), content_type}.
     """
     try:
         host = smtp_settings.get("smtp_host")
@@ -126,16 +156,18 @@ async def send_via_smtp(smtp_settings: dict, to: str, subject: str, html: str) -
         if not host or not user or not password:
             logger.warning("SMTP settings incomplete for %s — skipping", to)
             return False
-        await asyncio.to_thread(_send_smtp_sync, host, port, user, password, from_addr, to, subject, html)
-        logger.info("SMTP email sent to %s via %s (subject=%s)", to, host, subject)
+        await asyncio.to_thread(_send_smtp_sync, host, port, user, password, from_addr, to, subject, html, attachments)
+        logger.info("SMTP email sent to %s via %s (subject=%s, attachments=%d)", to, host, subject, len(attachments or []))
         return True
     except Exception as e:
         logger.error("SMTP send failed to %s: %s", to, e)
         return False
 
 
-async def send_generic_email(to: str, subject: str, html: str) -> bool:
-    """Send an arbitrary email via Resend (used for scheduled reports, etc.)."""
+async def send_generic_email(to: str, subject: str, html: str, attachments: list | None = None) -> bool:
+    """Send an arbitrary email via Resend (used for scheduled reports, etc.).
+    attachments: optional list of {filename, content (bytes), content_type}.
+    """
     _init()
 
     if not RESEND_API_KEY:
@@ -143,13 +175,24 @@ async def send_generic_email(to: str, subject: str, html: str) -> bool:
         return False
 
     try:
-        await asyncio.to_thread(_send_email_sync, {
+        import base64 as _b64
+        payload: dict = {
             "from": FROM_EMAIL,
             "to": [to],
             "subject": subject,
             "html": html,
-        })
-        logger.info("Generic email sent to %s (subject=%s)", to, subject)
+        }
+        if attachments:
+            # Resend accepts attachments as [{filename, content: base64 str}]
+            payload["attachments"] = [
+                {
+                    "filename": a.get("filename") or "attachment.bin",
+                    "content": _b64.b64encode(a.get("content") or b"").decode("ascii"),
+                }
+                for a in attachments
+            ]
+        await asyncio.to_thread(_send_email_sync, payload)
+        logger.info("Generic email sent to %s (subject=%s, attachments=%d)", to, subject, len(attachments or []))
         return True
     except Exception as e:
         logger.error("Failed to send generic email to %s: %s", to, e)

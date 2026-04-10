@@ -1719,6 +1719,207 @@ async def execute_action(app_id: str, body: ActionRequest, authorization: str = 
         raise HTTPException(500, f"{APP_REGISTRY[app_id]['name']} error: {str(e)}")
 
 
+# ── Multi-step plan executor ─────────────────────────────────────────────
+
+class PlanStep(BaseModel):
+    id: str | None = None
+    type: str  # "connector" | "excel_pdf" | "email"
+    app: str | None = None          # for type=connector
+    action: str | None = None       # for type=connector
+    params: dict[str, Any] = {}
+
+
+class PlanRequest(BaseModel):
+    steps: list[PlanStep]
+
+
+def _resolve_plan_refs(value: Any, outputs: dict[str, dict]) -> Any:
+    """Replace $stepId.field references inside strings/dicts/lists with the
+    matching output from a previous step. Supports exact-match ("$step.field")
+    and inline substitution ("Report: $step.sum")."""
+    import re as _re
+    if isinstance(value, str):
+        # Exact match → return the raw value (could be non-string, e.g. bytes)
+        m = _re.fullmatch(r"\$([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)", value)
+        if m:
+            step_id, field = m.group(1), m.group(2)
+            out = outputs.get(step_id) or {}
+            return out.get(field)
+        # Inline substitution — only stringifies simple scalar values
+        def _sub(match):
+            sid, fld = match.group(1), match.group(2)
+            out = outputs.get(sid) or {}
+            v = out.get(fld)
+            if v is None:
+                return match.group(0)
+            if isinstance(v, (bytes, bytearray)):
+                return f"<{len(v)} bytes>"
+            return str(v)
+        return _re.sub(r"\$([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)", _sub, value)
+    if isinstance(value, dict):
+        return {k: _resolve_plan_refs(v, outputs) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_resolve_plan_refs(v, outputs) for v in value]
+    return value
+
+
+async def _fetch_excel_pdf_bytes(workbook_ref: str, creds: dict) -> tuple[bytes | None, str | None]:
+    """Download an xlsx file from OneDrive as a PDF via Graph.
+
+    Returns (bytes, error). Uses the same workbook resolver as the Excel
+    adapter so users can pass a partial filename.
+    """
+    import httpx
+    token = creds.get("access_token") or creds.get("api_key")
+    if not token:
+        return None, "Excel Online is not connected."
+    base = "https://graph.microsoft.com/v1.0"
+    headers_json = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    async with httpx.AsyncClient(timeout=60) as client:
+        # Reuse _excel_online_adapter's resolver via a minimal inline lookup:
+        # try search first, then direct path.
+        wid = None
+        # direct item id (rare)
+        if workbook_ref and len(workbook_ref) > 30 and "!" in workbook_ref:
+            wid = workbook_ref
+        if not wid:
+            rs = await client.get(
+                f"{base}/me/drive/root/search(q='{workbook_ref}')",
+                headers=headers_json,
+                params={"$top": 25, "$select": "id,name"},
+            )
+            if rs.status_code == 200:
+                items = (rs.json() or {}).get("value", [])
+                xlsx = [it for it in items if (it.get("name") or "").lower().endswith(".xlsx")]
+                if xlsx:
+                    wid = xlsx[0].get("id")
+        if not wid:
+            return None, f"Workbook '{workbook_ref}' not found"
+        # follow_redirects=True so httpx pulls the signed URL and returns bytes
+        r = await client.get(
+            f"{base}/me/drive/items/{wid}/content?format=pdf",
+            headers={"Authorization": f"Bearer {token}"},
+            follow_redirects=True,
+        )
+        if r.status_code == 200:
+            return r.content, None
+        return None, f"Graph PDF error {r.status_code}: {r.text[:200]}"
+
+
+@router.post("/run_plan")
+async def run_plan(body: PlanRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
+    """Execute a multi-step plan. Each step can be a connector action, a
+    server-internal helper (excel_pdf), or an email send. Steps reference
+    earlier outputs via "$stepId.field" strings.
+
+    Returns {status, steps: [{id, type, ok, result/error}]}.
+    """
+    payload = _verify_auth(authorization)
+    user_id = payload.get("sub")
+    user_email = payload.get("email") or ""
+
+    if not body.steps:
+        raise HTTPException(400, "Plan has no steps")
+    if len(body.steps) > 10:
+        raise HTTPException(400, "Plan cannot exceed 10 steps")
+
+    outputs: dict[str, dict] = {}
+    step_results: list[dict] = []
+
+    for idx, step in enumerate(body.steps):
+        sid = step.id or f"s{idx}"
+        resolved_params = _resolve_plan_refs(step.params, outputs)
+
+        try:
+            if step.type == "connector":
+                if not step.app or not step.action:
+                    raise ValueError("connector step requires app and action")
+                if step.app not in APP_REGISTRY:
+                    raise ValueError(f"Unknown app: {step.app}")
+                creds = await _get_creds(user_id, step.app, db)
+                if not creds:
+                    raise ValueError(f"{APP_REGISTRY[step.app]['name']} is not connected")
+                if APP_REGISTRY[step.app].get("oauth_flow") == "microsoft":
+                    creds = await _refresh_microsoft_token(user_id, step.app, creds, db)
+                if step.action not in APP_REGISTRY[step.app]["actions"]:
+                    raise ValueError(f"Action '{step.action}' not available for {step.app}")
+                adapter = ADAPTERS.get(step.app)
+                if not adapter:
+                    raise ValueError(f"{step.app} adapter not implemented")
+                result = await adapter(step.action, resolved_params, creds)
+                outputs[sid] = result if isinstance(result, dict) else {"value": result}
+                step_results.append({"id": sid, "type": "connector", "app": step.app, "action": step.action, "ok": "error" not in outputs[sid], "result": outputs[sid]})
+
+            elif step.type == "excel_pdf":
+                workbook_ref = resolved_params.get("workbook") or resolved_params.get("workbook_id") or resolved_params.get("filename") or ""
+                creds = await _get_creds(user_id, "excel_online", db)
+                if not creds:
+                    raise ValueError("Excel Online is not connected")
+                creds = await _refresh_microsoft_token(user_id, "excel_online", creds, db)
+                pdf_bytes, err = await _fetch_excel_pdf_bytes(workbook_ref, creds)
+                if err:
+                    raise ValueError(err)
+                filename = (workbook_ref.rsplit("/", 1)[-1] or "report").replace(".xlsx", "") + ".pdf"
+                outputs[sid] = {"bytes": pdf_bytes, "filename": filename, "content_type": "application/pdf", "size": len(pdf_bytes or b"")}
+                # Don't echo bytes back to the client — just the size.
+                step_results.append({"id": sid, "type": "excel_pdf", "ok": True, "result": {"filename": filename, "size": len(pdf_bytes or b"")}})
+
+            elif step.type == "email":
+                to = resolved_params.get("to") or ""
+                subject = resolved_params.get("subject") or "Report"
+                html = resolved_params.get("html") or resolved_params.get("body") or f"<p>{subject}</p>"
+                # Attachments can reference prior step outputs by step id:
+                #   {"attach_from": "pdf"}  →  use outputs["pdf"]
+                # or be provided inline as {filename, content, content_type}.
+                raw_attach = resolved_params.get("attachments") or []
+                if isinstance(raw_attach, dict):
+                    raw_attach = [raw_attach]
+                attachments: list[dict] = []
+                for a in raw_attach:
+                    if not isinstance(a, dict):
+                        continue
+                    if a.get("attach_from"):
+                        src = outputs.get(a["attach_from"]) or {}
+                        if src.get("bytes"):
+                            attachments.append({
+                                "filename": a.get("filename") or src.get("filename") or "attachment.bin",
+                                "content": src["bytes"],
+                                "content_type": a.get("content_type") or src.get("content_type") or "application/octet-stream",
+                            })
+                    elif a.get("content"):
+                        attachments.append(a)
+                if not to:
+                    raise ValueError("email step requires 'to'")
+                # Try per-user SMTP first, fall back to Resend
+                sent = False
+                try:
+                    from routes.ghost_auth import get_user_smtp
+                    settings = await get_user_smtp(user_email, db)
+                    if settings.get("smtp_host"):
+                        from services.email import send_via_smtp
+                        sent = await send_via_smtp(settings, to=to, subject=subject, html=html, attachments=attachments or None)
+                except Exception:
+                    pass
+                if not sent:
+                    from services.email import send_generic_email
+                    sent = await send_generic_email(to=to, subject=subject, html=html, attachments=attachments or None)
+                if not sent:
+                    raise ValueError("Email could not be sent (no SMTP or Resend configured)")
+                outputs[sid] = {"sent": True, "to": to, "subject": subject, "attachment_count": len(attachments)}
+                step_results.append({"id": sid, "type": "email", "ok": True, "result": outputs[sid]})
+
+            else:
+                raise ValueError(f"Unknown step type: {step.type}")
+
+        except Exception as e:
+            logger.exception(f"Plan step {sid} ({step.type}) failed")
+            step_results.append({"id": sid, "type": step.type, "ok": False, "error": str(e)})
+            return {"status": "error", "failed_at": sid, "steps": step_results}
+
+    return {"status": "ok", "steps": step_results}
+
+
 # ── Adapter implementations ─────────────────────────────────────────────
 # Each adapter is an async function: (action, params, creds) -> dict
 

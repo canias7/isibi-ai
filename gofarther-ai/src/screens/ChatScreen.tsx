@@ -143,6 +143,9 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
     const [memory, custom, lang, nick, savedContacts, connectedApps, learnedPrefs] = await Promise.all([
       getMemory(), getCustomInstructions(), getLanguage(), getUserNickname(), getSavedContacts(), getConnectedApps(), getLearnedPreferences(),
     ]);
+    // Debug: log what connected apps we found so we can diagnose via the auth debug log
+    const { authLog } = await import('../lib/api');
+    await authLog(`rebuildPrompt: ${connectedApps?.length || 0} connected apps: ${(connectedApps || []).map((a: any) => `${a.name}[${(a.actions||[]).join(',')}]`).join(', ') || 'none'}`);
       setUserNickname(nick || '');
       const langMap: Record<string, string> = { en: '', es: '\n\nIMPORTANT: Always respond in Spanish.', fr: '\n\nIMPORTANT: Always respond in French.', pt: '\n\nIMPORTANT: Always respond in Portuguese.', de: '\n\nIMPORTANT: Always respond in German.' };
       const memoryStr = memory.length > 0 ? '\n\nYou remember these facts about the user:\n' + memory.map((m: any) => '- ' + m.fact).join('\n') : '';
@@ -201,7 +204,7 @@ OTHER TOOLS:
 {"type":"generate_image","target":"image description"}
 {"type":"web_search","target":"search query"}
 {"type":"read_url","target":"https://url","text":"question about the page"}
-{"type":"run_code","target":"what to compute/calculate"}
+{"type":"run_code","target":"what to compute/calculate"} — ONLY for math, algorithms, or data transforms on data the user provides inline. NEVER use run_code to simulate, fabricate, or look up data that a connected app can provide. If a connected app has an action for it, use the connector JSON instead.
 {"type":"translate","target":"text to translate","text":"target language"}
 {"type":"youtube_summary","target":"youtube URL"}
 {"type":"research","target":"topic","text":"general/academic/patent/legal"}
@@ -252,6 +255,7 @@ DOCUMENTS (advanced):
 {"type":"create_presentation","target":"topic/description","text":"pptx"}
 
 RULES:
+- EVERY response that requires a tool MUST include the action JSON inline in the SAME message. NEVER say "let me check", "I'll look that up", "one sec", or "hold on" without the JSON action on the same response — the user's app only runs the tool when it sees the JSON. If you narrate without JSON, the user sees nothing happen.
 - Include ONE action JSON per response.
 - Before device actions (call, sms, email), confirm with user first.
 - For file creation (PDF, resume, report, proposals, contracts), ask 2-3 quick questions first to get details. Don't create blindly.
@@ -261,21 +265,21 @@ RULES:
 - NEVER say you cannot do something. Use your tools.
 - When user says a person's name, use it directly as target.
 - Be conversational. Short responses. No essays unless asked.
-- If the user asks about leads, deals, tasks, invoices, or orders and has a connected app — use the connector action.
+- If a connected app has an action that matches what the user is asking for — ALWAYS use the connector action. NEVER use run_code, web_search, or any other tool to simulate, fabricate, or look up data that the connector can fetch directly.
 - create_proposal, create_contract, and create_presentation use the same create_file backend — just describe the content well.`;
       // Connected apps — inject available connector actions with param hints
-      const connectedAppsStr = connectedApps && connectedApps.length > 0 ? '\n\nCONNECTED APPS (use the connector action JSON to interact with these — DO NOT web search for API docs, the connector is already wired up):\n' +
+      const connectedAppsStr = connectedApps && connectedApps.length > 0 ? '\n\n=== CONNECTED APPS ===\nThe user has these apps connected. To query them, emit a connector JSON in this EXACT format:\n{"type":"connector","target":"<app_id>","text":"<action_name>","key":"<params or empty string>"}\n\nAvailable apps and actions:\n' +
         connectedApps.map((app: any) => {
           const hints = app.action_hints || {};
           const actionLines = (app.actions || []).map((a: string) => {
             const hint = hints[a];
             return hint
-              ? `  ${a}: {"type":"connector","target":"${app.id}","text":"${a}","key":"${hint}"}`
-              : `  ${a}: {"type":"connector","target":"${app.id}","text":"${a}","key":""}`;
+              ? `  • ${a} — params: ${hint}`
+              : `  • ${a} — no params needed (use empty string for key)`;
           }).join('\n');
-          return `${app.name} (${app.category}):\n${actionLines}`;
-        }).join('\n') +
-        '\n\nIMPORTANT: When the user asks about their leads, deals, sold products, calls, appointments, etc. — emit the matching connector JSON action IMMEDIATELY. Do NOT search the web or write code. The connector is already set up and will handle the API call for you. Just include the JSON in your response and the app will execute it.' : '';
+          return `${app.name} (id: "${app.id}", category: ${app.category}):\n${actionLines}`;
+        }).join('\n\n') +
+        '\n\nEXAMPLE — user asks "what sold products did I have in the last 30 days":\nYour response: {"type":"connector","target":"ringy","text":"get_sold_products","key":""}\n(optionally with a short lead-in like "Checking your Ringy sold products...")\n\nCRITICAL RULES:\n1. When the user asks for ANY data that a connected app can provide, you MUST emit the connector JSON. NEVER use run_code, web_search, or narration alone.\n2. The JSON MUST be valid and on one line. Use the exact app id and action name shown above.\n3. For actions with no required params, use "key":"" (empty string).\n4. For actions with params, format the key field as "param1=value1|param2=value2" (pipe-separated).\n5. NEVER make up data. NEVER write Python/JS to simulate the response. The connector hits the real API.\n6. If you emit narration without the JSON action, the user sees nothing — ALWAYS include the JSON.\n\n=== MULTI-STEP PLANS ===\nWhen the user asks for a workflow that chains several things together (e.g. "build a report in Excel and email it to me", "sum column B and send the PDF to john@x.com"), emit a PLAN action instead of a single connector action. Format:\n{"type":"plan","steps":[<step1>,<step2>,...]}\n\nStep types:\n• Connector action: {"id":"<short_id>","type":"connector","app":"<app_id>","action":"<action_name>","params":{<key>:<value>, ...}}\n• Export an Excel workbook as a PDF (no connector needed, server-internal): {"id":"pdf","type":"excel_pdf","params":{"workbook":"<filename or partial name>"}}\n• Send an email (server-internal, uses user\'s SMTP or Resend fallback): {"id":"send","type":"email","params":{"to":"<email>","subject":"<subject>","html":"<html body>","attachments":[{"attach_from":"pdf"}]}}\n\nRules:\n- Give each step a short "id" so later steps can reference it.\n- Reference prior step outputs in params as "$stepId.field". Example: "html":"<p>The sum is $build.sum</p>".\n- attachments can reference a prior excel_pdf step with {"attach_from":"<stepId>"} — the server wires the bytes in for you.\n- Use params as REAL JSON objects in plans (not pipe-separated strings). Example: "params":{"workbook_id":"budget","column":"B"}.\n- Still include a brief lead-in like "Building the report and emailing it..." before the JSON.\n\nEXAMPLE — user: "sum column B in my budget, export as PDF, and email it to me@example.com":\n{"type":"plan","steps":[{"id":"sum","type":"connector","app":"excel_online","action":"sum_column","params":{"workbook_id":"budget","column":"B"}},{"id":"pdf","type":"excel_pdf","params":{"workbook":"budget"}},{"id":"send","type":"email","params":{"to":"me@example.com","subject":"Budget report","html":"<p>Sum of column B: $sum.sum across $sum.count values.</p>","attachments":[{"attach_from":"pdf"}]}}]}' : '';
 
       const contactsStr = savedContacts.length > 0 ? '\n\nThe user has saved these contacts. When they refer to someone by label (e.g. "my boss"), use the matching contact info:\n' + savedContacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n') : '';
       const nicknameStr = nick ? `\n\nIMPORTANT: The user's name/nickname is "${nick}". Use it naturally — greet them by name, refer to them by name occasionally. For example: "Hey ${nick}!", "Sure thing ${nick}", etc.` : '';

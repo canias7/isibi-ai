@@ -596,6 +596,23 @@ export async function runConnectorAction(appId: string, action: string, paramsSt
   return res.json();
 }
 
+/** Run a multi-step connector plan (e.g. build an Excel report, export as
+ * PDF, email it). Each step is a connector action, an internal helper, or
+ * an email. Steps can reference prior step outputs via "$stepId.field". */
+export async function runConnectorPlan(steps: Array<Record<string, any>>): Promise<any> {
+  await checkNetwork();
+  const headers = await authHeaders();
+  const res = await fetchWithTimeout(`https://isibi-backend.onrender.com/api/ghost/connectors/run_plan`, {
+    method: 'POST', headers,
+    body: JSON.stringify({ steps }),
+  }, 120000);
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.detail || `Plan error (${res.status})`);
+  }
+  return res.json();
+}
+
 /** Get crypto price */
 export async function getCryptoPrice(symbol: string): Promise<string> {
   try {
