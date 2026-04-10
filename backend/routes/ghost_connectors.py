@@ -610,7 +610,7 @@ APP_REGISTRY: dict[str, dict] = {
             "filter_rows": "workbook_id=<partial name>|column=<column letter>|value=<value to match>",
             "sort_range": "workbook_id=<partial name>|range=<A1>|column=<0-based column index>|ascending=<true/false>",
             "download_as_pdf": "workbook_id=<partial name> — returns a download URL for a PDF version",
-            "download_workbook": "workbook_id=<partial name> — returns a direct download URL for the raw .xlsx file itself (use this when the user wants the Excel file in chat, not a PDF)",
+            "download_workbook": "workbook_id=<partial name>|format=<optional target format: xlsx (default), pdf, csv, txt, docx, ods, html> — returns the file for download in the requested format. xlsx/pdf come back as a URL; any other format is converted server-side and returned inline as base64.",
             "protect_sheet": "workbook_id=<partial name>|worksheet=<sheet name, defaults to Sheet1>",
             "share_workbook": "workbook_id=<partial name>|scope=<view or edit, defaults to view>",
             "calculate_workbook": "workbook_id=<partial name>|type=<Recalculate, Full, or FullRebuild> — forces formula recalculation",
@@ -3275,13 +3275,22 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             return {"error": f"Could not generate PDF: {r.status_code} {r.text[:200]}"}
 
         if action == "download_workbook":
-            # Return a short-lived, pre-authenticated direct-download URL for
-            # the raw .xlsx file. Graph exposes this as @microsoft.graph.downloadUrl
-            # on the item metadata — no extra auth needed by the client.
+            # Return the workbook for download in whatever format the user
+            # asked for. xlsx and pdf are served as short-lived Graph URLs
+            # (no conversion needed); everything else runs through the
+            # LibreOffice-backed convert_bytes_async pipeline and is
+            # returned inline as base64 so the client can write it straight
+            # to cache without another round trip.
             ref = params.get("workbook_id") or params.get("workbookId") or params.get("filename")
             workbook_id, err = await _resolve_workbook_id(client, ref or "")
             if err:
                 return {"error": err}
+
+            target_fmt = (params.get("format") or params.get("as") or params.get("to") or "xlsx").strip().lower().lstrip(".")
+            # Normalize a few friendly aliases
+            target_fmt = {"excel": "xlsx", "spreadsheet": "xlsx", "word": "docx", "text": "txt", "markdown": "md"}.get(target_fmt, target_fmt)
+
+            # Fetch file metadata (gives us name + pre-authed downloadUrl)
             r = await client.get(
                 f"{base}/me/drive/items/{workbook_id}?$select=id,name,size,@microsoft.graph.downloadUrl",
                 headers=headers,
@@ -3289,15 +3298,63 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             if r.status_code >= 400:
                 return {"error": f"Could not fetch download URL: {r.status_code} {r.text[:200]}"}
             meta = r.json() or {}
+            raw_name = meta.get("name") or "workbook.xlsx"
+            stem = raw_name.rsplit(".", 1)[0]
+
+            # Fast path: raw .xlsx — just hand back the Graph pre-authed URL
+            if target_fmt in ("xlsx", ""):
+                dl = meta.get("@microsoft.graph.downloadUrl")
+                if not dl:
+                    return {"error": "Graph did not return a downloadUrl for this file"}
+                return {
+                    "download_url": dl,
+                    "filename": raw_name,
+                    "size": meta.get("size"),
+                    "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "message": f"{raw_name} ready to download",
+                }
+
+            # Fast path: PDF via Graph's native export (same path as
+            # download_as_pdf, avoids a LibreOffice hop)
+            if target_fmt == "pdf":
+                rp = await client.get(
+                    f"{base}/me/drive/items/{workbook_id}/content?format=pdf",
+                    headers={"Authorization": f"Bearer {token}"},
+                    follow_redirects=False,
+                )
+                if rp.status_code in (301, 302):
+                    return {
+                        "download_url": rp.headers.get("Location"),
+                        "filename": f"{stem}.pdf",
+                        "mime_type": "application/pdf",
+                        "message": f"{stem}.pdf ready to download",
+                    }
+                return {"error": f"Graph PDF export failed: {rp.status_code}"}
+
+            # Slow path: fetch the raw xlsx bytes, then convert server-side
+            # to whatever target the user asked for (csv, txt, docx, ods,
+            # html, png, etc.). The converted bytes come back inline as
+            # base64 so the chat client can write them to cacheDirectory.
             dl = meta.get("@microsoft.graph.downloadUrl")
             if not dl:
-                return {"error": "Graph did not return a downloadUrl for this file"}
+                return {"error": "Graph did not return a downloadUrl for the source file"}
+            rb = await client.get(dl, headers={"Authorization": f"Bearer {token}"}, follow_redirects=True)
+            if rb.status_code != 200:
+                return {"error": f"Could not fetch source xlsx bytes: {rb.status_code}"}
+            try:
+                from services.file_convert import convert_bytes_async as _convert_bytes_async
+                out_bytes, out_mime, out_filename = await _convert_bytes_async(
+                    rb.content, "xlsx", target_fmt, out_name=stem,
+                )
+            except Exception as e:
+                return {"error": f"Could not convert to {target_fmt}: {e}"}
+            import base64 as _b64
             return {
-                "download_url": dl,
-                "filename": meta.get("name") or "workbook.xlsx",
-                "size": meta.get("size"),
-                "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                "message": f"{meta.get('name') or 'workbook.xlsx'} ready to download",
+                "content_base64": _b64.b64encode(out_bytes).decode("ascii"),
+                "filename": out_filename,
+                "size": len(out_bytes),
+                "mime_type": out_mime,
+                "message": f"{out_filename} ready to download",
             }
 
         if action == "protect_sheet":

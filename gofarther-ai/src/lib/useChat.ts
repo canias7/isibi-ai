@@ -667,14 +667,29 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
           else if (data.count !== undefined && !formatted.includes('count')) formatted += `\n\n_${data.count} results_`;
           if (!formatted.trim()) formatted = JSON.stringify(data, null, 2).slice(0, 2000);
 
-          // If the connector returned a file URL (pdf_url, download_url,
-          // share_url, webUrl), grab the file into local cache so it shows
-          // up in the chat as a tappable attachment instead of just text.
+          // If the connector returned a file — either as a URL
+          // (pdf_url, download_url, share_url, webUrl) or inline as
+          // content_base64 — write it into local cache so it shows up in
+          // the chat as a tappable attachment instead of just text.
           const fileUrlFromResult: string | undefined =
             data.download_url || data.pdf_url || data.file_url || data.share_url || data.webUrl;
           const fileNameFromResult: string = data.filename || data.name || (data.pdf_url ? 'file.pdf' : 'file');
           const fileMimeFromResult: string = data.mime_type || (data.pdf_url ? 'application/pdf' : 'application/octet-stream');
-          if (fileUrlFromResult && /^https?:\/\//.test(fileUrlFromResult)) {
+          if (data.content_base64 && typeof data.content_base64 === 'string') {
+            (async () => {
+              try {
+                const localPath = `${FileSystem.cacheDirectory}${Date.now()}-${fileNameFromResult}`;
+                await FileSystem.writeAsStringAsync(localPath, data.content_base64, { encoding: FileSystem.EncodingType.Base64 });
+                updateAndPersist(aiMsgIdStream, {
+                  content: (finalText ? finalText + '\n\n' : '') + formatted.trim() + `\n\n**${fileNameFromResult}**`,
+                  fileUrl: localPath,
+                  fileMimeType: fileMimeFromResult,
+                });
+              } catch (e: any) {
+                updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + formatted.trim() + `\n\n⚠️ Could not save file: ${e?.message || 'unknown error'}` });
+              }
+            })();
+          } else if (fileUrlFromResult && /^https?:\/\//.test(fileUrlFromResult)) {
             (async () => {
               try {
                 const localPath = `${FileSystem.cacheDirectory}${Date.now()}-${fileNameFromResult}`;
