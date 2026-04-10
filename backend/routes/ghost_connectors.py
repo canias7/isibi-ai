@@ -553,11 +553,11 @@ APP_REGISTRY: dict[str, dict] = {
         "setup": "Tap 'Connect with Microsoft' to sign in with your Microsoft account. You'll be asked to allow GoFarther to read and write your Excel files in OneDrive.",
         "actions": ["list_workbooks", "get_worksheets", "read_range", "write_range", "add_row", "create_workbook"],
         "action_hints": {
-            "list_workbooks": "no params — lists up to 25 Excel (.xlsx) files in the user's OneDrive",
-            "get_worksheets": "workbook_id=<OneDrive item id of the .xlsx file>",
-            "read_range": "workbook_id=<item id>|worksheet=<sheet name, e.g. Sheet1>|range=<A1 notation, e.g. A1:C10>",
-            "write_range": "workbook_id=<item id>|worksheet=<sheet name>|range=<A1 notation>|values=<JSON 2D array, e.g. [[\"a\",1],[\"b\",2]]>",
-            "add_row": "workbook_id=<item id>|worksheet=<sheet name>|values=<JSON 1D array, e.g. [\"name\",42,\"2026-04-10\"]>",
+            "list_workbooks": "no params — lists up to 100 Excel (.xlsx) files in the user's OneDrive",
+            "get_worksheets": "workbook_id=<filename like test-budget.xlsx, or a Graph item id>",
+            "read_range": "workbook_id=<filename or item id>|worksheet=<sheet name, defaults to Sheet1>|range=<A1 notation, e.g. A1:C10>",
+            "write_range": "workbook_id=<filename or item id>|worksheet=<sheet name, defaults to Sheet1>|range=<A1 notation>|values=<JSON 2D array, e.g. [[\"a\",1],[\"b\",2]]>",
+            "add_row": "workbook_id=<filename or item id>|worksheet=<sheet name, defaults to Sheet1>|values=<comma-separated or JSON array, e.g. coffee,50 or [\"coffee\",50]>",
             "create_workbook": "name=<filename without extension, .xlsx is added automatically>",
         },
     },
@@ -1910,35 +1910,113 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
         "Content-Type": "application/json",
     }
 
+    async def _resolve_workbook_id(client: httpx.AsyncClient, workbook_ref: str) -> tuple[Optional[str], Optional[str]]:
+        """Accept either a Graph item id OR a filename. Returns (item_id, error)."""
+        if not workbook_ref:
+            return None, "workbook_id is required"
+        # If it looks like a filename (contains .xlsx or a slash), resolve via the drive path lookup
+        looks_like_filename = (
+            workbook_ref.lower().endswith(".xlsx")
+            or "/" in workbook_ref
+            or "." in workbook_ref and not workbook_ref.startswith("01")  # Graph item ids start with 01
+        )
+        if looks_like_filename:
+            # Try direct path lookup in the root first
+            name = workbook_ref.lstrip("/")
+            if not name.lower().endswith(".xlsx"):
+                name = f"{name}.xlsx"
+            r = await client.get(f"{base}/me/drive/root:/{name}", headers=headers)
+            if r.status_code == 200:
+                return r.json().get("id"), None
+            # Fall back: search the drive
+            r = await client.get(
+                f"{base}/me/drive/root/search(q='{name}')",
+                headers=headers,
+                params={"$top": 10, "$select": "id,name"},
+            )
+            if r.status_code == 200:
+                for it in (r.json() or {}).get("value", []):
+                    if (it.get("name") or "").lower() == name.lower():
+                        return it.get("id"), None
+            return None, f"Could not find a workbook named '{workbook_ref}' in your OneDrive"
+        # Otherwise assume it's already a Graph item id
+        return workbook_ref, None
+
     async with httpx.AsyncClient(timeout=30) as client:
         if action == "list_workbooks":
-            # Search OneDrive for .xlsx files
-            r = await client.get(
-                f"{base}/me/drive/root/search(q='.xlsx')",
-                headers=headers,
-                params={"$top": 25, "$select": "id,name,webUrl,lastModifiedDateTime,size"},
-            )
-            if r.status_code == 401:
-                return {"error": "Microsoft Graph token is invalid or expired. Reconnect in Settings → My Apps → Microsoft Excel Online."}
-            r.raise_for_status()
-            items = (r.json() or {}).get("value", [])
-            workbooks = [
-                {
-                    "id": it.get("id"),
-                    "name": it.get("name"),
+            workbooks: list[dict] = []
+            seen_ids: set[str] = set()
+
+            def _add(it: dict) -> None:
+                name = it.get("name") or ""
+                if not name.lower().endswith(".xlsx"):
+                    return
+                wid = it.get("id")
+                if not wid or wid in seen_ids:
+                    return
+                seen_ids.add(wid)
+                workbooks.append({
+                    "id": wid,
+                    "name": name,
                     "url": it.get("webUrl"),
                     "modified": it.get("lastModifiedDateTime"),
                     "size": it.get("size"),
-                }
-                for it in items
-                if (it.get("name") or "").lower().endswith(".xlsx")
-            ]
+                })
+
+            # 1) Search the drive (fastest when the index is warm)
+            r = await client.get(
+                f"{base}/me/drive/root/search(q='.xlsx')",
+                headers=headers,
+                params={"$top": 50, "$select": "id,name,webUrl,lastModifiedDateTime,size"},
+            )
+            if r.status_code == 401:
+                return {"error": "Microsoft Graph token is invalid or expired. Reconnect in Settings → My Apps → Microsoft Excel Online."}
+            if r.status_code == 200:
+                for it in (r.json() or {}).get("value", []):
+                    _add(it)
+
+            # 2) Fallback: list the root folder children directly (handles brand-new
+            # files that aren't indexed yet — search can take several minutes).
+            if not workbooks:
+                r = await client.get(
+                    f"{base}/me/drive/root/children",
+                    headers=headers,
+                    params={"$top": 100, "$select": "id,name,webUrl,lastModifiedDateTime,size,folder"},
+                )
+                if r.status_code == 200:
+                    for it in (r.json() or {}).get("value", []):
+                        if it.get("folder"):
+                            continue  # skip directories for this first pass
+                        _add(it)
+
+            # 3) Last-ditch: scan top-level folders one level deep
+            if not workbooks:
+                r = await client.get(
+                    f"{base}/me/drive/root/children",
+                    headers=headers,
+                    params={"$top": 50, "$select": "id,name,folder"},
+                )
+                if r.status_code == 200:
+                    for folder in (r.json() or {}).get("value", []):
+                        if not folder.get("folder"):
+                            continue
+                        fid = folder.get("id")
+                        rr = await client.get(
+                            f"{base}/me/drive/items/{fid}/children",
+                            headers=headers,
+                            params={"$top": 50, "$select": "id,name,webUrl,lastModifiedDateTime,size"},
+                        )
+                        if rr.status_code == 200:
+                            for it in (rr.json() or {}).get("value", []):
+                                _add(it)
+
             return {"workbooks": workbooks, "count": len(workbooks)}
 
         if action == "get_worksheets":
-            workbook_id = params.get("workbook_id") or params.get("workbookId")
-            if not workbook_id:
-                return {"error": "workbook_id is required"}
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("name") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
             r = await client.get(
                 f"{base}/me/drive/items/{workbook_id}/workbook/worksheets",
                 headers=headers,
@@ -1956,11 +2034,14 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             }
 
         if action == "read_range":
-            workbook_id = params.get("workbook_id") or params.get("workbookId")
-            worksheet = params.get("worksheet") or params.get("sheet")
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("name") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
             cell_range = params.get("range") or params.get("address")
-            if not workbook_id or not worksheet or not cell_range:
-                return {"error": "workbook_id, worksheet, and range are required"}
+            if not cell_range:
+                return {"error": "range is required (e.g. A1:C10)"}
             r = await client.get(
                 f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')",
                 headers=headers,
@@ -1980,8 +2061,11 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             }
 
         if action == "write_range":
-            workbook_id = params.get("workbook_id") or params.get("workbookId")
-            worksheet = params.get("worksheet") or params.get("sheet")
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("name") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
             cell_range = params.get("range") or params.get("address")
             values = params.get("values")
             if isinstance(values, str):
@@ -1989,8 +2073,8 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
                     values = json.loads(values)
                 except Exception:
                     return {"error": "values must be a JSON 2D array, e.g. [[\"a\",1],[\"b\",2]]"}
-            if not workbook_id or not worksheet or not cell_range or values is None:
-                return {"error": "workbook_id, worksheet, range, and values are required"}
+            if not cell_range or values is None:
+                return {"error": "range and values are required"}
             r = await client.patch(
                 f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/range(address='{cell_range}')",
                 headers=headers,
@@ -2002,27 +2086,38 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
             return {"message": f"Wrote values to {worksheet}!{cell_range}", "range": cell_range}
 
         if action == "add_row":
-            workbook_id = params.get("workbook_id") or params.get("workbookId")
-            worksheet = params.get("worksheet") or params.get("sheet")
+            ref = params.get("workbook_id") or params.get("workbookId") or params.get("name") or params.get("filename")
+            workbook_id, err = await _resolve_workbook_id(client, ref or "")
+            if err:
+                return {"error": err}
+            worksheet = params.get("worksheet") or params.get("sheet") or "Sheet1"
             values = params.get("values")
             if isinstance(values, str):
                 try:
                     values = json.loads(values)
                 except Exception:
-                    return {"error": "values must be a JSON array, e.g. [\"name\",42,\"note\"]"}
-            if not workbook_id or not worksheet or not isinstance(values, list):
-                return {"error": "workbook_id, worksheet, and values (JSON array) are required"}
+                    # Allow a simple comma-separated list as a fallback so the AI
+                    # can say values="coffee,50" instead of a JSON array
+                    values = [v.strip() for v in values.split(",")]
+            if not isinstance(values, list):
+                return {"error": "values must be a JSON array, e.g. [\"name\",42,\"note\"]"}
             # First fetch the used range so we can append below it
             u = await client.get(
-                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/usedRange",
+                f"{base}/me/drive/items/{workbook_id}/workbook/worksheets('{worksheet}')/usedRange(valuesOnly=true)",
                 headers=headers,
             )
             if u.status_code == 401:
                 return {"error": "Microsoft Graph token is invalid or expired."}
-            u.raise_for_status()
-            used = u.json() or {}
-            row_count = used.get("rowCount") or 0
-            col_count = used.get("columnCount") or len(values)
+            if u.status_code == 404:
+                return {"error": f"Worksheet '{worksheet}' not found in the workbook"}
+            if u.status_code >= 400:
+                # Sheet is probably empty — start at row 1
+                row_count = 0
+                col_count = len(values)
+            else:
+                used = u.json() or {}
+                row_count = used.get("rowCount") or 0
+                col_count = used.get("columnCount") or len(values)
             next_row = row_count + 1
             # Pad or trim values to match column count so the Graph API accepts it
             if len(values) < col_count:
