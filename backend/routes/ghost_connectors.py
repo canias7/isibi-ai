@@ -553,12 +553,12 @@ APP_REGISTRY: dict[str, dict] = {
         "setup": "Tap 'Connect with Microsoft' to sign in with your Microsoft account. You'll be asked to allow GoFarther to read and write your Excel files in OneDrive.",
         "actions": ["list_workbooks", "get_worksheets", "read_range", "write_range", "add_row", "create_workbook"],
         "action_hints": {
-            "list_workbooks": "no params — lists up to 100 Excel (.xlsx) files in the user's OneDrive",
-            "get_worksheets": "workbook_id=<filename like test-budget.xlsx, or a Graph item id>",
-            "read_range": "workbook_id=<filename or item id>|worksheet=<sheet name, defaults to Sheet1>|range=<A1 notation, e.g. A1:C10>",
-            "write_range": "workbook_id=<filename or item id>|worksheet=<sheet name, defaults to Sheet1>|range=<A1 notation>|values=<JSON 2D array, e.g. [[\"a\",1],[\"b\",2]]>",
-            "add_row": "workbook_id=<filename or item id>|worksheet=<sheet name, defaults to Sheet1>|values=<comma-separated or JSON array, e.g. coffee,50 or [\"coffee\",50]>",
-            "create_workbook": "name=<filename without extension, .xlsx is added automatically>",
+            "list_workbooks": "no params — use this to discover file names if the user is vague",
+            "get_worksheets": "workbook_id=<any partial name like budget>",
+            "read_range": "workbook_id=<any partial name, or leave empty for the only file>|range=<A1 notation, e.g. A1:C10>",
+            "write_range": "workbook_id=<any partial name>|range=<A1 notation>|values=<comma-separated or 2D JSON array>",
+            "add_row": "workbook_id=<any partial name, or leave empty if only 1 file exists>|values=<comma-separated, e.g. coffee,50>",
+            "create_workbook": "name=<any name, .xlsx added automatically>",
         },
     },
     "airtable": {
@@ -1910,80 +1910,127 @@ async def _excel_online_adapter(action: str, params: dict, creds: dict) -> dict:
         "Content-Type": "application/json",
     }
 
-    async def _resolve_workbook_id(client: httpx.AsyncClient, workbook_ref: str) -> tuple[Optional[str], Optional[str]]:
-        """Accept either a Graph item id OR a filename. Returns (item_id, error)."""
-        from urllib.parse import quote as _q
-        if not workbook_ref:
-            return None, "workbook_id is required"
-        # Graph item ids look like "01ABCXYZ..." — no dots, no slashes, all uppercase hex-ish
-        looks_like_filename = (
-            workbook_ref.lower().endswith(".xlsx")
-            or "/" in workbook_ref
-            or ("." in workbook_ref and not workbook_ref.startswith("01"))
-            or " " in workbook_ref
-        )
-        if not looks_like_filename:
-            return workbook_ref, None
+    def _base_name(n: str) -> str:
+        """Strip repeated .xlsx extensions and lowercase for fuzzy matching."""
+        s = (n or "").lower().strip()
+        while s.endswith(".xlsx"):
+            s = s[:-5]
+        # Normalize whitespace and separators so "test budget" == "test-budget"
+        for ch in (" ", "_", "-"):
+            s = s.replace(ch, "")
+        return s
 
-        name = workbook_ref.lstrip("/")
-        if not name.lower().endswith(".xlsx"):
-            name = f"{name}.xlsx"
-        name_lower = name.lower()
-        encoded = _q(name)
-
-        # Attempt 1: direct drive-path lookup in root
-        r = await client.get(f"{base}/me/drive/root:/{encoded}", headers=headers)
-        if r.status_code == 200:
-            return r.json().get("id"), None
-
-        # Attempt 2: Graph search (works across all folders + indexed drive)
-        r = await client.get(
-            f"{base}/me/drive/root/search(q='{_q(name.rsplit('.', 1)[0])}')",
-            headers=headers,
-            params={"$top": 25, "$select": "id,name,parentReference"},
-        )
-        if r.status_code == 200:
-            for it in (r.json() or {}).get("value", []):
-                if (it.get("name") or "").lower() == name_lower:
-                    return it.get("id"), None
-
-        # Attempt 3: list all children of the drive root
-        candidate_names: list[str] = []
+    async def _collect_all_xlsx(client: httpx.AsyncClient) -> list[dict]:
+        """List every .xlsx file we can find in the user's OneDrive."""
+        seen: dict[str, dict] = {}
+        # Root children
         r = await client.get(
             f"{base}/me/drive/root/children",
             headers=headers,
-            params={"$top": 200, "$select": "id,name,folder"},
+            params={"$top": 200, "$select": "id,name,folder,webUrl,lastModifiedDateTime"},
         )
         subfolder_ids: list[str] = []
         if r.status_code == 200:
             for it in (r.json() or {}).get("value", []):
-                nm = it.get("name") or ""
                 if it.get("folder"):
-                    subfolder_ids.append(it.get("id"))
+                    if it.get("id"):
+                        subfolder_ids.append(it["id"])
                     continue
-                candidate_names.append(nm)
-                if nm.lower() == name_lower:
-                    return it.get("id"), None
-
-        # Attempt 4: scan one level of subfolders
+                name = it.get("name") or ""
+                if name.lower().endswith(".xlsx") and it.get("id"):
+                    seen[it["id"]] = it
+        # One level of subfolders
         for fid in subfolder_ids[:20]:
             rr = await client.get(
                 f"{base}/me/drive/items/{fid}/children",
                 headers=headers,
-                params={"$top": 200, "$select": "id,name"},
+                params={"$top": 200, "$select": "id,name,webUrl,lastModifiedDateTime"},
             )
             if rr.status_code == 200:
                 for it in (rr.json() or {}).get("value", []):
-                    nm = it.get("name") or ""
-                    candidate_names.append(nm)
-                    if nm.lower() == name_lower:
-                        return it.get("id"), None
+                    name = it.get("name") or ""
+                    if name.lower().endswith(".xlsx") and it.get("id"):
+                        seen.setdefault(it["id"], it)
+        # Also try the search index — may find files not in root
+        rs = await client.get(
+            f"{base}/me/drive/root/search(q='.xlsx')",
+            headers=headers,
+            params={"$top": 50, "$select": "id,name,webUrl,lastModifiedDateTime"},
+        )
+        if rs.status_code == 200:
+            for it in (rs.json() or {}).get("value", []):
+                name = it.get("name") or ""
+                if name.lower().endswith(".xlsx") and it.get("id"):
+                    seen.setdefault(it["id"], it)
+        return list(seen.values())
 
-        found_preview = ", ".join(candidate_names[:10]) if candidate_names else "nothing"
+    async def _resolve_workbook_id(client: httpx.AsyncClient, workbook_ref: str) -> tuple[Optional[str], Optional[str]]:
+        """Resolve a filename, partial name, or item id to a Graph item id.
+
+        Behavior:
+          - If workbook_ref looks like a Graph item id → use as-is.
+          - Otherwise, list all .xlsx files and find the best match by fuzzy
+            base-name (ignores case, hyphens, spaces, duplicate .xlsx extensions).
+          - If the user gave no ref AND there's only one .xlsx file in the
+            drive → pick it automatically.
+          - If multiple files match, return the list of candidate names.
+        """
+        # Graph item ids are typically 40+ chars starting with "01" and contain
+        # no dots, slashes, or spaces. Anything else → treat as filename.
+        looks_like_item_id = (
+            bool(workbook_ref)
+            and len(workbook_ref) > 20
+            and workbook_ref.startswith("01")
+            and "." not in workbook_ref
+            and "/" not in workbook_ref
+            and " " not in workbook_ref
+        )
+        if looks_like_item_id:
+            return workbook_ref, None
+
+        all_workbooks = await _collect_all_xlsx(client)
+
+        # No files at all
+        if not all_workbooks:
+            return None, (
+                "I don't see any Excel files in your OneDrive. "
+                "Create one at onedrive.live.com first, or ask me to create a new workbook."
+            )
+
+        # User didn't specify a name → auto-pick when there's only one file
+        if not workbook_ref:
+            if len(all_workbooks) == 1:
+                return all_workbooks[0]["id"], None
+            names = ", ".join([w.get("name", "") for w in all_workbooks[:10]])
+            return None, f"You have multiple Excel files. Which one? {names}"
+
+        target = _base_name(workbook_ref)
+
+        # Exact base-name match
+        exact = [w for w in all_workbooks if _base_name(w.get("name", "")) == target]
+        if len(exact) == 1:
+            return exact[0]["id"], None
+        if len(exact) > 1:
+            names = ", ".join([w.get("name", "") for w in exact[:10]])
+            return None, f"Multiple files match '{workbook_ref}': {names}. Please be more specific."
+
+        # Substring match (either direction)
+        partial = [
+            w for w in all_workbooks
+            if target in _base_name(w.get("name", ""))
+            or _base_name(w.get("name", "")) in target
+        ]
+        if len(partial) == 1:
+            return partial[0]["id"], None
+        if len(partial) > 1:
+            names = ", ".join([w.get("name", "") for w in partial[:10]])
+            return None, f"Multiple files match '{workbook_ref}': {names}. Please pick one."
+
+        # Nothing matched
+        all_names = ", ".join([w.get("name", "") for w in all_workbooks[:10]])
         return None, (
-            f"Could not find a workbook named '{workbook_ref}' in your OneDrive. "
-            f"Files I did find: {found_preview}. "
-            f"Tip: make sure the file is saved to OneDrive root (not Personal Vault), and try 'list my Excel files' to see the exact filename."
+            f"No Excel file matches '{workbook_ref}'. "
+            f"Your files: {all_names}. Use one of these exact names."
         )
 
     async with httpx.AsyncClient(timeout=30) as client:
