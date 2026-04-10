@@ -134,7 +134,7 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
       const data = await getConnectors();
       const freshConnected = (data?.connectors || [])
         .filter((a: any) => a.connected)
-        .map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions }));
+        .map((a: any) => ({ id: a.id, name: a.name, category: a.category, icon: a.icon, actions: a.actions, action_hints: a.action_hints || {} }));
       await saveConnectedApps(freshConnected);
     } catch {
       // Offline or server hiccup — fall through to local cache below
@@ -263,10 +263,19 @@ RULES:
 - Be conversational. Short responses. No essays unless asked.
 - If the user asks about leads, deals, tasks, invoices, or orders and has a connected app — use the connector action.
 - create_proposal, create_contract, and create_presentation use the same create_file backend — just describe the content well.`;
-      // Connected apps — inject available connector actions
-      const connectedAppsStr = connectedApps && connectedApps.length > 0 ? '\n\nCONNECTED APPS (use the connector action to interact with these):\n' +
-        connectedApps.map((app: any) => `${app.name} (${app.category}): ${app.actions.map((a: string) => `{"type":"connector","target":"${app.id}","text":"${a}","key":"params as JSON or pipe-separated key=value"}`).join(', ')}`).join('\n') +
-        '\n\nWhen the user asks about their leads, tasks, invoices, orders, etc. — use the matching connected app automatically. Parse their request into the right action and params.' : '';
+      // Connected apps — inject available connector actions with param hints
+      const connectedAppsStr = connectedApps && connectedApps.length > 0 ? '\n\nCONNECTED APPS (use the connector action JSON to interact with these — DO NOT web search for API docs, the connector is already wired up):\n' +
+        connectedApps.map((app: any) => {
+          const hints = app.action_hints || {};
+          const actionLines = (app.actions || []).map((a: string) => {
+            const hint = hints[a];
+            return hint
+              ? `  ${a}: {"type":"connector","target":"${app.id}","text":"${a}","key":"${hint}"}`
+              : `  ${a}: {"type":"connector","target":"${app.id}","text":"${a}","key":""}`;
+          }).join('\n');
+          return `${app.name} (${app.category}):\n${actionLines}`;
+        }).join('\n') +
+        '\n\nIMPORTANT: When the user asks about their leads, deals, sold products, calls, appointments, etc. — emit the matching connector JSON action IMMEDIATELY. Do NOT search the web or write code. The connector is already set up and will handle the API call for you. Just include the JSON in your response and the app will execute it.' : '';
 
       const contactsStr = savedContacts.length > 0 ? '\n\nThe user has saved these contacts. When they refer to someone by label (e.g. "my boss"), use the matching contact info:\n' + savedContacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n') : '';
       const nicknameStr = nick ? `\n\nIMPORTANT: The user's name/nickname is "${nick}". Use it naturally — greet them by name, refer to them by name occasionally. For example: "Hey ${nick}!", "Sure thing ${nick}", etc.` : '';

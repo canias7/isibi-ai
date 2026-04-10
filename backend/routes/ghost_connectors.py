@@ -178,6 +178,13 @@ APP_REGISTRY: dict[str, dict] = {
         "auth_fields": [{"key": "api_key", "label": "API Key", "secure": True}],
         "setup": "Go to Ringy → Settings → Account Settings → Manage Account → API Keys → Create API Key (enable permissions: Lead data, Call data, Call recordings, Lead sold products, Create appointment). Paste the key here.",
         "actions": ["get_lead", "get_call", "get_sold_products", "get_call_recordings", "create_appointment"],
+        "action_hints": {
+            "get_lead": "lead_id=<UUID of the lead to look up>",
+            "get_call": "call_id=<UUID of the call to look up>",
+            "get_sold_products": "start_date=YYYY-MM-DD HH:mm:ss|end_date=YYYY-MM-DD HH:mm:ss (both optional, defaults to last 30 days)",
+            "get_call_recordings": "start_date=YYYY-MM-DD HH:mm:ss|end_date=YYYY-MM-DD HH:mm:ss (both optional, defaults to last 30 days)",
+            "create_appointment": "start=YYYY-MM-DD HH:mm:ss (required, UTC)|lead_id=<UUID> OR lead_phone=<phone number> (one required)|lead_first_name=...|lead_last_name=...|comments=...|duration_minutes=30",
+        },
     },
     "close": {
         "name": "Close", "category": "CRM", "icon": "checkmark-circle",
@@ -1313,6 +1320,7 @@ async def list_connectors(authorization: str = Header(...), db: AsyncSession = D
             "auth_fields": info["auth_fields"],
             "setup": info["setup"],
             "actions": info["actions"],
+            "action_hints": info.get("action_hints", {}),
             "connected": app_id in connected_ids,
         })
     return {"connectors": result, "categories": CATEGORY_ORDER}
