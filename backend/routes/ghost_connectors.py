@@ -5832,11 +5832,63 @@ async def _autodetect_mail_servers(email_address: str) -> dict | None:
             except Exception:
                 continue
 
-    # 2. Heuristic fallback — guess from the domain itself. A lot of
+    # 2. MX record lookup — find out where the domain actually delivers
+    #    mail, then map the MX target to a known provider's IMAP + SMTP.
+    #    This handles the common case of "custom domain on Google
+    #    Workspace / Outlook 365 / Titan / Zoho / Fastmail" where the
+    #    domain itself doesn't run IMAP but the provider behind it does.
+    try:
+        import dns.resolver as _dns
+        def _lookup_mx() -> list[str]:
+            try:
+                records = _dns.resolve(domain, "MX", lifetime=5)
+                return [str(r.exchange).lower().rstrip(".") for r in records]
+            except Exception:
+                return []
+        mx_hosts = await asyncio.to_thread(_lookup_mx)
+    except Exception:
+        mx_hosts = []
+
+    # Table of MX substring → (provider_key, imap_host, imap_port, smtp_host, smtp_port)
+    mx_providers = [
+        ("google.com",         ("google",   "imap.gmail.com",    993, "smtp.gmail.com",    587)),
+        ("googlemail.com",     ("google",   "imap.gmail.com",    993, "smtp.gmail.com",    587)),
+        ("aspmx.l.google.com", ("google",   "imap.gmail.com",    993, "smtp.gmail.com",    587)),
+        ("outlook.com",        ("microsoft","outlook.office365.com", 993, "smtp.office365.com", 587)),
+        ("protection.outlook.com", ("microsoft", "outlook.office365.com", 993, "smtp.office365.com", 587)),
+        ("titan.email",        ("titan",    "imap.titan.email",  993, "smtp.titan.email",  587)),
+        ("neo.space",          ("neo",      "imap.titan.email",  993, "smtp.titan.email",  587)),
+        ("zoho.com",           ("zoho",     "imap.zoho.com",     993, "smtp.zoho.com",     587)),
+        ("messagingengine.com",("fastmail", "imap.fastmail.com", 993, "smtp.fastmail.com", 587)),
+        ("yahoodns.net",       ("yahoo",    "imap.mail.yahoo.com",993, "smtp.mail.yahoo.com",587)),
+        ("icloud.com",         ("icloud",   "imap.mail.me.com",  993, "smtp.mail.me.com",  587)),
+        ("mailru",             ("mailru",   "imap.mail.ru",      993, "smtp.mail.ru",      587)),
+        ("yandex",             ("yandex",   "imap.yandex.com",   993, "smtp.yandex.com",   587)),
+        ("gmx.net",            ("gmx",      "imap.gmx.com",      993, "mail.gmx.com",      587)),
+        ("mailbox.org",        ("mailboxorg","imap.mailbox.org", 993, "smtp.mailbox.org",  587)),
+        ("posteo",             ("posteo",   "posteo.de",         993, "posteo.de",         587)),
+        ("secureserver.net",   ("godaddy",  "imap.secureserver.net", 993, "smtpout.secureserver.net", 587)),
+        ("privateemail.com",   ("namecheap","mail.privateemail.com", 993, "mail.privateemail.com", 587)),
+        ("hostinger.com",      ("hostinger","imap.hostinger.com", 993, "smtp.hostinger.com", 587)),
+        ("ionos",              ("ionos",    "imap.ionos.com",    993, "smtp.ionos.com",    587)),
+    ]
+    for mx_host in mx_hosts:
+        for needle, (_provider, ih, ip, sh, sp) in mx_providers:
+            if needle in mx_host:
+                detected = {
+                    "imap_host": ih,
+                    "imap_port": ip,
+                    "smtp_host": sh,
+                    "smtp_port": sp,
+                    "_via_mx": mx_host,
+                }
+                _MAIL_AUTODETECT_CACHE[domain] = detected
+                logger.info(f"mail autodetect: {domain} → {ih} (via MX {mx_host})")
+                return detected
+
+    # 3. Heuristic fallback — guess from the domain itself. A lot of
     #    custom domains follow the imap.<domain> convention, but plenty
-    #    don't, and returning a host that doesn't exist just makes the
-    #    connection fail with "Name or service not known". Validate the
-    #    guess via DNS before returning it.
+    #    don't. Validate the guess via DNS before returning it.
     import socket
     async def _resolves(host: str) -> bool:
         try:
