@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getSmtpSettings, saveSmtpSettings, detectSmtp, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth } from '../lib/api';
+import { logout, getMe, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth } from '../lib/api';
 import * as WebBrowser from 'expo-web-browser';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
@@ -37,15 +37,9 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
   const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPhone, setNewPhone] = useState('');
-  const [showSmtp, setShowSmtp] = useState(false);
-  const [smtpHost, setSmtpHost] = useState('');
-  const [smtpPort, setSmtpPort] = useState('587');
-  const [smtpUser, setSmtpUser] = useState('');
-  const [smtpPass, setSmtpPass] = useState('');
-  const [smtpFrom, setSmtpFrom] = useState('');
-  const [smtpConfigured, setSmtpConfigured] = useState(false);
-  const [smtpProvider, setSmtpProvider] = useState('');
-  const [detectingSmtp, setDetectingSmtp] = useState(false);
+  // Legacy SMTP state removed — outbound email now routes through the
+  // user's connected email app (Gmail / Outlook / Neo / Titan / IMAP)
+  // under Connect Apps below. See send_email_for_user() on the backend.
   const [showApps, setShowApps] = useState(false);
   const [allApps, setAllApps] = useState<any[]>([]);
   const [appCategories, setAppCategories] = useState<string[]>([]);
@@ -83,15 +77,6 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
     getLearnedPreferences().then(setLearnedPrefs);
     getLanguage().then(setLanguage);
     getSavedContacts().then(setContacts);
-    getSmtpSettings().then((s: any) => {
-      if (s) {
-        setSmtpHost(s.smtp_host || '');
-        setSmtpPort(String(s.smtp_port || 587));
-        setSmtpUser(s.smtp_user || '');
-        setSmtpFrom(s.smtp_from || '');
-        setSmtpConfigured(s.configured || false);
-      }
-    }).catch(() => {});
     getConnectors().then((data: any) => {
       setAllApps(data.connectors || []);
       setAppCategories(data.categories || []);
@@ -140,23 +125,6 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
     const updated = contacts.filter(c => c.id !== id);
     setContacts(updated);
     await saveSavedContacts(updated);
-  };
-
-  const handleSaveSmtp = async () => {
-    try {
-      await saveSmtpSettings({
-        smtp_host: smtpHost.trim() || undefined,
-        smtp_port: parseInt(smtpPort) || 587,
-        smtp_user: smtpUser.trim() || undefined,
-        smtp_pass: smtpPass.trim() || undefined,
-        smtp_from: smtpFrom.trim() || undefined,
-      });
-      setSmtpConfigured(!!smtpHost.trim() && !!smtpUser.trim() && !!smtpPass.trim());
-      Alert.alert('Saved', 'Email settings updated');
-      setShowSmtp(false);
-    } catch (e: any) {
-      Alert.alert('Error', e.message || 'Could not save settings');
-    }
   };
 
   const initials = user?.name ? user.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) : (loadingUser ? '...' : '?');
@@ -380,169 +348,6 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
           </TouchableOpacity>
         </View>
 
-        {/* Legacy "Send from My Email" tile — removed. Outbound email now
-            goes through a connected mail app (Gmail/Outlook/Neo/Titan/IMAP)
-            listed under Connect Apps below. Legacy GhostUser.smtp_* columns
-            are migrated into an imap_mail connector on first use, so users
-            who were already connected here don't need to reconnect. */}
-        {false && (
-        <>
-        <Text style={[s.sectionLabel, { color: tc.textMid }]}>Email</Text>
-        <View style={[s.card, { backgroundColor: tc.bg }]}>
-          <TouchableOpacity style={s.row} onPress={() => setShowSmtp(!showSmtp)}>
-            <Text style={[s.rowLabel, { color: tc.text }]}>Send from My Email</Text>
-            <Text style={[s.rowValue, { color: smtpConfigured ? '#22c55e' : tc.textMid }]}>{smtpConfigured ? 'Connected' : 'Not set up'}</Text>
-          </TouchableOpacity>
-          {showSmtp && (
-            <View style={s.expandedSection}>
-              <Text style={[s.expandedHint, { fontSize: 13, marginBottom: 12 }]}>Send emails directly from your own email address. Takes 2 minutes to set up.</Text>
-
-              {/* Step 1 */}
-              <Text style={[s.smtpStep, { color: tc.text }]}>Step 1: Enter your email</Text>
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpUser} onChangeText={(val) => {
-                setSmtpUser(val);
-                // Auto-detect via MX records when email looks complete
-                const domain = val.split('@')[1]?.toLowerCase();
-                if (domain && domain.includes('.') && !detectingSmtp) {
-                  setDetectingSmtp(true);
-                  detectSmtp(val).then((result) => {
-                    setSmtpHost(result.host);
-                    setSmtpPort(String(result.port));
-                    setSmtpProvider(result.provider);
-                  }).catch(() => {}).finally(() => setDetectingSmtp(false));
-                }
-              }} placeholder="you@company.com" placeholderTextColor="#bbb" autoCapitalize="none" keyboardType="email-address" />
-              {detectingSmtp ? (
-                <Text style={[s.expandedHint, { color: tc.textMid, marginTop: 2 }]}>Detecting email provider...</Text>
-              ) : smtpHost ? (
-                <Text style={[s.expandedHint, { color: '#22c55e', marginTop: 2 }]}>Detected: {smtpProvider || smtpHost}</Text>
-              ) : null}
-
-              {/* Step 2 — provider-specific instructions */}
-              {smtpProvider && (
-                <>
-                  <Text style={[s.smtpStep, { color: tc.text, marginTop: 14 }]}>Step 2: Get your App Password</Text>
-                  {smtpProvider.includes('Google') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to myaccount.google.com</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Security</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Tap 2-Step Verification (turn it on if it's off)</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Scroll down and tap App passwords</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Name it "GoFarther" and tap Create</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>6. Copy the 16-character password and paste it below</Text>
-                    </View>
-                  ) : smtpProvider.includes('Microsoft') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to account.microsoft.com/security</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Advanced security options</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Turn on Two-step verification if it's off</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Tap Create a new app password</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Copy the password and paste it below</Text>
-                    </View>
-                  ) : smtpProvider.includes('Yahoo') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to login.yahoo.com/account/security</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Turn on Two-step verification if it's off</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Tap Generate app password</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Select "Other App", name it "GoFarther"</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>5. Copy the password and paste it below</Text>
-                    </View>
-                  ) : smtpProvider.includes('Apple') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to appleid.apple.com/sign-in</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Sign in and go to App-Specific Passwords</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Generate a password for "GoFarther"</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Copy the password and paste it below</Text>
-                    </View>
-                  ) : smtpProvider.includes('Zoho') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to accounts.zoho.com/home</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap Security, then App Passwords</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Generate a new password for "GoFarther"</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Copy the password and paste it below</Text>
-                    </View>
-                  ) : smtpProvider.includes('Titan') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to your Titan/Neo admin panel</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Go to Settings and enable SMTP/IMAP access</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Use your regular email password below</Text>
-                    </View>
-                  ) : smtpProvider.includes('Namecheap') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to Namecheap Private Email</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Use your regular email password below</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>No app password needed — just your normal password.</Text>
-                    </View>
-                  ) : smtpProvider.includes('Fastmail') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to fastmail.com/settings/security/tokens</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Tap New App Password</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Name it "GoFarther", select SMTP access</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Copy the password and paste it below</Text>
-                    </View>
-                  ) : smtpProvider.includes('ProtonMail') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. You need a paid ProtonMail plan for SMTP</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Go to Settings, then go to IMAP/SMTP</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Download and set up ProtonMail Bridge</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Use the Bridge password below</Text>
-                    </View>
-                  ) : smtpProvider === 'IONOS' || smtpProvider === 'OVH' || smtpProvider.includes('GoDaddy') || smtpProvider.includes('Bluehost') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Use your regular email password below.</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Most hosting providers ({smtpProvider}) don't require a special app password — your normal email password works.</Text>
-                    </View>
-                  ) : smtpProvider.includes('Mail.ru') || smtpProvider.includes('Yandex') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Go to your {smtpProvider} account security settings</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Enable two-factor authentication</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Create an App Password for "GoFarther"</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Paste the password below</Text>
-                    </View>
-                  ) : smtpProvider.includes('GMX') || smtpProvider.includes('Web.de') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>1. Log in to {smtpProvider}</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>2. Go to Settings, then POP3/IMAP</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>3. Enable "Allow POP3/IMAP access"</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>4. Use your regular password below</Text>
-                    </View>
-                  ) : smtpProvider.includes('Tutanota') || smtpProvider.includes('Hey') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: '#ef4444' }]}>{smtpProvider} does not support SMTP.</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>This email provider doesn't allow sending from third-party apps. Please use a different email address.</Text>
-                    </View>
-                  ) : smtpProvider.includes('Mailbox.org') || smtpProvider.includes('Posteo') || smtpProvider.includes('Mailfence') || smtpProvider.includes('Runbox') || smtpProvider.includes('Migadu') ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Use your regular {smtpProvider} password below.</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{smtpProvider} supports SMTP with your normal login credentials.</Text>
-                    </View>
-                  ) : smtpProvider === 'Unknown' ? (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>We detected your email server but couldn't identify the provider.</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Try your regular email password first. If it doesn't work, check your provider's settings for an "App Password" option.</Text>
-                    </View>
-                  ) : (
-                    <View style={s.smtpInstructions}>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Use your regular email password below.</Text>
-                      <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>Most hosting providers use your normal password for SMTP access.</Text>
-                    </View>
-                  )}
-                </>
-              )}
-
-              {/* Step 3 */}
-              <Text style={[s.smtpStep, { color: tc.text, marginTop: 14 }]}>{smtpProvider ? 'Step 3' : 'Step 2'}: Paste your App Password</Text>
-              <TextInput style={[s.contactInput, { color: tc.text }]} value={smtpPass} onChangeText={setSmtpPass} placeholder="Paste app password here" placeholderTextColor="#bbb" secureTextEntry />
-
-              <TextInput style={[s.contactInput, { color: tc.text, marginTop: 8 }]} value={smtpFrom} onChangeText={setSmtpFrom} placeholder="Your name (shown in emails)" placeholderTextColor="#bbb" />
-              <TouchableOpacity style={s.saveBtn} onPress={handleSaveSmtp}>
-                <Text style={s.saveBtnText}>Save Email Settings</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-        </>
-        )}
 
         {/* Connect Apps */}
         <Text style={[s.sectionLabel, { color: tc.textMid }]}>Integrations</Text>
@@ -1109,7 +914,9 @@ const s = StyleSheet.create({
   clearMemBtn: { marginTop: 10, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#fef2f2', alignSelf: 'flex-start' },
   clearMemText: { fontSize: 13, color: '#ef4444', fontWeight: '500' },
 
-  smtpStep: { fontSize: 14, fontWeight: '700', marginBottom: 6 },
+  // smtpInstructions + smtpInstructionText are still used by the
+  // Connect Apps card to render per-connector setup text. smtpStep was
+  // only used by the old Send from My Email block and has been removed.
   smtpInstructions: { backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 10, padding: 12, marginTop: 4, gap: 6 },
   smtpInstructionText: { fontSize: 13, lineHeight: 20 },
   contactRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 8 },
