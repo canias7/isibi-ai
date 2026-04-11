@@ -620,6 +620,20 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                           <View style={s.smtpInstructions}>
                             <Text style={[s.smtpInstructionText, { color: tc.textMid }]}>{app.setup}</Text>
                           </View>
+                          {/* Deep link to the provider's credential page.
+                              Shown for any connector that has a setup_url —
+                              lets the user jump straight to where they need
+                              to go to generate an app password / API key /
+                              whatever, instead of googling for it. */}
+                          {app.setup_url && (
+                            <TouchableOpacity
+                              style={{ marginTop: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.06)', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                              onPress={() => { Linking.openURL(app.setup_url).catch(() => Alert.alert('Could not open link')); }}
+                            >
+                              <Ionicons name="open-outline" size={16} color={tc.text} />
+                              <Text style={{ color: tc.text, fontSize: 13, fontWeight: '600' }}>Get App Password →</Text>
+                            </TouchableOpacity>
+                          )}
                           {app.auth_fields.map((field: any) => (
                             <TextInput
                               key={field.key}

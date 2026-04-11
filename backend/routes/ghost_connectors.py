@@ -701,6 +701,7 @@ APP_REGISTRY: dict[str, dict] = {
             {"key": "app_password", "label": "Password", "secure": True},
         ],
         "setup": "Enter your Neo email address and password. Server settings (imap.neo.space / smtp.neo.space) are configured automatically. If Neo rejects the password, generate an app-specific password in your Neo account settings.",
+        "setup_url": "https://app.neo.space/mail/",
         "actions": [
             "list_inbox", "search_emails", "read_email", "reply_to_email",
             "send_email", "mark_read", "mark_unread", "archive", "delete",
@@ -728,6 +729,7 @@ APP_REGISTRY: dict[str, dict] = {
             {"key": "app_password", "label": "Password", "secure": True},
         ],
         "setup": "Enter your Titan email address and password. Server settings (imap.titan.email / smtp.titan.email) are configured automatically. If Titan rejects the password, generate an app-specific password in your Titan account settings.",
+        "setup_url": "https://app.titan.email/",
         "actions": [
             "list_inbox", "search_emails", "read_email", "reply_to_email",
             "send_email", "mark_read", "mark_unread", "archive", "delete",
@@ -1524,23 +1526,24 @@ APP_REGISTRY: dict[str, dict] = {
 # to copy-paste a 50-line registry entry.
 
 _MAIL_PRESETS = [
-    # (app_id,            display name,             setup help,                                                                       adapter fn)
-    ("yahoo_mail",       "Yahoo Mail",              "Needs an app password — login.yahoo.com/account/security → Generate app password.",                      _yahoo_mail_adapter),
-    ("icloud_mail",      "iCloud Mail",             "Needs an app-specific password — appleid.apple.com → Sign-In and Security → App-Specific Passwords.",    _icloud_mail_adapter),
-    ("zoho_mail",        "Zoho Mail",               "Use your regular Zoho password, or generate an App Password at accounts.zoho.com → Security → App Passwords.", _zoho_mail_adapter),
-    ("fastmail_mail",    "Fastmail",                "Generate an app password at fastmail.com → Settings → Password & Security → App Passwords.",             _fastmail_mail_adapter),
-    ("aol_mail",         "AOL Mail",                "Needs an app password — login.aol.com → Account Security → Generate app password.",                     _aol_mail_adapter),
-    ("gmx_mail",         "GMX Mail",                "Enable POP3/IMAP in GMX Settings → POP3/IMAP, then use your regular password.",                          _gmx_mail_adapter),
-    ("mailru_mail",      "Mail.ru",                 "Generate an app password in Mail.ru Security → Passwords for external apps.",                            _mailru_mail_adapter),
-    ("yandex_mail",      "Yandex Mail",             "Generate an app password at id.yandex.com → Security → App passwords.",                                  _yandex_mail_adapter),
-    ("protonmail_mail",  "ProtonMail (Bridge)",     "Requires a paid Proton plan and ProtonMail Bridge running locally. Use the Bridge username and password.", _protonmail_mail_adapter),
-    ("hostinger_mail",   "Hostinger Email",         "Use your hPanel email password directly — Hostinger business email works with regular credentials.",     _hostinger_mail_adapter),
-    ("godaddy_mail",     "GoDaddy Workspace",       "Use your regular GoDaddy Workspace Email password.",                                                      _godaddy_mail_adapter),
-    ("namecheap_mail",   "Namecheap Private Email", "Use your regular Namecheap Private Email password.",                                                     _namecheap_mail_adapter),
-    ("ionos_mail",       "IONOS Email",             "Use your regular IONOS mailbox password.",                                                                _ionos_mail_adapter),
-    ("mailboxorg_mail",  "Mailbox.org",             "Use your regular Mailbox.org password — SMTP/IMAP works with your normal login.",                        _mailboxorg_mail_adapter),
-    ("posteo_mail",      "Posteo",                  "Use your regular Posteo password.",                                                                       _posteo_mail_adapter),
-    ("mailfence_mail",   "Mailfence",               "Use your regular Mailfence password or generate an app password in Account Settings.",                   _mailfence_mail_adapter),
+    # (app_id, display name, setup help, setup_url (direct link to the
+    #  provider's app-password / credential page), adapter fn)
+    ("yahoo_mail",       "Yahoo Mail",              "Tap 'Get App Password' to open Yahoo's security page, turn on 2-step verification, then generate an app password for 'GoFarther' and paste it below.", "https://login.yahoo.com/account/security", _yahoo_mail_adapter),
+    ("icloud_mail",      "iCloud Mail",             "Tap 'Get App Password' to open Apple ID, then go to Sign-In and Security → App-Specific Passwords and create one named 'GoFarther'.", "https://appleid.apple.com/account/manage", _icloud_mail_adapter),
+    ("zoho_mail",        "Zoho Mail",               "Tap 'Get App Password' to open Zoho's security page and create an app password named 'GoFarther'.", "https://accounts.zoho.com/home#security/app_password", _zoho_mail_adapter),
+    ("fastmail_mail",    "Fastmail",                "Tap 'Get App Password' to open Fastmail's password settings and create an app password with Mail access.", "https://app.fastmail.com/settings/security/integrations/apppassword/new", _fastmail_mail_adapter),
+    ("aol_mail",         "AOL Mail",                "Tap 'Get App Password' to open AOL's account security page and generate an app password for 'GoFarther'.", "https://login.aol.com/account/security", _aol_mail_adapter),
+    ("gmx_mail",         "GMX Mail",                "Tap 'Get App Password' to open GMX settings. Enable POP3/IMAP access, then use your regular GMX password below.", "https://www.gmx.com/mail/customer-center/", _gmx_mail_adapter),
+    ("mailru_mail",      "Mail.ru",                 "Tap 'Get App Password' to open Mail.ru security settings and create a password for external apps.", "https://account.mail.ru/user/2-step-auth/passwords", _mailru_mail_adapter),
+    ("yandex_mail",      "Yandex Mail",             "Tap 'Get App Password' to open Yandex ID security and create an app password for mail.", "https://id.yandex.com/security/app-passwords", _yandex_mail_adapter),
+    ("protonmail_mail",  "ProtonMail (Bridge)",     "ProtonMail only supports third-party apps via Proton Bridge. Tap 'Open Proton Bridge' to download it, then use the Bridge-generated username and password below.", "https://proton.me/mail/bridge", _protonmail_mail_adapter),
+    ("hostinger_mail",   "Hostinger Email",         "Tap 'Open hPanel' to log in. Use your regular email password — Hostinger business email works with normal credentials.", "https://hpanel.hostinger.com/email", _hostinger_mail_adapter),
+    ("godaddy_mail",     "GoDaddy Workspace",       "Tap 'Open GoDaddy' to log in. Use your regular Workspace Email password.", "https://sso.godaddy.com/v1/login?app=email", _godaddy_mail_adapter),
+    ("namecheap_mail",   "Namecheap Private Email", "Tap 'Open Namecheap' to log in to Private Email. Use your regular mailbox password.", "https://privateemail.com/appsuite/", _namecheap_mail_adapter),
+    ("ionos_mail",       "IONOS Email",             "Tap 'Open IONOS' to log in. Use your regular IONOS mailbox password.", "https://login.ionos.com/", _ionos_mail_adapter),
+    ("mailboxorg_mail",  "Mailbox.org",             "Tap 'Open Mailbox.org' to log in. Use your regular password — IMAP/SMTP works with normal credentials.", "https://login.mailbox.org/", _mailboxorg_mail_adapter),
+    ("posteo_mail",      "Posteo",                  "Tap 'Open Posteo' to log in. Use your regular Posteo password.", "https://posteo.de/en/my-account", _posteo_mail_adapter),
+    ("mailfence_mail",   "Mailfence",               "Tap 'Open Mailfence' to log in and generate an app password in Account → Security.", "https://mailfence.com/flow/#/login", _mailfence_mail_adapter),
 ]
 
 _MAIL_PRESET_ACTIONS = [
@@ -1564,7 +1567,7 @@ _MAIL_PRESET_HINTS = {
     "download_attachment": "message_id=<uid>|folder=<folder>|attachment_index=<0-based index from read_email>",
 }
 
-for _app_id, _name, _setup, _adapter in _MAIL_PRESETS:
+for _app_id, _name, _setup, _setup_url, _adapter in _MAIL_PRESETS:
     APP_REGISTRY[_app_id] = {
         "name": _name,
         "category": "Email",
@@ -1574,6 +1577,11 @@ for _app_id, _name, _setup, _adapter in _MAIL_PRESETS:
             {"key": "app_password", "label": "Password", "secure": True},
         ],
         "setup": f"Enter your {_name} address and password. {_setup}",
+        # Deep link to the provider's own credential page — the Settings
+        # screen renders this as a "Get App Password →" button so the
+        # user never has to google "how do I get my <provider> app
+        # password".
+        "setup_url": _setup_url,
         "actions": list(_MAIL_PRESET_ACTIONS),
         "action_hints": dict(_MAIL_PRESET_HINTS),
     }
@@ -1621,6 +1629,7 @@ async def list_connectors(authorization: str = Header(...), db: AsyncSession = D
             "icon": info["icon"],
             "auth_fields": info["auth_fields"],
             "setup": info["setup"],
+            "setup_url": info.get("setup_url"),
             "actions": info["actions"],
             "action_hints": info.get("action_hints", {}),
             "oauth_flow": info.get("oauth_flow"),
