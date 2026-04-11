@@ -685,6 +685,17 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           let formatted = '';
           if (data.message) formatted = data.message;
           if (data.contacts) formatted += '\n\n' + data.contacts.map((c: any) => `**${c.firstname || ''} ${c.lastname || c.name || ''}** ${c.email ? `· ${c.email}` : ''} ${c.phone ? `· ${c.phone}` : ''}`).join('\n');
+          // Mail messages from any mail connector (gmail, outlook_mail, neo,
+          // titan, imap, yahoo, zoho, fastmail, etc.). All adapters return
+          // {messages: [{id, subject, from, received, snippet, unread}]}.
+          if (data.messages && Array.isArray(data.messages)) formatted += '\n\n' + data.messages.map((m: any) => {
+            const unread = m.unread ? '● ' : '○ ';
+            const from = (m.from_name || m.from || '').toString().slice(0, 40);
+            const subj = (m.subject || '(no subject)').toString().slice(0, 70);
+            const snip = m.snippet ? `\n   ${m.snippet.toString().slice(0, 120).replace(/\s+/g, ' ')}` : '';
+            const when = m.received ? ` · ${new Date(m.received).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}` : '';
+            return `${unread}**${from}**${when}\n   ${subj}${snip}`;
+          }).join('\n\n');
           if (data.deals) formatted += '\n\n' + data.deals.map((d: any) => `**${d.dealname || d.title || d.name || 'Deal'}** ${d.amount ? `· $${d.amount}` : ''} ${d.dealstage || d.stage || ''}`).join('\n');
           if (data.leads) formatted += '\n\n' + data.leads.map((l: any) => `**${l.Name || l.name || 'Lead'}** ${l.Email ? `· ${l.Email}` : ''} ${l.Status || ''}`).join('\n');
           if (data.tasks) formatted += '\n\n' + data.tasks.map((t: any) => `${t.completed ? '✅' : '⬜'} **${t.content || t.name || 'Task'}** ${t.due || t.due_on || ''}`).join('\n');
@@ -698,7 +709,9 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           if (data.available !== undefined) formatted += `\n\nAvailable: $${data.available}\nPending: $${data.pending}`;
           if (data.payment_link) formatted += `\n\n[Payment Link](${data.payment_link})`;
           if (data.sum !== undefined) formatted += `\n\n**Sum of column ${data.column || ''}:** ${typeof data.sum === 'number' ? data.sum.toLocaleString() : data.sum}${data.count !== undefined ? ` _(${data.count} values)_` : ''}`;
-          else if (data.count !== undefined && !formatted.includes('count')) formatted += `\n\n_${data.count} results_`;
+          // Don't add "_N results_" when we've already rendered the
+          // messages inline — the count is obvious from the list.
+          else if (data.count !== undefined && !formatted.includes('count') && !data.messages) formatted += `\n\n_${data.count} results_`;
           if (!formatted.trim()) formatted = JSON.stringify(data, null, 2).slice(0, 2000);
 
           // If the connector returned a file — either as a URL
