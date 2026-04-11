@@ -1651,9 +1651,68 @@ async def list_connectors(authorization: str = Header(...), db: AsyncSession = D
     return {"connectors": result, "categories": CATEGORY_ORDER}
 
 
+async def _probe_imap_login(creds: dict, imap_host_override: str | None = None, imap_port_override: int | None = None) -> tuple[bool, str]:
+    """Actually try to log into IMAP with the given creds. Returns
+    (ok, error_message). Used by /connect to verify mail creds BEFORE
+    marking the connector as connected."""
+    import imaplib, asyncio as _aio
+    username = creds.get("username") or creds.get("email") or ""
+    password = creds.get("app_password") or creds.get("password") or ""
+    imap_host = imap_host_override or creds.get("imap_host") or ""
+    imap_port = int(imap_port_override or creds.get("imap_port") or 993)
+    if not (imap_host and username and password):
+        return False, "Missing IMAP host, username, or password"
+
+    def _probe_sync() -> tuple[bool, str]:
+        try:
+            c = imaplib.IMAP4_SSL(imap_host, imap_port)
+            try:
+                c.login(username, password)
+            finally:
+                try: c.logout()
+                except Exception: pass
+            return True, ""
+        except imaplib.IMAP4.error as e:
+            return False, f"Login rejected: {e}"
+        except Exception as e:
+            return False, f"Connection failed: {e}"
+
+    return await _aio.to_thread(_probe_sync)
+
+
+# Map of preset app_id → hardcoded IMAP host/port to use when verifying
+# the connection. Mirrors the presets defined by _make_imap_preset so the
+# connect-time probe can pre-fill the host the same way the adapter does.
+_MAIL_PRESET_HOSTS: dict[str, tuple[str, int]] = {
+    "neo_mail":       ("imap.neo.space",      993),
+    "titan_mail":     ("imap.titan.email",    993),
+    "yahoo_mail":     ("imap.mail.yahoo.com", 993),
+    "icloud_mail":    ("imap.mail.me.com",    993),
+    "zoho_mail":      ("imap.zoho.com",       993),
+    "fastmail_mail":  ("imap.fastmail.com",   993),
+    "aol_mail":       ("imap.aol.com",        993),
+    "gmx_mail":       ("imap.gmx.com",        993),
+    "mailru_mail":    ("imap.mail.ru",        993),
+    "yandex_mail":    ("imap.yandex.com",     993),
+    "protonmail_mail":("127.0.0.1",          1143),
+    "hostinger_mail": ("imap.hostinger.com",  993),
+    "godaddy_mail":   ("imap.secureserver.net", 993),
+    "namecheap_mail": ("mail.privateemail.com", 993),
+    "ionos_mail":     ("imap.ionos.com",      993),
+    "mailboxorg_mail":("imap.mailbox.org",    993),
+    "posteo_mail":    ("posteo.de",           993),
+    "mailfence_mail": ("imap.mailfence.com",  993),
+}
+
+
 @router.post("/{app_id}/connect")
 async def connect_app(app_id: str, body: ConnectRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Save credentials for an app (encrypted at rest)."""
+    """Save credentials for an app (encrypted at rest).
+
+    For mail connectors that use password-based auth, this also runs a
+    real IMAP login probe against the provider so we never mark a
+    connector as 'Connected' unless the creds actually work.
+    """
     payload = _verify_auth(authorization)
     user_id = payload.get("sub")
 
@@ -1665,6 +1724,25 @@ async def connect_app(app_id: str, body: ConnectRequest, authorization: str = He
     missing = [k for k in required if not body.credentials.get(k)]
     if missing:
         raise HTTPException(400, f"Missing required fields: {', '.join(missing)}")
+
+    # Verify IMAP-based mail connectors actually work before saving.
+    # OAuth-based mail connectors (oauth_flow set) go through /oauth/...
+    # and already get verified by the callback, so skip them here.
+    if (app_id in _MAIL_PRESET_HOSTS or app_id == "imap_mail") and not APP_REGISTRY[app_id].get("oauth_flow"):
+        probe_host, probe_port = _MAIL_PRESET_HOSTS.get(app_id, (body.credentials.get("imap_host", ""), int(body.credentials.get("imap_port") or 993)))
+        if not probe_host and body.credentials.get("username"):
+            # Generic IMAP tile — try autodetect so users can connect with
+            # just email + password even if they didn't fill the host.
+            detected = await _autodetect_mail_servers(body.credentials["username"])
+            if detected:
+                probe_host = detected.get("imap_host") or ""
+                probe_port = int(detected.get("imap_port") or 993)
+        ok, err = await _probe_imap_login(body.credentials, probe_host, probe_port)
+        if not ok:
+            raise HTTPException(
+                400,
+                f"Could not log in to {probe_host or 'your mail server'} as {body.credentials.get('username', '')}. {err}. Double-check the password — most providers require an 'app password' if you have 2FA enabled.",
+            )
 
     await _set_creds(user_id, app_id, body.credentials, db)
     # Audit log
