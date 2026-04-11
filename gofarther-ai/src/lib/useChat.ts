@@ -798,28 +798,72 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ Plan had no steps` });
           return;
         }
-        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || 'Running plan...') } : m));
+        setMessages(prev => prev.map(m => m.id === aiMsgIdStream ? { ...m, content: (finalText || 'Working on it...') } : m));
         setLoading(false);
         trackAsync(runConnectorPlan(steps)).then(result => {
+          // Friendly step label — hides the technical action names
+          // (excel_online · list_workbooks) in favor of a natural
+          // description like "Read your budget spreadsheet".
+          const friendlyLabel = (s: any): string => {
+            if (s.type === 'email') {
+              const to = s.result?.to || '';
+              const att = s.result?.attachment_count ? ` with ${s.result.attachment_count} attachment${s.result.attachment_count > 1 ? 's' : ''}` : '';
+              return `Sent email to ${to}${att}`;
+            }
+            if (s.type === 'excel_pdf') {
+              const name = s.result?.filename || 'workbook';
+              return `Exported ${name} as PDF`;
+            }
+            if (s.type === 'convert_file') {
+              const to = s.result?.to || 'file';
+              const name = s.result?.filename || '';
+              return `Converted to ${to}${name ? ` (${name})` : ''}`;
+            }
+            if (s.type === 'connector') {
+              const app = s.app || '';
+              const action = s.action || '';
+              // Map common (app, action) pairs to natural phrases.
+              const map: Record<string, string> = {
+                'excel_online.list_workbooks': 'Looked through your Excel files',
+                'excel_online.get_worksheets': 'Checked the worksheets',
+                'excel_online.read_range': 'Read your spreadsheet',
+                'excel_online.write_range': 'Updated your spreadsheet',
+                'excel_online.add_row': 'Added a row to your spreadsheet',
+                'excel_online.create_workbook': 'Created a new workbook',
+                'excel_online.sum_column': 'Summed the column',
+                'excel_online.find_cell': 'Searched the spreadsheet',
+                'excel_online.download_workbook': 'Downloaded your spreadsheet',
+                'excel_online.download_as_pdf': 'Exported your spreadsheet as PDF',
+                'gmail.list_inbox': 'Opened your Gmail inbox',
+                'gmail.search_emails': 'Searched your Gmail',
+                'gmail.read_email': 'Read the email',
+                'outlook_mail.list_inbox': 'Opened your Outlook inbox',
+                'outlook_mail.search_emails': 'Searched your Outlook',
+                'outlook_mail.read_email': 'Read the email',
+                'neo_mail.list_inbox': 'Opened your inbox',
+                'titan_mail.list_inbox': 'Opened your inbox',
+                'imap_mail.list_inbox': 'Opened your inbox',
+              };
+              return map[`${app}.${action}`] || action.replace(/_/g, ' ');
+            }
+            return s.type.replace(/_/g, ' ');
+          };
+
           const lines: string[] = [];
-          if (result.status === 'error') {
-            lines.push(`⚠️ Plan failed at step \`${result.failed_at}\``);
+          const allOk = (result.steps || []).every((s: any) => s.ok);
+          if (result.status === 'error' || !allOk) {
+            lines.push('**Something went wrong**');
           } else {
-            lines.push('**Plan completed**');
+            lines.push('**Done!**');
           }
           for (const s of (result.steps || [])) {
-            const icon = s.ok ? '✅' : '❌';
-            let label = '';
-            if (s.type === 'connector') label = `${s.app} · ${s.action}`;
-            else if (s.type === 'excel_pdf') label = `Export PDF${s.result?.filename ? ` (${s.result.filename}, ${Math.round((s.result.size || 0) / 1024)} KB)` : ''}`;
-            else if (s.type === 'convert_file') label = `Convert ${s.result?.from || ''} → ${s.result?.to || ''}${s.result?.filename ? ` (${s.result.filename}, ${Math.round((s.result.size || 0) / 1024)} KB)` : ''}`;
-            else if (s.type === 'email') label = `Email → ${s.result?.to || ''}${s.result?.attachment_count ? ` (${s.result.attachment_count} attachment)` : ''}`;
-            else label = s.type;
-            lines.push(`${icon} ${label}${s.error ? ` — ${s.error}` : ''}`);
+            const icon = s.ok ? '✓' : '✗';
+            const label = friendlyLabel(s);
+            lines.push(`  ${icon}  ${label}${s.error ? `\n      ${s.error}` : ''}`);
           }
           updateAndPersist(aiMsgIdStream, { content: (finalText ? finalText + '\n\n' : '') + lines.join('\n') });
         }).catch(e => {
-          updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ ${e.message || 'Plan failed'}` });
+          updateAndPersist(aiMsgIdStream, { content: `${finalText || ''}\n\n⚠️ ${e.message || 'Something went wrong'}` });
         });
         return;
       }
