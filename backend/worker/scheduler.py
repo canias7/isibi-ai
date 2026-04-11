@@ -53,6 +53,17 @@ async def run_scheduler():
                     await poll_urgent_emails_for_all_users()
             except Exception as poll_err:
                 logger.warning(f"Urgent-email poller failed: {poll_err}")
+
+            # Morning digest tick — runs every minute but internally
+            # dedupes by last_fired_at (23h window) and only fires
+            # for users whose configured time matches the current
+            # minute in their own timezone. Cheap when no-one's
+            # digest time is "now".
+            try:
+                from worker.digest_runner import tick_digests
+                await tick_digests()
+            except Exception as digest_err:
+                logger.warning(f"Digest tick failed: {digest_err}")
         except asyncio.CancelledError:
             logger.info("Scheduler cancelled, shutting down")
             break

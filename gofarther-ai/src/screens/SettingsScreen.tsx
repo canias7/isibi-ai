@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
-import { logout, getMe, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth, getNotificationPrefs, updateNotificationPrefs, sendTestPush, type NotificationPrefs } from '../lib/api';
+import { logout, getMe, getConnectors, connectApp, disconnectApp, deleteAccount, getUsage, setup2FA, verify2FA, disable2FA, getSessions, revokeSession, revokeAllSessions, SessionInfo, exportMyData, startOAuth, getNotificationPrefs, updateNotificationPrefs, sendTestPush, getDigestConfig, updateDigestConfig, runDigestNow, type NotificationPrefs, type DigestConfig } from '../lib/api';
 import * as WebBrowser from 'expo-web-browser';
 import { isBiometricAvailable, getBiometricType } from '../lib/biometrics';
 import { registerForPushNotifications } from '../lib/notifications';
@@ -66,6 +66,40 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [pushPrefs, setPushPrefs] = useState<NotificationPrefs | null>(null);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
+  // Morning digest state
+  const [digestConfig, setDigestConfig] = useState<DigestConfig | null>(null);
+  const [showDigestSettings, setShowDigestSettings] = useState(false);
+  const [digestTimeText, setDigestTimeText] = useState('08:00');
+  const [digestCustomPrompt, setDigestCustomPrompt] = useState('');
+  const [previewingDigest, setPreviewingDigest] = useState(false);
+
+  /** Patch digest config on the server + update local state. */
+  const patchDigest = async (patch: Partial<DigestConfig>) => {
+    setDigestConfig(prev => prev ? { ...prev, ...patch } : prev);
+    try {
+      const updated = await updateDigestConfig(patch);
+      setDigestConfig(updated);
+    } catch (e: any) {
+      try { setDigestConfig(await getDigestConfig()); } catch {}
+      Alert.alert('Could not update digest', e.message || 'Unknown error');
+    }
+  };
+
+  /** Parse "HH:MM" into minutes-from-midnight, or return null. */
+  const parseTime = (text: string): number | null => {
+    const m = text.match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return null;
+    const h = parseInt(m[1], 10);
+    const min = parseInt(m[2], 10);
+    if (isNaN(h) || isNaN(min) || h < 0 || h > 23 || min < 0 || min > 59) return null;
+    return h * 60 + min;
+  };
+
+  const formatTime = (mins: number): string => {
+    const h = Math.floor(mins / 60);
+    const min = mins % 60;
+    return `${h.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+  };
 
   /** Patch notification prefs on the server, update local state on
    *  success. Called from each toggle inside the expanded section. */
@@ -121,6 +155,11 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
     getBiometricEnabled().then(setBiometricOn);
     registerForPushNotifications().then(setPushToken).catch(() => {});
     getNotificationPrefs().then(setPushPrefs).catch(() => {});
+    getDigestConfig().then(cfg => {
+      setDigestConfig(cfg);
+      setDigestTimeText(formatTime(cfg.time_min));
+      setDigestCustomPrompt(cfg.custom_prompt || '');
+    }).catch(() => {});
   }, [loadWorkspaceData]);
 
   // Re-fetch the per-workspace bits when the user switches workspace so
@@ -964,6 +1003,192 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                     }}
                   >
                     <Text style={{ color: tc.text, fontWeight: '600', fontSize: 13 }}>Send test notification</Text>
+                  </TouchableOpacity>
+                </>
+              )}
+            </View>
+          )}
+          <View style={s.rowDivider} />
+
+          {/* Morning Digest — personalized daily brief */}
+          <TouchableOpacity style={s.row} onPress={() => setShowDigestSettings(v => !v)} activeOpacity={0.6}>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.rowLabel, { color: tc.text }]}>Morning Digest</Text>
+              {digestConfig?.enabled && (
+                <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>
+                  Every day at {formatTime(digestConfig.time_min)} ({digestConfig.timezone_name.split('/').pop()})
+                </Text>
+              )}
+            </View>
+            <Text style={[s.rowValue, { color: digestConfig?.enabled ? '#22c55e' : tc.textMid }]}>
+              {digestConfig?.enabled ? 'On' : 'Off'}
+            </Text>
+          </TouchableOpacity>
+          {showDigestSettings && digestConfig && (
+            <View style={{ paddingHorizontal: 14, paddingBottom: 12 }}>
+              <Text style={{ fontSize: 12, color: tc.textMid, marginBottom: 10 }}>
+                A personalized brief pushed every morning. Pick what you want in it.
+              </Text>
+
+              {/* Master enable */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10 }}>
+                <Text style={{ fontSize: 14, color: tc.text, fontWeight: '600' }}>Enable morning digest</Text>
+                <Switch value={digestConfig.enabled} onValueChange={v => patchDigest({ enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.enabled ? C.primary : '#f4f4f4'} />
+              </View>
+
+              {digestConfig.enabled && (
+                <>
+                  {/* Time */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 12, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Time (24h)</Text>
+                  <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 1 }]}
+                      value={digestTimeText}
+                      onChangeText={setDigestTimeText}
+                      placeholder="08:00"
+                      placeholderTextColor="#bbb"
+                      keyboardType="numbers-and-punctuation"
+                      onBlur={() => {
+                        const mins = parseTime(digestTimeText);
+                        if (mins === null) {
+                          setDigestTimeText(formatTime(digestConfig.time_min));
+                          Alert.alert('Invalid time', 'Use HH:MM format (e.g. 08:00)');
+                        } else if (mins !== digestConfig.time_min) {
+                          patchDigest({ time_min: mins });
+                        }
+                      }}
+                    />
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 1 }]}
+                      value={digestConfig.timezone_name}
+                      onChangeText={(v) => patchDigest({ timezone_name: v })}
+                      placeholder="America/New_York"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="none"
+                    />
+                  </View>
+
+                  {/* Day of week filter */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 6, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Days</Text>
+                  <View style={{ flexDirection: 'row', gap: 6 }}>
+                    {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day, idx) => {
+                      const active = digestConfig.days_of_week[idx] === 'Y';
+                      return (
+                        <TouchableOpacity
+                          key={idx}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 10,
+                            borderRadius: 8,
+                            backgroundColor: active ? C.primary : 'rgba(0,0,0,0.05)',
+                            alignItems: 'center',
+                          }}
+                          onPress={() => {
+                            const chars = digestConfig.days_of_week.split('');
+                            chars[idx] = active ? '-' : 'Y';
+                            patchDigest({ days_of_week: chars.join('') });
+                          }}
+                        >
+                          <Text style={{ color: active ? '#fff' : tc.text, fontSize: 13, fontWeight: '700' }}>{day}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Sources */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 16, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>What to include</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Inbox summary</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Unread count + top senders</Text>
+                    </View>
+                    <Switch value={digestConfig.inbox_summary} onValueChange={v => patchDigest({ inbox_summary: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.inbox_summary ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, color: tc.text }}>Saved notes</Text>
+                      <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 2 }}>Memory facts + reminders</Text>
+                    </View>
+                    <Switch value={digestConfig.saved_notes} onValueChange={v => patchDigest({ saved_notes: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.saved_notes ? C.primary : '#f4f4f4'} />
+                  </View>
+
+                  {/* Spreadsheet (optional) */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Spreadsheet (optional)</Text>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 2 }]}
+                      value={digestConfig.spreadsheet_workbook || ''}
+                      onChangeText={(v) => patchDigest({ spreadsheet_workbook: v || null })}
+                      placeholder="budget"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="none"
+                    />
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, flex: 1 }]}
+                      value={digestConfig.spreadsheet_column || ''}
+                      onChangeText={(v) => patchDigest({ spreadsheet_column: v || null })}
+                      placeholder="B"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="characters"
+                      maxLength={3}
+                    />
+                  </View>
+
+                  {/* Custom personalization */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Personal touch (optional)</Text>
+                  <TextInput
+                    style={[s.contactInput, { color: tc.text, minHeight: 60 }]}
+                    value={digestCustomPrompt}
+                    onChangeText={setDigestCustomPrompt}
+                    onBlur={() => {
+                      if (digestCustomPrompt !== (digestConfig.custom_prompt || '')) {
+                        patchDigest({ custom_prompt: digestCustomPrompt || null });
+                      }
+                    }}
+                    placeholder={'e.g. "Start with a joke" or "Be extra brief"'}
+                    placeholderTextColor="#bbb"
+                    multiline
+                  />
+
+                  {/* Delivery channels */}
+                  <Text style={{ fontSize: 11, color: tc.textMid, marginTop: 14, marginBottom: 4, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 }}>Delivery</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <Text style={{ fontSize: 14, color: tc.text }}>Push notification</Text>
+                    <Switch value={digestConfig.push_enabled} onValueChange={v => patchDigest({ push_enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.push_enabled ? C.primary : '#f4f4f4'} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 8 }}>
+                    <Text style={{ fontSize: 14, color: tc.text }}>Email me too</Text>
+                    <Switch value={digestConfig.email_enabled} onValueChange={v => patchDigest({ email_enabled: v })} trackColor={{ false: '#ddd', true: C.primary + '60' }} thumbColor={digestConfig.email_enabled ? C.primary : '#f4f4f4'} />
+                  </View>
+                  {digestConfig.email_enabled && (
+                    <TextInput
+                      style={[s.contactInput, { color: tc.text, marginTop: 6 }]}
+                      value={digestConfig.email_recipient || ''}
+                      onChangeText={(v) => patchDigest({ email_recipient: v || null })}
+                      placeholder="you@example.com"
+                      placeholderTextColor="#bbb"
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                    />
+                  )}
+
+                  {/* Preview button */}
+                  <TouchableOpacity
+                    style={{ marginTop: 14, paddingVertical: 12, borderRadius: 10, backgroundColor: C.primary, alignItems: 'center', opacity: previewingDigest ? 0.6 : 1 }}
+                    disabled={previewingDigest}
+                    onPress={async () => {
+                      setPreviewingDigest(true);
+                      try {
+                        const result = await runDigestNow();
+                        Alert.alert('Digest preview', `${result.headline}\n\nSources used: ${result.raw_sources.join(', ') || 'none — connect apps first'}`);
+                      } catch (e: any) {
+                        Alert.alert('Preview failed', e.message || 'Unknown error');
+                      } finally {
+                        setPreviewingDigest(false);
+                      }
+                    }}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>{previewingDigest ? 'Running...' : 'Preview digest now'}</Text>
                   </TouchableOpacity>
                 </>
               )}

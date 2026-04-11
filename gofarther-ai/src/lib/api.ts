@@ -524,6 +524,52 @@ export async function sendTestPush(): Promise<{ sent: number; failed: number; to
   return apiFetch(`${PUSH}/test`, { method: 'POST' });
 }
 
+// ─── Morning Digest ────────────────────────────────────────────────────
+
+const DIGEST = '/ghost/digest';
+
+export interface DigestConfig {
+  id?: string;
+  user_id?: string;
+  workspace_id: string;
+  enabled: boolean;
+  /** Minutes-from-midnight for the digest time. 480 = 08:00. */
+  time_min: number;
+  /** IANA timezone name, e.g. "America/New_York". */
+  timezone_name: string;
+  /** 7-char string of Y/- — day-of-week filter starting Monday. */
+  days_of_week: string;
+  inbox_summary: boolean;
+  calendar_today: boolean;
+  saved_notes: boolean;
+  finance: boolean;
+  spreadsheet_workbook: string | null;
+  spreadsheet_column: string | null;
+  custom_prompt: string | null;
+  push_enabled: boolean;
+  email_enabled: boolean;
+  email_recipient: string | null;
+  last_fired_at: string | null;
+}
+
+export async function getDigestConfig(): Promise<DigestConfig> {
+  return apiFetch(`${DIGEST}/config`);
+}
+
+export async function updateDigestConfig(patch: Partial<DigestConfig>): Promise<DigestConfig> {
+  return apiFetch(`${DIGEST}/config`, {
+    method: 'POST',
+    body: JSON.stringify(patch),
+  });
+}
+
+/** Run the digest right now — used by the "Preview digest" button
+ *  in Settings so users can see what their morning brief will look
+ *  like without waiting for tomorrow. */
+export async function runDigestNow(): Promise<{ headline: string; body_html: string; raw_sources: string[] }> {
+  return apiFetch(`${DIGEST}/run-now`, { method: 'POST' });
+}
+
 // ─── Two-Factor Authentication ────────────────────────────────────────
 
 export async function setup2FA(): Promise<{ secret: string; qr_url: string }> {

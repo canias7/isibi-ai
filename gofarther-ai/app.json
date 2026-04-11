@@ -21,10 +21,13 @@
         "NSCameraUsageDescription": "GoFarther AI uses the camera for document scanning.",
         "NSLocationWhenInUseUsageDescription": "GoFarther AI needs location for directions and nearby search.",
         "ITSAppUsesNonExemptEncryption": true,
-        "UIBackgroundModes": ["remote-notification", "fetch"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "fetch"
+        ]
       },
       "bundleIdentifier": "com.gofarther.ai",
-      "buildNumber": "26",
+      "buildNumber": "27",
       "entitlements": {
         "aps-environment": "production"
       }
