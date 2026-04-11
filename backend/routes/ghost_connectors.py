@@ -643,6 +643,89 @@ APP_REGISTRY: dict[str, dict] = {
         "actions": ["get_records", "create_record", "update_record", "search"],
     },
 
+    # ── Email (mailbox access: read / search / reply / send / manage) ────
+    "outlook_mail": {
+        "name": "Microsoft Outlook", "category": "Email", "icon": "mail",
+        "auth_fields": [{"key": "access_token", "label": "Microsoft Graph Access Token", "secure": True}],
+        "oauth_flow": "microsoft",
+        "setup": "Tap 'Connect with Microsoft' to sign in and allow GoFarther to read, send, and manage messages in your Outlook inbox.",
+        "actions": [
+            "list_inbox", "search_emails", "read_email", "reply_to_email",
+            "send_email", "mark_read", "mark_unread", "archive", "delete",
+            "move_to_folder", "list_folders", "download_attachment",
+        ],
+        "action_hints": {
+            "list_inbox": "folder=<folder name, defaults to Inbox>|limit=<1-50, default 20> — returns id, from, subject, snippet, received date",
+            "search_emails": "query=<text>|from=<email>|subject=<text>|unread=<true/false>|limit=<1-50>",
+            "read_email": "message_id=<id from list_inbox/search> — returns full body + attachment list",
+            "reply_to_email": "message_id=<id>|body=<html or plain text>|reply_all=<true/false, default false>",
+            "send_email": "to=<email(s) comma-separated>|subject=<subject>|body=<html>|cc=<optional>|bcc=<optional>",
+            "mark_read": "message_id=<id>",
+            "mark_unread": "message_id=<id>",
+            "archive": "message_id=<id> — moves to Archive folder",
+            "delete": "message_id=<id> — moves to Deleted Items",
+            "move_to_folder": "message_id=<id>|folder=<destination folder name or id>",
+            "list_folders": "no params — returns all mail folders",
+            "download_attachment": "message_id=<id>|attachment_id=<id from read_email>",
+        },
+    },
+    "gmail": {
+        "name": "Gmail", "category": "Email", "icon": "mail",
+        "auth_fields": [{"key": "access_token", "label": "Google OAuth Access Token", "secure": True}],
+        "oauth_flow": "google",
+        "setup": "Tap 'Connect with Google' to sign in and allow GoFarther to read, send, and manage messages in your Gmail account.",
+        "actions": [
+            "list_inbox", "search_emails", "read_email", "reply_to_email",
+            "send_email", "mark_read", "mark_unread", "archive", "delete",
+            "move_to_folder", "list_folders", "download_attachment",
+        ],
+        "action_hints": {
+            "list_inbox": "label=<label name, defaults to INBOX>|limit=<1-50, default 20>",
+            "search_emails": "query=<Gmail search query, e.g. 'from:boss@acme.com subject:invoice'>|limit=<1-50>",
+            "read_email": "message_id=<id>",
+            "reply_to_email": "message_id=<id>|body=<html or plain>|reply_all=<true/false>",
+            "send_email": "to=<email(s)>|subject=<subject>|body=<html>|cc=<optional>|bcc=<optional>",
+            "mark_read": "message_id=<id>",
+            "mark_unread": "message_id=<id>",
+            "archive": "message_id=<id> — removes INBOX label",
+            "delete": "message_id=<id> — moves to Trash",
+            "move_to_folder": "message_id=<id>|folder=<label name>",
+            "list_folders": "no params — returns all labels (Gmail calls folders 'labels')",
+            "download_attachment": "message_id=<id>|attachment_id=<id>",
+        },
+    },
+    "imap_mail": {
+        "name": "Email (IMAP)", "category": "Email", "icon": "mail",
+        "auth_fields": [
+            {"key": "imap_host", "label": "IMAP Server (e.g. imap.gmail.com)"},
+            {"key": "imap_port", "label": "IMAP Port (usually 993)"},
+            {"key": "smtp_host", "label": "SMTP Server (e.g. smtp.gmail.com)"},
+            {"key": "smtp_port", "label": "SMTP Port (usually 587)"},
+            {"key": "username", "label": "Email Address"},
+            {"key": "app_password", "label": "App Password", "secure": True},
+        ],
+        "setup": "Use this for Yahoo, FastMail, iCloud, ProtonMail Bridge, or any custom domain. Most providers require an 'app password' instead of your regular password — check your provider's docs (e.g. Google: myaccount.google.com/apppasswords, Yahoo: login.yahoo.com/account/security).",
+        "actions": [
+            "list_inbox", "search_emails", "read_email", "reply_to_email",
+            "send_email", "mark_read", "mark_unread", "archive", "delete",
+            "move_to_folder", "list_folders", "download_attachment",
+        ],
+        "action_hints": {
+            "list_inbox": "folder=<folder name, defaults to INBOX>|limit=<1-50, default 20>",
+            "search_emails": "query=<text>|from=<email>|subject=<text>|unread=<true/false>|limit=<1-50>",
+            "read_email": "message_id=<uid from list_inbox>|folder=<folder name, defaults to INBOX>",
+            "reply_to_email": "message_id=<uid>|body=<html>|folder=<folder name>",
+            "send_email": "to=<email(s)>|subject=<subject>|body=<html>|cc=<optional>|bcc=<optional>",
+            "mark_read": "message_id=<uid>|folder=<folder name>",
+            "mark_unread": "message_id=<uid>|folder=<folder name>",
+            "archive": "message_id=<uid>|folder=<source folder> — moves to Archive",
+            "delete": "message_id=<uid>|folder=<folder name>",
+            "move_to_folder": "message_id=<uid>|folder=<source>|to=<destination folder>",
+            "list_folders": "no params",
+            "download_attachment": "message_id=<uid>|folder=<folder>|attachment_index=<0-based index from read_email>",
+        },
+    },
+
     # ── Email Marketing ──────────────────────────────────────────────────
     "mailchimp": {
         "name": "Mailchimp", "category": "Email Marketing", "icon": "mail",
@@ -1370,7 +1453,7 @@ APP_REGISTRY: dict[str, dict] = {
 
 CATEGORY_ORDER = [
     "CRM", "ERP", "Accounting", "Finance", "Project Management", "Communication",
-    "Calendar", "E-commerce", "Storage", "Email Marketing",
+    "Email", "Calendar", "E-commerce", "Storage", "Email Marketing",
     "HR", "Support", "Legal", "Social Media",
     "Healthcare", "Dental", "Real Estate", "Insurance", "Construction",
     "Automotive", "Field Service", "POS", "Hospitality", "Fitness",
@@ -1414,6 +1497,11 @@ async def list_connectors(authorization: str = Header(...), db: AsyncSession = D
             "oauth_flow": info.get("oauth_flow"),
             "connected": app_id in connected_ids,
         })
+    # Sort connected apps to the top of the list so they're easier to find
+    # in the Settings → Connect Apps screen. Within each group (connected /
+    # not connected) we preserve the original APP_REGISTRY order, which is
+    # already grouped by category.
+    result.sort(key=lambda c: (0 if c["connected"] else 1))
     return {"connectors": result, "categories": CATEGORY_ORDER}
 
 
@@ -1478,6 +1566,30 @@ def _ms_tenant() -> str:
     return os.getenv("MICROSOFT_TENANT_ID") or os.getenv("TEAMS_TENANT_ID") or "common"
 
 
+# ── Google OAuth (Gmail, Drive, Calendar, etc.) ────────────────────────
+def _google_client_id() -> str:
+    return os.getenv("GOOGLE_CLIENT_ID") or ""
+
+
+def _google_client_secret() -> str:
+    return os.getenv("GOOGLE_CLIENT_SECRET") or ""
+
+
+def _google_redirect_uri() -> str:
+    return os.getenv("GOOGLE_REDIRECT_URI") or "https://isibi-backend.onrender.com/api/ghost/connectors/oauth/google/callback"
+
+
+_GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+_GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+
+_GOOGLE_SCOPES = {
+    # Full Gmail mailbox access: read, modify, compose, send, delete drafts.
+    # The `https://mail.google.com/` scope is the catch-all for IMAP-equivalent
+    # access — needed for move_to_folder, permanent delete, etc.
+    "gmail": "https://mail.google.com/ https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send openid email",
+}
+
+
 def _ms_auth_url() -> str:
     return f"https://login.microsoftonline.com/{_ms_tenant()}/oauth2/v2.0/authorize"
 
@@ -1488,7 +1600,10 @@ def _ms_token_url() -> str:
 
 _MS_SCOPES = {
     "excel_online": "Files.ReadWrite offline_access",
-    # Future: outlook, onedrive, teams can share the same flow with different scopes
+    # Outlook Mail needs mailbox read/write + send. Mail.ReadWrite covers
+    # marking read, moving, deleting, and flagging; Mail.Send is separate.
+    "outlook_mail": "Mail.ReadWrite Mail.Send offline_access",
+    # Future: onedrive, teams can share the same flow with different scopes
 }
 
 # In-memory map of oauth states → {user_id, app_id, created_at}
@@ -1514,17 +1629,9 @@ async def oauth_start(app_id: str, authorization: str = Header(...)):
         raise HTTPException(404, f"Unknown app: {app_id}")
 
     info = APP_REGISTRY[app_id]
-    if info.get("oauth_flow") != "microsoft":
-        raise HTTPException(400, f"{info['name']} does not use the Microsoft OAuth flow")
-
-    client_id = _ms_client_id()
-    redirect_uri = _ms_redirect_uri()
-    if not client_id:
-        raise HTTPException(
-            500,
-            "Microsoft OAuth is not configured on the server. "
-            "Set MICROSOFT_CLIENT_ID (or TEAMS_APP_ID) and MICROSOFT_CLIENT_SECRET.",
-        )
+    flow = info.get("oauth_flow")
+    if flow not in ("microsoft", "google"):
+        raise HTTPException(400, f"{info['name']} does not use an OAuth flow we handle")
 
     _prune_old_oauth_states()
     state = uuid.uuid4().hex
@@ -1534,18 +1641,51 @@ async def oauth_start(app_id: str, authorization: str = Header(...)):
         "ts": datetime.now(timezone.utc).timestamp(),
     }
 
-    scope = _MS_SCOPES.get(app_id, "Files.ReadWrite offline_access")
     from urllib.parse import urlencode
+
+    if flow == "microsoft":
+        client_id = _ms_client_id()
+        redirect_uri = _ms_redirect_uri()
+        if not client_id:
+            raise HTTPException(
+                500,
+                "Microsoft OAuth is not configured on the server. "
+                "Set MICROSOFT_CLIENT_ID (or TEAMS_APP_ID) and MICROSOFT_CLIENT_SECRET.",
+            )
+        scope = _MS_SCOPES.get(app_id, "Files.ReadWrite offline_access")
+        params = {
+            "client_id": client_id,
+            "response_type": "code",
+            "redirect_uri": redirect_uri,
+            "response_mode": "query",
+            "scope": scope,
+            "state": state,
+            "prompt": "select_account",
+        }
+        authorize_url = f"{_ms_auth_url()}?{urlencode(params)}"
+        return {"authorize_url": authorize_url, "state": state}
+
+    # Google
+    client_id = _google_client_id()
+    redirect_uri = _google_redirect_uri()
+    if not client_id:
+        raise HTTPException(
+            500,
+            "Google OAuth is not configured on the server. "
+            "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET.",
+        )
+    scope = _GOOGLE_SCOPES.get(app_id, "openid email")
     params = {
         "client_id": client_id,
         "response_type": "code",
         "redirect_uri": redirect_uri,
-        "response_mode": "query",
         "scope": scope,
         "state": state,
-        "prompt": "select_account",
+        "access_type": "offline",       # gets us a refresh_token
+        "prompt": "consent",            # forces the refresh_token on every connect
+        "include_granted_scopes": "true",
     }
-    authorize_url = f"{_ms_auth_url()}?{urlencode(params)}"
+    authorize_url = f"{_GOOGLE_AUTH_URL}?{urlencode(params)}"
     return {"authorize_url": authorize_url, "state": state}
 
 
@@ -1638,6 +1778,140 @@ async def oauth_microsoft_callback(
     )
 
 
+@router.get("/oauth/google/callback")
+async def oauth_google_callback(
+    code: Optional[str] = None,
+    state: Optional[str] = None,
+    error: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """Handle Google OAuth redirect. Same shape as the Microsoft callback —
+    exchange the code for tokens, persist them, show a success/error page."""
+    from fastapi.responses import HTMLResponse
+
+    def _html(title: str, body: str, ok: bool = True) -> HTMLResponse:
+        color = "#16a34a" if ok else "#dc2626"
+        return HTMLResponse(
+            f"""<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title></head><body style="font-family:-apple-system,system-ui,sans-serif;text-align:center;padding:40px 20px;background:#fafafa"><div style="max-width:420px;margin:0 auto;background:#fff;border-radius:16px;padding:32px 24px;box-shadow:0 2px 12px rgba(0,0,0,.06)"><div style="font-size:48px;margin-bottom:12px">{'✅' if ok else '⚠️'}</div><h1 style="color:{color};font-size:22px;margin:0 0 12px">{title}</h1><p style="color:#555;font-size:15px;line-height:1.5;margin:0 0 20px">{body}</p><p style="color:#999;font-size:13px;margin:0">You can close this window and return to the app.</p></div></body></html>"""
+        )
+
+    if error:
+        return _html("Connection Failed", error, ok=False)
+    if not code or not state:
+        return _html("Connection Failed", "Missing authorization code or state.", ok=False)
+
+    _prune_old_oauth_states()
+    session = _oauth_states.pop(state, None)
+    if not session:
+        return _html(
+            "Connection Failed",
+            "This link has expired or was already used. Please try connecting again from the app.",
+            ok=False,
+        )
+
+    user_id = session["user_id"]
+    app_id = session["app_id"]
+
+    client_id = _google_client_id()
+    client_secret = _google_client_secret()
+    redirect_uri = _google_redirect_uri()
+    if not client_id or not client_secret:
+        return _html("Server Misconfigured", "Google OAuth env vars are not set.", ok=False)
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                _GOOGLE_TOKEN_URL,
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "code": code,
+                    "redirect_uri": redirect_uri,
+                    "grant_type": "authorization_code",
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if r.status_code != 200:
+                logger.error(f"Google token exchange failed: {r.status_code} {r.text}")
+                return _html("Token Exchange Failed", r.text[:200], ok=False)
+            tokens = r.json()
+    except Exception as e:
+        logger.exception("Google token exchange errored")
+        return _html("Token Exchange Error", str(e), ok=False)
+
+    access_token = tokens.get("access_token")
+    refresh_token = tokens.get("refresh_token")
+    expires_in = int(tokens.get("expires_in") or 3600)
+    if not access_token:
+        return _html("Invalid Response", "Google did not return an access token.", ok=False)
+
+    expires_at = datetime.now(timezone.utc).timestamp() + expires_in - 60
+    creds = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "expires_at": expires_at,
+        "token_type": tokens.get("token_type", "Bearer"),
+    }
+
+    await _set_creds(user_id, app_id, creds, db)
+    await db.commit()
+    logger.info(f"Google OAuth success: user={user_id} app={app_id}")
+    app_name = APP_REGISTRY.get(app_id, {}).get("name", app_id)
+    return _html(
+        "Connected!",
+        f"{app_name} is now linked to your GoFarther account.",
+        ok=True,
+    )
+
+
+async def _refresh_google_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+    """Refresh a Google access token if it's expired or about to be."""
+    expires_at = float(creds.get("expires_at") or 0)
+    now = datetime.now(timezone.utc).timestamp()
+    if expires_at > now + 30:
+        return creds
+
+    refresh_token = creds.get("refresh_token")
+    if not refresh_token:
+        return creds
+
+    client_id = _google_client_id()
+    client_secret = _google_client_secret()
+    if not client_id or not client_secret:
+        return creds
+
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            r = await client.post(
+                _GOOGLE_TOKEN_URL,
+                data={
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "grant_type": "refresh_token",
+                    "refresh_token": refresh_token,
+                },
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            if r.status_code != 200:
+                logger.warning(f"Google token refresh failed: {r.status_code} {r.text}")
+                return creds
+            tokens = r.json()
+    except Exception:
+        logger.exception("Google token refresh errored")
+        return creds
+
+    new_creds = dict(creds)
+    new_creds["access_token"] = tokens.get("access_token", creds.get("access_token"))
+    # Google only returns a new refresh_token on the first consent, so keep the old one
+    if tokens.get("refresh_token"):
+        new_creds["refresh_token"] = tokens["refresh_token"]
+    new_creds["expires_at"] = now + int(tokens.get("expires_in") or 3600) - 60
+
+    await _set_creds(user_id, app_id, new_creds, db)
+    await db.commit()
+    return new_creds
+
+
 async def _refresh_microsoft_token(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
     """If the Microsoft access token is expired or close to it, use the
     refresh token to get a new one and persist it. Returns updated creds."""
@@ -1700,9 +1974,11 @@ async def execute_action(app_id: str, body: ActionRequest, authorization: str = 
     if not creds:
         raise HTTPException(400, f"{APP_REGISTRY[app_id]['name']} is not connected. Go to Settings → Connect Apps to set it up.")
 
-    # Refresh Microsoft OAuth tokens if they're close to expiring
+    # Refresh OAuth tokens if they're close to expiring
     if APP_REGISTRY[app_id].get("oauth_flow") == "microsoft":
         creds = await _refresh_microsoft_token(user_id, app_id, creds, db)
+    elif APP_REGISTRY[app_id].get("oauth_flow") == "google":
+        creds = await _refresh_google_token(user_id, app_id, creds, db)
 
     if body.action not in APP_REGISTRY[app_id]["actions"]:
         raise HTTPException(400, f"Action '{body.action}' not available for {APP_REGISTRY[app_id]['name']}")
@@ -1941,6 +2217,8 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                     raise ValueError(f"{APP_REGISTRY[step.app]['name']} is not connected")
                 if APP_REGISTRY[step.app].get("oauth_flow") == "microsoft":
                     creds = await _refresh_microsoft_token(user_id, step.app, creds, db)
+                elif APP_REGISTRY[step.app].get("oauth_flow") == "google":
+                    creds = await _refresh_google_token(user_id, step.app, creds, db)
                 if step.action not in APP_REGISTRY[step.app]["actions"]:
                     raise ValueError(f"Action '{step.action}' not available for {step.app}")
                 adapter = ADAPTERS.get(step.app)
@@ -4537,6 +4815,969 @@ async def _generic_rest_adapter(app_id: str, action: str, params: dict, creds: d
     }
 
 
+# ── Mail adapters ────────────────────────────────────────────────────────
+#
+# All three mail adapters (Outlook via Graph, Gmail via Gmail API, and the
+# generic IMAP catch-all) expose the SAME action names so the LLM can use
+# "list_inbox", "search_emails", "read_email", etc. without caring which
+# provider is on the other side. The only thing that varies is the action
+# hints in the registry (Gmail accepts its native search grammar, Outlook
+# uses Graph's $search syntax, IMAP uses simple filters).
+
+
+def _parse_mail_list(value: Any) -> list[str]:
+    """Accept either a comma-separated string or a JSON list of recipients."""
+    if not value:
+        return []
+    if isinstance(value, list):
+        return [str(v).strip() for v in value if str(v).strip()]
+    return [s.strip() for s in str(value).split(",") if s.strip()]
+
+
+async def _outlook_mail_adapter(action: str, params: dict, creds: dict) -> dict:
+    """Microsoft Outlook Mail adapter via Microsoft Graph.
+
+    Reuses the same OAuth infrastructure as Excel Online. The access token
+    must be scoped for Mail.ReadWrite and Mail.Send.
+    """
+    token = creds.get("access_token") or creds.get("api_key")
+    if not token:
+        return {"error": "Outlook is not connected. Connect it in Settings → My Apps → Microsoft Outlook."}
+
+    base = "https://graph.microsoft.com/v1.0"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    def _folder_path(folder: str | None) -> str:
+        """Resolve a folder name to the Graph URL segment. "Inbox" is a
+        well-known folder; anything else we look up by display name."""
+        if not folder or folder.lower() == "inbox":
+            return "mailFolders/inbox"
+        return f"mailFolders('{folder}')"
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        if action == "list_inbox":
+            folder = params.get("folder") or "Inbox"
+            limit = min(int(params.get("limit") or 20), 50)
+            # Resolve the folder name to an id when it's not "inbox"
+            if folder.lower() == "inbox":
+                url = f"{base}/me/mailFolders/inbox/messages"
+            else:
+                fr = await client.get(f"{base}/me/mailFolders", headers=headers, params={"$top": 100})
+                if fr.status_code >= 400:
+                    return {"error": f"Could not list folders: {fr.status_code}"}
+                match = next(
+                    (f for f in (fr.json() or {}).get("value", []) if (f.get("displayName") or "").lower() == folder.lower()),
+                    None,
+                )
+                if not match:
+                    return {"error": f"Folder '{folder}' not found"}
+                url = f"{base}/me/mailFolders/{match['id']}/messages"
+            r = await client.get(
+                url,
+                headers=headers,
+                params={
+                    "$top": limit,
+                    "$select": "id,subject,from,receivedDateTime,bodyPreview,isRead,hasAttachments",
+                    "$orderby": "receivedDateTime desc",
+                },
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not list inbox: {r.status_code} {r.text[:200]}"}
+            msgs = [
+                {
+                    "id": m.get("id"),
+                    "subject": m.get("subject") or "(no subject)",
+                    "from": (m.get("from") or {}).get("emailAddress", {}).get("address"),
+                    "from_name": (m.get("from") or {}).get("emailAddress", {}).get("name"),
+                    "received": m.get("receivedDateTime"),
+                    "snippet": m.get("bodyPreview"),
+                    "unread": not m.get("isRead", True),
+                    "has_attachments": m.get("hasAttachments", False),
+                }
+                for m in (r.json() or {}).get("value", [])
+            ]
+            return {"messages": msgs, "count": len(msgs), "folder": folder}
+
+        if action == "search_emails":
+            # Build a Graph $search filter from the friendly params
+            terms: list[str] = []
+            if params.get("query"):
+                terms.append(f'"{params["query"]}"')
+            if params.get("from"):
+                terms.append(f'from:{params["from"]}')
+            if params.get("subject"):
+                terms.append(f'subject:"{params["subject"]}"')
+            search_str = " ".join(terms) if terms else '""'
+            limit = min(int(params.get("limit") or 20), 50)
+            # $search and $orderby can't be combined in Graph mail queries —
+            # the API returns results in relevance order already.
+            query_params: dict = {
+                "$top": limit,
+                "$select": "id,subject,from,receivedDateTime,bodyPreview,isRead,hasAttachments",
+            }
+            if terms:
+                query_params["$search"] = search_str
+            if params.get("unread") in (True, "true", "True"):
+                query_params["$filter"] = "isRead eq false"
+            r = await client.get(
+                f"{base}/me/messages",
+                headers={**headers, "ConsistencyLevel": "eventual"},
+                params=query_params,
+            )
+            if r.status_code >= 400:
+                return {"error": f"Search failed: {r.status_code} {r.text[:200]}"}
+            msgs = [
+                {
+                    "id": m.get("id"),
+                    "subject": m.get("subject") or "(no subject)",
+                    "from": (m.get("from") or {}).get("emailAddress", {}).get("address"),
+                    "received": m.get("receivedDateTime"),
+                    "snippet": m.get("bodyPreview"),
+                    "unread": not m.get("isRead", True),
+                    "has_attachments": m.get("hasAttachments", False),
+                }
+                for m in (r.json() or {}).get("value", [])
+            ]
+            return {"messages": msgs, "count": len(msgs)}
+
+        if action == "read_email":
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            r = await client.get(
+                f"{base}/me/messages/{mid}",
+                headers=headers,
+                params={"$select": "id,subject,from,toRecipients,ccRecipients,receivedDateTime,body,bodyPreview,hasAttachments"},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Could not read: {r.status_code}"}
+            m = r.json() or {}
+            attachments: list[dict] = []
+            if m.get("hasAttachments"):
+                ar = await client.get(
+                    f"{base}/me/messages/{mid}/attachments",
+                    headers=headers,
+                    params={"$select": "id,name,contentType,size"},
+                )
+                if ar.status_code == 200:
+                    attachments = [
+                        {"id": a.get("id"), "name": a.get("name"), "content_type": a.get("contentType"), "size": a.get("size")}
+                        for a in (ar.json() or {}).get("value", [])
+                    ]
+            return {
+                "id": m.get("id"),
+                "subject": m.get("subject") or "(no subject)",
+                "from": (m.get("from") or {}).get("emailAddress", {}).get("address"),
+                "to": [r.get("emailAddress", {}).get("address") for r in m.get("toRecipients", [])],
+                "cc": [r.get("emailAddress", {}).get("address") for r in m.get("ccRecipients", [])],
+                "received": m.get("receivedDateTime"),
+                "body": (m.get("body") or {}).get("content"),
+                "body_type": (m.get("body") or {}).get("contentType", "html"),
+                "attachments": attachments,
+            }
+
+        if action == "reply_to_email":
+            mid = params.get("message_id")
+            body = params.get("body") or ""
+            if not mid:
+                return {"error": "message_id is required"}
+            reply_all = str(params.get("reply_all", "false")).lower() in ("true", "1", "yes")
+            endpoint = f"{base}/me/messages/{mid}/{'replyAll' if reply_all else 'reply'}"
+            r = await client.post(endpoint, headers=headers, json={"comment": body})
+            if r.status_code >= 400:
+                return {"error": f"Reply failed: {r.status_code} {r.text[:200]}"}
+            return {"message": "Reply sent"}
+
+        if action == "send_email":
+            to_list = _parse_mail_list(params.get("to"))
+            if not to_list:
+                return {"error": "to is required"}
+            subject = params.get("subject") or "(no subject)"
+            body = params.get("body") or ""
+            cc_list = _parse_mail_list(params.get("cc"))
+            bcc_list = _parse_mail_list(params.get("bcc"))
+            msg = {
+                "message": {
+                    "subject": subject,
+                    "body": {"contentType": "HTML", "content": body},
+                    "toRecipients": [{"emailAddress": {"address": a}} for a in to_list],
+                },
+                "saveToSentItems": True,
+            }
+            if cc_list:
+                msg["message"]["ccRecipients"] = [{"emailAddress": {"address": a}} for a in cc_list]
+            if bcc_list:
+                msg["message"]["bccRecipients"] = [{"emailAddress": {"address": a}} for a in bcc_list]
+            r = await client.post(f"{base}/me/sendMail", headers=headers, json=msg)
+            if r.status_code >= 400:
+                return {"error": f"Send failed: {r.status_code} {r.text[:200]}"}
+            return {"message": f"Email sent to {', '.join(to_list)}", "to": to_list, "subject": subject}
+
+        if action in ("mark_read", "mark_unread"):
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            r = await client.patch(
+                f"{base}/me/messages/{mid}",
+                headers=headers,
+                json={"isRead": action == "mark_read"},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Update failed: {r.status_code}"}
+            return {"message": f"Marked {'read' if action == 'mark_read' else 'unread'}"}
+
+        if action == "archive":
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            r = await client.post(
+                f"{base}/me/messages/{mid}/move",
+                headers=headers,
+                json={"destinationId": "archive"},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Archive failed: {r.status_code}"}
+            return {"message": "Archived"}
+
+        if action == "delete":
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            # Move to Deleted Items instead of permanent delete
+            r = await client.post(
+                f"{base}/me/messages/{mid}/move",
+                headers=headers,
+                json={"destinationId": "deleteditems"},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Delete failed: {r.status_code}"}
+            return {"message": "Moved to Deleted Items"}
+
+        if action == "move_to_folder":
+            mid = params.get("message_id")
+            folder_name = params.get("folder")
+            if not mid or not folder_name:
+                return {"error": "message_id and folder are required"}
+            fr = await client.get(f"{base}/me/mailFolders", headers=headers, params={"$top": 100})
+            folders = (fr.json() or {}).get("value", [])
+            match = next(
+                (f for f in folders if (f.get("displayName") or "").lower() == folder_name.lower()),
+                None,
+            )
+            if not match:
+                return {"error": f"Folder '{folder_name}' not found"}
+            r = await client.post(
+                f"{base}/me/messages/{mid}/move",
+                headers=headers,
+                json={"destinationId": match["id"]},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Move failed: {r.status_code}"}
+            return {"message": f"Moved to {folder_name}"}
+
+        if action == "list_folders":
+            r = await client.get(f"{base}/me/mailFolders", headers=headers, params={"$top": 200})
+            if r.status_code >= 400:
+                return {"error": f"Could not list folders: {r.status_code}"}
+            folders = [
+                {"id": f.get("id"), "name": f.get("displayName"), "unread": f.get("unreadItemCount", 0), "total": f.get("totalItemCount", 0)}
+                for f in (r.json() or {}).get("value", [])
+            ]
+            return {"folders": folders, "count": len(folders)}
+
+        if action == "download_attachment":
+            mid = params.get("message_id")
+            aid = params.get("attachment_id")
+            if not mid or not aid:
+                return {"error": "message_id and attachment_id are required"}
+            r = await client.get(f"{base}/me/messages/{mid}/attachments/{aid}", headers=headers)
+            if r.status_code >= 400:
+                return {"error": f"Could not fetch attachment: {r.status_code}"}
+            att = r.json() or {}
+            return {
+                "filename": att.get("name"),
+                "mime_type": att.get("contentType"),
+                "size": att.get("size"),
+                "content_base64": att.get("contentBytes"),  # Graph already gives base64
+            }
+
+    return {"error": f"Unknown Outlook Mail action: {action}"}
+
+
+async def _gmail_adapter(action: str, params: dict, creds: dict) -> dict:
+    """Gmail adapter via the Gmail API.
+
+    Note: Gmail doesn't have native "folders" — it has labels. We map
+    move_to_folder → add label, archive → remove INBOX label, etc. so the
+    action surface matches Outlook/IMAP.
+    """
+    token = creds.get("access_token") or creds.get("api_key")
+    if not token:
+        return {"error": "Gmail is not connected. Connect it in Settings → My Apps → Gmail."}
+
+    base = "https://gmail.googleapis.com/gmail/v1/users/me"
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
+    def _header(msg: dict, name: str) -> str:
+        for h in (msg.get("payload") or {}).get("headers", []):
+            if h.get("name", "").lower() == name.lower():
+                return h.get("value") or ""
+        return ""
+
+    def _extract_body(payload: dict) -> tuple[str, str]:
+        """Walk a MIME tree and return (html_or_plain_body, content_type)."""
+        import base64 as _b64
+        if not payload:
+            return "", "text/plain"
+        mime = payload.get("mimeType", "")
+        if mime in ("text/plain", "text/html") and (payload.get("body") or {}).get("data"):
+            data = payload["body"]["data"]
+            try:
+                decoded = _b64.urlsafe_b64decode(data + "==").decode("utf-8", errors="replace")
+                return decoded, mime
+            except Exception:
+                return "", mime
+        for part in payload.get("parts") or []:
+            body, ctype = _extract_body(part)
+            if body:
+                return body, ctype
+        return "", mime or "text/plain"
+
+    def _build_raw(to: list[str], subject: str, body: str, cc: list[str], bcc: list[str], in_reply_to: str | None = None, references: str | None = None) -> str:
+        """Build a base64url-encoded RFC 2822 message for Gmail's API."""
+        import base64 as _b64
+        from email.mime.multipart import MIMEMultipart
+        from email.mime.text import MIMEText
+        msg = MIMEMultipart("alternative")
+        msg["To"] = ", ".join(to)
+        if cc:
+            msg["Cc"] = ", ".join(cc)
+        if bcc:
+            msg["Bcc"] = ", ".join(bcc)
+        msg["Subject"] = subject
+        if in_reply_to:
+            msg["In-Reply-To"] = in_reply_to
+        if references:
+            msg["References"] = references
+        msg.attach(MIMEText(body, "html"))
+        return _b64.urlsafe_b64encode(msg.as_bytes()).decode("ascii").rstrip("=")
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        if action == "list_inbox":
+            label = params.get("label") or params.get("folder") or "INBOX"
+            limit = min(int(params.get("limit") or 20), 50)
+            r = await client.get(
+                f"{base}/messages",
+                headers=headers,
+                params={"labelIds": label.upper() if label.lower() == "inbox" else label, "maxResults": limit},
+            )
+            if r.status_code >= 400:
+                return {"error": f"List failed: {r.status_code} {r.text[:200]}"}
+            ids = [m["id"] for m in (r.json() or {}).get("messages", [])]
+            # Fetch metadata for each in parallel batches
+            msgs: list[dict] = []
+            for mid in ids:
+                mr = await client.get(
+                    f"{base}/messages/{mid}",
+                    headers=headers,
+                    params={"format": "metadata", "metadataHeaders": ["From", "Subject", "Date"]},
+                )
+                if mr.status_code != 200:
+                    continue
+                m = mr.json() or {}
+                msgs.append({
+                    "id": m.get("id"),
+                    "thread_id": m.get("threadId"),
+                    "subject": _header(m, "Subject") or "(no subject)",
+                    "from": _header(m, "From"),
+                    "received": _header(m, "Date"),
+                    "snippet": m.get("snippet"),
+                    "unread": "UNREAD" in (m.get("labelIds") or []),
+                })
+            return {"messages": msgs, "count": len(msgs), "label": label}
+
+        if action == "search_emails":
+            # Gmail has native search grammar — accept either the raw query
+            # or the friendly fields and combine them.
+            q_parts: list[str] = []
+            if params.get("query"):
+                q_parts.append(str(params["query"]))
+            if params.get("from"):
+                q_parts.append(f"from:{params['from']}")
+            if params.get("subject"):
+                q_parts.append(f"subject:\"{params['subject']}\"")
+            if params.get("unread") in (True, "true", "True"):
+                q_parts.append("is:unread")
+            q = " ".join(q_parts)
+            limit = min(int(params.get("limit") or 20), 50)
+            r = await client.get(
+                f"{base}/messages",
+                headers=headers,
+                params={"q": q, "maxResults": limit},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Search failed: {r.status_code} {r.text[:200]}"}
+            ids = [m["id"] for m in (r.json() or {}).get("messages", [])]
+            msgs: list[dict] = []
+            for mid in ids:
+                mr = await client.get(
+                    f"{base}/messages/{mid}",
+                    headers=headers,
+                    params={"format": "metadata", "metadataHeaders": ["From", "Subject", "Date"]},
+                )
+                if mr.status_code != 200:
+                    continue
+                m = mr.json() or {}
+                msgs.append({
+                    "id": m.get("id"),
+                    "thread_id": m.get("threadId"),
+                    "subject": _header(m, "Subject") or "(no subject)",
+                    "from": _header(m, "From"),
+                    "received": _header(m, "Date"),
+                    "snippet": m.get("snippet"),
+                    "unread": "UNREAD" in (m.get("labelIds") or []),
+                })
+            return {"messages": msgs, "count": len(msgs), "query": q}
+
+        if action == "read_email":
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            r = await client.get(f"{base}/messages/{mid}", headers=headers, params={"format": "full"})
+            if r.status_code >= 400:
+                return {"error": f"Could not read: {r.status_code}"}
+            m = r.json() or {}
+            body, ctype = _extract_body(m.get("payload") or {})
+            # Collect attachment metadata
+            attachments: list[dict] = []
+            def _walk_attachments(part: dict) -> None:
+                if not part:
+                    return
+                if part.get("filename") and (part.get("body") or {}).get("attachmentId"):
+                    attachments.append({
+                        "id": part["body"]["attachmentId"],
+                        "name": part.get("filename"),
+                        "content_type": part.get("mimeType"),
+                        "size": (part.get("body") or {}).get("size"),
+                    })
+                for sub in part.get("parts") or []:
+                    _walk_attachments(sub)
+            _walk_attachments(m.get("payload") or {})
+            return {
+                "id": m.get("id"),
+                "thread_id": m.get("threadId"),
+                "subject": _header(m, "Subject") or "(no subject)",
+                "from": _header(m, "From"),
+                "to": _header(m, "To"),
+                "cc": _header(m, "Cc"),
+                "received": _header(m, "Date"),
+                "body": body,
+                "body_type": ctype,
+                "attachments": attachments,
+            }
+
+        if action == "reply_to_email":
+            mid = params.get("message_id")
+            body_text = params.get("body") or ""
+            if not mid:
+                return {"error": "message_id is required"}
+            # Fetch the original to get thread id + headers
+            orig = await client.get(f"{base}/messages/{mid}", headers=headers, params={"format": "metadata", "metadataHeaders": ["From", "Subject", "Message-ID", "References"]})
+            if orig.status_code != 200:
+                return {"error": f"Could not load original: {orig.status_code}"}
+            om = orig.json() or {}
+            orig_from = _header(om, "From")
+            orig_subj = _header(om, "Subject") or ""
+            orig_mid = _header(om, "Message-ID")
+            orig_refs = _header(om, "References")
+            reply_subject = orig_subj if orig_subj.lower().startswith("re:") else f"Re: {orig_subj}"
+            # Pull the email address out of "Name <addr@...>"
+            import re as _re
+            m_addr = _re.search(r"<([^>]+)>", orig_from)
+            to_addr = m_addr.group(1) if m_addr else orig_from
+            raw = _build_raw([to_addr], reply_subject, body_text, [], [], in_reply_to=orig_mid, references=(orig_refs + " " + orig_mid).strip() if orig_refs else orig_mid)
+            r = await client.post(
+                f"{base}/messages/send",
+                headers=headers,
+                json={"raw": raw, "threadId": om.get("threadId")},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Reply failed: {r.status_code} {r.text[:200]}"}
+            return {"message": "Reply sent"}
+
+        if action == "send_email":
+            to_list = _parse_mail_list(params.get("to"))
+            if not to_list:
+                return {"error": "to is required"}
+            subject = params.get("subject") or "(no subject)"
+            body = params.get("body") or ""
+            cc_list = _parse_mail_list(params.get("cc"))
+            bcc_list = _parse_mail_list(params.get("bcc"))
+            raw = _build_raw(to_list, subject, body, cc_list, bcc_list)
+            r = await client.post(f"{base}/messages/send", headers=headers, json={"raw": raw})
+            if r.status_code >= 400:
+                return {"error": f"Send failed: {r.status_code} {r.text[:200]}"}
+            return {"message": f"Email sent to {', '.join(to_list)}", "to": to_list, "subject": subject}
+
+        if action in ("mark_read", "mark_unread"):
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            mod = {"removeLabelIds": ["UNREAD"]} if action == "mark_read" else {"addLabelIds": ["UNREAD"]}
+            r = await client.post(f"{base}/messages/{mid}/modify", headers=headers, json=mod)
+            if r.status_code >= 400:
+                return {"error": f"Update failed: {r.status_code}"}
+            return {"message": f"Marked {'read' if action == 'mark_read' else 'unread'}"}
+
+        if action == "archive":
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            r = await client.post(f"{base}/messages/{mid}/modify", headers=headers, json={"removeLabelIds": ["INBOX"]})
+            if r.status_code >= 400:
+                return {"error": f"Archive failed: {r.status_code}"}
+            return {"message": "Archived"}
+
+        if action == "delete":
+            mid = params.get("message_id")
+            if not mid:
+                return {"error": "message_id is required"}
+            # Gmail's "trash" endpoint moves to Trash rather than permanent delete
+            r = await client.post(f"{base}/messages/{mid}/trash", headers=headers)
+            if r.status_code >= 400:
+                return {"error": f"Delete failed: {r.status_code}"}
+            return {"message": "Moved to Trash"}
+
+        if action == "move_to_folder":
+            mid = params.get("message_id")
+            folder = params.get("folder") or params.get("to")
+            if not mid or not folder:
+                return {"error": "message_id and folder are required"}
+            # Look up the label id
+            lr = await client.get(f"{base}/labels", headers=headers)
+            if lr.status_code >= 400:
+                return {"error": f"Could not list labels: {lr.status_code}"}
+            labels = (lr.json() or {}).get("labels", [])
+            match = next((l for l in labels if (l.get("name") or "").lower() == folder.lower()), None)
+            if not match:
+                return {"error": f"Label '{folder}' not found. Use list_folders to see available labels."}
+            r = await client.post(
+                f"{base}/messages/{mid}/modify",
+                headers=headers,
+                json={"addLabelIds": [match["id"]], "removeLabelIds": ["INBOX"]},
+            )
+            if r.status_code >= 400:
+                return {"error": f"Move failed: {r.status_code}"}
+            return {"message": f"Moved to {folder}"}
+
+        if action == "list_folders":
+            r = await client.get(f"{base}/labels", headers=headers)
+            if r.status_code >= 400:
+                return {"error": f"Could not list labels: {r.status_code}"}
+            folders = [{"id": l.get("id"), "name": l.get("name"), "type": l.get("type")} for l in (r.json() or {}).get("labels", [])]
+            return {"folders": folders, "count": len(folders)}
+
+        if action == "download_attachment":
+            mid = params.get("message_id")
+            aid = params.get("attachment_id")
+            if not mid or not aid:
+                return {"error": "message_id and attachment_id are required"}
+            r = await client.get(f"{base}/messages/{mid}/attachments/{aid}", headers=headers)
+            if r.status_code >= 400:
+                return {"error": f"Could not fetch attachment: {r.status_code}"}
+            att = r.json() or {}
+            import base64 as _b64
+            # Gmail returns base64url — decode and re-encode as standard base64
+            try:
+                raw = _b64.urlsafe_b64decode(att.get("data", "") + "==")
+                std_b64 = _b64.b64encode(raw).decode("ascii")
+            except Exception:
+                std_b64 = att.get("data", "")
+            return {
+                "size": att.get("size"),
+                "content_base64": std_b64,
+            }
+
+    return {"error": f"Unknown Gmail action: {action}"}
+
+
+async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
+    """Generic IMAP + SMTP adapter. Works with any provider that supports
+    IMAP (Yahoo, ProtonMail Bridge, FastMail, iCloud, custom domains, etc.).
+
+    Uses the stdlib imaplib/smtplib in a thread pool because neither has
+    async support built-in. That's fine for read/list/search but means
+    attachment downloads and bulk actions can be slow — mark as TODO if
+    that becomes a pain point.
+    """
+    import imaplib
+    import smtplib
+    from email import message_from_bytes
+    from email.header import decode_header
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+
+    imap_host = creds.get("imap_host")
+    imap_port = int(creds.get("imap_port") or 993)
+    smtp_host = creds.get("smtp_host")
+    smtp_port = int(creds.get("smtp_port") or 587)
+    username = creds.get("username") or creds.get("email")
+    password = creds.get("app_password") or creds.get("password")
+    if not (imap_host and smtp_host and username and password):
+        return {"error": "IMAP mailbox is not fully configured. Set imap_host, smtp_host, username, and app_password in Settings → My Apps."}
+
+    def _decode(val: str | bytes | None) -> str:
+        if val is None:
+            return ""
+        if isinstance(val, bytes):
+            try:
+                return val.decode("utf-8", errors="replace")
+            except Exception:
+                return str(val)
+        # Handle RFC 2047 encoded-word headers ("=?utf-8?b?...?=")
+        try:
+            parts = decode_header(val)
+            out = ""
+            for txt, enc in parts:
+                if isinstance(txt, bytes):
+                    out += txt.decode(enc or "utf-8", errors="replace")
+                else:
+                    out += txt
+            return out
+        except Exception:
+            return str(val)
+
+    def _connect_imap() -> "imaplib.IMAP4_SSL":
+        c = imaplib.IMAP4_SSL(imap_host, imap_port)
+        c.login(username, password)
+        return c
+
+    def _list_inbox_sync(folder: str, limit: int) -> list[dict]:
+        c = _connect_imap()
+        try:
+            c.select(folder, readonly=True)
+            typ, data = c.search(None, "ALL")
+            if typ != "OK":
+                return []
+            ids = (data[0] or b"").split()
+            ids = ids[-limit:][::-1]  # newest first
+            out: list[dict] = []
+            for uid in ids:
+                typ, msg_data = c.fetch(uid, "(RFC822.HEADER FLAGS)")
+                if typ != "OK" or not msg_data:
+                    continue
+                header_bytes = next((d[1] for d in msg_data if isinstance(d, tuple)), None)
+                if not header_bytes:
+                    continue
+                m = message_from_bytes(header_bytes)
+                flags = ""
+                for d in msg_data:
+                    if isinstance(d, bytes) and b"FLAGS" in d:
+                        flags = d.decode("utf-8", errors="replace")
+                out.append({
+                    "id": uid.decode("ascii"),
+                    "subject": _decode(m.get("Subject")) or "(no subject)",
+                    "from": _decode(m.get("From")),
+                    "received": _decode(m.get("Date")),
+                    "snippet": "",
+                    "unread": "\\Seen" not in flags,
+                })
+            return out
+        finally:
+            try: c.logout()
+            except Exception: pass
+
+    def _read_email_sync(folder: str, uid: str) -> dict:
+        c = _connect_imap()
+        try:
+            c.select(folder, readonly=True)
+            typ, data = c.fetch(uid.encode("ascii"), "(RFC822)")
+            if typ != "OK" or not data:
+                return {"error": "Message not found"}
+            raw = next((d[1] for d in data if isinstance(d, tuple)), None)
+            if not raw:
+                return {"error": "No message body"}
+            m = message_from_bytes(raw)
+            body_text = ""
+            body_html = ""
+            attachments: list[dict] = []
+            for i, part in enumerate(m.walk() if m.is_multipart() else [m]):
+                ctype = part.get_content_type()
+                disp = str(part.get("Content-Disposition") or "")
+                if "attachment" in disp.lower() or part.get_filename():
+                    attachments.append({
+                        "index": i,
+                        "name": _decode(part.get_filename()) or f"attachment-{i}",
+                        "content_type": ctype,
+                        "size": len(part.get_payload(decode=True) or b""),
+                    })
+                    continue
+                if ctype == "text/plain" and not body_text:
+                    try:
+                        body_text = (part.get_payload(decode=True) or b"").decode("utf-8", errors="replace")
+                    except Exception:
+                        pass
+                elif ctype == "text/html" and not body_html:
+                    try:
+                        body_html = (part.get_payload(decode=True) or b"").decode("utf-8", errors="replace")
+                    except Exception:
+                        pass
+            return {
+                "id": uid,
+                "subject": _decode(m.get("Subject")) or "(no subject)",
+                "from": _decode(m.get("From")),
+                "to": _decode(m.get("To")),
+                "cc": _decode(m.get("Cc")),
+                "received": _decode(m.get("Date")),
+                "body": body_html or body_text,
+                "body_type": "text/html" if body_html else "text/plain",
+                "attachments": attachments,
+            }
+        finally:
+            try: c.logout()
+            except Exception: pass
+
+    def _set_flag_sync(folder: str, uid: str, flag: str, add: bool) -> None:
+        c = _connect_imap()
+        try:
+            c.select(folder)
+            c.uid("STORE", uid, "+FLAGS" if add else "-FLAGS", f"({flag})")
+        finally:
+            try: c.logout()
+            except Exception: pass
+
+    def _move_sync(folder: str, uid: str, dest: str) -> None:
+        c = _connect_imap()
+        try:
+            c.select(folder)
+            # Try MOVE first (RFC 6851), fall back to COPY + delete
+            typ, _ = c.uid("MOVE", uid, dest)
+            if typ != "OK":
+                c.uid("COPY", uid, dest)
+                c.uid("STORE", uid, "+FLAGS", "(\\Deleted)")
+                c.expunge()
+        finally:
+            try: c.logout()
+            except Exception: pass
+
+    def _list_folders_sync() -> list[dict]:
+        c = _connect_imap()
+        try:
+            typ, data = c.list()
+            if typ != "OK":
+                return []
+            out: list[dict] = []
+            for line in data or []:
+                if not line:
+                    continue
+                parts = line.decode("utf-8", errors="replace").split(' "/" ')
+                if len(parts) >= 2:
+                    name = parts[-1].strip().strip('"')
+                    out.append({"name": name})
+            return out
+        finally:
+            try: c.logout()
+            except Exception: pass
+
+    def _send_sync(to_list: list[str], subject: str, body: str, cc_list: list[str], bcc_list: list[str]) -> None:
+        msg = MIMEMultipart("alternative")
+        msg["From"] = username
+        msg["To"] = ", ".join(to_list)
+        if cc_list: msg["Cc"] = ", ".join(cc_list)
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "html"))
+        recipients = to_list + cc_list + bcc_list
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as s:
+            s.ehlo()
+            try:
+                s.starttls()
+                s.ehlo()
+            except Exception:
+                pass
+            s.login(username, password)
+            s.sendmail(username, recipients, msg.as_string())
+
+    import asyncio as _aio
+    try:
+        if action == "list_inbox":
+            folder = params.get("folder") or "INBOX"
+            limit = min(int(params.get("limit") or 20), 50)
+            msgs = await _aio.to_thread(_list_inbox_sync, folder, limit)
+            return {"messages": msgs, "count": len(msgs), "folder": folder}
+
+        if action == "search_emails":
+            # IMAP search is its own mini-language. We build a basic query
+            # from the friendly params; the user can also pass a raw query.
+            folder = params.get("folder") or "INBOX"
+            limit = min(int(params.get("limit") or 20), 50)
+            criteria: list[str] = []
+            if params.get("from"):
+                criteria.append(f'FROM "{params["from"]}"')
+            if params.get("subject"):
+                criteria.append(f'SUBJECT "{params["subject"]}"')
+            if params.get("query"):
+                criteria.append(f'BODY "{params["query"]}"')
+            if params.get("unread") in (True, "true", "True"):
+                criteria.append("UNSEEN")
+            query = " ".join(criteria) or "ALL"
+
+            def _search_sync() -> list[dict]:
+                c = _connect_imap()
+                try:
+                    c.select(folder, readonly=True)
+                    typ, data = c.search(None, query)
+                    if typ != "OK":
+                        return []
+                    ids = (data[0] or b"").split()[-limit:][::-1]
+                    out: list[dict] = []
+                    for uid in ids:
+                        typ, msg_data = c.fetch(uid, "(RFC822.HEADER)")
+                        if typ != "OK" or not msg_data:
+                            continue
+                        header_bytes = next((d[1] for d in msg_data if isinstance(d, tuple)), None)
+                        if not header_bytes:
+                            continue
+                        m = message_from_bytes(header_bytes)
+                        out.append({
+                            "id": uid.decode("ascii"),
+                            "subject": _decode(m.get("Subject")) or "(no subject)",
+                            "from": _decode(m.get("From")),
+                            "received": _decode(m.get("Date")),
+                        })
+                    return out
+                finally:
+                    try: c.logout()
+                    except Exception: pass
+
+            msgs = await _aio.to_thread(_search_sync)
+            return {"messages": msgs, "count": len(msgs), "query": query}
+
+        if action == "read_email":
+            folder = params.get("folder") or "INBOX"
+            uid = params.get("message_id") or params.get("uid")
+            if not uid:
+                return {"error": "message_id is required"}
+            return await _aio.to_thread(_read_email_sync, folder, str(uid))
+
+        if action == "reply_to_email":
+            folder = params.get("folder") or "INBOX"
+            uid = params.get("message_id")
+            body = params.get("body") or ""
+            if not uid:
+                return {"error": "message_id is required"}
+            # Load the original to get From + Subject for the reply
+            orig = await _aio.to_thread(_read_email_sync, folder, str(uid))
+            if "error" in orig:
+                return orig
+            to_addr = orig.get("from") or ""
+            import re as _re
+            m_addr = _re.search(r"<([^>]+)>", to_addr)
+            if m_addr:
+                to_addr = m_addr.group(1)
+            reply_subject = orig.get("subject") or ""
+            if not reply_subject.lower().startswith("re:"):
+                reply_subject = f"Re: {reply_subject}"
+            await _aio.to_thread(_send_sync, [to_addr], reply_subject, body, [], [])
+            return {"message": "Reply sent"}
+
+        if action == "send_email":
+            to_list = _parse_mail_list(params.get("to"))
+            if not to_list:
+                return {"error": "to is required"}
+            await _aio.to_thread(
+                _send_sync,
+                to_list,
+                params.get("subject") or "(no subject)",
+                params.get("body") or "",
+                _parse_mail_list(params.get("cc")),
+                _parse_mail_list(params.get("bcc")),
+            )
+            return {"message": f"Email sent to {', '.join(to_list)}"}
+
+        if action in ("mark_read", "mark_unread"):
+            folder = params.get("folder") or "INBOX"
+            uid = params.get("message_id")
+            if not uid:
+                return {"error": "message_id is required"}
+            await _aio.to_thread(_set_flag_sync, folder, str(uid), "\\Seen", action == "mark_read")
+            return {"message": f"Marked {'read' if action == 'mark_read' else 'unread'}"}
+
+        if action == "archive":
+            folder = params.get("folder") or "INBOX"
+            uid = params.get("message_id")
+            if not uid:
+                return {"error": "message_id is required"}
+            # Common archive folder names across providers
+            await _aio.to_thread(_move_sync, folder, str(uid), params.get("archive_folder") or "Archive")
+            return {"message": "Archived"}
+
+        if action == "delete":
+            folder = params.get("folder") or "INBOX"
+            uid = params.get("message_id")
+            if not uid:
+                return {"error": "message_id is required"}
+            await _aio.to_thread(_set_flag_sync, folder, str(uid), "\\Deleted", True)
+            return {"message": "Marked for deletion (will be removed on next expunge)"}
+
+        if action == "move_to_folder":
+            src = params.get("folder") or "INBOX"
+            dest = params.get("to") or params.get("destination")
+            uid = params.get("message_id")
+            if not uid or not dest:
+                return {"error": "message_id and to (destination folder) are required"}
+            await _aio.to_thread(_move_sync, src, str(uid), dest)
+            return {"message": f"Moved to {dest}"}
+
+        if action == "list_folders":
+            folders = await _aio.to_thread(_list_folders_sync)
+            return {"folders": folders, "count": len(folders)}
+
+        if action == "download_attachment":
+            folder = params.get("folder") or "INBOX"
+            uid = params.get("message_id")
+            idx = int(params.get("attachment_index") or 0)
+            if not uid:
+                return {"error": "message_id is required"}
+
+            def _fetch_sync() -> dict:
+                c = _connect_imap()
+                try:
+                    c.select(folder, readonly=True)
+                    typ, data = c.fetch(uid.encode("ascii"), "(RFC822)")
+                    if typ != "OK" or not data:
+                        return {"error": "Message not found"}
+                    raw = next((d[1] for d in data if isinstance(d, tuple)), None)
+                    if not raw:
+                        return {"error": "No message body"}
+                    m = message_from_bytes(raw)
+                    import base64 as _b64
+                    current = -1
+                    for part in (m.walk() if m.is_multipart() else [m]):
+                        disp = str(part.get("Content-Disposition") or "")
+                        if "attachment" in disp.lower() or part.get_filename():
+                            current += 1
+                            if current == idx:
+                                payload = part.get_payload(decode=True) or b""
+                                return {
+                                    "filename": _decode(part.get_filename()) or f"attachment-{idx}",
+                                    "mime_type": part.get_content_type(),
+                                    "size": len(payload),
+                                    "content_base64": _b64.b64encode(payload).decode("ascii"),
+                                }
+                    return {"error": f"No attachment at index {idx}"}
+                finally:
+                    try: c.logout()
+                    except Exception: pass
+
+            return await _aio.to_thread(_fetch_sync)
+
+    except Exception as e:
+        logger.exception("IMAP mail action failed")
+        return {"error": f"IMAP error: {e}"}
+
+    return {"error": f"Unknown IMAP action: {action}"}
+
+
 # ── Adapter map ──────────────────────────────────────────────────────────
 
 ADAPTERS: dict[str, Any] = {
@@ -4562,6 +5803,10 @@ ADAPTERS: dict[str, Any] = {
     # Storage
     "airtable": _airtable_adapter,
     "excel_online": _excel_online_adapter,
+    # Email (mailbox access)
+    "outlook_mail": _outlook_mail_adapter,
+    "gmail": _gmail_adapter,
+    "imap_mail": _imap_mail_adapter,
     # Automation
     "zapier": _webhook_adapter,
     "make": _webhook_adapter,

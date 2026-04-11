@@ -583,6 +583,10 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
               {allApps
                 .filter(a => selectedCategory === 'All' || a.category === selectedCategory)
                 .filter(a => !appSearch.trim() || a.name.toLowerCase().includes(appSearch.toLowerCase()) || a.category.toLowerCase().includes(appSearch.toLowerCase()))
+                // Connected apps on top — easier to find what you're already using.
+                // Stable sort preserves the original order within each group.
+                .slice()
+                .sort((a, b) => (a.connected ? 0 : 1) - (b.connected ? 0 : 1))
                 .map(app => (
                 <View key={app.id} style={{ marginBottom: 2 }}>
                   <TouchableOpacity
