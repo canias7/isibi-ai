@@ -2743,6 +2743,75 @@ class PlanRequest(BaseModel):
     steps: list[PlanStep]
 
 
+def _format_2d_as_html_table(values: list) -> str:
+    """Render a 2D list (rows of cells) as a clean HTML table, skipping
+    all-empty rows and trailing empty columns so read_range results from
+    wide ranges like A1:Z200 don't become a sea of blank cells."""
+    if not values or not isinstance(values, list):
+        return ""
+    rows = [r for r in values if isinstance(r, list)]
+    if not rows:
+        return ""
+    # Trim trailing empty columns by finding the last column that has any
+    # non-empty value across all rows.
+    max_cols = max((len(r) for r in rows), default=0)
+    last_used_col = -1
+    for c in range(max_cols):
+        for r in rows:
+            if c < len(r) and r[c] not in (None, "", False):
+                last_used_col = c
+                break
+    if last_used_col < 0:
+        return ""
+    rows = [r[: last_used_col + 1] for r in rows]
+    # Drop rows that are entirely empty
+    rows = [r for r in rows if any(c not in (None, "") for c in r)]
+    if not rows:
+        return ""
+
+    # First row is the header when its cells look like labels (no numbers).
+    first = rows[0]
+    has_header = all(not isinstance(c, (int, float)) or c == "" for c in first)
+
+    def _cell(v: Any) -> str:
+        s = "" if v is None else str(v)
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+    parts = ['<table style="border-collapse:collapse;font-family:-apple-system,system-ui,sans-serif;font-size:14px">']
+    data_rows = rows[1:] if has_header else rows
+    if has_header:
+        parts.append("<thead><tr>")
+        for c in first:
+            parts.append(f'<th style="text-align:left;padding:6px 12px;border-bottom:2px solid #222;background:#f4f4f5">{_cell(c)}</th>')
+        parts.append("</tr></thead>")
+    parts.append("<tbody>")
+    for r in data_rows:
+        parts.append("<tr>")
+        for c in r:
+            parts.append(f'<td style="padding:6px 12px;border-bottom:1px solid #e5e5e5">{_cell(c)}</td>')
+        parts.append("</tr>")
+    parts.append("</tbody></table>")
+    return "".join(parts)
+
+
+def _format_plan_value_for_html(v: Any) -> str:
+    """Render a resolved plan value as HTML-safe text. 2D arrays (from
+    read_range) become tables; 1D arrays become bullet lists; scalars get
+    stringified and entity-escaped."""
+    if v is None:
+        return ""
+    if isinstance(v, (bytes, bytearray)):
+        return f"&lt;{len(v)} bytes&gt;"
+    if isinstance(v, list):
+        if v and all(isinstance(row, list) for row in v):
+            return _format_2d_as_html_table(v)
+        # 1D list → bullet list
+        items = "".join(f"<li>{str(x).replace('<','&lt;').replace('>','&gt;')}</li>" for x in v if x not in (None, ""))
+        return f"<ul>{items}</ul>" if items else ""
+    s = str(v)
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
 def _resolve_plan_refs(value: Any, outputs: dict[str, dict]) -> Any:
     """Replace $stepId.field references inside strings/dicts/lists with the
     matching output from a previous step. Supports exact-match ("$step.field")
@@ -2755,7 +2824,9 @@ def _resolve_plan_refs(value: Any, outputs: dict[str, dict]) -> Any:
             step_id, field = m.group(1), m.group(2)
             out = outputs.get(step_id) or {}
             return out.get(field)
-        # Inline substitution — only stringifies simple scalar values
+        # Inline substitution — stringify scalars and render 2D arrays as
+        # HTML tables so read_range results embedded in email bodies look
+        # clean instead of as raw Python list reprs.
         def _sub(match):
             sid, fld = match.group(1), match.group(2)
             out = outputs.get(sid) or {}
@@ -2764,6 +2835,8 @@ def _resolve_plan_refs(value: Any, outputs: dict[str, dict]) -> Any:
                 return match.group(0)
             if isinstance(v, (bytes, bytearray)):
                 return f"<{len(v)} bytes>"
+            if isinstance(v, list):
+                return _format_plan_value_for_html(v)
             return str(v)
         return _re.sub(r"\$([A-Za-z0-9_]+)\.([A-Za-z0-9_]+)", _sub, value)
     if isinstance(value, dict):
