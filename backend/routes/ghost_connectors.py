@@ -6668,18 +6668,22 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
     except Exception as e:
         logger.exception("IMAP mail action failed")
         msg = str(e)
+        domain = username.rsplit("@", 1)[-1].lower() if "@" in username else ""
         # DNS resolution failure — the host we were given doesn't exist.
-        # Surface a clear error with the host that failed so the user knows
-        # what to fix.
         if "[Errno -2]" in msg or "Name or service not known" in msg or "nodename nor servname" in msg or "getaddrinfo" in msg.lower():
             return {"error": f"Could not connect to {imap_host}:{imap_port} — hostname not found. Go to Settings → Connect Apps → Email (IMAP) and double-check the IMAP Server field, or ask your email provider for the correct IMAP hostname."}
-        # Auth failure — clearly tell the user the password is wrong
-        if "authentication" in msg.lower() or "login failed" in msg.lower() or "AUTHENTICATIONFAILED" in msg:
-            return {"error": f"IMAP login failed for {username}. Most providers require an 'app password' instead of your regular password — check your email provider's security settings and generate one."}
+        # Auth failure — clearly tell the user the password is wrong,
+        # with provider-specific pointers where we can give them.
+        if "authentication" in msg.lower() or "login failed" in msg.lower() or "AUTHENTICATIONFAILED" in msg or "[AUTHENTICATIONFAILED]" in msg:
+            # Titan / Neo specific guidance — these share the same admin
+            # panel and both require an app password when 2FA is enabled.
+            if "titan" in (imap_host or "").lower() or "neo.space" in (imap_host or "").lower() or imap_host in ("imap.titan.email", "imap.neo.space"):
+                return {"error": f"Titan/Neo rejected the login for {username}. Server said: {msg}\n\nFixes to try:\n1. Double-check the password (log in to app.titan.email first to confirm).\n2. If you have 2FA on, generate an app password in Titan's admin panel → Settings → Security → App Passwords.\n3. Disconnect and reconnect in Settings → Connect Apps → Titan Email."}
+            return {"error": f"IMAP login failed for {username}. Server said: {msg}\n\nMost providers require an 'app password' instead of your regular password — check your email provider's security settings and generate one."}
         # Connection refused / timed out
         if "refused" in msg.lower() or "timed out" in msg.lower() or "timeout" in msg.lower():
             return {"error": f"Could not reach {imap_host}:{imap_port} ({msg}). Check that your provider allows IMAP access and the port is correct (usually 993)."}
-        return {"error": f"IMAP error: {msg}"}
+        return {"error": f"IMAP error ({imap_host}:{imap_port}): {msg}"}
 
     return {"error": f"Unknown IMAP action: {action}"}
 
