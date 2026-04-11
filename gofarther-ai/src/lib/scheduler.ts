@@ -1,6 +1,7 @@
 /** Scheduler engine — runs scheduled tasks in the background */
 import { getScheduledTasks, ScheduledTask } from './storage';
 import { chat, Message } from './ai';
+import { buildUserContextPrompt } from './promptContext';
 import { scheduleLocalNotification } from './notifications';
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
@@ -80,7 +81,15 @@ async function runTask(task: ScheduledTask) {
 
   try {
     const messages: Message[] = [{ role: 'user', content: task.command }];
-    const systemPrompt = `You are an AI assistant executing a scheduled task. The task is: "${task.label}". Execute the following command and provide a brief result.`;
+    // Pull shared user-context extras so scheduled tasks also know the
+    // user's saved contacts, memory, custom instructions, nickname, etc.
+    // Skip the contact-learning sidecar rule — scheduled tasks run in the
+    // background and can't meaningfully save new contacts mid-run.
+    const extras = await buildUserContextPrompt({
+      terseWhenEmpty: true,
+      includeContactLearningRule: false,
+    });
+    const systemPrompt = `You are an AI assistant executing a scheduled task. The task is: "${task.label}". Execute the following command and provide a brief result.${extras}`;
 
     const response = await chat(messages, systemPrompt);
 

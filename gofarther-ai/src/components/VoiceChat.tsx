@@ -8,6 +8,7 @@ import { useAudioRecorder, AudioModule, RecordingPresets } from 'expo-audio';
 import { C } from '../lib/theme';
 import { useTheme } from '../lib/ThemeContext';
 import { chat, Message, transcribeAudio } from '../lib/ai';
+import { buildUserContextPrompt } from '../lib/promptContext';
 import { VoiceOption } from './VoicePicker';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -137,9 +138,14 @@ export default function VoiceChat({ voice, onClose, agentName, agentInstructions
     setResponse('');
 
     try {
-      const systemPrompt = agentInstructions
+      const baseVoicePrompt = agentInstructions
         ? `You are "${agentName}". ${agentInstructions}\nKeep responses short — 1-2 sentences max, suitable for voice.`
         : 'You are GoFarther AI. Keep responses brief — 1-2 sentences, suitable for voice.';
+      // Pull the shared user-context block (saved contacts, memory, nickname,
+      // custom instructions, email subject rule) so voice chat knows "my
+      // boss" etc. just like the main chat does.
+      const extras = await buildUserContextPrompt({ terseWhenEmpty: true });
+      const systemPrompt = baseVoicePrompt + extras;
 
       const msgs: Message[] = [...history, { role: 'user', content: msgText }];
       const aiResponse = await chat(msgs.slice(-10), systemPrompt);

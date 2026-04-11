@@ -10,6 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ChatMsg, genId } from '../lib/types';
 import { useChat } from '../lib/useChat';
 import { getAgents, saveAgents, Agent } from '../lib/storage';
+import { buildUserContextPrompt } from '../lib/promptContext';
 
 const COLORS = ['#ec4899', '#8b5cf6', '#6366f1', '#3b82f6', '#22c55e', '#eab308', '#ef4444', '#f97316', '#14b8a6', '#06b6d4'];
 
@@ -27,12 +28,29 @@ export default function AgentsScreen({ onBack }: { onBack: () => void }) {
 
   const [input, setInput] = useState('');
   const flatList = useRef<FlatList>(null);
-  const agentPrompt = selectedAgent
+  // Base agent prompt — the shared user-context extras (contacts, memory,
+  // nickname, prefs, custom instructions, email subject rule) are appended
+  // async in a useEffect below so the agent knows who "my boss" is too.
+  const baseAgentPrompt = selectedAgent
     ? `You are "${selectedAgent.name}". ${selectedAgent.instructions || selectedAgent.role || 'You are a helpful assistant.'}\n\nYou can perform actions by including a single JSON object:\n{"type":"call","target":"number or name"}\n{"type":"sms","target":"number or name","text":"message"}\n{"type":"email","target":"email","key":"subject","text":"body"}\n{"type":"open_url","target":"url"}\n{"type":"maps","target":"query"}\nOnly include action JSON if asked to DO something.`
     : '';
+  const [agentPrompt, setAgentPrompt] = useState(baseAgentPrompt);
+  const [contactsVersion, setContactsVersion] = useState(0);
+  // Keep the user-context extras (saved contacts, memory, nickname, etc.)
+  // attached to whatever agent is currently selected. Rebuild when the
+  // selected agent changes or when a chat turn saves a new contact.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const extras = await buildUserContextPrompt({ terseWhenEmpty: true });
+      if (!cancelled) setAgentPrompt(baseAgentPrompt + extras);
+    })();
+    return () => { cancelled = true; };
+  }, [baseAgentPrompt, contactsVersion]);
   const { messages, loading, confirmAction, cancelAction, send: chatSend } = useChat({
     sessionId: selectedAgent ? `agent_${selectedAgent.id}` : null,
     systemPrompt: agentPrompt,
+    onContactsChanged: () => setContactsVersion(v => v + 1),
   });
 
   const load = useCallback(async () => {
