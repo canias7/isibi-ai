@@ -380,7 +380,13 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
           </TouchableOpacity>
         </View>
 
-        {/* Email Settings */}
+        {/* Legacy "Send from My Email" tile — removed. Outbound email now
+            goes through a connected mail app (Gmail/Outlook/Neo/Titan/IMAP)
+            listed under Connect Apps below. Legacy GhostUser.smtp_* columns
+            are migrated into an imap_mail connector on first use, so users
+            who were already connected here don't need to reconnect. */}
+        {false && (
+        <>
         <Text style={[s.sectionLabel, { color: tc.textMid }]}>Email</Text>
         <View style={[s.card, { backgroundColor: tc.bg }]}>
           <TouchableOpacity style={s.row} onPress={() => setShowSmtp(!showSmtp)}>
@@ -535,6 +541,8 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
             </View>
           )}
         </View>
+        </>
+        )}
 
         {/* Connect Apps */}
         <Text style={[s.sectionLabel, { color: tc.textMid }]}>Integrations</Text>

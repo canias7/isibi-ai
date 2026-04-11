@@ -11,7 +11,7 @@ import { useTheme } from '../lib/ThemeContext';
 
 const DRAWER_W = 300;
 
-export type NavScreen = 'chat' | 'agents' | 'templates' | 'scheduled' | 'settings';
+export type NavScreen = 'chat' | 'agents' | 'scheduled' | 'settings';
 
 interface DrawerProps {
   isOpen: boolean;
@@ -166,7 +166,8 @@ export default function Drawer({ isOpen, onClose, activeScreen, onNavigate, onLo
 
   const navItems: { key: NavScreen; label: string }[] = [
     { key: 'agents', label: 'Agents' },
-    { key: 'templates', label: 'Templates' },
+    // Templates removed — saved in AI memory via `save_template` sidecar
+    // and injected into every system prompt through promptContext.ts.
     { key: 'scheduled', label: 'Scheduled' },
     { key: 'settings', label: 'Settings' },
   ];

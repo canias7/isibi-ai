@@ -7,7 +7,7 @@ import { chatStream, Message, generateImage, analyzeImage, createFile, modifyFil
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { executeAction } from './actions';
-import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
+import { getChatHistory, saveChatHistory, addMemoryFact, addSavedContact, addEmailTemplate, addCallRecording, trackEvent, addToOfflineQueue } from './storage';
 import { pushSession } from './chatSync';
 import { incrementReactionCount } from './storage';
 import { runAnalysisIfNeeded } from './preferenceAnalysis';
@@ -235,6 +235,23 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsC
           // Ask the parent screen to rebuild the system prompt so the
           // newly saved contact appears in the NEXT message, not only
           // after the screen refocuses.
+          onContactsChanged?.();
+        } catch {}
+      }
+
+      // Sidecar: same pattern as save_contact, but for email templates.
+      // Lets the user say "save this as my welcome email template" and
+      // the LLM attaches a save_template blob to whatever action it's
+      // emitting. The next message automatically sees the new template.
+      const tplSidecar = (finalAction as any)?.save_template;
+      if (tplSidecar && typeof tplSidecar === 'object' && tplSidecar.name) {
+        try {
+          await addEmailTemplate({
+            name: String(tplSidecar.name),
+            subject: String(tplSidecar.subject || ''),
+            body: String(tplSidecar.body || ''),
+            description: tplSidecar.description ? String(tplSidecar.description) : undefined,
+          });
           onContactsChanged?.();
         } catch {}
       }

@@ -5,7 +5,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Drawer, { NavScreen } from '../components/Drawer';
 import ChatScreen from '../screens/ChatScreen';
 import AgentsScreen from '../screens/AgentsScreen';
-import TemplatesScreen from '../screens/TemplatesScreen';
+// Templates now live in AI memory — saved via a `save_template` sidecar
+// in useChat.ts and injected into every system prompt via promptContext.ts.
+// The separate Templates screen was removed as of the connected-apps-only
+// email rework.
 import SettingsScreen from '../screens/SettingsScreen';
 import ScheduledScreen from '../screens/ScheduledScreen';
 import SubscriptionScreen from '../screens/SubscriptionScreen';
@@ -54,7 +57,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
     if (screen === 'chat') {
       navigationRef.current?.navigate('Chat');
     } else {
-      const screenMap: Record<string, string> = { agents: 'Agents', templates: 'Templates', scheduled: 'Scheduled', settings: 'Settings' };
+      const screenMap: Record<string, string> = { agents: 'Agents', scheduled: 'Scheduled', settings: 'Settings' };
       navigationRef.current?.navigate(screenMap[screen] || 'Chat');
     }
   };
@@ -91,7 +94,7 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
         ref={navigationRef}
         onStateChange={(state) => {
           const route = state?.routes[state.index];
-          const nameMap: Record<string, NavScreen> = { Chat: 'chat', Agents: 'agents', Templates: 'templates', Scheduled: 'scheduled', Settings: 'settings' };
+          const nameMap: Record<string, NavScreen> = { Chat: 'chat', Agents: 'agents', Scheduled: 'scheduled', Settings: 'settings' };
           setActiveScreen(nameMap[route?.name || 'Chat'] || 'chat');
         }}
       >
@@ -108,9 +111,6 @@ export default function AppNavigator({ onLogout }: { onLogout: () => void }) {
           </Stack.Screen>
           <Stack.Screen name="Agents">
             {() => <AgentsScreen onBack={() => navigationRef.current?.goBack()} />}
-          </Stack.Screen>
-          <Stack.Screen name="Templates">
-            {() => <TemplatesScreen onBack={() => navigationRef.current?.goBack()} />}
           </Stack.Screen>
           <Stack.Screen name="Scheduled">
             {() => <ScheduledScreen onBack={() => navigationRef.current?.goBack()} />}

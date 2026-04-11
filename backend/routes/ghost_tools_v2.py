@@ -150,39 +150,27 @@ class SendEmailRequest(BaseModel):
 
 @router.post("/send-email")
 async def send_email(req: SendEmailRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Send email via user's SMTP if configured, otherwise SendGrid."""
+    """Send an email through the user's connected mail app (Gmail, Outlook,
+    Neo, Titan, or IMAP). Routes through the unified send_email_for_user
+    helper so behavior matches chat, agents, scheduled tasks, and plans."""
     payload_data = _verify_auth(authorization)
+    user_email = payload_data.get("email", "")
+    user_id = payload_data.get("sub") or payload_data.get("user_id")
 
-    # Check if user has custom SMTP configured (DB-backed with cache)
-    from routes.ghost_auth import get_user_smtp
-    settings = await get_user_smtp(payload_data.get("email", ""), db)
-
-    if settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass"):
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
-
-        msg = MIMEMultipart()
-        msg["From"] = f"{settings.get('smtp_from', '')} <{settings['smtp_user']}>"
-        msg["To"] = req.to
-        msg["Subject"] = req.subject
-        msg.attach(MIMEText(req.body, "plain"))
-
-        try:
-            with smtplib.SMTP(settings["smtp_host"], settings.get("smtp_port", 587)) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(settings["smtp_user"], settings["smtp_pass"])
-                server.sendmail(settings["smtp_user"], req.to, msg.as_string())
-            await _audit_log_lazy()(db, payload_data.get("email", ""), "tool_send_email", f"To: {req.to}, Subj: {req.subject[:50]}")
-            await db.commit()
-            return {"status": "sent", "to": req.to, "from": settings["smtp_user"]}
-        except Exception as smtp_err:
-            logger.error("SMTP send failed: %s", smtp_err)
-            raise HTTPException(400, "Failed to send email. Check your SMTP settings.")
-
-    raise HTTPException(400, "Set up your email in Settings first to send emails.")
+    from routes.ghost_connectors import send_email_for_user
+    result = await send_email_for_user(
+        user_id,
+        user_email,
+        db,
+        to=req.to,
+        subject=req.subject,
+        html=req.body,
+    )
+    if not result.get("sent"):
+        raise HTTPException(400, result.get("error") or "Failed to send email")
+    await _audit_log_lazy()(db, user_email, "tool_send_email", f"To: {req.to}, Subj: {req.subject[:50]}, via: {result.get('via')}")
+    await db.commit()
+    return {"status": "sent", "to": req.to, "via": result.get("via")}
 
 
 import asyncio
@@ -199,48 +187,41 @@ class BulkEmailRequest(BaseModel):
 
 @router.post("/send-email-bulk")
 async def send_email_bulk(req: BulkEmailRequest, authorization: str = Header(...), db: AsyncSession = Depends(get_db)):
-    """Send email to multiple recipients via user's SMTP. One connection, sequential sends."""
+    """Send email to multiple recipients through the user's connected mail
+    app (Gmail / Outlook / Neo / Titan / IMAP). Rate-limited at 100ms between
+    sends to avoid provider throttling."""
     payload_data = _verify_auth(authorization)
+    user_email = payload_data.get("email", "")
+    user_id = payload_data.get("sub") or payload_data.get("user_id")
     if len(req.recipients) > 50:
         raise HTTPException(400, "Maximum 50 recipients per batch")
     if not req.recipients:
         raise HTTPException(400, "No recipients provided")
 
-    from routes.ghost_auth import get_user_smtp
-    settings = await get_user_smtp(payload_data.get("email", ""), db)
-    if not (settings.get("smtp_host") and settings.get("smtp_user") and settings.get("smtp_pass")):
-        raise HTTPException(400, "Set up your email in Settings first to send emails.")
-
-    import smtplib
-    from email.mime.text import MIMEText
-    from email.mime.multipart import MIMEMultipart
+    from routes.ghost_connectors import send_email_for_user
 
     results = []
     sent_count = 0
-    try:
-        with smtplib.SMTP(settings["smtp_host"], settings.get("smtp_port", 587)) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(settings["smtp_user"], settings["smtp_pass"])
+    for r in req.recipients:
+        try:
+            result = await send_email_for_user(
+                user_id,
+                user_email,
+                db,
+                to=r.to,
+                subject=r.subject,
+                html=r.body,
+            )
+            if result.get("sent"):
+                results.append({"to": r.to, "status": "sent", "via": result.get("via")})
+                sent_count += 1
+            else:
+                results.append({"to": r.to, "status": "failed", "error": result.get("error")})
+        except Exception as e:
+            results.append({"to": r.to, "status": "failed", "error": str(e)})
+        await asyncio.sleep(0.1)  # Small rate limit so providers don't throttle
 
-            for r in req.recipients:
-                try:
-                    msg = MIMEMultipart()
-                    msg["From"] = f"{settings.get('smtp_from', '')} <{settings['smtp_user']}>"
-                    msg["To"] = r.to
-                    msg["Subject"] = r.subject
-                    msg.attach(MIMEText(r.body, "plain"))
-                    server.sendmail(settings["smtp_user"], r.to, msg.as_string())
-                    results.append({"to": r.to, "status": "sent"})
-                    sent_count += 1
-                except Exception as e:
-                    results.append({"to": r.to, "status": "failed", "error": str(e)})
-                await asyncio.sleep(0.1)  # Rate limit
-    except Exception as e:
-        raise HTTPException(400, f"SMTP connection failed: {str(e)}")
-
-    await _audit_log_lazy()(db, payload_data.get("email", ""), "tool_send_email_bulk", f"{len(req.recipients)} recipients")
+    await _audit_log_lazy()(db, user_email, "tool_send_email_bulk", f"{len(req.recipients)} recipients")
     await db.commit()
     return {"results": results, "sent": sent_count, "failed": len(req.recipients) - sent_count, "total": len(req.recipients)}
 

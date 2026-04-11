@@ -234,30 +234,39 @@ async def _send_daily_digest_reports():
                     </div>
                     """
 
-                    # Look up the project owner's SMTP settings — prefer user SMTP, fall back to Resend
+                    # Route through the unified sender: a connected mail
+                    # app if the owner has one, else Resend as a last
+                    # resort (scheduled reports are system-adjacent —
+                    # they still need to go out even if the user hasn't
+                    # connected a mail app yet).
                     ok = False
                     try:
                         from models.project import Project
-                        from routes.ghost_auth import GhostUser, get_user_smtp
+                        from routes.ghost_auth import GhostUser
+                        from routes.ghost_connectors import send_email_for_user
                         proj_res = await db.execute(select(Project).where(Project.id == report.project_id))
                         proj = proj_res.scalar_one_or_none()
                         if proj and proj.user_id:
                             user_res = await db.execute(select(GhostUser).where(GhostUser.id == proj.user_id))
                             owner = user_res.scalar_one_or_none()
                             if owner:
-                                settings = await get_user_smtp(owner.email, db)
-                                if settings.get("smtp_host"):
-                                    from services.email import send_via_smtp
-                                    ok = await send_via_smtp(
-                                        settings,
-                                        to=report.recipient_email,
-                                        subject=f"[isibi] {report.name}",
-                                        html=html,
-                                    )
+                                result = await send_email_for_user(
+                                    owner.id,
+                                    owner.email,
+                                    db,
+                                    to=report.recipient_email,
+                                    subject=f"[isibi] {report.name}",
+                                    html=html,
+                                )
+                                ok = bool(result.get("sent"))
                     except Exception as lookup_err:
-                        logger.warning(f"SMTP lookup failed for report '{report.name}': {lookup_err}")
+                        logger.warning(f"Unified send failed for report '{report.name}': {lookup_err}")
 
                     if not ok:
+                        # Final safety net for scheduled reports — keep
+                        # Resend so recurring system-driven sends still
+                        # work even if the owner hasn't connected a mail
+                        # app yet. Interactive user sends don't get this.
                         ok = await send_generic_email(
                             to=report.recipient_email,
                             subject=f"[isibi] {report.name}",

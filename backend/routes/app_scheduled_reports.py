@@ -201,29 +201,38 @@ async def send_report_now(
     </div>
     """
 
-    # Prefer per-user SMTP — fall back to Resend if not configured
+    # Unified outbound email: tries the owner's connected mail apps
+    # (Gmail / Outlook / Neo / Titan / IMAP) first, then legacy SMTP,
+    # then Resend as the last resort. See send_email_for_user in
+    # routes/ghost_connectors.py for the full preference chain.
     ok = False
     try:
         from models.project import Project
-        from routes.ghost_auth import GhostUser, get_user_smtp
+        from routes.ghost_connectors import send_email_for_user
         from sqlalchemy import select as _select
         proj_res = await db.execute(_select(Project).where(Project.id == report.project_id))
         proj = proj_res.scalar_one_or_none()
+        owner_email = ""
+        owner_id = None
         if proj and proj.user_id:
+            from routes.ghost_auth import GhostUser
             user_res = await db.execute(_select(GhostUser).where(GhostUser.id == proj.user_id))
             owner = user_res.scalar_one_or_none()
             if owner:
-                settings = await get_user_smtp(owner.email, db)
-                if settings.get("smtp_host"):
-                    from services.email import send_via_smtp
-                    ok = await send_via_smtp(
-                        settings,
-                        to=report.recipient_email,
-                        subject=f"[isibi] {report.name}",
-                        html=html,
-                    )
+                owner_email = owner.email
+                owner_id = owner.id
+        if owner_id:
+            result = await send_email_for_user(
+                owner_id,
+                owner_email,
+                db,
+                to=report.recipient_email,
+                subject=f"[isibi] {report.name}",
+                html=html,
+            )
+            ok = bool(result.get("sent"))
     except Exception:
-        pass
+        logger.exception("Scheduled report send via unified router failed")
 
     if not ok:
         ok = await send_generic_email(

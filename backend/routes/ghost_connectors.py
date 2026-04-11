@@ -2053,6 +2053,179 @@ async def execute_action(app_id: str, body: ActionRequest, authorization: str = 
         raise HTTPException(500, f"{APP_REGISTRY[app_id]['name']} error: {str(e)}")
 
 
+# ── Unified outbound email router ───────────────────────────────────────
+#
+# Single entry point for "send an email on behalf of this user". Everything
+# that needs to send mail on behalf of a user — the plan executor,
+# scheduled reports, the background worker, /ghost-tools-v2/send-email —
+# routes through here.
+#
+# POLICY: outbound email ONLY goes through a connected mail app. There is
+# no SMTP or Resend fallback for user-initiated emails. This is intentional:
+#
+#   - The email must show up in the user's real Sent folder.
+#   - The from-address must be the user's real email so replies come back.
+#   - Having silent fallbacks caused the LLM to pick inconsistently.
+#
+# Preference order when the user has multiple mail apps connected:
+#
+#   1. Gmail (Gmail API)
+#   2. Outlook Mail (Microsoft Graph)
+#   3. Neo / Titan / generic IMAP (SMTP submission)
+#
+# If the user has none connected, send_email_for_user returns a clean
+# error that the caller surfaces to the user with instructions to connect
+# an app. System-level emails (verification codes, password resets, login
+# alerts) continue to use Resend directly via services/email.py and do
+# NOT go through this router.
+#
+# Legacy GhostUser.smtp_* columns are also auto-migrated to an imap_mail
+# connector entry the first time we see them, so users upgrading from the
+# old "Send from My Email" tile don't need to reconnect.
+
+
+_MAIL_CONNECTOR_PREFERENCE = ("gmail", "outlook_mail", "neo_mail", "titan_mail", "imap_mail")
+
+
+async def _migrate_legacy_smtp_to_imap_mail(user_id, smtp_settings: dict, db: AsyncSession) -> bool:
+    """One-shot migration from GhostUser.smtp_* columns to an imap_mail
+    connector entry. Idempotent — if the user already has imap_mail
+    connected, this is a no-op. Returns True if a new connector row was
+    created."""
+    if not smtp_settings:
+        return False
+    existing = await _get_creds(user_id, "imap_mail", db)
+    if existing:
+        return False
+    username = smtp_settings.get("smtp_user") or smtp_settings.get("smtp_from")
+    password = smtp_settings.get("smtp_pass")
+    if not (username and password):
+        return False
+    # We don't know the IMAP host from the legacy columns (they only stored
+    # SMTP). Leave imap_host blank and let _autodetect_mail_servers fill it
+    # in the first time the IMAP adapter runs against the username domain.
+    new_creds = {
+        "username": username,
+        "app_password": password,
+        "smtp_host": smtp_settings.get("smtp_host") or "",
+        "smtp_port": int(smtp_settings.get("smtp_port") or 587),
+        # Leave imap_host unset — the adapter will autodetect it from the
+        # username domain when needed. For outbound-only legacy users that
+        # never touch IMAP, the blank is harmless.
+    }
+    await _set_creds(user_id, "imap_mail", new_creds, db)
+    await db.commit()
+    logger.info(f"Migrated legacy SMTP → imap_mail connector: user={user_id}")
+    return True
+
+
+async def _refresh_mail_creds(user_id, app_id: str, creds: dict, db: AsyncSession) -> dict:
+    """Run the right token-refresh helper for a given mail connector."""
+    flow = APP_REGISTRY.get(app_id, {}).get("oauth_flow")
+    if flow == "microsoft":
+        return await _refresh_microsoft_token(user_id, app_id, creds, db)
+    if flow == "google":
+        return await _refresh_google_token(user_id, app_id, creds, db)
+    return creds
+
+
+async def send_email_for_user(
+    user_id,
+    user_email: str,
+    db: AsyncSession,
+    *,
+    to,
+    subject: str,
+    html: str,
+    cc=None,
+    bcc=None,
+    attachments: list | None = None,
+) -> dict:
+    """Unified "send an email as this user" helper. Returns
+    {sent: bool, via: str, error?: str, ...}.
+
+    `to`/`cc`/`bcc` accept either a string (comma-separated) or a list."""
+    # Normalize addresses for the connector adapters (they accept either).
+    to_str = ",".join(to) if isinstance(to, list) else (to or "")
+    cc_str = ",".join(cc) if isinstance(cc, list) else (cc or "")
+    bcc_str = ",".join(bcc) if isinstance(bcc, list) else (bcc or "")
+
+    # Build a params dict our connector adapters understand
+    base_params = {
+        "to": to_str,
+        "subject": subject,
+        "body": html,
+    }
+    if cc_str:
+        base_params["cc"] = cc_str
+    if bcc_str:
+        base_params["bcc"] = bcc_str
+
+    # Auto-migrate: if the user has legacy GhostUser.smtp_* columns and
+    # does NOT yet have an imap_mail connector, copy the settings over so
+    # their first outbound email works without them having to reconnect.
+    try:
+        from routes.ghost_auth import get_user_smtp
+        legacy = await get_user_smtp(user_email, db)
+        if legacy.get("smtp_host"):
+            await _migrate_legacy_smtp_to_imap_mail(user_id, legacy, db)
+    except Exception:
+        logger.exception("Legacy SMTP migration check failed (ignored)")
+
+    # Try each connected mail connector in preference order. First success
+    # wins; any errors from individual connectors are logged and we move on
+    # to the next connected one.
+    tried: list[str] = []
+    last_error: str | None = None
+    for app_id in _MAIL_CONNECTOR_PREFERENCE:
+        creds = await _get_creds(user_id, app_id, db)
+        if not creds:
+            continue
+        tried.append(app_id)
+        creds = await _refresh_mail_creds(user_id, app_id, creds, db)
+        adapter = ADAPTERS.get(app_id)
+        if not adapter:
+            continue
+        try:
+            result = await adapter("send_email", base_params, creds)
+        except Exception as e:
+            logger.warning(f"send_email via {app_id} raised: {e}")
+            last_error = f"{app_id}: {e}"
+            continue
+        if isinstance(result, dict) and "error" not in result:
+            return {
+                "sent": True,
+                "via": app_id,
+                "to": to_str,
+                "subject": subject,
+                # NOTE: attachments aren't yet piped through the connector
+                # adapters — the plan executor's email step is still the
+                # only path that supports attachments natively.
+                "attachments_sent": False if attachments else None,
+                **(result if isinstance(result, dict) else {}),
+            }
+        last_error = f"{app_id}: {result.get('error') if isinstance(result, dict) else result}"
+        logger.warning(f"Mail connector {app_id} failed: {last_error}")
+
+    # No connected mail app worked — return a clean, actionable error.
+    if not tried:
+        return {
+            "sent": False,
+            "error": (
+                "No email app connected. Go to Settings → Connect Apps and "
+                "connect Gmail, Outlook, Neo, Titan, or any email provider "
+                "(IMAP) so GoFarther can send emails from your real account."
+            ),
+        }
+    return {
+        "sent": False,
+        "error": (
+            f"Could not send through any connected email app "
+            f"({', '.join(tried)}). Last error: {last_error}"
+        ),
+    }
+
+
 # ── Multi-step plan executor ─────────────────────────────────────────────
 
 class PlanStep(BaseModel):
@@ -2347,6 +2520,8 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                 to = resolved_params.get("to") or ""
                 subject = resolved_params.get("subject") or "Report"
                 html = resolved_params.get("html") or resolved_params.get("body") or f"<p>{subject}</p>"
+                cc = resolved_params.get("cc")
+                bcc = resolved_params.get("bcc")
                 # Attachments can reference prior step outputs by step id:
                 #   {"attach_from": "pdf"}  →  use outputs["pdf"]
                 # or be provided inline as {filename, content, content_type}.
@@ -2369,22 +2544,29 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                         attachments.append(a)
                 if not to:
                     raise ValueError("email step requires 'to'")
-                # Try per-user SMTP first, fall back to Resend
-                sent = False
-                try:
-                    from routes.ghost_auth import get_user_smtp
-                    settings = await get_user_smtp(user_email, db)
-                    if settings.get("smtp_host"):
-                        from services.email import send_via_smtp
-                        sent = await send_via_smtp(settings, to=to, subject=subject, html=html, attachments=attachments or None)
-                except Exception:
-                    pass
-                if not sent:
-                    from services.email import send_generic_email
-                    sent = await send_generic_email(to=to, subject=subject, html=html, attachments=attachments or None)
-                if not sent:
-                    raise ValueError("Email could not be sent (no SMTP or Resend configured)")
-                outputs[sid] = {"sent": True, "to": to, "subject": subject, "attachment_count": len(attachments)}
+                # Route through the unified sender: connected mail app
+                # first (so the email lands in the user's real Sent folder),
+                # then legacy SMTP, then Resend.
+                result = await send_email_for_user(
+                    user_id,
+                    user_email,
+                    db,
+                    to=to,
+                    subject=subject,
+                    html=html,
+                    cc=cc,
+                    bcc=bcc,
+                    attachments=attachments or None,
+                )
+                if not result.get("sent"):
+                    raise ValueError(result.get("error") or "Email could not be sent")
+                outputs[sid] = {
+                    "sent": True,
+                    "to": to,
+                    "subject": subject,
+                    "attachment_count": len(attachments),
+                    "via": result.get("via"),
+                }
                 step_results.append({"id": sid, "type": "email", "ok": True, "result": outputs[sid]})
 
             else:

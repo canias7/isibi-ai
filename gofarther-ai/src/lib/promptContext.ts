@@ -16,6 +16,7 @@ import {
   getCustomInstructions,
   getUserNickname,
   getLearnedPreferences,
+  getEmailTemplates,
 } from './storage';
 
 export interface UserContextOptions {
@@ -32,12 +33,13 @@ export interface UserContextOptions {
 export async function buildUserContextPrompt(opts: UserContextOptions = {}): Promise<string> {
   const { terseWhenEmpty = false, includeContactLearningRule = true } = opts;
 
-  const [savedContacts, memory, custom, nick, learnedPrefs] = await Promise.all([
+  const [savedContacts, memory, custom, nick, learnedPrefs, emailTemplates] = await Promise.all([
     getSavedContacts().catch(() => []),
     getMemory().catch(() => []),
     getCustomInstructions().catch(() => ''),
     getUserNickname().catch(() => ''),
     getLearnedPreferences().catch(() => []),
+    getEmailTemplates().catch(() => []),
   ]);
 
   const parts: string[] = [];
@@ -68,6 +70,32 @@ export async function buildUserContextPrompt(opts: UserContextOptions = {}): Pro
   parts.push(
     '\n\n=== EMAIL SUBJECT LINES ===\nNEVER ask the user for a subject line when sending an email. ALWAYS generate a reasonable subject yourself based on context ("Budget report", "Following up on <topic>", "Quick update", etc.). Only use the user\'s exact phrasing if they explicitly told you what the subject should be.',
   );
+
+  // ── Outbound email policy ─────────────────────────────────────────────
+  parts.push(
+    '\n\n=== OUTBOUND EMAIL POLICY ===\nAll outbound emails MUST go through the user\'s connected email app (Gmail, Outlook, Neo, Titan, or IMAP). GoFarther\'s plan executor routes an `{"type":"plan","steps":[{"id":"send","type":"email","params":{...}}]}` step automatically through whichever mail app the user has connected, so you simply emit a plan with an email step — DO NOT emit a direct gmail.send_email or outlook_mail.send_email connector action when the user wants to send mail. If the user has NO mail app connected, tell them to connect one in Settings → Connect Apps before trying to send.',
+  );
+
+  // ── Email templates (AI-memory replacement for the templates section) ─
+  if (emailTemplates && emailTemplates.length > 0) {
+    parts.push(
+      '\n\n=== EMAIL TEMPLATES ===\nThe user has these saved email templates. When they refer to a template by name (e.g. "send the welcome email to john@x.com", "send my invoice reminder template"), use the matching subject and body from this list directly — do NOT ask the user what the subject or body should be.\n' +
+        emailTemplates
+          .map((t: any) => {
+            const desc = t.description ? ` — ${t.description}` : '';
+            const bodyPreview = (t.body || '').replace(/<[^>]+>/g, '').slice(0, 300);
+            return `• "${t.name}"${desc}\n   Subject: ${t.subject}\n   Body: ${bodyPreview}${(t.body || '').length > 300 ? '…' : ''}`;
+          })
+          .join('\n'),
+    );
+  }
+
+  // ── Template learning sidecar rule ────────────────────────────────────
+  if (includeContactLearningRule) {
+    parts.push(
+      '\n\nTEMPLATE LEARNING:\nWhen the user asks you to "save this as my welcome email template" / "remember this as my invoice reminder" / "save this email as <name>", attach a `save_template` sidecar to the action you emit. ANY action type can carry it — the client persists the template before running the main action.\n\nSidecar format: "save_template":{"name":"<short name lowercased>","subject":"<subject>","body":"<html or plain body>","description":"<optional when to use it>"}\n\nExample — user says "save this as my welcome email: Subject: Welcome to the team, Body: Hi, glad to have you...":\n{"type":"message","save_template":{"name":"welcome email","subject":"Welcome to the team","body":"<p>Hi, glad to have you...</p>","description":"Sent to new team members on their first day"}}\n\nTemplate usage: when the user says "send my welcome email to new@hire.com", look up the template above, use its subject + body, and emit a plan email step with those values filled in. Do not ask the user to restate the content.',
+    );
+  }
 
   // ── Memory facts ───────────────────────────────────────────────────────
   if (memory && memory.length > 0) {

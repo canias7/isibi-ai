@@ -547,6 +547,61 @@ export async function saveSavedContacts(contacts: SavedContact[]) {
   await save('saved_contacts', contacts);
 }
 
+// ── Email templates ───────────────────────────────────────────────────
+//
+// Templates live in the same AsyncStorage bucket as saved contacts and get
+// injected into the LLM system prompt on every surface (chat, agents,
+// voice, scheduled tasks). Adding one is done via a `save_template`
+// sidecar on any action, the same way `save_contact` works — see
+// useChat.ts and promptContext.ts.
+
+export interface EmailTemplate {
+  id: string;
+  /** The short name the user refers to ("welcome email", "invoice reminder"). */
+  name: string;
+  /** Email subject line. */
+  subject: string;
+  /** HTML or plain-text body — whatever the LLM produced. */
+  body: string;
+  /** Optional description so the LLM knows when to use this template. */
+  description?: string;
+  /** When this template was created or last updated. */
+  updatedAt: number;
+}
+
+export async function getEmailTemplates(): Promise<EmailTemplate[]> {
+  return load('email_templates', []);
+}
+
+export async function saveEmailTemplates(templates: EmailTemplate[]) {
+  await save('email_templates', templates);
+}
+
+export async function addEmailTemplate(template: Omit<EmailTemplate, 'id' | 'updatedAt'>) {
+  const templates = await getEmailTemplates();
+  // Dedupe by name (case-insensitive) so repeated "save my welcome email"
+  // calls update the existing record in place instead of creating copies.
+  const normalizedName = (template.name || '').trim().toLowerCase();
+  const existingIdx = templates.findIndex(t => (t.name || '').trim().toLowerCase() === normalizedName);
+  const now = Date.now();
+  if (existingIdx >= 0) {
+    templates[existingIdx] = {
+      ...templates[existingIdx],
+      ...template,
+      id: templates[existingIdx].id,
+      updatedAt: now,
+    };
+  } else {
+    templates.push({ ...template, id: now.toString(), updatedAt: now });
+  }
+  await saveEmailTemplates(templates);
+}
+
+export async function deleteEmailTemplate(id: string) {
+  const templates = await getEmailTemplates();
+  await saveEmailTemplates(templates.filter(t => t.id !== id));
+}
+
 export async function addSavedContact(contact: Omit<SavedContact, 'id'>) {
   const contacts = await getSavedContacts();
   // Dedupe by label (case-insensitive). If the label already exists, update
