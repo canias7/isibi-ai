@@ -18,9 +18,13 @@ interface UseChatOptions {
   sessionId: string | null;
   systemPrompt: string;
   onSessionCreated?: (id: string, title: string) => void;
+  /** Called after a new saved contact is persisted from a chat turn. The
+   * parent screen should rebuild its system prompt so the contact shows
+   * up in the very next message, not only after a screen refocus. */
+  onContactsChanged?: () => void;
 }
 
-export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOptions) {
+export function useChat({ sessionId, systemPrompt, onSessionCreated, onContactsChanged }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
@@ -228,6 +232,10 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
             email: sidecar.email ? String(sidecar.email) : undefined,
             phone: sidecar.phone ? String(sidecar.phone) : undefined,
           });
+          // Ask the parent screen to rebuild the system prompt so the
+          // newly saved contact appears in the NEXT message, not only
+          // after the screen refocuses.
+          onContactsChanged?.();
         } catch {}
       }
 
@@ -235,6 +243,8 @@ export function useChat({ sessionId, systemPrompt, onSessionCreated }: UseChatOp
       if (finalAction?.type === 'save_contact') {
         const label = finalAction.target || 'Contact';
         const name = finalAction.text || label;
+        // Trigger prompt rebuild on the parent after the save below
+        setTimeout(() => onContactsChanged?.(), 0);
         const info = finalAction.key || '';
         const email = info.includes('@') ? info : undefined;
         const phone = !info.includes('@') && info ? info : undefined;

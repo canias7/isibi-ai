@@ -72,6 +72,10 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
   const [aiName] = useState('GoFarther');
   const [userNickname, setUserNickname] = useState('');
   const [systemPrompt, setSystemPrompt] = useState(DEFAULT_SYSTEM_PROMPT);
+  // Bumped whenever a saved contact is added/updated mid-session so the
+  // system-prompt effect re-runs and the newly learned contact ("my boss",
+  // etc.) lands in the VERY NEXT message — not only after a screen refocus.
+  const [contactsVersion, setContactsVersion] = useState(0);
   const flatList = useRef<FlatList>(null);
 
   // Use shared chat hook
@@ -88,6 +92,7 @@ export default function ChatScreen({ onOpenDrawer, sessionId, onSessionCreated }
       getChatSessions().then(existing => saveChatSessions([session, ...existing]));
       onSessionCreated(session);
     },
+    onContactsChanged: () => setContactsVersion(v => v + 1),
   });
   const insets = useSafeAreaInsets();
   const menuSlide = useRef(new Animated.Value(SH)).current;
@@ -284,7 +289,7 @@ RULES:
       const contactsHeader = savedContacts.length > 0
         ? '\n\nThe user has saved these contacts. When they refer to someone by label (e.g. "my boss", "my mom", "my assistant"), use the matching contact info from this list — do NOT ask them for it again:\n' + savedContacts.map((c: any) => `- ${c.label} = ${c.name}${c.email ? ` (${c.email})` : ''}${c.phone ? ` (${c.phone})` : ''}`).join('\n')
         : '\n\nThe user has no saved contacts yet.';
-      const contactsStr = contactsHeader + '\n\nCRITICAL CONTACT-LEARNING RULE:\nWhenever the user refers to someone by a *relationship label* ("my boss", "my mom", "my wife", "my assistant", "my lawyer", "my accountant", "my landlord", "my CPA", "my partner", etc.) AND they give you the email or phone for the FIRST time, you MUST remember it so you never ask again. You do this by attaching a `save_contact` sidecar field to whatever action you\'re already emitting. ANY action type can carry this sidecar — the client saves the contact first, then runs the main action.\n\nSidecar format: "save_contact":{"label":"<relationship lowercased>","name":"<person name if known, else same as label>","email":"<email>","phone":"<phone>"}\n\nExample — user: "send the budget pdf to my boss at john@acme.com":\n{"type":"plan","save_contact":{"label":"my boss","name":"John","email":"john@acme.com"},"steps":[{"id":"pdf","type":"excel_pdf","params":{"workbook":"budget"}},{"id":"send","type":"email","params":{"to":"john@acme.com","subject":"Budget","html":"<p>...</p>","attachments":[{"attach_from":"pdf"}]}}]}\n\nRules:\n1. If the relationship label is ALREADY in the saved contacts list above, do NOT re-save and do NOT ask for the email — use the stored email/phone silently.\n2. Only attach the sidecar the FIRST time you learn the info. After that, the list above will have it.\n3. The label MUST be the relationship phrase as the user said it, lowercased ("my boss", not "John" or "Boss").\n4. When the user says "send this to my boss" and "my boss" is already in the list, ALWAYS substitute the stored email directly into the action — never ask "what is their email?" again.';
+      const contactsStr = contactsHeader + '\n\nCRITICAL CONTACT-LEARNING RULE:\nWhenever the user refers to someone by a *relationship label* ("my boss", "my mom", "my wife", "my assistant", "my lawyer", "my accountant", "my landlord", "my CPA", "my partner", etc.) AND they give you the email or phone for the FIRST time, you MUST remember it so you never ask again. You do this by attaching a `save_contact` sidecar field to whatever action you\'re already emitting. ANY action type can carry this sidecar — the client saves the contact first, then runs the main action.\n\nSidecar format: "save_contact":{"label":"<relationship lowercased>","name":"<person name if known, else same as label>","email":"<email>","phone":"<phone>"}\n\nExample — user: "send the budget pdf to my boss at john@acme.com":\n{"type":"plan","save_contact":{"label":"my boss","name":"John","email":"john@acme.com"},"steps":[{"id":"pdf","type":"excel_pdf","params":{"workbook":"budget"}},{"id":"send","type":"email","params":{"to":"john@acme.com","subject":"Budget report","html":"<p>...</p>","attachments":[{"attach_from":"pdf"}]}}]}\n\nContact Rules:\n1. If the relationship label is ALREADY in the saved contacts list above, do NOT re-save and do NOT ask for the email — use the stored email/phone silently.\n2. Only attach the sidecar the FIRST time you learn the info. After that, the list above will have it.\n3. The label MUST be the relationship phrase as the user said it, lowercased ("my boss", not "John" or "Boss").\n4. When the user says "send this to my boss" and "my boss" is already in the list, ALWAYS substitute the stored email directly into the action — never ask "what is their email?" again.\n\n=== EMAIL SUBJECT LINES ===\nNEVER ask the user for a subject line when sending an email. You ALWAYS generate a reasonable subject yourself based on the content and context. Only use the user\'s exact phrasing if they explicitly told you what the subject should be. Examples of good auto-generated subjects:\n- Sending a budget file → "Budget report" or "Q2 budget"\n- Forwarding a document → "<Document name> for your review"\n- Summary email → "Summary: <topic>"\n- Follow-up → "Following up on <topic>"\nIf you don\'t know the file name or topic yet, use a short, professional generic like "FYI" or "Quick update". NEVER stop a workflow to ask "what subject would you like?" — just pick one and send.';
       const nicknameStr = nick ? `\n\nIMPORTANT: The user's name/nickname is "${nick}". Use it naturally — greet them by name, refer to them by name occasionally. For example: "Hey ${nick}!", "Sure thing ${nick}", etc.` : '';
       setSystemPrompt(base + actions + connectedAppsStr + contactsStr + memoryStr + prefsStr + customStr + nicknameStr + (langMap[lang] || ''));
       // Run preference analysis on launch if enough reactions accumulated
@@ -310,6 +315,15 @@ RULES:
       rebuildSystemPrompt();
     }, [rebuildSystemPrompt])
   );
+
+  // Also rebuild the system prompt whenever the chat hook tells us a
+  // contact was just saved. Without this, the newly-learned "my boss"
+  // contact wouldn't show up in the prompt until the next screen refocus,
+  // so the very next "send that to my boss" turn would still not know
+  // the email. Runs on every bump of contactsVersion.
+  useEffect(() => {
+    if (contactsVersion > 0) rebuildSystemPrompt();
+  }, [contactsVersion, rebuildSystemPrompt]);
 
   const openMenu = () => {
     Keyboard.dismiss();
