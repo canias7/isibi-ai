@@ -748,6 +748,15 @@ APP_REGISTRY: dict[str, dict] = {
             "download_attachment": "message_id=<uid>|folder=<folder>|attachment_index=<0-based index from read_email>",
         },
     },
+    # The following IMAP-based email presets are generated from a compact
+    # preset table below the registry. Each one only asks for email + app
+    # password; the hosts/ports are hardcoded in the adapter wrapper so
+    # the user doesn't need to know their provider's server settings.
+    #
+    # Entries are inserted by the _inject_mail_presets() call right after
+    # this registry literal closes, so they land in this dict at
+    # module-init time but the source file stays readable.
+
     "imap_mail": {
         "name": "Email (IMAP)", "category": "Email", "icon": "mail",
         "auth_fields": [
@@ -1505,6 +1514,70 @@ APP_REGISTRY: dict[str, dict] = {
     },
 }
 
+
+# ── IMAP email provider presets (injected into APP_REGISTRY at init) ────
+#
+# Each tuple is (app_id, name, setup_help, description). All presets share
+# the same auth_fields (email + app_password) and expose the full mail
+# action surface because they all delegate to _imap_mail_adapter with the
+# hosts pre-injected. Adding a new provider is a one-liner here — no need
+# to copy-paste a 50-line registry entry.
+
+_MAIL_PRESETS = [
+    # (app_id,            display name,             setup help,                                                                       adapter fn)
+    ("yahoo_mail",       "Yahoo Mail",              "Needs an app password — login.yahoo.com/account/security → Generate app password.",                      _yahoo_mail_adapter),
+    ("icloud_mail",      "iCloud Mail",             "Needs an app-specific password — appleid.apple.com → Sign-In and Security → App-Specific Passwords.",    _icloud_mail_adapter),
+    ("zoho_mail",        "Zoho Mail",               "Use your regular Zoho password, or generate an App Password at accounts.zoho.com → Security → App Passwords.", _zoho_mail_adapter),
+    ("fastmail_mail",    "Fastmail",                "Generate an app password at fastmail.com → Settings → Password & Security → App Passwords.",             _fastmail_mail_adapter),
+    ("aol_mail",         "AOL Mail",                "Needs an app password — login.aol.com → Account Security → Generate app password.",                     _aol_mail_adapter),
+    ("gmx_mail",         "GMX Mail",                "Enable POP3/IMAP in GMX Settings → POP3/IMAP, then use your regular password.",                          _gmx_mail_adapter),
+    ("mailru_mail",      "Mail.ru",                 "Generate an app password in Mail.ru Security → Passwords for external apps.",                            _mailru_mail_adapter),
+    ("yandex_mail",      "Yandex Mail",             "Generate an app password at id.yandex.com → Security → App passwords.",                                  _yandex_mail_adapter),
+    ("protonmail_mail",  "ProtonMail (Bridge)",     "Requires a paid Proton plan and ProtonMail Bridge running locally. Use the Bridge username and password.", _protonmail_mail_adapter),
+    ("hostinger_mail",   "Hostinger Email",         "Use your hPanel email password directly — Hostinger business email works with regular credentials.",     _hostinger_mail_adapter),
+    ("godaddy_mail",     "GoDaddy Workspace",       "Use your regular GoDaddy Workspace Email password.",                                                      _godaddy_mail_adapter),
+    ("namecheap_mail",   "Namecheap Private Email", "Use your regular Namecheap Private Email password.",                                                     _namecheap_mail_adapter),
+    ("ionos_mail",       "IONOS Email",             "Use your regular IONOS mailbox password.",                                                                _ionos_mail_adapter),
+    ("mailboxorg_mail",  "Mailbox.org",             "Use your regular Mailbox.org password — SMTP/IMAP works with your normal login.",                        _mailboxorg_mail_adapter),
+    ("posteo_mail",      "Posteo",                  "Use your regular Posteo password.",                                                                       _posteo_mail_adapter),
+    ("mailfence_mail",   "Mailfence",               "Use your regular Mailfence password or generate an app password in Account Settings.",                   _mailfence_mail_adapter),
+]
+
+_MAIL_PRESET_ACTIONS = [
+    "list_inbox", "search_emails", "read_email", "reply_to_email",
+    "send_email", "mark_read", "mark_unread", "archive", "delete",
+    "move_to_folder", "list_folders", "download_attachment",
+]
+
+_MAIL_PRESET_HINTS = {
+    "list_inbox": "folder=<folder name, defaults to INBOX>|limit=<1-50, default 20>",
+    "search_emails": "query=<text>|from=<email>|subject=<text>|unread=<true/false>|limit=<1-50>",
+    "read_email": "message_id=<uid>|folder=<folder name, defaults to INBOX>",
+    "reply_to_email": "message_id=<uid>|body=<html>|folder=<folder name>",
+    "send_email": "to=<email(s)>|subject=<subject>|body=<html>|cc=<optional>|bcc=<optional>",
+    "mark_read": "message_id=<uid>|folder=<folder name>",
+    "mark_unread": "message_id=<uid>|folder=<folder name>",
+    "archive": "message_id=<uid>|folder=<source folder>",
+    "delete": "message_id=<uid>|folder=<folder name>",
+    "move_to_folder": "message_id=<uid>|folder=<source>|to=<destination folder>",
+    "list_folders": "no params",
+    "download_attachment": "message_id=<uid>|folder=<folder>|attachment_index=<0-based index from read_email>",
+}
+
+for _app_id, _name, _setup, _adapter in _MAIL_PRESETS:
+    APP_REGISTRY[_app_id] = {
+        "name": _name,
+        "category": "Email",
+        "icon": "mail",
+        "auth_fields": [
+            {"key": "username", "label": "Email Address"},
+            {"key": "app_password", "label": "Password", "secure": True},
+        ],
+        "setup": f"Enter your {_name} address and password. {_setup}",
+        "actions": list(_MAIL_PRESET_ACTIONS),
+        "action_hints": dict(_MAIL_PRESET_HINTS),
+    }
+
 # ── Category order for display ───────────────────────────────────────────
 
 CATEGORY_ORDER = [
@@ -2084,7 +2157,19 @@ async def execute_action(app_id: str, body: ActionRequest, authorization: str = 
 # old "Send from My Email" tile don't need to reconnect.
 
 
-_MAIL_CONNECTOR_PREFERENCE = ("gmail", "outlook_mail", "neo_mail", "titan_mail", "imap_mail")
+_MAIL_CONNECTOR_PREFERENCE = (
+    # OAuth / native-API connectors first (most reliable, best UX)
+    "gmail", "outlook_mail",
+    # IMAP presets (ordered by popularity)
+    "neo_mail", "titan_mail",
+    "yahoo_mail", "icloud_mail", "zoho_mail", "fastmail_mail",
+    "aol_mail", "gmx_mail", "mailru_mail", "yandex_mail",
+    "protonmail_mail",
+    "hostinger_mail", "godaddy_mail", "namecheap_mail", "ionos_mail",
+    "mailboxorg_mail", "posteo_mail", "mailfence_mail",
+    # Generic IMAP catch-all last
+    "imap_mail",
+)
 
 
 async def _migrate_legacy_smtp_to_imap_mail(user_id, smtp_settings: dict, db: AsyncSession) -> bool:
@@ -6216,6 +6301,36 @@ async def _titan_mail_adapter(action: str, params: dict, creds: dict) -> dict:
     return await _imap_mail_adapter(action, params, enriched)
 
 
+def _make_imap_preset(imap_host: str, imap_port: int, smtp_host: str, smtp_port: int):
+    """Build a thin adapter wrapper that pins IMAP/SMTP hosts for a preset."""
+    async def _adapter(action: str, params: dict, creds: dict) -> dict:
+        enriched = dict(creds)
+        enriched.setdefault("imap_host", imap_host)
+        enriched.setdefault("imap_port", imap_port)
+        enriched.setdefault("smtp_host", smtp_host)
+        enriched.setdefault("smtp_port", smtp_port)
+        return await _imap_mail_adapter(action, params, enriched)
+    return _adapter
+
+
+_yahoo_mail_adapter      = _make_imap_preset("imap.mail.yahoo.com",  993, "smtp.mail.yahoo.com",  587)
+_icloud_mail_adapter     = _make_imap_preset("imap.mail.me.com",     993, "smtp.mail.me.com",     587)
+_zoho_mail_adapter       = _make_imap_preset("imap.zoho.com",        993, "smtp.zoho.com",        587)
+_fastmail_mail_adapter   = _make_imap_preset("imap.fastmail.com",    993, "smtp.fastmail.com",    587)
+_aol_mail_adapter        = _make_imap_preset("imap.aol.com",         993, "smtp.aol.com",         587)
+_gmx_mail_adapter        = _make_imap_preset("imap.gmx.com",         993, "mail.gmx.com",         587)
+_mailru_mail_adapter     = _make_imap_preset("imap.mail.ru",         993, "smtp.mail.ru",         587)
+_yandex_mail_adapter     = _make_imap_preset("imap.yandex.com",      993, "smtp.yandex.com",      587)
+_protonmail_mail_adapter = _make_imap_preset("127.0.0.1",            1143, "127.0.0.1",           1025)  # ProtonMail Bridge
+_hostinger_mail_adapter  = _make_imap_preset("imap.hostinger.com",   993, "smtp.hostinger.com",   587)
+_godaddy_mail_adapter    = _make_imap_preset("imap.secureserver.net", 993, "smtpout.secureserver.net", 587)
+_namecheap_mail_adapter  = _make_imap_preset("mail.privateemail.com", 993, "mail.privateemail.com", 587)
+_ionos_mail_adapter      = _make_imap_preset("imap.ionos.com",       993, "smtp.ionos.com",       587)
+_mailboxorg_mail_adapter = _make_imap_preset("imap.mailbox.org",     993, "smtp.mailbox.org",     587)
+_posteo_mail_adapter     = _make_imap_preset("posteo.de",            993, "posteo.de",            587)
+_mailfence_mail_adapter  = _make_imap_preset("imap.mailfence.com",   993, "smtp.mailfence.com",   587)
+
+
 # ── Adapter map ──────────────────────────────────────────────────────────
 
 ADAPTERS: dict[str, Any] = {
@@ -6246,6 +6361,24 @@ ADAPTERS: dict[str, Any] = {
     "gmail": _gmail_adapter,
     "neo_mail": _neo_mail_adapter,
     "titan_mail": _titan_mail_adapter,
+    # IMAP presets (share _imap_mail_adapter via a preset wrapper that
+    # pins the host/port so the user only enters email + password)
+    "yahoo_mail": _yahoo_mail_adapter,
+    "icloud_mail": _icloud_mail_adapter,
+    "zoho_mail": _zoho_mail_adapter,
+    "fastmail_mail": _fastmail_mail_adapter,
+    "aol_mail": _aol_mail_adapter,
+    "gmx_mail": _gmx_mail_adapter,
+    "mailru_mail": _mailru_mail_adapter,
+    "yandex_mail": _yandex_mail_adapter,
+    "protonmail_mail": _protonmail_mail_adapter,
+    "hostinger_mail": _hostinger_mail_adapter,
+    "godaddy_mail": _godaddy_mail_adapter,
+    "namecheap_mail": _namecheap_mail_adapter,
+    "ionos_mail": _ionos_mail_adapter,
+    "mailboxorg_mail": _mailboxorg_mail_adapter,
+    "posteo_mail": _posteo_mail_adapter,
+    "mailfence_mail": _mailfence_mail_adapter,
     "imap_mail": _imap_mail_adapter,
     # Automation
     "zapier": _webhook_adapter,

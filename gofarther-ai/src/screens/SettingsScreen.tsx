@@ -504,6 +504,13 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                         // Email (mailbox access)
                         outlook_mail: '#0078D4', gmail: '#EA4335', neo_mail: '#6C5CE7',
                         titan_mail: '#1A1A2E', imap_mail: '#6B7280',
+                        yahoo_mail: '#6001D2', icloud_mail: '#0A84FF', zoho_mail: '#E42527',
+                        fastmail_mail: '#2660FF', aol_mail: '#FF0B00', gmx_mail: '#1C449B',
+                        mailru_mail: '#0099F7', yandex_mail: '#FFCC00',
+                        protonmail_mail: '#6D4AFF', hostinger_mail: '#673DE6',
+                        godaddy_mail: '#1BDBDB', namecheap_mail: '#DE3723',
+                        ionos_mail: '#003D8F', mailboxorg_mail: '#005EA1',
+                        posteo_mail: '#2E7D32', mailfence_mail: '#00263E',
                       } as Record<string, string>)[app.id]) || '#999', alignItems: 'center', justifyContent: 'center' }}>
                         <Ionicons name={(app.icon || 'cube') as any} size={16} color="#fff" />
                       </View>
@@ -522,6 +529,22 @@ export default function SettingsScreen({ onLogout, onBack, onOpenSubscription }:
                             gmail: 'Google Workspace & personal',
                             neo_mail: 'Neo Business Email · IMAP preset',
                             titan_mail: 'Titan Email · IMAP preset',
+                            yahoo_mail: 'Yahoo Mail · IMAP preset',
+                            icloud_mail: 'iCloud Mail · IMAP preset',
+                            zoho_mail: 'Zoho Mail · IMAP preset',
+                            fastmail_mail: 'Fastmail · IMAP preset',
+                            aol_mail: 'AOL Mail · IMAP preset',
+                            gmx_mail: 'GMX Mail · IMAP preset',
+                            mailru_mail: 'Mail.ru · IMAP preset',
+                            yandex_mail: 'Yandex Mail · IMAP preset',
+                            protonmail_mail: 'ProtonMail · Bridge required',
+                            hostinger_mail: 'Hostinger · business email',
+                            godaddy_mail: 'GoDaddy Workspace',
+                            namecheap_mail: 'Namecheap Private Email',
+                            ionos_mail: 'IONOS Email',
+                            mailboxorg_mail: 'Mailbox.org',
+                            posteo_mail: 'Posteo',
+                            mailfence_mail: 'Mailfence',
                             imap_mail: 'Any provider · auto-detected',
                           };
                           const sub = subtitles[app.id] || (selectedCategory === 'All' ? app.category : '');
