@@ -2654,7 +2654,7 @@ async def send_email_for_user(
     bcc_str = ",".join(bcc) if isinstance(bcc, list) else (bcc or "")
 
     # Build a params dict our connector adapters understand
-    base_params = {
+    base_params: dict[str, Any] = {
         "to": to_str,
         "subject": subject,
         "body": html,
@@ -2663,6 +2663,11 @@ async def send_email_for_user(
         base_params["cc"] = cc_str
     if bcc_str:
         base_params["bcc"] = bcc_str
+    if attachments:
+        # Adapters that support attachments will pull them out of params
+        # and attach them to the outgoing message. Adapters that don't
+        # support attachments will silently ignore the field.
+        base_params["attachments"] = attachments
 
     # Auto-migrate: if the user has legacy GhostUser.smtp_* columns and
     # does NOT yet have an imap_mail connector, copy the settings over so
@@ -3111,6 +3116,8 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                 for a in raw_attach:
                     if not isinstance(a, dict):
                         continue
+                    # Mode 1: reference a prior step whose output has
+                    # bytes (e.g. excel_pdf, convert_file, http_fetch).
                     if a.get("attach_from"):
                         src = outputs.get(a["attach_from"]) or {}
                         if src.get("bytes"):
@@ -3119,6 +3126,33 @@ async def run_plan(body: PlanRequest, authorization: str = Header(...), db: Asyn
                                 "content": src["bytes"],
                                 "content_type": a.get("content_type") or src.get("content_type") or "application/octet-stream",
                             })
+                        elif src.get("download_url"):
+                            # Fall through to URL fetch so
+                            # download_workbook outputs can be attached
+                            # without a dedicated intermediate step.
+                            a = {
+                                **a,
+                                "url": src.get("download_url"),
+                                "filename": a.get("filename") or src.get("filename") or "attachment.bin",
+                                "content_type": a.get("content_type") or src.get("content_type") or "application/octet-stream",
+                            }
+                    # Mode 2: direct URL — fetch the bytes at send time.
+                    # Lets plans like "download_workbook → email" attach
+                    # the actual file without a separate fetch step.
+                    if a.get("url") and not a.get("content"):
+                        try:
+                            async with httpx.AsyncClient(timeout=60, follow_redirects=True) as _fc:
+                                _fr = await _fc.get(a["url"])
+                            if _fr.status_code == 200:
+                                attachments.append({
+                                    "filename": a.get("filename") or a["url"].rsplit("/", 1)[-1].split("?")[0] or "attachment.bin",
+                                    "content": _fr.content,
+                                    "content_type": a.get("content_type") or _fr.headers.get("content-type", "application/octet-stream").split(";")[0],
+                                })
+                            else:
+                                logger.warning(f"email step: could not fetch attachment from {a['url']}: HTTP {_fr.status_code}")
+                        except Exception as e:
+                            logger.warning(f"email step: attachment URL fetch failed: {e}")
                     elif a.get("content"):
                         attachments.append(a)
                 if not to:
@@ -6613,13 +6647,46 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
             try: c.logout()
             except Exception: pass
 
-    def _send_sync(to_list: list[str], subject: str, body: str, cc_list: list[str], bcc_list: list[str]) -> None:
-        msg = MIMEMultipart("alternative")
+    def _send_sync(to_list: list[str], subject: str, body: str, cc_list: list[str], bcc_list: list[str], attachments: list | None = None) -> None:
+        from email.mime.base import MIMEBase
+        from email import encoders
+        # Use "mixed" when there are attachments so the HTML body and
+        # binary parts can live side-by-side.
+        if attachments:
+            msg = MIMEMultipart("mixed")
+            body_part = MIMEMultipart("alternative")
+            body_part.attach(MIMEText(body, "html"))
+        else:
+            msg = MIMEMultipart("alternative")
         msg["From"] = username
         msg["To"] = ", ".join(to_list)
         if cc_list: msg["Cc"] = ", ".join(cc_list)
         msg["Subject"] = subject
-        msg.attach(MIMEText(body, "html"))
+        if attachments:
+            msg.attach(body_part)
+            for att in attachments:
+                if not isinstance(att, dict):
+                    continue
+                filename = att.get("filename") or "attachment.bin"
+                content = att.get("content")
+                if not content:
+                    continue
+                # content may be bytes or a base64 string
+                if isinstance(content, str):
+                    import base64 as _b64
+                    try:
+                        content = _b64.b64decode(content)
+                    except Exception:
+                        content = content.encode("utf-8")
+                ctype = att.get("content_type") or "application/octet-stream"
+                maintype, _, subtype = ctype.partition("/")
+                part = MIMEBase(maintype or "application", subtype or "octet-stream")
+                part.set_payload(content)
+                encoders.encode_base64(part)
+                part.add_header("Content-Disposition", f'attachment; filename="{filename}"')
+                msg.attach(part)
+        else:
+            msg.attach(MIMEText(body, "html"))
         recipients = to_list + cc_list + bcc_list
         with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as s:
             s.ehlo()
@@ -6733,6 +6800,11 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
             to_list = _parse_mail_list(params.get("to"))
             if not to_list:
                 return {"error": "to is required"}
+            # Accept attachments as-is when the plan executor passes them
+            # through (dict shape {filename, content, content_type}).
+            atts = params.get("attachments") or None
+            if atts and not isinstance(atts, list):
+                atts = [atts] if isinstance(atts, dict) else None
             await _aio.to_thread(
                 _send_sync,
                 to_list,
@@ -6740,8 +6812,9 @@ async def _imap_mail_adapter(action: str, params: dict, creds: dict) -> dict:
                 params.get("body") or "",
                 _parse_mail_list(params.get("cc")),
                 _parse_mail_list(params.get("bcc")),
+                atts,
             )
-            return {"message": f"Email sent to {', '.join(to_list)}"}
+            return {"message": f"Email sent to {', '.join(to_list)}", "attachment_count": len(atts or [])}
 
         if action in ("mark_read", "mark_unread"):
             folder = params.get("folder") or "INBOX"
